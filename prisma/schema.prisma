@@ -1,0 +1,40 @@
+// MySQL — point DATABASE_URL in .env.local at your Workbench / cloud instance.
+// Create tables: `npm run db:migrate` (dev) or run the SQL in prisma/migrations/.../migration.sql in Workbench.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// Demo LMS users (replace localStorage auth later).
+model LmsUser {
+  id        String   @id @default(cuid())
+  email     String   @unique @db.VarChar(255)
+  name      String?  @db.VarChar(255)
+  role      String   @default("learner") @db.VarChar(32)
+  createdAt DateTime @default(now())
+
+  purchases LmsPurchase[]
+
+  @@map("lms_user")
+}
+
+/// Purchases / enrollments written from checkout (parallel path to localStorage).
+model LmsPurchase {
+  id           String   @id @default(cuid())
+  userId       String?
+  learnerEmail String   @db.VarChar(255)
+  courseSlug   String   @db.VarChar(191)
+  title        String   @db.VarChar(512)
+  createdAt    DateTime @default(now())
+
+  user LmsUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([learnerEmail])
+  @@index([courseSlug])
+  @@map("lms_purchase")
+}

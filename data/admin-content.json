@@ -1,0 +1,1114 @@
+{
+  "dashboard": {
+    "nextClassTitle": "Cyber Security Fundamentals",
+    "nextClassTime": "10:00 AM - 11:30 AM",
+    "streakDays": 12
+  },
+  "learningCourses": [
+    {
+      "title": "Advanced Cyber Security Professional",
+      "modules": 12,
+      "duration": "40h 30m",
+      "completed": 8,
+      "status": "In Progress",
+      "action": "Continue"
+    },
+    {
+      "title": "ESG Fundamentals",
+      "modules": 10,
+      "duration": "20h 15m",
+      "completed": 10,
+      "status": "Completed",
+      "action": "View Certificate"
+    },
+    {
+      "title": "Network Security Essentials",
+      "modules": 9,
+      "duration": "18h 45m",
+      "completed": 5,
+      "status": "In Progress",
+      "action": "Continue"
+    },
+    {
+      "title": "Ethical Hacking with Tools",
+      "modules": 8,
+      "duration": "16h 30m",
+      "completed": 2,
+      "status": "In Progress",
+      "action": "Continue"
+    },
+    {
+      "title": "Python for Data Science",
+      "modules": 10,
+      "duration": "22h 10m",
+      "completed": 0,
+      "status": "Not Started",
+      "action": "Start Course"
+    },
+    {
+      "title": "Workplace Compliance",
+      "modules": 6,
+      "duration": "10h 20m",
+      "completed": 6,
+      "status": "Completed",
+      "action": "View Certificate"
+    }
+  ],
+  "managedCourses": [
+    {
+      "slug": "esg-reporting-fundamentals",
+      "title": "ESG Reporting and Compliance Fundamentals",
+      "subtitle": "Learn ESG frameworks, disclosures and risk-aligned sustainability practices.",
+      "category": "esg",
+      "level": "Beginner",
+      "duration": "3h 00m",
+      "rating": "4.6",
+      "learners": "9,420",
+      "price": "$45.00",
+      "oldPrice": "$79.00",
+      "image": "/p3.png",
+      "published": true
+    },
+    {
+      "slug": "information-security-governance",
+      "title": "Information Security Governance & Controls",
+      "subtitle": "Build policy, governance, audit and control systems for secure operations.",
+      "category": "information-security",
+      "level": "Advanced",
+      "duration": "4h 45m",
+      "rating": "4.8",
+      "learners": "11,060",
+      "price": "$69.00",
+      "oldPrice": "$109.00",
+      "image": "/p1.png",
+      "published": true
+    },
+    {
+      "slug": "medical-device-quality-regulatory",
+      "title": "Medical Device Quality & Regulatory Pathway",
+      "subtitle": "Understand lifecycle, quality systems and global regulatory expectations.",
+      "category": "medical-devices",
+      "level": "Intermediate",
+      "duration": "3h 50m",
+      "rating": "4.7",
+      "learners": "7,860",
+      "price": "$62.00",
+      "oldPrice": "$95.00",
+      "image": "/p5.png",
+      "published": true
+    },
+    {
+      "slug": "workplace-compliance-practical",
+      "title": "Workplace Compliance Practical Program",
+      "subtitle": "Cover labor laws, ethics, anti-harassment and mandatory compliance modules.",
+      "category": "workplace-compliance",
+      "level": "Beginner",
+      "duration": "2h 40m",
+      "rating": "4.5",
+      "learners": "13,220",
+      "price": "$39.00",
+      "oldPrice": "$69.00",
+      "image": "/p6.png",
+      "published": true
+    },
+    {
+      "slug": "skill-development-framework-implementation",
+      "title": "Skill Development Framework Implementation",
+      "subtitle": "Design and map measurable capability pathways across your workforce.",
+      "category": "skill-development-framework",
+      "level": "Intermediate",
+      "duration": "3h 35m",
+      "rating": "4.6",
+      "learners": "8,510",
+      "price": "$52.00",
+      "oldPrice": "$84.00",
+      "image": "/p7.png",
+      "published": true
+    },
+    {
+      "slug": "hvac-refrigeration-core-operations",
+      "title": "Mechanical Engineering: HVAC & Refrigeration Core Operations",
+      "subtitle": "Master HVAC components, refrigeration cycles and maintenance diagnostics.",
+      "category": "mechanical-engineering-hvac-and-refrigeration",
+      "level": "Intermediate",
+      "duration": "4h 20m",
+      "rating": "4.7",
+      "learners": "6,940",
+      "price": "$58.00",
+      "oldPrice": "$92.00",
+      "image": "/p8.png",
+      "published": true
+    },
+    {
+      "slug": "food-safety-masterclass",
+      "title": "HACCP Food Safety Standards (Level 2)",
+      "subtitle": "Build practical HACCP and hygiene skills with real audit-ready workflows.",
+      "category": "food-safety",
+      "level": "Beginner",
+      "duration": "3h 30m",
+      "rating": "4.8",
+      "learners": "18,240",
+      "price": "49999",
+      "oldPrice": "$89.00",
+      "image": "/course-food-safety.png",
+      "published": true,
+      "learningFormat": "self-paced",
+      "curriculum": [
+        {
+          "title": "General Instructions for Candidate",
+          "items": [
+            {
+              "label": "Video — How to use this course & navigation",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Policies, attempts & certificate rules",
+              "kind": "reading"
+            },
+            {
+              "label": "Knowledge check (5 questions)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 1 — Introduction & orientation (HACCP Food Safety Standards)",
+          "items": [
+            {
+              "label": "Video — Course overview and learning outcomes",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Handbook, glossary, and resources",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 2 — Core foundations (HACCP Food Safety Standards)",
+          "items": [
+            {
+              "label": "Video — Key principles and terminology",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Reference readings and frameworks",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 3 — Applied practices (HACCP Food Safety Standards)",
+          "items": [
+            {
+              "label": "Video — Scenario-based lesson",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Worksheets, templates, and examples",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 4 — Standards & compliance (HACCP Food Safety Standards)",
+          "items": [
+            {
+              "label": "Video — Regulatory and policy context",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Checklists and guidance notes",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 5 — Risk assessment & controls (HACCP Food Safety Standards)",
+          "items": [
+            {
+              "label": "Video — Identification and mitigation walkthrough",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Case studies and exercises",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 6 — Implementation (HACCP Food Safety Standards)",
+          "items": [
+            {
+              "label": "Video — Operational best practices on the job",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — SOP excerpts and job aids",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 7 — Review & assessment prep (HACCP Food Safety Standards)",
+          "items": [
+            {
+              "label": "Video — Summary and practice session",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Revision materials and sample questions",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 8 — Capstone & certification path (HACCP Food Safety Standards)",
+          "items": [
+            {
+              "label": "Video — Final wrap-up and next steps",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Completion requirements overview",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "cyber-security-essentials",
+      "title": "Cyber Security Essentials for Professionals",
+      "subtitle": "Protect networks, endpoints, and cloud systems with practical controls.",
+      "category": "cyber-security",
+      "level": "Intermediate",
+      "duration": "4h 10m",
+      "rating": "4.7",
+      "learners": "14,980",
+      "price": "$59.00",
+      "oldPrice": "$99.00",
+      "image": "/p2.png",
+      "published": true,
+      "learningFormat": "self-paced"
+    },
+    {
+      "slug": "cybersecurity",
+      "title": "Cyber Security Phishing Awareness Trainings",
+      "subtitle": "Cyber Security Phishing Awareness Training equips individuals with the knowledge to identify, prevent, and respond to phishing attacks, helping protect sensitive data and strengthen organizational security.",
+      "category": "cyber-security",
+      "level": "Beginner",
+      "duration": "2h 00m",
+      "rating": "4.6",
+      "learners": "0",
+      "price": "1299",
+      "oldPrice": "$79.00",
+      "image": "/course-food-safety.png",
+      "published": true,
+      "learningFormat": "self-paced",
+      "instructorName": "Sustaniable Future Trainings Expert",
+      "curriculum": [
+        {
+          "title": "Module 1: What is Phishing?",
+          "items": [
+            {
+              "label": "Video — How to use this course & navigation",
+              "kind": "video",
+              "videoUrl": "/uploads/admin/1777973208786-i7jor0sf-1773913728What_is_Phishing__1080p_captio.mp4",
+              "about": "This course provides a comprehensive introduction to phishing, one of the most prevalent and dangerous cyber threats in today’s digital world. It explores how cyber attackers impersonate trusted organizations to deceive individuals into sharing sensitive information such as passwords, banking credentials, and personal data.\n\nThrough real-world examples and visual demonstrations, the course explains how phishing attacks are crafted to appear legitimate across emails, websites, and digital notifications. It also highlights the psychological manipulation techniques—such as urgency, fear, and enticing offers—that attackers use to exploit human behavior.\n\nDesigned for learners of all levels, this course builds essential awareness around phishing risks and equips individuals with the knowledge needed to recognize and respond to potential threats effectively.",
+              "learningOutcomes": [
+                "Understand the concept of phishing and how it operates in different forms.",
+                "Identify common characteristics of phishing emails, links, and fake websites.",
+                "Recognize psychological tactics used by attackers to manipulate users.",
+                "Analyze real-life phishing examples to distinguish between legitimate and fraudulent communications.",
+                "Understand the risks and consequences of falling victim to phishing attacks.",
+                "Apply best practices to detect, avoid, and respond to phishing attempts.",
+                "Develop safer online habits to protect personal and organizational data."
+              ]
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam",
+              "description": "",
+              "examUploadUrl": "/uploads/admin/1778059992102-0q7un01d-Untitled_spreadsheet_-_moduoe_1.csv",
+              "examPassingScorePercent": 60,
+              "timedExam": false
+            }
+          ]
+        },
+        {
+          "title": "Module 2 : Anatomy of a Phishing Email",
+          "items": [
+            {
+              "label": "Video — Anatomy of a Phishing Email",
+              "kind": "video",
+              "videoUrl": "/uploads/admin/1777973357757-o57b7pmj-1773913793Anatomy_of_a_Phishing_Email_10.mp4",
+              "description": "",
+              "about": "This module focuses on the anatomy of a phishing email and explains how attackers carefully design fraudulent messages to appear legitimate and trustworthy. It breaks down the key components of phishing emails, including the sender’s address, subject line, greeting, message body, malicious links, and attachments.\n\nLearners will explore how each element is strategically crafted to manipulate recipients into taking actions such as clicking harmful links or sharing sensitive information. The module also highlights how attackers impersonate trusted organizations like banks, companies, and online platforms to gain credibility.\n\nIn addition, it explains the psychological techniques—such as urgency, fear, and curiosity—that are commonly used to influence user behavior. This module aims to build a deeper understanding of how phishing emails are structured, enabling users to detect threats more effectively.",
+              "learningOutcomes": [
+                "Understand the structure and key components of a phishing email.",
+                "Identify suspicious sender addresses and misleading subject lines.",
+                "Analyze email content to detect signs of fraud or manipulation.",
+                "Recognize malicious links and unsafe attachments.",
+                "Understand how attackers impersonate trusted organizations.",
+                "Identify psychological tactics used in phishing emails.",
+                "Evaluate emails critically before taking any action.",
+                "Improve ability to detect and prevent phishing attacks"
+              ]
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam",
+              "description": "",
+              "examPassingScorePercent": 60,
+              "examUploadUrl": "/uploads/admin/1778062376529-4oiv5ver-Untitled_spreadsheet_-_module_2.csv"
+            }
+          ]
+        },
+        {
+          "title": "Module 3 : How to Identify Phishing Emails",
+          "items": [
+            {
+              "label": "Video — Scenario-based lesson",
+              "kind": "video",
+              "videoUrl": "/uploads/admin/1777974587519-eeoydmcw-1773913822How_to_Identify_Phishing_Email.mp4",
+              "about": "This module provides a practical approach to identifying phishing emails using five quick and effective verification checks. It focuses on simple yet powerful techniques that users can apply before interacting with any suspicious message.\n\nThe module emphasizes the importance of examining the sender’s email address, as attackers often disguise malicious domains behind familiar names. It also highlights the risks associated with unexpected attachments, particularly files like .zip, .exe, or unfamiliar documents from unknown sources.\n\nLearners will understand how phishing emails often contain spelling and grammatical errors, which can serve as warning signs. The module further explains how attackers use urgent or threatening language to pressure users into acting quickly without proper verification. Additionally, it introduces the practice of hovering over links to reveal their actual destination before clicking.\n\nOverall, this module is designed to equip users with quick, actionable checks that significantly reduce the risk of falling victim to phishing attacks.",
+              "learningOutcomes": [
+                "Apply five quick verification checks to assess suspicious emails.",
+                "Identify fake or misleading sender email addresses.",
+                "Recognize risks associated with unexpected or suspicious attachments.",
+                "Detect spelling and grammatical errors as potential red flags.",
+                "Understand how urgency and threats are used to manipulate users.",
+                "Safely inspect links by checking their actual destination before clicking.",
+                "Make informed decisions before interacting with email content.",
+                "Enhance overall email security awareness and reduce phishing risks."
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Module 4 — Standards & compliance (Cyber Security Phishing Awareness Trainings)",
+          "items": [
+            {
+              "label": "Video — Regulatory and policy context",
+              "kind": "video",
+              "videoUrl": "/uploads/admin/1777974636698-4f0e92mv-1773914055Phishing_Attack_Response_Roles.mp4",
+              "about": "This module focuses on how organizations effectively respond to phishing attacks by establishing clear roles, responsibilities, and defense strategies across all levels. It presents phishing as a critical social engineering threat and highlights the importance of rapid detection, containment, and mitigation to safeguard sensitive information.\n\nThe module outlines the responsibilities of key stakeholders within an organization, including leadership, security teams, managers, employees, and support functions such as HR and legal. It explains how coordinated efforts ensure an efficient and timely response to phishing incidents.\n\nAdditionally, the module introduces the incident response lifecycle, covering stages such as identification, response, recovery, and continuous improvement. It also emphasizes preventive measures like security awareness training, email filtering systems, multi-factor authentication, and phishing simulations to strengthen organizational resilience.\n\nOverall, this module aims to build a proactive and well-coordinated cybersecurity approach to effectively manage and prevent phishing threats.",
+              "learningOutcomes": [
+                "Understand phishing as a social engineering threat at an organizational level.",
+                "Identify roles and responsibilities of key stakeholders in responding to phishing attacks.",
+                "Explain the incident response lifecycle for phishing incidents.",
+                "Recognize the importance of rapid detection, containment, and mitigation.",
+                "Understand the role of employees as the first line of defense.",
+                "Apply preventive measures such as awareness training, email filtering, and multi-factor authentication.",
+                "Evaluate how coordination across teams improves incident response effectiveness.",
+                "Contribute to building a proactive cybersecurity culture within an organization."
+              ]
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam",
+              "description": "",
+              "examPassingScorePercent": 60,
+              "examUploadUrl": "/uploads/admin/1778064136115-ixcnd55p-Untitled_spreadsheet_-_Sheet5.csv"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "slug": "food-safety",
+      "title": "Food Safety",
+      "subtitle": "Food & Nutrition",
+      "description": "Food safety standards, hygiene, quality control and certifications.",
+      "isActive": true,
+      "isFeatured": false,
+      "isUppercase": false,
+      "isBold": false,
+      "tone": "violet"
+    },
+    {
+      "slug": "cyber-security",
+      "title": "Cyber Security",
+      "subtitle": "Security & Ethical Hacking",
+      "description": "Learn ethical hacking, penetration testing, network security and more.",
+      "isActive": true,
+      "isFeatured": false,
+      "isUppercase": false,
+      "isBold": false,
+      "tone": "violet"
+    },
+    {
+      "slug": "esg",
+      "title": "ESG",
+      "subtitle": "Environment & Sustainability",
+      "description": "Environmental, social and governance principles and practices.",
+      "isActive": true,
+      "isFeatured": false,
+      "isUppercase": false,
+      "isBold": false,
+      "tone": "violet"
+    },
+    {
+      "slug": "information-security",
+      "title": "Information Security",
+      "subtitle": "Governance & Controls",
+      "description": "Governance, controls, audits and risk-based security implementation.",
+      "isActive": true,
+      "isFeatured": false,
+      "isUppercase": false,
+      "isBold": false,
+      "tone": "violet"
+    },
+    {
+      "slug": "medical-devices",
+      "title": "Medical Devices",
+      "subtitle": "Regulatory & Quality",
+      "description": "Regulatory, quality and lifecycle training for medical devices.",
+      "isActive": true,
+      "isFeatured": false,
+      "isUppercase": false,
+      "isBold": false,
+      "tone": "violet"
+    },
+    {
+      "slug": "workplace-compliance",
+      "title": "Workplace Compliance",
+      "subtitle": "Legal & Ethics",
+      "description": "Child labor laws, workplace ethics and mandatory compliance modules.",
+      "isActive": true,
+      "isFeatured": false,
+      "isUppercase": false,
+      "isBold": false,
+      "tone": "violet"
+    },
+    {
+      "slug": "skill-development-framework",
+      "title": "Skill Development Framework",
+      "subtitle": "Workforce Capability",
+      "description": "Structured pathways to build and validate workforce capabilities.",
+      "isActive": true,
+      "isFeatured": false,
+      "isUppercase": false,
+      "isBold": false,
+      "tone": "violet"
+    },
+    {
+      "slug": "mechanical-engineering-hvac-and-refrigeration",
+      "title": "Mechanical Engineering (HVAC & Refrigeration)",
+      "subtitle": "Mechanical Systems",
+      "description": "Technical modules on HVAC systems, refrigeration cycles and maintenance.",
+      "isActive": true,
+      "isFeatured": false,
+      "isUppercase": false,
+      "isBold": false,
+      "tone": "violet"
+    }
+  ],
+  "categoryPages": {},
+  "coursesPage": {
+    "hero": {
+      "badgeText": "NEW PROGRAM",
+      "title": "Advanced {highlight} Professional",
+      "highlightWord": "Cyber Security",
+      "subtitle": "Master the skills to protect systems, detect threats, and respond like a pro.",
+      "ctaPrimary": "Explore Program",
+      "ctaSecondary": "View Details",
+      "backgroundImage": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1400&q=80"
+    },
+    "liveSessions": [
+      {
+        "date": "MAY 24",
+        "title": "Introduction to IoT Security",
+        "time": "10:00 AM - 11:30 AM"
+      },
+      {
+        "date": "MAY 25",
+        "title": "Web Application Penetration Testing",
+        "time": "02:00 PM - 03:30 PM"
+      },
+      {
+        "date": "MAY 26",
+        "title": "Network Security Fundamentals",
+        "time": "11:00 AM - 12:30 PM"
+      }
+    ],
+    "recentUpdates": [
+      {
+        "title": "ESG Fundamentals - New Cohort Open",
+        "subtitle": "Related Course",
+        "href": "/courses/esg-reporting-fundamentals",
+        "image": "/p3.png"
+      },
+      {
+        "title": "Tutor-Led Cyber Security Live Training Slots Open",
+        "subtitle": "Live Training",
+        "href": "/my-learning?tab=live",
+        "image": "/p2.png"
+      },
+      {
+        "title": "HVAC Live Workshop Added with Practical Case Study",
+        "subtitle": "Live Workshop",
+        "href": "/my-learning?tab=live&type=workshop",
+        "image": "/p8.png"
+      }
+    ],
+    "upcomingItems": [
+      {
+        "title": "Live Workshop: Incident Response",
+        "time": "10:00 AM - 12:00 PM",
+        "iconColor": "rose"
+      },
+      {
+        "title": "New Course Launch: AI for Business",
+        "time": "Launching soon",
+        "iconColor": "sky"
+      },
+      {
+        "title": "Webinar: Future of Work",
+        "time": "11:00 AM - 12:30 PM",
+        "iconColor": "violet"
+      }
+    ],
+    "featuredDescription": "Explore our most in-demand training programs carefully curated by industry experts to help professionals build practical skills, gain recognized certifications, and stay ahead in rapidly evolving industries. Learn through interactive modules, live sessions, real-world case studies, and hands-on learning experiences designed for career growth and professional success.",
+    "featuredExperts": [
+      {
+        "name": "Amit Verma",
+        "photo": "https://randomuser.me/api/portraits/men/32.jpg"
+      },
+      {
+        "name": "Sneha Patel",
+        "photo": "https://randomuser.me/api/portraits/women/44.jpg"
+      },
+      {
+        "name": "Rahul Sharma",
+        "photo": "https://randomuser.me/api/portraits/men/52.jpg"
+      },
+      {
+        "name": "Priya Nair",
+        "photo": "https://randomuser.me/api/portraits/women/68.jpg"
+      }
+    ],
+    "faqs": [
+      {
+        "question": "Are these courses industry-recognized?"
+      },
+      {
+        "question": "Can I switch my learning plan anytime?"
+      },
+      {
+        "question": "Do I get certificates after course completion?"
+      }
+    ],
+    "cta": {
+      "heading": "Ready to Start Your Learning Journey?",
+      "description": "Choose a path, build practical capabilities, and earn credentials that matter.",
+      "buttonText": "Get Started Now",
+      "image": "/Untitled (Label).png"
+    },
+    "coursesPerRow": 5,
+    "defaultVisibleCourses": 5
+  },
+  "homePage": {
+    "hero": {
+      "heading": "Future-Ready Learning",
+      "headingHighlight": "For Ambitious Professionals",
+      "subtitle": "Experience next-generation learning with Sustainable Futures Training. Develop practical, industry-relevant skills through expert-led courses, interactive workshops, and globally aligned certifications designed to prepare professionals for real-world success.",
+      "ctaPrimary": "Start Learning",
+      "ctaSecondary": "Join Live Workshop",
+      "videoUrl": ""
+    },
+    "stats": [
+      {
+        "value": "95%",
+        "label": "Learner Satisfaction Rate"
+      },
+      {
+        "value": "170+",
+        "label": "Industry-Aligned Programs"
+      },
+      {
+        "value": "50+",
+        "label": "Expert Trainers"
+      },
+      {
+        "value": "10K+",
+        "label": "Active Learners"
+      },
+      {
+        "value": "24/7",
+        "label": "Learning Access"
+      }
+    ],
+    "learningPaths": [
+      {
+        "id": "self-paced",
+        "title": "Self-Paced / E-Learning",
+        "desc": "Learn anytime, anywhere with flexible online courses designed for independent learning and skill development at your own pace.",
+        "keyPoints": [
+          "24/7 access to videos, modules & learning resources",
+          "Open courses anytime and continue from where you left off",
+          "Watch lessons, read study materials & complete activities",
+          "Module-wise quizzes and final assessments",
+          "Progress tracking across all learning modules",
+          "Downloadable resources and completion certificates"
+        ],
+        "cta": "Browse self-paced catalog",
+        "imageSrc": "/c1.png"
+      },
+      {
+        "id": "interactive",
+        "title": "Tutor Led Trainings",
+        "desc": "Interactive expert-led sessions designed to deliver real-world learning through live classes, guided instruction, and practical discussions.",
+        "keyPoints": [
+          "Live Zoom training sessions with industry experts",
+          "Real-time doubt solving & interactive Q&A",
+          "Structured learning pathway with guided modules",
+          "Session recordings, study materials & assignments",
+          "Practical workshops, case studies & assessments",
+          "Certification upon successful completion"
+        ],
+        "cta": "Choose interactive track",
+        "imageSrc": "/c2.png"
+      },
+      {
+        "id": "live",
+        "title": "LIVE Workshops",
+        "desc": "Participate in immersive expert-led workshops designed to provide practical industry experience through live Zoom sessions, interactive discussions, and hands-on learning.",
+        "keyPoints": [
+          "Live instructor-led Zoom workshops",
+          "Real-world case studies & practical demonstrations",
+          "Interactive Q&A and doubt-solving sessions",
+          "Hands-on activities and guided exercises",
+          "Workshop recordings & downloadable resources",
+          "Industry-focused learning with expert mentorship"
+        ],
+        "cta": "View live sessions",
+        "imageSrc": "/c3.png"
+      }
+    ],
+    "whyFeatures": [
+      {
+        "title": "Expert Trainers",
+        "desc": "Learn from industry leaders with real-world experience across sectors.",
+        "icon": "Users"
+      },
+      {
+        "title": "Quality Training Material",
+        "desc": "High-quality, up-to-date content designed for measurable outcomes.",
+        "icon": "BookOpen"
+      },
+      {
+        "title": "Flexible Learning",
+        "desc": "Study at your own pace with schedules that fit working professionals.",
+        "icon": "Clock"
+      },
+      {
+        "title": "Certification Upon Completion",
+        "desc": "Earn recognized certificates that support your career progression.",
+        "icon": "Award"
+      },
+      {
+        "title": "Interactive Live Sessions",
+        "desc": "Engage in live workshops, expert-led discussions, and real-time doubt-solving sessions.",
+        "icon": "MonitorPlay"
+      },
+      {
+        "title": "Progress Tracking & Assessments",
+        "desc": "Monitor your learning journey with module-wise assessments, exams, and performance insights.",
+        "icon": "CheckCircle2"
+      }
+    ],
+    "testimonials": [
+      {
+        "quote": "The content is practical and easy to follow. I could apply what I learned immediately in daily work.",
+        "name": "Rohan Verma",
+        "role": "Security Professional"
+      },
+      {
+        "quote": "Live sessions and assignments helped me build confidence with real scenarios, not just theory.",
+        "name": "Priya Rao",
+        "role": "Data Analyst"
+      },
+      {
+        "quote": "Great mentorship and structured learning path. The certification gave my profile a strong boost.",
+        "name": "Aman Kumar",
+        "role": "Cloud Engineer"
+      },
+      {
+        "quote": "Clear modules, supportive trainers, and strong outcomes. One of the best learning platforms I used.",
+        "name": "Neha Sharma",
+        "role": "Program Coordinator"
+      }
+    ],
+    "individualPlans": [
+      {
+        "badge": "Most Popular · Sustainable Futures Plus Monthly",
+        "tagline": "Complete multiple courses and earn credentials in the short term",
+        "desc": "Access a large catalog of professional learning programs, certifications, and job-ready training paths designed for rapid upskilling.",
+        "price": "₹2,099 / month",
+        "note": "Cancel anytime",
+        "features": [
+          "Access 10,000+ courses and Specializations from 170+ leading companies and universities",
+          "Earn unlimited certificates after your trial ends",
+          "Learn job-relevant skills and tools with 1,000+ applied projects and hands-on labs",
+          "Choose from 15+ Professional Certificate programs from leading industry partners"
+        ],
+        "cta": "Get Started"
+      },
+      {
+        "badge": "Sustainable Futures Plus Annual",
+        "tagline": "Combine flexibility and savings with long-term learning goals",
+        "desc": "Everything included in the monthly plan, with annual savings for learners focused on consistent, long-term career growth.",
+        "price": "₹13,999 / year",
+        "note": "14-day money-back guarantee",
+        "features": [
+          "Everything included in the monthly plan",
+          "Save more when you pay up front for the year",
+          "Enjoy maximum flexibility to achieve work/life balance",
+          "Learn at your own pace with continuous access to programs"
+        ],
+        "cta": "Get Started"
+      }
+    ],
+    "orgPlan": {
+      "title": "Sustainable Futures for Teams",
+      "tagline": "Accelerate team performance",
+      "desc": "Help employees master new skills and reach their goals with access to world-class learning programs built for modern teams.",
+      "price": "₹24,019.74 / year",
+      "note": "Per user for 12 months · 14-day money-back guarantee",
+      "features": [
+        "Upskill up to 125 employees",
+        "Unlimited access to 8,500 learning opportunities",
+        "Program setup and launch tools",
+        "Analytics and benchmarking dashboard"
+      ],
+      "cta": "Get Started for Teams"
+    },
+    "faqs": [
+      {
+        "q": "What is Sustainable Futures Trainings?",
+        "a": "Sustainable Futures Trainings is a professional learning platform offering industry-focused courses, live workshops, tutor-led training, and certification programs for individuals and organizations."
+      },
+      {
+        "q": "What types of learning programs do you offer?",
+        "a": "We provide self-paced courses, tutor-led live training, interactive workshops, corporate training, and certification-focused learning programs."
+      },
+      {
+        "q": "Are the courses completely online?",
+        "a": "Yes, all courses, live sessions, workshops, and assessments are accessible online through our learning platform."
+      },
+      {
+        "q": "Will I receive a certificate after course completion?",
+        "a": "Yes, certificates are issued upon successful completion of course modules, assessments, and program requirements."
+      },
+      {
+        "q": "Can organizations train their employees through Sustainable Futures Trainings?",
+        "a": "Yes, we provide corporate learning solutions, workforce upskilling programs, and centralized team management features."
+      }
+    ],
+    "newsletter": {
+      "heading": "Stay Ahead with Sustainable Futures",
+      "subtitle": "Get the latest updates on new courses, workshops, and training opportunities.",
+      "buttonText": "Subscribe"
+    },
+    "unlock": {
+      "heading": "Unlock Your Full Potential",
+      "subtitle": "Join thousands of professionals who have transformed their careers through our industry-aligned training programs.",
+      "cta": "Get Started Today",
+      "image": "/q.png"
+    },
+    "accreditationLogos": [
+      "/e1.png",
+      "/e2.png",
+      "/e3.png",
+      "/e4.png"
+    ],
+    "exploreProgramImages": [
+      "/p1.png",
+      "/p2.png",
+      "/p3.png",
+      "/p4.jpg",
+      "/p5.png",
+      "/p6.png",
+      "/p7.png",
+      "/p8.png"
+    ]
+  },
+  "aboutPage": {
+    "hero": {
+      "badge": "ABOUT SUSTAINABLE FUTURES TRAININGS",
+      "heading": "Empowering People.",
+      "headingHighlight": "Building Futures.",
+      "subtitle": "Sustainable Futures Trainings is a next-generation learning platform dedicated to helping individuals and organizations unlock potential through practical, certification-ready programs.",
+      "ctaPrimary": "Explore Courses",
+      "ctaSecondary": "Our Journey",
+      "heroImage": "/Gemini_Generated_Image_mvf5i9mvf5i9mvf5.png"
+    },
+    "highlights": [
+      {
+        "label": "Active Learners",
+        "value": "10,000+"
+      },
+      {
+        "label": "Expert Trainers",
+        "value": "200+"
+      },
+      {
+        "label": "Courses & Workshops",
+        "value": "500+"
+      },
+      {
+        "label": "Companies Connected",
+        "value": "75+"
+      }
+    ],
+    "whoWeAre": {
+      "badge": "WHO WE ARE",
+      "heading": "More Than Learning.",
+      "headingHighlight": "We Build Careers.",
+      "subtitle": "We bridge the gap between academic knowledge and real-world application. Our programs are designed by industry experts to ensure you gain practical skills that employers value.",
+      "bulletPoints": [
+        "Industry-relevant curriculum",
+        "Hands-on projects & real-world case studies",
+        "Live interactive sessions with experts",
+        "Certification & career support"
+      ],
+      "backgroundImage": "/op.png"
+    },
+    "pillars": [
+      {
+        "title": "Our Mission",
+        "desc": "To empower learners with practical, industry-ready skills through innovative and accessible education."
+      },
+      {
+        "title": "Our Vision",
+        "desc": "To become a globally trusted learning platform for professionals and organizations."
+      }
+    ],
+    "mission": {
+      "heading": "To",
+      "headingHighlight": "Safeguard Your Future",
+      "body": "At Sustainable Futures Trainings, we embed compliance and quality assurance into your organization's processes and culture through our training. Across the world, our clients rely on us to increase transparency, relevance, safety, and value in the offerings they take to market.",
+      "body2": "Our training and assurance programs help ensure that your people, processes, and technologies continue to perform at the highest level expected by all stakeholders."
+    },
+    "techPoints": [
+      "Learning by Doing experiences with live scenario-based environments.",
+      "Collaborations with advanced platforms where teams develop and implement practical solutions.",
+      "Dedicated pool of trained facilitators to strengthen candidate skills in live settings.",
+      "Continuous support from education specialists to improve workshop engagement quality.",
+      "Proven impact through repeat client orders, strong outcomes, and participant references."
+    ],
+    "features": [
+      {
+        "title": "Industry Focused",
+        "desc": "Curriculum aligned to current job roles and standards."
+      },
+      {
+        "title": "Live Learning",
+        "desc": "Real-time sessions and guided practice workshops."
+      },
+      {
+        "title": "Hands-on Practice",
+        "desc": "Case studies and practical assignments for real outcomes."
+      },
+      {
+        "title": "Career Support",
+        "desc": "Support on job readiness, portfolio, and interviews."
+      },
+      {
+        "title": "Flexible Format",
+        "desc": "Learn at your pace with self-paced and live options."
+      }
+    ],
+    "teamHierarchy": [
+      {
+        "level": "Vice President",
+        "members": [
+          {
+            "name": "col.sukhpal singh",
+            "role": "",
+            "photo": "/uploads/admin/1778569284458-mgvon9f8-1735791782678.jpg"
+          }
+        ]
+      },
+      {
+        "level": "Team Leads",
+        "members": [
+          {
+            "0": "A",
+            "1": "m",
+            "2": "i",
+            "3": "t",
+            "4": " ",
+            "5": "V",
+            "6": "e",
+            "7": "r",
+            "8": "m",
+            "9": "a",
+            "10": " ",
+            "11": "-",
+            "12": " ",
+            "13": "C",
+            "14": "y",
+            "15": "b",
+            "16": "e",
+            "17": "r",
+            "18": " ",
+            "19": "S",
+            "20": "e",
+            "21": "c",
+            "22": "u",
+            "23": "r",
+            "24": "i",
+            "25": "t",
+            "26": "y",
+            "27": " ",
+            "28": "L",
+            "29": "e",
+            "30": "a",
+            "31": "d",
+            "name": "col sukhpal singh"
+          },
+          {
+            "name": "Sneha Patel",
+            "role": "Data & Analytics Lead",
+            "photo": ""
+          }
+        ]
+      },
+      {
+        "level": "Team Coordinators",
+        "members": [
+          {
+            "name": "Rahul Sharma",
+            "role": "Program Coordination",
+            "photo": ""
+          },
+          {
+            "name": "Priya Nair",
+            "role": "Learner Success Coordination",
+            "photo": ""
+          }
+        ]
+      },
+      {
+        "level": "Domain Experts",
+        "members": [
+          {
+            "name": "Vikram Singh",
+            "role": "AI & ML",
+            "photo": ""
+          },
+          {
+            "name": "Karan Malhotra",
+            "role": "ISO & Compliance",
+            "photo": ""
+          },
+          {
+            "name": "Neha Kapoor",
+            "role": "ESG & Sustainability",
+            "photo": ""
+          },
+          {
+            "name": "Mohit Arora",
+            "role": "Food Safety & Auditing",
+            "photo": ""
+          }
+        ]
+      }
+    ],
+    "accreditations": [
+      {
+        "title": "Exemplar Global",
+        "subtitle": "RTP Certified Training",
+        "desc": "Adhering to international standards for quality and excellence in training.",
+        "logo": "/e1.png"
+      },
+      {
+        "title": "International Education Board",
+        "subtitle": "Global Educational Standards",
+        "desc": "Committed to promoting discipline, excellence, and quality education.",
+        "logo": "/e2.png"
+      },
+      {
+        "title": "IMARIE Global",
+        "subtitle": "RTP Certified Training",
+        "desc": "Recognized for delivering reliable and industry-relevant training programs.",
+        "logo": "/e3.png"
+      },
+      {
+        "title": "Blue Thread Initiative",
+        "subtitle": "Environmental Responsibility",
+        "desc": "Supporting sustainability and ocean conservation for a better tomorrow.",
+        "logo": "/e4.png"
+      }
+    ],
+    "impactStats": [
+      {
+        "value": "10,000+",
+        "label": "Learners Empowered"
+      },
+      {
+        "value": "200+",
+        "label": "Expert Trainers"
+      },
+      {
+        "value": "500+",
+        "label": "Courses & Workshops"
+      },
+      {
+        "value": "50+",
+        "label": "Corporate Clients"
+      },
+      {
+        "value": "25+",
+        "label": "Countries Reached"
+      }
+    ],
+    "testimonials": [
+      "The live sessions are practical and directly useful in my daily work.",
+      "Structured modules and projects helped me get promoted faster.",
+      "Best platform for working professionals who need flexible learning."
+    ],
+    "cta": {
+      "heading": "Ready to Start Your Learning Journey?",
+      "subtitle": "Join thousands of learners and take the next step toward your dream career.",
+      "buttonText": "Explore Courses"
+    }
+  }
+}

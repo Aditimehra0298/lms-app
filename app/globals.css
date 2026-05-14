@@ -1,0 +1,343 @@
+@import "tailwindcss" source(none);
+@source "../components";
+@source "../app";
+@source "../lib";
+@source "../data";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+:root[data-theme="dark"] {
+  --background: #05070f;
+  --foreground: #ededed;
+}
+
+:root[data-theme="light"] {
+  --background: #f8f4ec;
+  --foreground: #1f2937;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #05070f;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Light theme: remove white surfaces and keep premium beige feel */
+:root[data-theme="light"] body {
+  background: #f8f4ec;
+  color: #1f2937;
+}
+
+:root[data-theme="light"] .learnly-home {
+  color: #1f2937;
+  background:
+    radial-gradient(circle at 10% 8%, rgba(212, 160, 23, 0.2), transparent 28%),
+    radial-gradient(circle at 88% 14%, rgba(139, 92, 246, 0.1), transparent 24%),
+    linear-gradient(180deg, #f8f4ec 0%, #f3ede3 48%, #efe7da 100%);
+}
+
+:root[data-theme="light"] .learnly-home .lh-path-card,
+:root[data-theme="light"] .learnly-home .lh-category-card,
+:root[data-theme="light"] .learnly-home .lh-course-card,
+:root[data-theme="light"] .learnly-home .lh-invest-shell,
+:root[data-theme="light"] .learnly-home .lh-invest-card,
+:root[data-theme="light"] .learnly-home .lh-plan-card,
+:root[data-theme="light"] .learnly-home .lh-help-card,
+:root[data-theme="light"] .learnly-home .lh-why-card,
+:root[data-theme="light"] .learnly-home .lh-testimonial-card,
+:root[data-theme="light"] .learnly-home .lh-unlock-shell {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(212, 160, 23, 0.2), transparent 34%),
+    linear-gradient(135deg, rgba(248, 244, 236, 0.95), rgba(243, 237, 227, 0.92)) !important;
+  border-color: rgba(180, 150, 90, 0.2) !important;
+  box-shadow:
+    0 14px 32px rgba(148, 118, 59, 0.14),
+    0 0 0 1px rgba(212, 160, 23, 0.1) inset !important;
+  backdrop-filter: blur(8px);
+  transition: transform 220ms ease, box-shadow 240ms ease;
+}
+
+:root[data-theme="light"] .learnly-home .lh-path-card:hover,
+:root[data-theme="light"] .learnly-home .lh-category-card:hover,
+:root[data-theme="light"] .learnly-home .lh-course-card:hover,
+:root[data-theme="light"] .learnly-home .lh-invest-card:hover,
+:root[data-theme="light"] .learnly-home .lh-plan-card:hover,
+:root[data-theme="light"] .learnly-home .lh-why-card:hover,
+:root[data-theme="light"] .learnly-home .lh-testimonial-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 18px 40px rgba(148, 118, 59, 0.2),
+    0 0 24px rgba(212, 160, 23, 0.2) !important;
+}
+
+:root[data-theme="light"] .learnly-home .bg-white,
+:root[data-theme="light"] .learnly-home .bg-neutral-50,
+:root[data-theme="light"] .learnly-home .bg-stone-50,
+:root[data-theme="light"] .learnly-home .bg-zinc-50,
+:root[data-theme="light"] .learnly-home .bg-slate-50 {
+  background-color: #f3ede3 !important;
+}
+
+:root[data-theme="light"] .learnly-home .text-white {
+  color: #1f2937 !important;
+}
+
+:root[data-theme="light"] .learnly-home h1,
+:root[data-theme="light"] .learnly-home h2,
+:root[data-theme="light"] .learnly-home h3 {
+  color: #0f172a !important;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="light"] .learnly-home .text-gray-300,
+:root[data-theme="light"] .learnly-home .text-gray-400,
+:root[data-theme="light"] .learnly-home .text-gray-500,
+:root[data-theme="light"] .learnly-home .text-slate-300,
+:root[data-theme="light"] .learnly-home .text-slate-400,
+:root[data-theme="light"] .learnly-home .text-neutral-400,
+:root[data-theme="light"] .learnly-home .text-amber-100,
+:root[data-theme="light"] .learnly-home .text-amber-200,
+:root[data-theme="light"] .learnly-home .text-amber-300,
+:root[data-theme="light"] .learnly-home .text-amber-400,
+:root[data-theme="light"] .learnly-home .text-yellow-200,
+:root[data-theme="light"] .learnly-home .text-yellow-300,
+:root[data-theme="light"] .learnly-home .text-yellow-400 {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .learnly-home p,
+:root[data-theme="light"] .learnly-home li,
+:root[data-theme="light"] .learnly-home label,
+:root[data-theme="light"] .learnly-home span {
+  color: #1f2937;
+}
+
+:root[data-theme="light"] .learnly-home section[class*="border-t"] {
+  border-top-color: rgba(180, 150, 90, 0.2) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-faq-card,
+:root[data-theme="light"] .learnly-home .lh-newsletter-shell,
+:root[data-theme="light"] .learnly-home .lh-unlock-shell,
+:root[data-theme="light"] .learnly-home .lh-unlock-grid,
+:root[data-theme="light"] .learnly-home .lh-unlock-image-shell {
+  background: linear-gradient(135deg, rgba(248, 244, 236, 0.96), rgba(243, 237, 227, 0.92)) !important;
+  border-color: rgba(180, 150, 90, 0.24) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-unlock-strip {
+  background: linear-gradient(180deg, #f3ede3 0%, #efe7da 100%) !important;
+  border-top-color: rgba(180, 150, 90, 0.28) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-newsletter-input {
+  background-color: #efe7da !important;
+  color: #1f2937 !important;
+  border-color: rgba(180, 150, 90, 0.35) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-newsletter-input::placeholder {
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-gold-btn,
+:root[data-theme="light"] .learnly-home button[class*="text-black"][class*="rounded-full"] {
+  background: linear-gradient(180deg, #f9cb77 0%, #e5a32f 100%) !important;
+  color: #111827 !important;
+  box-shadow:
+    0 10px 24px rgba(212, 160, 23, 0.3),
+    0 0 22px rgba(212, 160, 23, 0.22) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-gold-btn:hover,
+:root[data-theme="light"] .learnly-home button[class*="text-black"][class*="rounded-full"]:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 30px rgba(212, 160, 23, 0.34),
+    0 0 28px rgba(139, 92, 246, 0.2) !important;
+}
+
+/* About page: premium light theme treatment (same feel as home) */
+:root[data-theme="light"] .about-page {
+  background:
+    linear-gradient(rgba(248, 244, 236, 0.9), rgba(243, 237, 227, 0.92)),
+    url("/op.png"),
+    radial-gradient(circle at 10% 8%, rgba(212, 160, 23, 0.18), transparent 30%),
+    radial-gradient(circle at 90% 12%, rgba(139, 92, 246, 0.1), transparent 24%),
+    linear-gradient(180deg, #f8f4ec 0%, #f3ede3 52%, #efe7da 100%) !important;
+  color: #1f2937 !important;
+  background-size: cover, cover, auto, auto, auto;
+  background-position: center, center, 0 0, 0 0, 0 0;
+  background-attachment: fixed, fixed, scroll, scroll, scroll;
+}
+
+:root[data-theme="light"] .about-page section,
+:root[data-theme="light"] .about-page article,
+:root[data-theme="light"] .about-page blockquote,
+:root[data-theme="light"] .about-page div[class*="bg-black/"],
+:root[data-theme="light"] .about-page div[class*="bg-white/"] {
+  border-color: rgba(180, 150, 90, 0.24) !important;
+}
+
+:root[data-theme="light"] .about-page section[class*="bg-black/"],
+:root[data-theme="light"] .about-page article[class*="bg-black/"],
+:root[data-theme="light"] .about-page div[class*="bg-black/20"],
+:root[data-theme="light"] .about-page div[class*="bg-black/30"],
+:root[data-theme="light"] .about-page div[class*="bg-black/40"],
+:root[data-theme="light"] .about-page div[class*="bg-black/25"],
+:root[data-theme="light"] .about-page div[class*="bg-white/5"],
+:root[data-theme="light"] .about-page div[class*="bg-[#0a1120]/80"] {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(212, 160, 23, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(248, 244, 236, 0.96), rgba(243, 237, 227, 0.92)) !important;
+  box-shadow:
+    0 12px 30px rgba(148, 118, 59, 0.12),
+    0 0 0 1px rgba(212, 160, 23, 0.08) inset !important;
+}
+
+:root[data-theme="light"] .about-page h1,
+:root[data-theme="light"] .about-page h2,
+:root[data-theme="light"] .about-page h3,
+:root[data-theme="light"] .about-page .text-white {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .about-page p,
+:root[data-theme="light"] .about-page li,
+:root[data-theme="light"] .about-page .text-gray-200,
+:root[data-theme="light"] .about-page .text-gray-300,
+:root[data-theme="light"] .about-page .text-gray-400 {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .about-page .text-amber-200,
+:root[data-theme="light"] .about-page .text-amber-300,
+:root[data-theme="light"] .about-page .text-violet-200,
+:root[data-theme="light"] .about-page .text-violet-300 {
+  color: #7a5610 !important;
+}
+
+/* About "More Than Learning" section light-theme polish */
+:root[data-theme="light"] .about-page .about-who-overlay-x {
+  background: linear-gradient(90deg, rgba(248, 244, 236, 0.95), rgba(243, 237, 227, 0.72), rgba(243, 237, 227, 0.35)) !important;
+}
+
+:root[data-theme="light"] .about-page .about-who-overlay-y {
+  background: linear-gradient(180deg, rgba(248, 244, 236, 0.78), transparent 46%, rgba(243, 237, 227, 0.82)) !important;
+}
+
+:root[data-theme="light"] .about-page .about-who-badge {
+  border-color: rgba(180, 150, 90, 0.35) !important;
+  background: rgba(212, 160, 23, 0.14) !important;
+  color: #7a5610 !important;
+}
+
+:root[data-theme="light"] .about-page .about-who-title {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .about-page .about-who-description {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .about-page .about-who-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+:root[data-theme="light"] .about-page .about-who-list-item {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  border: 1px solid rgba(180, 150, 90, 0.26);
+  background: rgba(248, 244, 236, 0.88);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #334155 !important;
+}
+
+@media (max-width: 768px) {
+  :root[data-theme="light"] .about-page .about-who-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes qmarkFloatA {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.03);
+  }
+}
+
+@keyframes qmarkFloatB {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(3px) scale(0.98);
+  }
+}
+
+@keyframes qmarkGlowPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.28));
+  }
+  50% {
+    filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.5));
+  }
+}
+
+.qmark-orb {
+  animation: qmarkGlowPulse 2.8s ease-in-out infinite;
+  will-change: transform, filter;
+}
+
+.qmark-orb-1 {
+  animation:
+    qmarkFloatA 2.6s ease-in-out infinite,
+    qmarkGlowPulse 2.8s ease-in-out infinite;
+}
+
+.qmark-orb-2 {
+  animation:
+    qmarkFloatB 2.2s ease-in-out infinite,
+    qmarkGlowPulse 2.5s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+.qmark-orb-3 {
+  animation:
+    qmarkFloatA 2.9s ease-in-out infinite,
+    qmarkGlowPulse 3s ease-in-out infinite;
+  animation-delay: 0.35s;
+}
+
+.qmark-hero {
+  animation:
+    qmarkFloatA 5.8s ease-in-out infinite,
+    qmarkGlowPulse 6.2s ease-in-out infinite;
+  will-change: transform, filter;
+}

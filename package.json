@@ -1,0 +1,44 @@
+{
+  "name": "sft-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0 --webpack -p 3000",
+    "dev:turbo": "next dev --hostname 0.0.0.0 -p 3000",
+    "dev:fresh": "pkill -f 'next dev' 2>/dev/null || true; rm -rf .next; next dev --hostname 0.0.0.0 --webpack -p 3000",
+    "dev:fresh:turbo": "pkill -f 'next dev' 2>/dev/null || true; rm -rf .next; next dev --hostname 0.0.0.0 -p 3000",
+    "build": "prisma generate && next build --webpack",
+    "build:turbo": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "node scripts/ensure-nanoid-non-secure.mjs && prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:deploy": "prisma migrate deploy"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "@swc/helpers": "^0.5.21",
+    "lucide-react": "^1.14.0",
+    "nanoid": "^3.3.11",
+    "next": "16.2.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-easy-crop": "^5.5.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "20.19.39",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.3",
+    "napi-postinstall": "^0.3.4",
+    "postcss": "8.4.49",
+    "prisma": "^6.19.0",
+    "tailwindcss": "^4",
+    "typescript": "5.9.3"
+  }
+}

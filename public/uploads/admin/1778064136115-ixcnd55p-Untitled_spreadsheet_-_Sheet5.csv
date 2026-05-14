@@ -1,0 +1,16 @@
+S.No,Question,Option A,Option B,Option C,Option D,CorrectOption,Marks
+46,What is a phishing attack?,Hardware failure,Social engineering attack,Network outage,Software bug,B,1
+47,What is the primary goal of a phishing attack?,Improve system performance,Steal sensitive information,Backup data,Encrypt files for safety,B,1
+48,Who is responsible for activating the incident response plan?,Employee,Manager,CEO,HR,C,1
+49,Who leads the technical response to a phishing attack?,CEO,Manager,CISO,Employee,C,1
+50,Which team removes phishing emails from inboxes?,HR Team,IT Security Team,Legal Team,Finance Team,B,1
+51,What should an employee do when receiving a suspicious email?,Click immediately,Ignore it,Report it to IT security,Forward to friends,C,1
+52,What is the first step in incident response?,Recovery,Detection,Documentation,Training,B,1
+53,What is the purpose of containment?,Increase network speed,Stop attack spread,Train employees,Store data,B,1
+54,Which of the following is a preventive measure?,Ignoring emails,Security awareness training,Sharing passwords,Disabling antivirus,B,1
+55,What does MFA stand for?,Multi Factor Authentication,Main Firewall Access,Multiple File Access,Managed Firewall Application,A,1
+56,Who ensures employees follow security policies?,CEO,Managers,Customers,Vendors,B,1
+57,What should be done after a phishing attack is handled?,Ignore it,Delete records,Document and learn from it,Shut down systems permanently,C,1
+58,Which team handles legal implications of a breach?,IT Team,HR and Legal Team,Managers,Employees,B,1
+59,Why are phishing simulations conducted?,For entertainment,To test employee awareness,To slow systems,To delete data,B,1
+60,What is the role of employees in phishing defense?,Ignore threats,First line of defense,Only observe,Handle legal actions,B,1
