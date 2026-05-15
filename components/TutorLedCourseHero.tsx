@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
 import type { LucideIcon } from "lucide-react";
 import {
   Award,
@@ -55,8 +57,8 @@ type Props = {
   setWishlisted: (v: boolean) => void;
   heroSrc?: string;
   heroAlt?: string;
-  /** Primary CTA (e.g. checkout enroll link or learner schedule). */
-  primaryCta?: { href: string; label: string };
+  /** Primary CTA: open URL, or register → login then checkout when slug is set. */
+  primaryCta?: { kind: "link"; href: string; label: string } | { kind: "register"; slug: string; label: string };
 };
 
 export default function TutorLedCourseHero({
@@ -69,6 +71,7 @@ export default function TutorLedCourseHero({
   heroAlt = "Live tutor-led session preview",
   primaryCta,
 }: Props) {
+  const router = useRouter();
   const seatCap = 40;
   const filledPct = Math.min(100, Math.max(12, ((seatCap - course.seatsLeft) / seatCap) * 100));
 
@@ -236,12 +239,22 @@ export default function TutorLedCourseHero({
                   </div>
 
                   {primaryCta ? (
-                    <Link
-                      href={primaryCta.href}
-                      className="flex w-full items-center justify-center rounded-xl bg-[#FFB800] py-3.5 text-sm font-extrabold text-black shadow-[0_8px_24px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500]"
-                    >
-                      {primaryCta.label}
-                    </Link>
+                    primaryCta.kind === "link" ? (
+                      <Link
+                        href={primaryCta.href}
+                        className="flex w-full items-center justify-center rounded-xl bg-[#FFB800] py-3.5 text-sm font-extrabold text-black shadow-[0_8px_24px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500]"
+                      >
+                        {primaryCta.label}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => registerTutorLedFromTemplate(router, primaryCta.slug)}
+                        className="flex w-full items-center justify-center rounded-xl bg-[#FFB800] py-3.5 text-sm font-extrabold text-black shadow-[0_8px_24px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500]"
+                      >
+                        {primaryCta.label}
+                      </button>
+                    )
                   ) : (
                     <button
                       type="button"

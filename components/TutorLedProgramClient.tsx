@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { mapTutorLedProgramToPageCourse } from "@/lib/tutor-led-program-map";
 import TutorLedCourseHero from "@/components/TutorLedCourseHero";
+import TutorLedLearnerDashboard from "@/components/TutorLedLearnerDashboard";
 import TutorLedPostHeroSections from "@/components/TutorLedPostHeroSections";
 
 type Props = { program: TutorLedProgramStored; enrolledLearning?: boolean };
@@ -82,6 +83,10 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
         { label: crumbs[2] ?? program.title, href: `/tutor-led/${program.slug}` },
       ];
 
+  if (enrolledLearning) {
+    return <TutorLedLearnerDashboard program={program} />;
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       <TutorLedCourseHero
@@ -92,14 +97,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
         setWishlisted={setWishlisted}
         heroSrc={program.heroSrc ?? "/h1.png"}
         heroAlt={program.heroAlt ?? "Live tutor-led training"}
-        primaryCta={
-          enrolledLearning
-            ? { href: "/my-learning/calendar", label: "View live schedule" }
-            : {
-                href: `/checkout?buyNow=${encodeURIComponent(program.slug)}`,
-                label: "Reserve Your Seat",
-              }
-        }
+        primaryCta={{ kind: "register", slug: program.slug, label: "Reserve Your Seat" }}
       />
 
       <TutorLedPostHeroSections
@@ -112,6 +110,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
         }}
         openFaq={openFaq}
         setOpenFaq={setOpenFaq}
+        tutorLedCheckoutSlug={program.slug}
       />
 
       <div className="h-8" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
 
 export default function BuyNowButton({
   slug,
@@ -14,15 +15,7 @@ export default function BuyNowButton({
   return (
     <button
       type="button"
-      onClick={() => {
-        const isLoggedIn = window.localStorage.getItem("sft_logged_in") === "true";
-        const buyNowRedirect = `/checkout?buyNow=${encodeURIComponent(slug)}`;
-        if (!isLoggedIn) {
-          router.push(`/account?mode=login&redirect=${encodeURIComponent(buyNowRedirect)}`);
-          return;
-        }
-        router.push(buyNowRedirect);
-      }}
+      onClick={() => registerTutorLedFromTemplate(router, slug)}
       className={className}
     >
       Pay Now

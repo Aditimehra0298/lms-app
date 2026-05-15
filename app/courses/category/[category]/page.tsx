@@ -17,7 +17,7 @@ import {
 import AddToCartButton from "@/components/AddToCartButton";
 import CategoryFaqAccordion from "@/components/CategoryFaqAccordion";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
-import type { CategoryWhyTone } from "@/lib/content-schema";
+import type { CategoryWhyTone, CourseLearningFormat } from "@/lib/content-schema";
 import {
   canonicalCategorySlug,
   getCategoryWorkshopPlaceholders,
@@ -26,6 +26,7 @@ import {
 } from "@/lib/category-page-resolve";
 import { getManagedCourses } from "@/lib/server/course-catalog";
 import { readAdminContent } from "@/lib/server/content-store";
+import { courseBrowseHref, liveTutorCourseHref } from "@/lib/tutor-led-routes";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,7 @@ type CourseCard = {
   rating: string;
   price: string;
   image?: string;
+  learningFormat?: CourseLearningFormat;
 };
 
 const fallbackCourses = (fallbackSlug: string): CourseCard[] => [
@@ -213,6 +215,7 @@ export default async function CourseCategoryPage({
       rating: course.rating,
       price: course.price,
       image: course.image,
+      learningFormat: course.learningFormat,
     }));
   const fallbackSlug =
     adminMappedCourses[0]?.slug ?? managedCourses[0]?.slug ?? "food-safety-masterclass";
@@ -224,10 +227,7 @@ export default async function CourseCategoryPage({
 
   if (!title) notFound();
 
-  const workshopRegisterHref =
-    categoryKey === "cyber-security" || categoryKey === "information-security"
-      ? "/checkout?buyNow=advanced-cyber-security-professional"
-      : `/account?mode=login&redirect=${encodeURIComponent("/my-learning?tab=live")}`;
+  const workshopRegisterHref = liveTutorCourseHref();
   const workshops = getCategoryWorkshopPlaceholders(title, workshopRegisterHref);
 
   const instructors = pageCfg.instructors;
@@ -470,7 +470,7 @@ export default async function CourseCategoryPage({
                     <p className="text-lg font-bold text-amber-400">{course.price}</p>
                     <div className="flex items-center gap-2">
                       <Link
-                        href={`/courses/${course.slug}`}
+                        href={courseBrowseHref(course.slug, course.learningFormat, categoryKey)}
                         className="text-xs font-semibold text-gray-400 underline-offset-4 hover:text-white hover:underline"
                       >
                         View Details

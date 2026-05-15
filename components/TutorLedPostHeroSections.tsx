@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
@@ -19,6 +20,7 @@ import {
   Users,
   Video,
 } from "lucide-react";
+import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
 
 const shell = "mx-auto w-full max-w-[1760px] px-4 md:px-8 xl:px-10";
 const card =
@@ -61,6 +63,10 @@ type Props = {
   classroomImageSrc?: string;
   /** Marketing copy labels for catalog (self-paced) vs live tutor pages. */
   variant?: "tutor-led" | "self-paced";
+  /** Learner already enrolled — bottom CTA becomes schedule, not checkout. */
+  enrolledLearning?: boolean;
+  /** When set on public tutor-led pages, bottom CTA runs login → checkout for this slug. */
+  tutorLedCheckoutSlug?: string;
 };
 
 const chatPreviewTutorLed = [
@@ -82,7 +88,10 @@ export default function TutorLedPostHeroSections({
   highlightsImageSrc = "/h2.png",
   classroomImageSrc = "/h3.png",
   variant = "tutor-led",
+  enrolledLearning = false,
+  tutorLedCheckoutSlug,
 }: Props) {
+  const router = useRouter();
   const isSelfPaced = variant === "self-paced";
   const chatLines = isSelfPaced ? chatPreviewSelfPaced : chatPreviewTutorLed;
   return (
@@ -363,20 +372,36 @@ export default function TutorLedPostHeroSections({
                   ? "Enroll when you are ready and move through the material at your own pace."
                   : "Limited seats available for a personalized live learning experience."}
               </p>
-              <Link
-                href="/cart"
-                className="mt-5 inline-flex w-full max-w-sm items-center justify-center gap-2 rounded-xl bg-[#FFB800] px-6 py-3.5 text-sm font-extrabold text-black shadow-[0_10px_30px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500] md:w-full"
-              >
-                {isSelfPaced ? (
-                  <>
-                    Enroll now <ChevronRight size={18} strokeWidth={2.5} />
-                  </>
-                ) : (
-                  <>
-                    Reserve Your Seat Now <ChevronRight size={18} strokeWidth={2.5} />
-                  </>
-                )}
-              </Link>
+              {isSelfPaced ? (
+                <Link
+                  href="/cart"
+                  className="mt-5 inline-flex w-full max-w-sm items-center justify-center gap-2 rounded-xl bg-[#FFB800] px-6 py-3.5 text-sm font-extrabold text-black shadow-[0_10px_30px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500] md:w-full"
+                >
+                  Enroll now <ChevronRight size={18} strokeWidth={2.5} />
+                </Link>
+              ) : enrolledLearning ? (
+                <Link
+                  href="/my-learning?tab=live"
+                  className="mt-5 inline-flex w-full max-w-sm items-center justify-center gap-2 rounded-xl bg-[#FFB800] px-6 py-3.5 text-sm font-extrabold text-black shadow-[0_10px_30px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500] md:w-full"
+                >
+                  Open Tutor Led dashboard <ChevronRight size={18} strokeWidth={2.5} />
+                </Link>
+              ) : tutorLedCheckoutSlug ? (
+                <button
+                  type="button"
+                  onClick={() => registerTutorLedFromTemplate(router, tutorLedCheckoutSlug)}
+                  className="mt-5 inline-flex w-full max-w-sm items-center justify-center gap-2 rounded-xl bg-[#FFB800] px-6 py-3.5 text-sm font-extrabold text-black shadow-[0_10px_30px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500] md:w-full"
+                >
+                  Register for live course <ChevronRight size={18} strokeWidth={2.5} />
+                </button>
+              ) : (
+                <Link
+                  href="/courses"
+                  className="mt-5 inline-flex w-full max-w-sm items-center justify-center gap-2 rounded-xl bg-[#FFB800] px-6 py-3.5 text-sm font-extrabold text-black shadow-[0_10px_30px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500] md:w-full"
+                >
+                  Browse live programs <ChevronRight size={18} strokeWidth={2.5} />
+                </Link>
+              )}
               <p className="mt-4 flex items-center justify-center gap-2 text-xs text-zinc-500">
                 <Shield className="h-4 w-4 text-[#FFB800]" />
                 7 Days Money-back Guarantee

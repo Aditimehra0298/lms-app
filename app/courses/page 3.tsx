@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
 import { getManagedCourses } from "@/lib/server/course-catalog";
 import { readAdminContent } from "@/lib/server/content-store";
+import { courseBrowseHref, liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import { defaultCoursesPageConfig } from "@/lib/content-schema";
 import type { CoursesPageConfig } from "@/lib/content-schema";
 import {
@@ -299,12 +300,18 @@ export default async function CoursesPage({
                   {cpConfig.hero.subtitle}
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <button className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-black">
+                  <Link
+                    href={liveTutorCourseHref()}
+                    className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-black"
+                  >
                     {cpConfig.hero.ctaPrimary}
-                  </button>
-                  <button className="rounded-full border border-white/25 bg-black/40 px-5 py-2.5 text-sm font-semibold">
+                  </Link>
+                  <Link
+                    href={liveTutorCourseHref()}
+                    className="rounded-full border border-white/25 bg-black/40 px-5 py-2.5 text-sm font-semibold"
+                  >
                     {cpConfig.hero.ctaSecondary}
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -326,9 +333,12 @@ export default async function CoursesPage({
                     <p className="text-sm font-semibold">{session.title}</p>
                     <p className="text-xs text-gray-400">{session.time}</p>
                   </div>
-                  <button className="rounded-full border border-blue-300/40 px-3 py-1 text-xs text-blue-200">
+                  <Link
+                    href={liveTutorCourseHref()}
+                    className="rounded-full border border-blue-300/40 px-3 py-1 text-xs text-blue-200"
+                  >
                     Join
-                  </button>
+                  </Link>
                 </div>
               ))}
             </div>

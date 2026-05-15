@@ -35,6 +35,7 @@ import {
 import { AdminContent, defaultAdminContent, type ManagedCourse } from "@/lib/content-schema";
 import { MyLearningLiveHub } from "@/components/MyLearningLiveHub";
 import { examLinksFromManagedCourse, resolveLearningCourseSlug } from "@/lib/my-learning-exams";
+import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 
 export const dynamic = "force-dynamic";
 
@@ -845,9 +846,12 @@ export default function MyLearningPage() {
                       <div key={title} className="rounded-lg border border-white/10 bg-white/5 p-2.5">
                         <p className="text-xs text-gray-400">{date}</p>
                         <p className="text-sm">{title}</p>
-                        <button className="mt-1 rounded-md border border-white/15 px-2 py-0.5 text-xs text-amber-200">
+                        <Link
+                          href={liveTutorCourseHref()}
+                          className="mt-1 inline-block rounded-md border border-white/15 px-2 py-0.5 text-xs text-amber-200 hover:bg-white/10"
+                        >
                           {cta}
-                        </button>
+                        </Link>
                       </div>
                     ))}
                   </div>
@@ -1309,9 +1313,12 @@ export default function MyLearningPage() {
                     <div className="mt-2 h-12 rounded-md border border-dashed border-white/20 bg-black/20 text-center text-[10px] leading-[48px] text-gray-400">
                       Event Poster Placeholder
                     </div>
-                    <button className="mt-3 rounded-md bg-amber-400 px-3 py-1 text-xs font-bold text-black">
+                    <Link
+                      href={liveTutorCourseHref()}
+                      className="mt-3 inline-block rounded-md bg-amber-400 px-3 py-1 text-xs font-bold text-black hover:bg-amber-300"
+                    >
                       Register Now
-                    </button>
+                    </Link>
                   </article>
                 ))}
               </div>

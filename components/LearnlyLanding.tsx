@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultAdminContent, defaultHomePageConfig, type AdminContent, type HomePageConfig, type ManagedCategory, type ManagedCourse } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
+import { courseBrowseHref } from "@/lib/tutor-led-routes";
 import {
   Play,
   Star,
@@ -1010,10 +1011,14 @@ export default function LearnlyLanding() {
                           <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-3">
                             <span className="text-lg font-bold text-amber-400">{course.price}</span>
                             <Link
-                              href={`/courses/${course.slug}?tab=course-content`}
+                              href={
+                                learningPath === "interactive"
+                                  ? courseBrowseHref(course.slug, "interactive")
+                                  : `/courses/${course.slug}?tab=course-content`
+                              }
                               className={`text-xs font-bold ${goldText} hover:underline`}
                             >
-                              View curriculum →
+                              {learningPath === "interactive" ? "View live program →" : "View curriculum →"}
                             </Link>
                           </div>
                         </div>

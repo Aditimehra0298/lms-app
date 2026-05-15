@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import {
   ArrowRight,
   CalendarDays,
@@ -49,7 +50,7 @@ const UPCOMING_LIVE_SESSIONS = [
     cta: "Register",
     eta: "Starts in 2 days",
     tone: "emerald" as const,
-    href: "/checkout?buyNow=advanced-cyber-security-professional",
+    href: liveTutorCourseHref(),
     live: false,
   },
   {
@@ -73,7 +74,7 @@ const UPCOMING_LIVE_SESSIONS = [
     cta: "Register",
     eta: "Starts in 4 days",
     tone: "emerald" as const,
-    href: "/checkout?buyNow=advanced-cyber-security-professional",
+    href: liveTutorCourseHref(),
     live: false,
   },
 ] as const;
@@ -233,10 +234,10 @@ export function MyLearningLiveHub({ enrollments }: { enrollments: LiveEnrollment
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 <Link
-                  href="/checkout?buyNow=advanced-cyber-security-professional"
+                  href={liveTutorCourseHref()}
                   className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-bold text-black hover:bg-amber-300"
                 >
-                  View sample checkout
+                  View live program
                 </Link>
                 <Link
                   href="/courses/category/cyber-security"

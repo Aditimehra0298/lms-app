@@ -131,6 +131,17 @@ export default function CheckoutPage() {
     void loadItems();
   }, [buyNowSlug]);
 
+  const successHasTutorLed = useMemo(() => items.some((i) => i.deliveryKind === "tutor-led"), [items]);
+  const tutorLedSlug = useMemo(
+    () => items.find((i) => i.deliveryKind === "tutor-led")?.slug,
+    [items],
+  );
+  const successMyLearningHref = successHasTutorLed && tutorLedSlug
+    ? `/my-learning/course/${encodeURIComponent(tutorLedSlug)}`
+    : successHasTutorLed
+      ? "/my-learning?tab=live"
+      : "/my-learning?tab=learning";
+
   const subtotal = items.reduce((sum, item) => sum + parsePrice(item.price) * item.qty, 0);
   if (!isHydrated) {
     return (
@@ -183,9 +194,6 @@ export default function CheckoutPage() {
     setIsSuccess(true);
   };
 
-  const successHasTutorLed = useMemo(() => items.some((i) => i.deliveryKind === "tutor-led"), [items]);
-  const successMyLearningHref = successHasTutorLed ? "/my-learning?tab=live" : "/my-learning?tab=learning";
-
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -196,8 +204,8 @@ export default function CheckoutPage() {
             <p className="mt-2 text-gray-300">
               {successHasTutorLed ? (
                 <>
-                  Your tutor-led enrollment is saved. Go to <strong className="text-gray-200">My Learning → Tutor Led</strong>{" "}
-                  for live sessions, and use <strong className="text-gray-200">My Calendar</strong> to see it on your schedule.
+                  Your tutor-led enrollment is saved. Open your <strong className="text-gray-200">live course hub</strong> to
+                  join sessions, watch recordings, and track weekly progress.
                 </>
               ) : (
                 <>
@@ -225,7 +233,7 @@ export default function CheckoutPage() {
                 href={successMyLearningHref}
                 className="rounded-lg bg-amber-400 px-5 py-2.5 text-sm font-bold text-black"
               >
-                {successHasTutorLed ? "Go to Tutor Led" : "Go to My Learning"}
+                {successHasTutorLed ? "Open live course hub" : "Go to My Learning"}
               </Link>
               {successHasTutorLed ? (
                 <Link

@@ -117,13 +117,10 @@ export default function AccountPage() {
     }
     window.localStorage.setItem("sft_user_role", "learner");
     const r = redirectTo.trim();
-    const registerCheckoutKeepsUrl = r.startsWith("/checkout") && r.includes("buyNow=");
+    const registerKeepsRedirect =
+      (r.startsWith("/checkout") && r.includes("buyNow=")) || r.startsWith("/tutor-led/");
     const learnerDestination =
-      authView === "register"
-        ? registerCheckoutKeepsUrl
-          ? redirectTo
-          : DEFAULT_REGISTER_CHECKOUT
-        : redirectTo;
+      authView === "register" ? (registerKeepsRedirect ? redirectTo : DEFAULT_REGISTER_CHECKOUT) : redirectTo;
     router.push(learnerDestination);
   };
 

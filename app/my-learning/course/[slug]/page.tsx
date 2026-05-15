@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import { useParams } from "next/navigation";
 import {
   Bookmark,
   CalendarDays,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import TutorLedProgramClient from "@/components/TutorLedProgramClient";
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { openTutorLedProgram } from "@/lib/push-checkout-or-login";
 
 const moduleItems = [
   {
@@ -114,6 +114,7 @@ type CourseCurriculumModule = {
 
 export default function CourseLearningPlayerPage() {
   const params = useParams<{ slug: string }>();
+  const router = useRouter();
   const slug = params?.slug ?? "course";
   const courseTitle = useMemo(() => toTitle(slug), [slug]);
   const [apiCourseTitle, setApiCourseTitle] = useState<string | null>(null);
@@ -345,12 +346,13 @@ export default function CourseLearningPlayerPage() {
             <p className="mt-2 max-w-xl text-gray-300">
               Complete enrollment to access your live cohort space, recordings, and schedule from My Learning.
             </p>
-            <Link
-              href={`/checkout?buyNow=${encodeURIComponent(tutorLedResolved.slug)}`}
+            <button
+              type="button"
+              onClick={() => openTutorLedProgram(router, tutorLedResolved.slug)}
               className="mt-6 inline-flex rounded-lg bg-amber-400 px-5 py-2.5 text-sm font-bold text-black"
             >
               Enroll now
-            </Link>
+            </button>
           </main>
         </div>
       );
