@@ -26,6 +26,21 @@ export function liveTutorCourseHref(slug?: string | null): string {
   return tutorLedTemplatePath(resolveTutorLedSlug(slug));
 }
 
+/** Enrolled learner hub: live join, recordings, and cohort materials. */
+export function tutorLedLearnerJoinHref(slug?: string | null): string {
+  return `/my-learning/course/${encodeURIComponent(resolveTutorLedSlug(slug))}`;
+}
+
+/** Learner hub scrolled to the in-LMS Zoom join card (never a raw zoom.us link). */
+export function tutorLedLearnerLiveJoinHref(slug?: string | null): string {
+  return `${tutorLedLearnerJoinHref(slug)}#zoom-live`;
+}
+
+/** Live join entry — opens the program hub Zoom classroom card (never a raw zoom.us bypass). */
+export function tutorLedLiveZoomHref(slug?: string | null): string {
+  return `${tutorLedLearnerJoinHref(slug)}#zoom-live`;
+}
+
 /** Catalog browse link: self-paced → course page; interactive/live → tutor-led template. */
 export function courseBrowseHref(
   slug: string,

@@ -4,6 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { TutorLedLearningToolsPanel } from "@/components/TutorLedLearningToolsPanel";
+import { resolveZoomJoinUrl } from "@/lib/zoom-meeting";
+import { TutorLedZoomJoinCard } from "@/components/TutorLedZoomJoinCard";
+import { tutorLedEnrolledPrice, tutorLedLearnerBannerSrc } from "@/lib/tutor-led-program-map";
 import {
   Calendar,
   ChevronDown,
@@ -14,7 +18,6 @@ import {
   HelpCircle,
   Megaphone,
   Play,
-  Shield,
   Video,
 } from "lucide-react";
 
@@ -122,22 +125,55 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
   const nextSessionTitle =
     weeks[1]?.topic ?? "Advanced Threat Detection Techniques";
 
+  const learnerBanner = program.learnerHeroSrc?.trim() || program.heroSrc || "/h2.png";
+  const enrolledPrice = program.priceAfterPayment ?? program.price;
+  const zoomJoinUrl = resolveZoomJoinUrl(program);
+  const scrollToZoomJoin = () => {
+    document.getElementById("zoom-live")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  useEffect(() => {
+    if (window.location.hash !== "#zoom-live") return;
+    const t = window.setTimeout(scrollToZoomJoin, 150);
+    return () => window.clearTimeout(t);
+  }, [program.slug]);
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <main className="mx-auto max-w-[1760px] px-4 py-6 md:px-6 xl:px-8">
-        <div className="mb-6">
-          <p className="text-xs text-zinc-500">
-            <Link href="/my-learning?tab=live" className="hover:text-amber-300">
-              Tutor Led
-            </Link>
-            <span className="mx-2">/</span>
-            <span className="text-zinc-400">{program.title}</span>
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">{program.title}</h1>
-          <p className="mt-1 text-sm text-zinc-400">
-            Tutor-Led Training <span className="text-zinc-600">·</span> Live on Zoom
-          </p>
-        </div>
+        <section className="mb-6 overflow-hidden rounded-2xl border border-white/10">
+          <div className="relative aspect-[21/9] w-full min-h-[140px] bg-zinc-950">
+            <Image
+              src={learnerBanner}
+              alt={program.learnerHeroAlt ?? program.heroAlt ?? program.title}
+              fill
+              className="object-cover"
+              unoptimized
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 flex flex-wrap items-end justify-between gap-3 p-4 md:p-5">
+              <div>
+                <p className="text-xs text-zinc-400">
+                  <Link href="/my-learning?tab=live" className="hover:text-amber-300">
+                    Tutor Led
+                  </Link>
+                  <span className="mx-2">/</span>
+                  <span>{program.title}</span>
+                </p>
+                <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{program.title}</h1>
+                <p className="mt-1 text-sm text-zinc-400">Live on Zoom · Enrolled</p>
+              </div>
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300/90">
+                  After payment
+                </p>
+                <p className="text-xl font-extrabold text-white">₹{enrolledPrice.toLocaleString("en-IN")}</p>
+                <p className="text-[10px] text-zinc-500">Enrolled price</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
           <div className="min-w-0 space-y-6">
@@ -180,17 +216,24 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-3 md:items-end">
-                  <div className="hidden h-24 w-24 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 md:flex">
-                    <Shield className="h-12 w-12 text-[#FFB800]" strokeWidth={1.25} aria-hidden />
-                  </div>
-                  <Link
-                    href="/my-learning/calendar"
-                    className="inline-flex w-full min-w-[200px] items-center justify-center gap-2 rounded-xl bg-[#FFB800] px-6 py-3.5 text-sm font-extrabold text-black shadow-[0_8px_24px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500] md:w-auto"
+                  <button
+                    type="button"
+                    onClick={scrollToZoomJoin}
+                    disabled={!zoomJoinUrl}
+                    className={`inline-flex w-full min-w-[200px] items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-extrabold transition md:w-auto ${
+                      zoomJoinUrl
+                        ? "bg-[#FFB800] text-black shadow-[0_8px_24px_rgba(255,184,0,0.25)] hover:bg-[#e5a500]"
+                        : "cursor-not-allowed bg-zinc-800 text-zinc-500"
+                    }`}
                   >
                     <Video className="h-4 w-4" aria-hidden />
                     Join Live Session
-                  </Link>
-                  <p className="text-xs text-zinc-500">Live on Zoom</p>
+                  </button>
+                  <p className="text-xs text-zinc-500">
+                    {zoomJoinUrl
+                      ? "Join through your LMS classroom below"
+                      : "Your trainer will add the Zoom link soon"}
+                  </p>
                 </div>
               </div>
             </section>
@@ -327,11 +370,24 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
 
           {/* Sidebar */}
           <aside className="space-y-4">
+            <TutorLedZoomJoinCard program={program} compact />
+            <TutorLedLearningToolsPanel programSlug={program.slug} />
+
             <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4">
               <h3 className="text-sm font-bold text-zinc-200">Course Instructor</h3>
               <div className="mt-3 flex flex-col items-center text-center">
-                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-amber-500/40 bg-zinc-900 text-2xl font-bold text-amber-300">
-                  {program.trainer.name.replace(/^Mr\.?\s*/i, "").charAt(0)}
+                <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-amber-500/40 bg-zinc-900 text-2xl font-bold text-amber-300">
+                  {program.trainer.avatar?.trim() ? (
+                    <Image
+                      src={program.trainer.avatar}
+                      alt={program.trainer.name}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    program.trainer.name.replace(/^Mr\.?\s*/i, "").charAt(0)
+                  )}
                 </div>
                 <p className="mt-3 font-semibold text-white">{program.trainer.name}</p>
                 <p className="text-xs text-zinc-400">{program.trainer.role}</p>
