@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
 import {
   Bell,
@@ -83,8 +84,42 @@ const quickActions = [
   "Send Newsletter",
 ];
 
+const menuIcons: Record<string, typeof Home> = {
+  Dashboard: Home,
+  "Home Page": LayoutGrid,
+  "About Page": FileText,
+  "Courses Page": BookOpen,
+  Categories: Layers,
+  "Self-paced courses": BookOpen,
+  Lessons: Video,
+  "Tutor Led": Video,
+  Workshops: Calendar,
+  Batches: Users,
+  Users: Users,
+  Settings: Settings,
+};
+
 export default function AdminPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeMenu, setActiveMenu] = useState("Dashboard");
+
+  const selectMenu = useCallback(
+    (item: string) => {
+      setActiveMenu(item);
+      if (item === "Tutor Led") {
+        router.replace("/admin?panel=tutor-led", { scroll: false });
+      } else if (searchParams.get("panel") === "tutor-led") {
+        router.replace("/admin", { scroll: false });
+      }
+    },
+    [router, searchParams],
+  );
+
+  useEffect(() => {
+    const panel = searchParams.get("panel");
+    if (panel === "tutor-led") setActiveMenu("Tutor Led");
+  }, [searchParams]);
   const showCoursesWorkspace = activeMenu === "Self-paced courses";
   const showCoursesPageEditor = activeMenu === "Courses Page";
   const showHomePageEditor = activeMenu === "Home Page";
@@ -266,14 +301,17 @@ export default function AdminPage() {
                   {section.items.map((item, idx) => (
                     <button
                       key={item}
-                      onClick={() => setActiveMenu(item)}
+                      onClick={() => selectMenu(item)}
                       className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs ${
                         item === activeMenu
                           ? "border border-[#6f55ff]/60 bg-[#6f55ff]/30 shadow-[0_0_24px_rgba(111,85,255,0.35)]"
                           : "text-gray-300 hover:bg-white/5"
                       }`}
                     >
-                      {idx % 2 === 0 ? <Home size={13} /> : <Layers size={13} />}
+                      {(() => {
+                        const Icon = menuIcons[item] ?? (idx % 2 === 0 ? Home : Layers);
+                        return <Icon size={13} />;
+                      })()}
                       {item}
                     </button>
                   ))}
@@ -300,7 +338,9 @@ export default function AdminPage() {
                   placeholder={
                     showCoursesWorkspace
                       ? "Search for courses, modules, users…"
-                      : "Search here..."
+                      : showTutorLedWorkspace
+                        ? "Search tutor-led programs…"
+                        : "Search here..."
                   }
                 />
               </div>
@@ -401,9 +441,9 @@ export default function AdminPage() {
                     key={action}
                     type="button"
                     onClick={() => {
-                      if (action === "Add New Course") setActiveMenu("Self-paced courses");
-                      else if (action === "Add New Category") setActiveMenu("Categories");
-                      else if (action === "Create Tutor-Led Session") setActiveMenu("Tutor Led");
+                      if (action === "Add New Course") selectMenu("Self-paced courses");
+                      else if (action === "Add New Category") selectMenu("Categories");
+                      else if (action === "Create Tutor-Led Session") selectMenu("Tutor Led");
                     }}
                     className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-left text-xs hover:border-[#6f55ff]/50"
                   >
@@ -842,33 +882,47 @@ export default function AdminPage() {
                 <span className="text-white">&quot;{activeMenu}&quot;</span> does not have an editor here yet.
               </p>
               <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-amber-100/85">
-                To manage the <strong className="text-white">self-paced course catalog</strong> (modules, pricing,
-                marketing copy on <strong className="text-white">/courses/your-slug</strong>), open{" "}
+                To manage <strong className="text-white">live tutor-led programs</strong> (Zoom links, curriculum,
+                pad notes / PPT / webbook on <strong className="text-white">/tutor-led/your-slug</strong>), open{" "}
                 <button
                   type="button"
-                  onClick={() => setActiveMenu("Self-paced courses")}
+                  onClick={() => selectMenu("Tutor Led")}
                   className="font-semibold text-violet-200 underline decoration-violet-400/60 underline-offset-2 hover:text-white"
                 >
-                  Course Management → Self-paced courses
+                  Course Management → Tutor Led
                 </button>
-                . Mark a course <strong className="text-white">Published</strong> so it appears on the public site.
-                “Courses Page” under Website Management edits the courses landing layout.
+                . For the <strong className="text-white">self-paced catalog</strong>, use{" "}
+                <button
+                  type="button"
+                  onClick={() => selectMenu("Self-paced courses")}
+                  className="font-semibold text-violet-200 underline decoration-violet-400/60 underline-offset-2 hover:text-white"
+                >
+                  Self-paced courses
+                </button>
+                . Mark items <strong className="text-white">Published</strong> so they appear on the public site.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setActiveMenu("Self-paced courses")}
+                  onClick={() => selectMenu("Tutor Led")}
                   className="rounded-lg bg-[#6f55ff] px-4 py-2 text-xs font-semibold text-white hover:bg-[#7d63ff]"
                 >
-                  Open course catalog
+                  Open tutor-led programs
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectMenu("Self-paced courses")}
+                  className="rounded-lg border border-white/20 bg-black/30 px-4 py-2 text-xs font-semibold text-white hover:bg-white/10"
+                >
+                  Self-paced catalog
                 </button>
                 <Link
-                  href="/courses"
+                  href="/tutor-led"
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-lg border border-white/20 bg-black/30 px-4 py-2 text-xs font-semibold text-white hover:bg-white/10"
                 >
-                  Preview /courses (new tab)
+                  Preview /tutor-led
                 </Link>
               </div>
             </div>

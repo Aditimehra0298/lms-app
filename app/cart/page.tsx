@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, ShieldCheck, Trash2 } from "lucide-react";
+import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { SignInToViewPrices } from "@/components/SignInToViewPrices";
 
 type CartItem = {
   slug: string;
@@ -21,6 +23,7 @@ function parsePrice(value: string) {
 }
 
 export default function CartPage() {
+  const { showPrices, formatPriceLabel, ready } = useLearnerPricing();
   const [items, setItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
@@ -104,7 +107,9 @@ export default function CartPage() {
                       <div>
                         <p className="text-base font-semibold">{item.title}</p>
                         <p className="mt-1 text-xs text-gray-400">Qty: {item.qty}</p>
-                        <p className="mt-1 text-sm text-amber-200">{item.price}</p>
+                        <p className="mt-1 text-sm text-amber-200">
+                          {ready && showPrices ? formatPriceLabel(item.price) : "—"}
+                        </p>
                       </div>
                     </div>
 
@@ -124,30 +129,36 @@ export default function CartPage() {
           <aside className="space-y-3">
             <article className="rounded-2xl border border-white/10 bg-white/3 p-4">
               <h3 className="text-lg font-bold">Order Summary</h3>
-              <div className="mt-3 space-y-2 text-sm">
-                <div className="flex items-center justify-between text-gray-300">
-                  <span>Total Courses</span>
-                  <span>{items.length}</span>
+              {ready && showPrices ? (
+                <div className="mt-3 space-y-2 text-sm">
+                  <div className="flex items-center justify-between text-gray-300">
+                    <span>Total Courses</span>
+                    <span>{items.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-gray-300">
+                    <span>Subtotal</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-emerald-300">
+                    <span>Discount</span>
+                    <span>- ${discount.toFixed(2)}</span>
+                  </div>
+                  <div className="my-2 border-t border-white/10" />
+                  <div className="flex items-center justify-between text-lg font-bold">
+                    <span>Total</span>
+                    <span className="text-amber-300">${total.toFixed(2)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-gray-300">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+              ) : ready ? (
+                <div className="mt-3">
+                  <SignInToViewPrices compact redirectPath="/cart" />
                 </div>
-                <div className="flex items-center justify-between text-emerald-300">
-                  <span>Discount</span>
-                  <span>- ${discount.toFixed(2)}</span>
-                </div>
-                <div className="my-2 border-t border-white/10" />
-                <div className="flex items-center justify-between text-lg font-bold">
-                  <span>Total</span>
-                  <span className="text-amber-300">${total.toFixed(2)}</span>
-                </div>
-              </div>
+              ) : null}
 
               <button
                 type="button"
                 onClick={handleCheckout}
-                disabled={items.length === 0}
+                disabled={items.length === 0 || (ready && !showPrices)}
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-400 py-2.5 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Proceed to Checkout <ArrowRight size={15} />

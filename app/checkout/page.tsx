@@ -11,6 +11,8 @@ import {
   type ShopCartItem,
   tutorLedProgramBySlug,
 } from "@/lib/shop-cart";
+import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { SignInToViewPrices } from "@/components/SignInToViewPrices";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,7 @@ const fallbackCourseBySlug: Record<string, Omit<ShopCartItem, "qty">> = {
 const parsePrice = (value: string) => Number(value.replace(/[^0-9.]/g, "")) || 0;
 
 export default function CheckoutPage() {
+  const { showPrices, formatPriceLabel, ready } = useLearnerPricing();
   const [paymentMethod, setPaymentMethod] = useState<"upi" | "card" | "netbanking" | "wallet">("upi");
   const [isSuccess, setIsSuccess] = useState(false);
   const [items, setItems] = useState<ShopCartItem[]>([]);
@@ -60,6 +63,10 @@ export default function CheckoutPage() {
     setIsHydrated(true);
     const search = new URLSearchParams(window.location.search);
     setBuyNowSlug(search.get("buyNow"));
+    if (window.localStorage.getItem("sft_logged_in") !== "true") {
+      const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = `/account?mode=login&redirect=${redirect}`;
+    }
   }, []);
 
   useEffect(() => {
@@ -288,7 +295,9 @@ export default function CheckoutPage() {
                     <p className="truncate text-sm font-semibold">{item.title}</p>
                     <p className="text-xs text-gray-400">Qty {item.qty}</p>
                   </div>
-                  <p className="text-sm font-semibold text-amber-200">{item.price}</p>
+                  <p className="text-sm font-semibold text-amber-200">
+                    {ready && showPrices ? formatPriceLabel(item.price) : "—"}
+                  </p>
                 </div>
               ))}
               {items.length === 0 && (
@@ -297,6 +306,7 @@ export default function CheckoutPage() {
                 </div>
               )}
             </div>
+            {ready && showPrices ? (
             <div className="mt-4 space-y-1.5 text-sm">
               <div className="flex items-center justify-between text-gray-300"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
               <div className="flex items-center justify-between text-emerald-300"><span>Discount</span><span>- ${discount.toFixed(2)}</span></div>
@@ -306,6 +316,11 @@ export default function CheckoutPage() {
                 <span className="text-amber-300">${total.toFixed(2)}</span>
               </div>
             </div>
+            ) : ready ? (
+              <div className="mt-4">
+                <SignInToViewPrices compact />
+              </div>
+            ) : null}
           </article>
 
           <div className="space-y-3">
@@ -372,11 +387,11 @@ export default function CheckoutPage() {
               </div>
 
               <button
-                disabled={items.length === 0}
+                disabled={items.length === 0 || (ready && !showPrices)}
                 onClick={completePurchase}
                 className="mt-4 w-full rounded-lg bg-amber-400 py-2.5 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Pay Now ${total.toFixed(2)}
+                {ready && showPrices ? `Pay Now $${total.toFixed(2)}` : "Sign in to see price"}
               </button>
               <p className="mt-2 text-xs text-gray-400">
                 Gateway integration will be added later. This button currently completes enrollment directly.

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   Award,
@@ -115,6 +116,8 @@ const toCourseSlug = (value: string) =>
     .replace(/^-+|-+$/g, "");
 
 export default function MyLearningPage() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState("overview");
   const isAchievements = activeTab === "achievements";
   const isDashboard = activeTab === "dashboard";
@@ -155,9 +158,8 @@ export default function MyLearningPage() {
   }, []);
 
   useEffect(() => {
-    const search = new URLSearchParams(window.location.search);
-    setActiveTab(search.get("tab") ?? "overview");
-  }, []);
+    setActiveTab(searchParams.get("tab") ?? "overview");
+  }, [searchParams, pathname]);
   const [purchasedCourses, setPurchasedCourses] = useState<
     Array<{
       slug?: string;

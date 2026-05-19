@@ -15,6 +15,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import AddToCartButton from "@/components/AddToCartButton";
+import { CoursePrice } from "@/components/CoursePrice";
 import CategoryFaqAccordion from "@/components/CategoryFaqAccordion";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
 import type { CategoryWhyTone, CourseLearningFormat } from "@/lib/content-schema";
@@ -467,7 +468,7 @@ export default async function CourseCategoryPage({
                     {course.rating}
                   </p>
                   <div className="mt-auto flex items-center justify-between gap-3 border-t border-white/5 pt-4">
-                    <p className="text-lg font-bold text-amber-400">{course.price}</p>
+                    <CoursePrice label={course.price} className="text-lg font-bold text-amber-400" />
                     <div className="flex items-center gap-2">
                       <Link
                         href={courseBrowseHref(course.slug, course.learningFormat, categoryKey)}

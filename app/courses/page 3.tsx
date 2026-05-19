@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CoursePrice } from "@/components/CoursePrice";
 import type { ComponentType } from "react";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
 import { getManagedCourses } from "@/lib/server/course-catalog";
@@ -526,7 +527,7 @@ export default async function CoursesPage({
                   <p className="mt-1 text-xs text-gray-400">
                     {course.level} • {course.duration} • {course.rating}★
                   </p>
-                  <p className="mt-2 text-sm font-bold text-amber-200">{course.price}</p>
+                  <CoursePrice label={course.price} className="mt-2 text-sm font-bold text-amber-200" />
                 </article>
               </Link>
             ))}

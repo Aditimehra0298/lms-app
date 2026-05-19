@@ -4,22 +4,73 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
+import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { CoursePrice } from "@/components/CoursePrice";
 import type { LucideIcon } from "lucide-react";
 import {
   Award,
-  Calendar,
+  BookOpen,
+  CheckCircle2,
   ChevronRight,
-  Clock,
-  Globe,
-  Heart,
+  GraduationCap,
   MessageCircle,
-  MonitorPlay,
   Play,
-  Video,
+  Star,
   Users,
+  Video,
 } from "lucide-react";
 
-const GOLD = "#FFB800";
+const TITLE_HIGHLIGHT = "Cyber Security";
+
+function HeroTitle({ title }: { title: string }) {
+  if (title.includes(TITLE_HIGHLIGHT)) {
+    const idx = title.indexOf(TITLE_HIGHLIGHT);
+    const before = title.slice(0, idx);
+    const after = title.slice(idx + TITLE_HIGHLIGHT.length);
+    return (
+      <>
+        {before}
+        <span className="text-[#FFB800]">{TITLE_HIGHLIGHT}</span>
+        {after}
+      </>
+    );
+  }
+  const words = title.trim().split(/\s+/);
+  if (words.length === 3) {
+    return (
+      <>
+        {words[0]} <span className="text-[#FFB800]">{words[1]}</span> {words[2]}
+      </>
+    );
+  }
+  return title;
+}
+
+function scheduleTimeIst(schedule: string): string {
+  const paren = schedule.match(/\(([^)]+)\)/);
+  if (paren) {
+    const inner = paren[1].trim();
+    if (/IST/i.test(inner)) return inner.replace(/\s*IST\s*/i, " (IST)");
+    return `${inner} (IST)`;
+  }
+  return schedule;
+}
+
+function batchDuration(course: TutorLedHeroCourse): string {
+  const row = course.batchDetails.find((d) => d.label === "Duration");
+  if (!row) return "12 Weeks";
+  const v = row.value;
+  if (/week/i.test(v)) return v;
+  return "12 Weeks";
+}
+
+const heroPills: { icon: typeof Video; label: string }[] = [
+  { icon: Video, label: "Live Training" },
+  { icon: GraduationCap, label: "Expert Trainer" },
+  { icon: Award, label: "Certificate Included" },
+  { icon: MessageCircle, label: "Doubt Support" },
+  { icon: BookOpen, label: "Beginner Friendly" },
+];
 
 export type TutorLedHeroBreadcrumb = { label: string; href: string };
 
@@ -27,7 +78,7 @@ export type TutorLedHeroCourse = {
   title: string;
   subtitle: string;
   badge: string;
-  trainer: { name: string; role: string; experience: string };
+  trainer: { name: string; role: string; experience: string; avatar?: string };
   nextBatchDate: string;
   schedule: string;
   language: string;
@@ -41,45 +92,51 @@ export type TutorLedHeroCourse = {
   features: { icon: LucideIcon; title: string; desc: string }[];
 };
 
-const innerBarItems: { icon: LucideIcon; label: string }[] = [
-  { icon: Video, label: "Live on Zoom" },
-  { icon: MonitorPlay, label: "Interactive Sessions" },
-  { icon: MessageCircle, label: "Live Q&A" },
-  { icon: Users, label: "Doubt Solving" },
-  { icon: Award, label: "Certificate of Completion" },
-];
-
 type Props = {
   breadcrumbs: TutorLedHeroBreadcrumb[];
   course: TutorLedHeroCourse;
-  countdown: { days: number; hours: number; mins: number; secs: number };
-  wishlisted: boolean;
-  setWishlisted: (v: boolean) => void;
+  countdown?: { days: number; hours: number; mins: number; secs: number };
   heroSrc?: string;
   heroAlt?: string;
-  /** Primary CTA: open URL, or register → login then checkout when slug is set. */
   primaryCta?: { kind: "link"; href: string; label: string } | { kind: "register"; slug: string; label: string };
+  reviewCountLabel?: string;
 };
 
 export default function TutorLedCourseHero({
   breadcrumbs,
   course,
-  countdown: cd,
-  wishlisted,
-  setWishlisted,
   heroSrc = "/h1.png",
   heroAlt = "Live tutor-led session preview",
   primaryCta,
+  reviewCountLabel = "800+ Reviews",
 }: Props) {
   const router = useRouter();
-  const seatCap = 40;
-  const filledPct = Math.min(100, Math.max(12, ((seatCap - course.seatsLeft) / seatCap) * 100));
+  const { showPrices, ready } = useLearnerPricing();
+  const timeIst = scheduleTimeIst(course.schedule);
+  const duration = batchDuration(course);
+
+  const pricingRows = [
+    { label: "Batch Starts", value: course.nextBatchDate },
+    { label: "Time", value: timeIst },
+    { label: "Duration", value: duration },
+    { label: "Mode", value: "Live on Zoom" },
+    { label: "Certificate Included", value: null },
+  ];
+
+  const discountLabel = (() => {
+    const d = course.discount?.trim();
+    if (!d) return null;
+    if (d.startsWith("-")) return d;
+    const pct = d.match(/(\d+)\s*%/);
+    if (pct) return `-${pct[1]}% OFF`;
+    return d;
+  })();
 
   return (
     <>
       <section className="relative overflow-hidden border-b border-white/10 bg-black">
-        <div className="relative mx-auto w-full max-w-[1760px] px-4 pb-8 pt-4 sm:px-6 md:px-8 xl:px-10">
-          <nav className="mb-4 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500 md:mb-5">
+        <div className="relative mx-auto w-full max-w-[1760px] px-4 pb-6 pt-4 sm:px-6 md:px-8 xl:px-10">
+          <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500">
             {breadcrumbs.map((crumb, i) => (
               <span key={`${crumb.label}-${i}`} className="inline-flex items-center gap-1.5">
                 {i > 0 && <ChevronRight size={11} className="text-zinc-600" aria-hidden />}
@@ -92,198 +149,190 @@ export default function TutorLedCourseHero({
             <span className="font-medium text-[#FFB800]">{course.title}</span>
           </nav>
 
-          <div className="grid grid-cols-1 gap-6 lg:gap-6 xl:grid-cols-12 xl:items-start xl:gap-x-6 xl:gap-y-0 2xl:gap-x-8">
-            {/* Left — copy, trainer, meta, inner bar (~5/12) */}
-            <div className="min-w-0 xl:col-span-5 2xl:col-span-5">
-              <div className="mb-4 flex flex-wrap items-center gap-3 md:mb-5">
-                <span className="rounded border border-[#FFB800]/80 bg-transparent px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#FFB800]">
-                  {course.badge}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-600/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-                  </span>
-                  Live
-                </span>
-              </div>
+          <div className="flex flex-col gap-6 md:gap-8 lg:flex-row lg:items-stretch">
+            {/* Left — title, trainer, pills */}
+            <div className="flex h-full w-full min-w-0 flex-1 flex-col lg:w-1/3">
+              <div className="flex h-full min-h-0 flex-1 flex-col">
+                <div className="flex-1">
+                  <h1 className="mb-4 text-[1.75rem] font-extrabold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-[2.35rem] lg:leading-[1.12]">
+                    <HeroTitle title={course.title} />
+                  </h1>
+                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-[15px]">
+                    {course.subtitle}
+                  </p>
 
-              <h1 className="mb-4 text-3xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-4xl lg:mb-5 lg:text-[2.75rem] lg:leading-[1.08] 2xl:text-5xl">
-                {course.title}
-              </h1>
-              <p className="mb-7 max-w-none text-sm leading-relaxed text-zinc-300 sm:text-[15px] lg:mb-8 lg:max-w-[52ch] xl:max-w-none 2xl:text-base 2xl:leading-relaxed">
-                {course.subtitle}
-              </p>
-
-              <div className="mb-8 grid gap-6 lg:mb-10 lg:grid-cols-[auto,minmax(0,1fr)] lg:items-start lg:gap-x-10">
-                <div className="flex shrink-0 items-center gap-3">
-                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-[#FFB800]/50 bg-zinc-900 text-xl font-bold text-[#FFB800] sm:h-16 sm:w-16 sm:text-2xl">
-                    {course.trainer.name.replace(/^Mr\.?\s*/i, "").charAt(0)}
+                  <div className="mb-6 flex w-full items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-[#FFB800]/40 bg-zinc-900 sm:h-14 sm:w-14">
+                    {course.trainer.avatar?.trim() ? (
+                      <Image
+                        src={course.trainer.avatar}
+                        alt={course.trainer.name}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-lg font-bold text-[#FFB800]">
+                        {course.trainer.name.replace(/^Mr\.?\s*/i, "").charAt(0)}
+                      </span>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-[15px] font-bold text-white sm:text-base">{course.trainer.name}</p>
-                    <p className="text-xs text-zinc-400 sm:text-sm">{course.trainer.role}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-white sm:text-base">{course.trainer.name}</p>
+                    <p className="text-xs text-zinc-400">{course.trainer.role}</p>
                     <p className="text-[11px] text-zinc-500">{course.trainer.experience}</p>
                   </div>
                 </div>
-
-                <div className="grid w-full min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3 xl:gap-3">
-                  {[
-                    { icon: Calendar, label: "Next Batch Starts", value: course.nextBatchDate },
-                    { icon: Clock, label: "Schedule", value: course.schedule },
-                    { icon: Globe, label: "Language", value: course.language },
-                  ].map((row) => (
-                    <div
-                      key={row.label}
-                      className="flex min-h-[52px] items-center gap-3 rounded-lg border border-white/5 bg-zinc-950/80 px-3 py-2.5 sm:px-4"
-                    >
-                      <row.icon className="h-4 w-4 shrink-0 text-[#FFB800] sm:h-[18px] sm:w-[18px]" aria-hidden />
-                      <div className="min-w-0 text-sm leading-snug">
-                        <span className="block text-[11px] text-zinc-500">{row.label}</span>
-                        <span className="font-semibold text-white">{row.value}</span>
-                      </div>
+                <div className="inline-flex shrink-0 items-center gap-1.5">
+                      <Star className="h-4 w-4 fill-[#FFB800] text-[#FFB800]" aria-hidden />
+                      <span className="text-sm font-bold text-white">4.8</span>
+                      <span className="text-xs text-zinc-500">({reviewCountLabel})</span>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="rounded-xl border border-white/10 bg-zinc-900/90 px-3 py-3.5 sm:px-5 sm:py-4">
-                <div className="grid grid-cols-2 gap-x-2 gap-y-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-1 lg:gap-y-0">
-                  {innerBarItems.map((item) => (
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:mt-auto lg:grid-cols-5">
+                  {heroPills.map((item) => (
                     <div
                       key={item.label}
-                      className="flex min-w-0 items-center justify-center gap-2 text-center text-[11px] font-medium leading-tight text-zinc-200 lg:justify-start lg:text-left"
+                      className="flex flex-col items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950 px-1.5 py-2.5 text-center"
                     >
-                      <item.icon className="h-3.5 w-3.5 shrink-0 text-[#FFB800] lg:h-4 lg:w-4" aria-hidden />
-                      <span className="min-w-0 lg:leading-snug">{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Center — Zoom visual + countdown (~4/12) */}
-            <div className="flex min-w-0 flex-col items-stretch xl:col-span-4 2xl:col-span-4">
-              <p className="mb-2 text-center text-xs font-semibold tracking-wide text-zinc-500 xl:text-left">zoom</p>
-              <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-[0_24px_60px_rgba(0,0,0,0.65)]">
-                <Image
-                  src={heroSrc}
-                  alt={heroAlt}
-                  width={1200}
-                  height={675}
-                  className="mx-auto block h-auto w-full max-h-[min(52vh,520px)] object-contain object-center sm:max-h-[min(50vh,480px)] xl:max-h-[min(55vh,560px)]"
-                  sizes="(max-width: 1024px) 100vw, (max-width: 1536px) 40vw, 720px"
-                  priority
-                />
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15">
-                  <button
-                    type="button"
-                    className="pointer-events-auto grid h-16 w-16 place-items-center rounded-full bg-white/25 text-white shadow-lg backdrop-blur-sm transition hover:scale-105 hover:bg-white/35"
-                    aria-label="Play preview"
-                  >
-                    <Play size={28} fill="currentColor" className="ml-0.5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-5 w-full rounded-xl border border-white/10 bg-[#141414] px-3 py-4 sm:px-5 sm:py-5">
-                <p className="mb-3 text-center text-xs font-medium text-zinc-500 xl:text-left">Batch starts in</p>
-                <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                  {[
-                    { v: cd.days, l: "Days" },
-                    { v: cd.hours, l: "Hours" },
-                    { v: cd.mins, l: "Mins" },
-                    { v: cd.secs, l: "Secs" },
-                  ].map(({ v, l }) => (
-                    <div key={l} className="flex min-w-0 flex-col items-center">
-                      <span className="w-full rounded-lg bg-black/50 py-2.5 text-center text-xl font-extrabold tabular-nums text-[#FFB800] sm:py-3 sm:text-2xl 2xl:text-3xl">
-                        {String(v).padStart(2, "0")}
+                      <item.icon className="h-4 w-4 text-[#FFB800]" aria-hidden />
+                      <span className="text-[9px] font-semibold leading-tight text-zinc-300 sm:text-[10px]">
+                        {item.label}
                       </span>
-                      <span className="mt-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">{l}</span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Right — CTA card (~3/12) */}
-            <aside className="flex min-w-0 flex-col gap-4 self-stretch xl:col-span-3 2xl:col-span-3 xl:sticky xl:top-24">
-              <div className="h-full overflow-hidden rounded-2xl border border-[#FFB800]/35 bg-gradient-to-b from-zinc-900 to-black shadow-[0_0_0_1px_rgba(255,184,0,0.08)]">
-                <div className="flex items-center justify-between border-b border-white/5 px-4 py-3 sm:px-5">
+            {/* Center — Zoom preview */}
+            <div className="flex w-full min-w-0 flex-1 flex-col lg:w-1/3">
+              <div className="relative h-full min-h-[280px] flex-1 overflow-hidden rounded-xl border border-zinc-800/80 bg-gradient-to-br from-[#0c1e3a] via-zinc-950 to-black shadow-[0_20px_50px_rgba(0,0,0,0.5)] lg:min-h-0">
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-40"
+                  style={{
+                    backgroundImage:
+                      "radial-gradient(circle at 30% 40%, rgba(45,140,255,0.35) 0%, transparent 55%), radial-gradient(circle at 70% 60%, rgba(45,140,255,0.2) 0%, transparent 50%)",
+                  }}
+                />
+                <div className="absolute left-3 top-3 z-10 sm:left-4 sm:top-4">
+                  <span className="inline-flex items-center rounded-md bg-[#2D8CFF] px-2.5 py-1 text-[11px] font-bold tracking-tight text-white">
+                    zoom
+                  </span>
+                </div>
+                <div className="absolute inset-0">
+                  <Image
+                    src={heroSrc}
+                    alt={heroAlt}
+                    fill
+                    className="object-cover object-center p-2 sm:p-3"
+                    sizes="(max-width: 1024px) 100vw, 33vw"
+                    priority
+                  />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/25 px-4">
+                    <button
+                      type="button"
+                      className="grid h-14 w-14 place-items-center rounded-full border border-white/30 bg-white/20 text-white shadow-lg backdrop-blur-sm transition hover:bg-white/30 sm:h-16 sm:w-16"
+                      aria-label="Play preview"
+                    >
+                      <Play size={26} fill="currentColor" className="ml-0.5" />
+                    </button>
+                    <p className="max-w-[260px] text-center text-xs font-semibold text-white drop-shadow-md sm:text-sm">
+                      Live Interactive Sessions with Expert Trainer
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right — pricing card */}
+            <aside className="flex w-full min-w-0 flex-1 flex-col lg:w-1/3">
+              <div className="flex h-full min-h-[280px] flex-col overflow-hidden rounded-xl border border-[#FFB800]/30 bg-zinc-950 lg:min-h-0">
+                <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3.5 sm:px-5">
                   <span className="text-sm font-bold text-white">{course.batchLabel}</span>
                   {course.seatsFilling ? (
-                    <span className="rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-300">
-                      Seats Filling Fast
+                    <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
+                      Limited Seats
                     </span>
                   ) : null}
                 </div>
-                <div className="space-y-5 p-4 sm:p-5">
-                  <div className="flex flex-wrap items-baseline gap-2 gap-y-1">
-                    <span className="text-3xl font-extrabold tracking-tight text-white">₹{course.price.toLocaleString("en-IN")}</span>
-                    <span className="text-base text-zinc-500 line-through">₹{course.originalPrice.toLocaleString("en-IN")}</span>
-                    <span className="rounded border border-[#FFB800]/40 bg-[#FFB800]/12 px-2 py-0.5 text-[11px] font-bold text-[#FFB800]">
-                      {course.discount}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3.5">
-                    {course.batchDetails.map((d, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <d.icon className="mt-0.5 h-4 w-4 shrink-0 text-[#FFB800]" aria-hidden />
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{d.label}</p>
-                          <p className="text-sm text-zinc-200">{d.value}</p>
-                        </div>
+                <div className="flex flex-1 flex-col justify-between space-y-4 p-4 sm:p-5">
+                  {ready && showPrices ? (
+                    <div>
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <CoursePrice inr={course.price} className="text-[1.75rem] font-extrabold leading-none text-white sm:text-3xl" />
+                        <CoursePrice
+                          inr={course.originalPrice}
+                          className="text-sm text-zinc-500 line-through sm:text-base"
+                        />
+                        {discountLabel ? (
+                          <span className="rounded-md bg-[#FFB800] px-2 py-0.5 text-[10px] font-bold text-black sm:text-[11px]">
+                            {discountLabel}
+                          </span>
+                        ) : null}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ) : (
+                    <CoursePrice variant="hero" className="w-full" />
+                  )}
 
-                  {primaryCta ? (
-                    primaryCta.kind === "link" ? (
-                      <Link
-                        href={primaryCta.href}
-                        className="flex w-full items-center justify-center rounded-xl bg-[#FFB800] py-3.5 text-sm font-extrabold text-black shadow-[0_8px_24px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500]"
-                      >
-                        {primaryCta.label}
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => registerTutorLedFromTemplate(router, primaryCta.slug)}
-                        className="flex w-full items-center justify-center rounded-xl bg-[#FFB800] py-3.5 text-sm font-extrabold text-black shadow-[0_8px_24px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500]"
-                      >
-                        {primaryCta.label}
-                      </button>
-                    )
+                  <ul className="space-y-2.5 border-b border-zinc-800/80 pb-4">
+                    {pricingRows.map((row) => (
+                      <li key={row.label} className="flex items-start gap-2.5 text-sm">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#FFB800]" aria-hidden />
+                        {row.value ? (
+                          <span className="text-zinc-300">
+                            <span className="text-zinc-500">{row.label}: </span>
+                            {row.value}
+                          </span>
+                        ) : (
+                          <span className="font-medium text-zinc-200">{row.label}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {primaryCta?.kind === "link" ? (
+                    <Link
+                      href={primaryCta.href}
+                      className="flex w-full items-center justify-center rounded-lg bg-[#FFB800] py-3.5 text-sm font-extrabold text-black transition hover:bg-[#e5a600]"
+                    >
+                      {primaryCta.label}
+                    </Link>
+                  ) : primaryCta?.kind === "register" ? (
+                    <button
+                      type="button"
+                      onClick={() => registerTutorLedFromTemplate(router, primaryCta.slug)}
+                      className="flex w-full items-center justify-center rounded-lg bg-[#FFB800] py-3.5 text-sm font-extrabold text-black transition hover:bg-[#e5a600]"
+                    >
+                      {primaryCta.label}
+                    </button>
                   ) : (
                     <button
                       type="button"
-                      className="w-full rounded-xl bg-[#FFB800] py-3.5 text-sm font-extrabold text-black shadow-[0_8px_24px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500]"
+                      className="w-full rounded-lg bg-[#FFB800] py-3.5 text-sm font-extrabold text-black"
                     >
                       Reserve Your Seat
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => setWishlisted(!wishlisted)}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-2.5 text-sm text-zinc-300 transition hover:border-[#FFB800]/40 hover:text-[#FFB800]"
+                  <Link
+                    href="/contact"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-600 bg-transparent py-3 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:text-white"
                   >
-                    <Heart size={16} fill={wishlisted ? GOLD : "none"} className={wishlisted ? "text-[#FFB800]" : ""} />
-                    {wishlisted ? "Added to Wishlist" : "Add to Wishlist"}
-                  </button>
+                    <MessageCircle className="h-4 w-4" aria-hidden />
+                    Ask a Question
+                  </Link>
 
-                  <div>
-                    <p className="mb-2 text-center text-xs text-zinc-500">
-                      Only <span className="font-bold text-[#FFB800]">{course.seatsLeft} Seats Left</span>
-                    </p>
-                    <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#FFB800] to-amber-600 transition-[width]"
-                        style={{ width: `${filledPct}%` }}
-                      />
-                    </div>
-                  </div>
+                  <p className="flex items-center justify-center gap-1.5 text-center text-xs">
+                    <Users className="h-3.5 w-3.5 text-[#FFB800]" aria-hidden />
+                    <span className="text-zinc-400">
+                      Only <span className="font-bold text-[#FFB800]">{course.seatsLeft} Seats Left!</span>
+                    </span>
+                  </p>
                 </div>
               </div>
             </aside>
@@ -291,16 +340,19 @@ export default function TutorLedCourseHero({
         </div>
       </section>
 
-      <section className="border-b border-white/10 bg-black px-4 py-5 sm:px-6 md:px-8 xl:px-10 xl:py-6">
-        <div className="mx-auto w-full max-w-[1760px] rounded-2xl border border-white/10 bg-zinc-900/80 px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-7">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-6 lg:gap-x-4 xl:gap-x-6">
+      {/* Bottom feature strip */}
+      <section className="border-b border-white/10 bg-[#0a0a0a]">
+        <div className="mx-auto w-full max-w-[1760px] px-4 py-5 sm:px-6 md:px-8 xl:px-10">
+          <div className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between lg:flex-nowrap lg:gap-4">
             {course.features.map((f, i) => (
-              <div key={i} className="flex min-w-0 flex-col items-center gap-2.5 px-1 text-center sm:px-2">
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#FFB800]/10 sm:h-12 sm:w-12">
-                  <f.icon className="h-[18px] w-[18px] text-[#FFB800] sm:h-5 sm:w-5" aria-hidden />
+              <div key={i} className="flex min-w-[140px] flex-1 items-start gap-3 lg:min-w-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#FFB800]/20 bg-[#FFB800]/10">
+                  <f.icon className="h-[18px] w-[18px] text-[#FFB800]" aria-hidden />
                 </div>
-                <p className="text-xs font-bold leading-tight text-white sm:text-sm">{f.title}</p>
-                <p className="max-w-[140px] text-[10px] leading-snug text-zinc-500 sm:max-w-[11rem] sm:text-[11px]">{f.desc}</p>
+                <div className="min-w-0 pt-0.5">
+                  <p className="text-xs font-bold leading-tight text-white sm:text-sm">{f.title}</p>
+                  <p className="mt-0.5 text-[10px] leading-snug text-zinc-500 sm:text-[11px]">{f.desc}</p>
+                </div>
               </div>
             ))}
           </div>

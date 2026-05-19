@@ -46,7 +46,6 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
   const course = mapTutorLedProgramToPageCourse(program);
   const cd = useCountdown(program.countdown);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [wishlisted, setWishlisted] = useState(false);
 
   const crumbs = program.breadcrumb;
   const heroCourse = {
@@ -57,6 +56,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
       name: course.trainer.name,
       role: course.trainer.role,
       experience: course.trainer.experience,
+      avatar: program.trainer.avatar,
     },
     nextBatchDate: course.nextBatchDate,
     schedule: course.schedule,
@@ -93,8 +93,6 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
         breadcrumbs={breadcrumbs}
         course={heroCourse}
         countdown={cd}
-        wishlisted={wishlisted}
-        setWishlisted={setWishlisted}
         heroSrc={program.heroSrc ?? "/h1.png"}
         heroAlt={program.heroAlt ?? "Live tutor-led training"}
         primaryCta={{ kind: "register", slug: program.slug, label: "Reserve Your Seat" }}
@@ -102,15 +100,32 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
 
       <TutorLedPostHeroSections
         course={{
-          trainer: course.trainer,
+          trainer: { ...course.trainer, avatar: program.trainer.avatar },
           highlights: course.highlights,
           curriculum: course.curriculum,
           whyChoose: course.whyChoose,
           faqs: course.faqs,
+          features: course.features,
         }}
         openFaq={openFaq}
         setOpenFaq={setOpenFaq}
         tutorLedCheckoutSlug={program.slug}
+        tutorLedSchedule={{
+          curriculum: program.curriculum,
+          curriculumMode: program.curriculumMode,
+        }}
+        tutorLedCertificate={{
+          programTitle: program.title,
+          trainerName: program.trainer.name,
+        }}
+        tutorLedBatch={{
+          batchId: "Batch 18",
+          startDate: course.nextBatchDate,
+          sessionDays: "Tue, Thu, Sat",
+          timeIst: "7:00 PM - 9:00 PM",
+          duration: "12 Weeks",
+          mode: "Online Live",
+        }}
       />
 
       <div className="h-8" />

@@ -1,4 +1,4 @@
-import { BookOpen, Globe, MonitorPlay, Users, Zap } from "lucide-react";
+import { Award, BookOpen, Globe, MessageCircle, MonitorPlay, Users, Video, Zap } from "lucide-react";
 import type { ManagedCourse } from "@/lib/content-schema";
 import type { PostHeroCourse } from "@/components/TutorLedPostHeroSections";
 
@@ -81,6 +81,14 @@ export function managedCourseToPostHero(c: ManagedCourse): PostHeroCourse {
       { icon: Globe, title: "Anywhere access", desc: "Use your laptop or tablet whenever you are ready." },
     ],
     faqs: c.faqs && c.faqs.length > 0 ? c.faqs : DEFAULT_FAQS,
+    features: [
+      { icon: MonitorPlay, title: "HD Video Lessons", desc: "Watch anytime — pause, rewind, and revisit" },
+      { icon: BookOpen, title: "Course Materials", desc: "Readings, notes, and downloads in each module" },
+      { icon: MessageCircle, title: "Instructor Support", desc: "Get answers when you need clarification" },
+      { icon: Users, title: "Self-Paced Learning", desc: "Study on the schedule that fits your life" },
+      { icon: Video, title: "Lifetime Access", desc: "Return to lessons whenever you need a refresher" },
+      { icon: Award, title: "Certificate", desc: "Earn a completion certificate when you finish" },
+    ],
   };
 }
 

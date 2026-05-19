@@ -8,10 +8,9 @@ import { TutorLedLearningToolsPanel } from "@/components/TutorLedLearningToolsPa
 import { resolveZoomJoinUrl } from "@/lib/zoom-meeting";
 import { TutorLedZoomJoinCard } from "@/components/TutorLedZoomJoinCard";
 import { tutorLedEnrolledPrice, tutorLedLearnerBannerSrc } from "@/lib/tutor-led-program-map";
+import { TutorLedCurriculumExplorer } from "@/components/TutorLedCurriculumExplorer";
 import {
   Calendar,
-  ChevronDown,
-  ChevronRight,
   Clock,
   Download,
   FileText,
@@ -52,12 +51,13 @@ function useCountdown(initial: { hours: number; mins: number; secs: number }) {
   return time;
 }
 
-const DEMO_RECORDINGS = [
-  { title: "Session 1", duration: "2:18:20", thumb: "/h1.png" },
-  { title: "Session 2", duration: "2:05:10", thumb: "/h2.png" },
-  { title: "Session 3", duration: "1:58:45", thumb: "/h3.png" },
-  { title: "Session 4", duration: "2:12:30", thumb: "/h1.png" },
-];
+function formatRecordingDuration(minutes?: number): string {
+  if (minutes == null || minutes <= 0) return "";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:00`;
+  return `${m} min`;
+}
 
 const DEMO_RESOURCES = [
   { name: "Course Guide.pdf", size: "2.4 MB" },
@@ -72,21 +72,6 @@ const DEMO_ANNOUNCEMENTS = [
   { text: "Lab access updated for Week 1 participants.", ago: "3d ago" },
 ];
 
-function weekDaysFromCurriculum(week: TutorLedProgramStored["curriculum"][0], weekIndex: number) {
-  const base = week.topic;
-  return [1, 2, 3, 4, 5].map((day, i) => ({
-    id: `w${weekIndex}-d${day}`,
-    label: `Day ${day}`,
-    title:
-      i < 4
-        ? `${week.label}: ${base} — Part ${day}`
-        : `${week.label}: ${base} — Lab & recap`,
-    duration: i < 4 ? `${2 + (i % 2)}h ${10 + i * 5}m` : "1h 45m",
-    kind: i === 4 ? ("lab" as const) : ("recording" as const),
-    done: weekIndex === 0 && i < 4,
-  }));
-}
-
 export default function TutorLedLearnerDashboard({ program }: Props) {
   const cd = useCountdown({
     hours: program.countdown.hours,
@@ -95,8 +80,6 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
   });
 
   const weeks = program.curriculum;
-  const [openWeeks, setOpenWeeks] = useState<Record<number, boolean>>(() => ({ 0: true }));
-  const [expandAll, setExpandAll] = useState(false);
 
   const weekProgress = useMemo(
     () =>
@@ -108,26 +91,23 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
     [weeks],
   );
 
-  const toggleWeek = (idx: number) => {
-    setOpenWeeks((prev) => ({ ...prev, [idx]: !prev[idx] }));
-  };
-
-  const handleExpandAll = () => {
-    const next = !expandAll;
-    setExpandAll(next);
-    const map: Record<number, boolean> = {};
-    weeks.forEach((_, i) => {
-      map[i] = next;
-    });
-    setOpenWeeks(map);
-  };
-
   const nextSessionTitle =
     weeks[1]?.topic ?? "Advanced Threat Detection Techniques";
 
   const learnerBanner = program.learnerHeroSrc?.trim() || program.heroSrc || "/h2.png";
   const enrolledPrice = program.priceAfterPayment ?? program.price;
   const zoomJoinUrl = resolveZoomJoinUrl(program);
+  const sessionRecordings = useMemo(() => {
+    const fromZoom = program.zoomRecordings ?? [];
+    if (fromZoom.length === 0) return [];
+    return fromZoom.map((rec, i) => ({
+      title: rec.topic || `Session ${i + 1}`,
+      duration: formatRecordingDuration(rec.durationMinutes),
+      thumb: program.learnerHeroSrc?.trim() || program.heroSrc || `/h${(i % 3) + 1}.png`,
+      playUrl: rec.playUrl,
+      downloadUrl: rec.downloadUrl,
+    }));
+  }, [program.zoomRecordings, program.heroSrc, program.learnerHeroSrc]);
   const scrollToZoomJoin = () => {
     document.getElementById("zoom-live")?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
@@ -216,155 +196,93 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-3 md:items-end">
-                  <button
-                    type="button"
-                    onClick={scrollToZoomJoin}
-                    disabled={!zoomJoinUrl}
-                    className={`inline-flex w-full min-w-[200px] items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-extrabold transition md:w-auto ${
-                      zoomJoinUrl
-                        ? "bg-[#FFB800] text-black shadow-[0_8px_24px_rgba(255,184,0,0.25)] hover:bg-[#e5a500]"
-                        : "cursor-not-allowed bg-zinc-800 text-zinc-500"
-                    }`}
-                  >
-                    <Video className="h-4 w-4" aria-hidden />
-                    Join Live Session
-                  </button>
+                  {zoomJoinUrl ? (
+                    <a
+                      href={zoomJoinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full min-w-[200px] items-center justify-center gap-2 rounded-xl bg-[#FFB800] px-6 py-3.5 text-sm font-extrabold text-black shadow-[0_8px_24px_rgba(255,184,0,0.25)] transition hover:bg-[#e5a500] md:w-auto"
+                    >
+                      <Video className="h-4 w-4" aria-hidden />
+                      Join Live Session
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="inline-flex w-full min-w-[200px] cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-zinc-800 px-6 py-3.5 text-sm font-extrabold text-zinc-500 md:w-auto"
+                    >
+                      <Video className="h-4 w-4" aria-hidden />
+                      Join Live Session
+                    </button>
+                  )}
                   <p className="text-xs text-zinc-500">
-                    {zoomJoinUrl
-                      ? "Join through your LMS classroom below"
-                      : "Your trainer will add the Zoom link soon"}
+                    {zoomJoinUrl ? (
+                      <>
+                        Opens Zoom in a new tab ·{" "}
+                        <button
+                          type="button"
+                          onClick={scrollToZoomJoin}
+                          className="text-amber-400/90 underline hover:text-amber-300"
+                        >
+                          Meeting details
+                        </button>
+                      </>
+                    ) : (
+                      "Your trainer will add the Zoom link soon"
+                    )}
                   </p>
                 </div>
               </div>
             </section>
 
-            {/* Curriculum */}
+            {/* Curriculum — by week or by day */}
             <section className="rounded-2xl border border-white/10 bg-zinc-950/60 p-4 md:p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
-                <h2 className="text-lg font-bold">Course Curriculum</h2>
-                <div className="flex items-center gap-3 text-xs">
-                  <button
-                    type="button"
-                    onClick={handleExpandAll}
-                    className="font-semibold text-amber-300 hover:text-amber-200"
-                  >
-                    {expandAll ? "Collapse All" : "Expand All"}
-                  </button>
-                  <span className="text-zinc-600">|</span>
-                  <span className="text-zinc-500">Day by Day</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
-                </div>
-              </div>
-
-              <ul className="mt-2 divide-y divide-white/5">
-                {weeks.map((week, weekIdx) => {
-                  const open = !!openWeeks[weekIdx];
-                  const progress = weekProgress[weekIdx];
-                  const days = weekDaysFromCurriculum(week, weekIdx);
-                  const weekTitle =
-                    weekIdx === 0
-                      ? "Foundations of Cyber Security"
-                      : week.topic;
-
-                  return (
-                    <li key={week.week} className="py-1">
-                      <button
-                        type="button"
-                        onClick={() => toggleWeek(weekIdx)}
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-white/[0.03]"
-                      >
-                        <ChevronRight
-                          className={`h-4 w-4 shrink-0 text-zinc-500 transition-transform ${open ? "rotate-90" : ""}`}
-                          aria-hidden
-                        />
-                        <span className="min-w-0 flex-1 font-semibold text-zinc-100">
-                          Week {week.week}: {weekTitle}
-                        </span>
-                        {progress.label === "Completed" ? (
-                          <span className="shrink-0 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
-                            Completed
-                          </span>
-                        ) : (
-                          <span className="shrink-0 text-xs text-zinc-500">
-                            {progress.done}/{progress.total} Completed
-                          </span>
-                        )}
-                      </button>
-
-                      {open ? (
-                        <ul className="mb-3 ml-7 space-y-2 border-l border-white/10 pl-4">
-                          {days.map((day) => (
-                            <li
-                              key={day.id}
-                              className="flex flex-col gap-2 rounded-xl border border-white/[0.06] bg-black/30 p-3 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                              <div className="min-w-0">
-                                <p className="text-[11px] font-semibold text-amber-200/90">{day.label}</p>
-                                <p className="mt-0.5 text-sm text-zinc-300">{day.title}</p>
-                                <p className="mt-1 text-xs text-zinc-500">{day.duration}</p>
-                              </div>
-                              <div className="flex shrink-0 items-center gap-2">
-                                {day.kind === "recording" ? (
-                                  <button
-                                    type="button"
-                                    className="rounded-lg border border-[#FFB800]/50 bg-[#FFB800]/10 px-3 py-1.5 text-xs font-bold text-[#FFB800] hover:bg-[#FFB800]/20"
-                                  >
-                                    Watch Recording
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    className="rounded-lg border border-violet-400/40 bg-violet-500/15 px-3 py-1.5 text-xs font-bold text-violet-200 hover:bg-violet-500/25"
-                                  >
-                                    View Lab
-                                  </button>
-                                )}
-                                {day.done ? (
-                                  <span
-                                    className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400"
-                                    aria-label="Completed"
-                                  >
-                                    ✓
-                                  </span>
-                                ) : null}
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
+              <TutorLedCurriculumExplorer
+                program={program}
+                variant="learner"
+                weekProgress={weekProgress}
+                liveJoinAnchor="#zoom-live"
+              />
             </section>
-
             {/* Recordings */}
             <section>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-lg font-bold">Session Recordings</h2>
-                <button type="button" className="text-xs font-semibold text-amber-300 hover:text-amber-200">
-                  View All Recordings
-                </button>
+                {sessionRecordings.length > 0 ? (
+                  <span className="text-xs text-zinc-500">{sessionRecordings.length} from Zoom cloud</span>
+                ) : null}
               </div>
+              {sessionRecordings.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-white/10 bg-zinc-900/50 px-4 py-6 text-center text-sm text-zinc-500">
+                  Recordings appear here after your trainer runs a live session and syncs from Zoom.
+                </p>
+              ) : (
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {DEMO_RECORDINGS.map((rec) => (
-                  <article
-                    key={rec.title}
-                    className="w-[200px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-900"
+                  {sessionRecordings.map((rec, i) => (
+                    <a
+                      key={rec.playUrl + String(i)}
+                      href={rec.playUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-[200px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-900 transition hover:border-amber-400/40"
                   >
                     <div className="relative aspect-video bg-black">
                       <Image src={rec.thumb} alt="" fill className="object-cover opacity-80" unoptimized />
                       <span className="absolute inset-0 flex items-center justify-center bg-black/40">
                         <Play className="h-10 w-10 text-white/90" fill="currentColor" aria-hidden />
                       </span>
-                      <span className="absolute bottom-2 right-2 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-medium">
-                        {rec.duration}
-                      </span>
+                      {rec.duration ? (
+                        <span className="absolute bottom-2 right-2 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-medium">
+                          {rec.duration}
+                        </span>
+                      ) : null}
                     </div>
                     <p className="p-2 text-xs font-medium text-zinc-300">{rec.title}</p>
-                  </article>
+                  </a>
                 ))}
               </div>
+              )}
             </section>
           </div>
 

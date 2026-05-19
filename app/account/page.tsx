@@ -1,8 +1,10 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Galaxy from "@/components/Galaxy";
+import { recordLearnerAuth } from "@/lib/learner-session-client";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +67,11 @@ export default function AccountPage() {
       setShowAuthStep(true);
       return;
     }
+    if (mode === "register" || mode === "signup") {
+      setAuthView("register");
+      setShowAuthStep(false);
+      return;
+    }
     setAuthView("register");
     setShowAuthStep(false);
   }, [mode]);
@@ -82,7 +89,7 @@ export default function AccountPage() {
     setShowAuthStep(true);
   };
 
-  const handleAuthSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAuthSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const formEmail = String(
@@ -109,6 +116,15 @@ export default function AccountPage() {
     setAuthError("");
     window.localStorage.setItem("sft_logged_in", "true");
     window.localStorage.setItem("sft_learner_email", normalizedEmail);
+    try {
+      await recordLearnerAuth(
+        normalizedEmail,
+        authView === "register" ? "register" : "login",
+        String(formData.get("name") ?? "").trim() || undefined,
+      );
+    } catch {
+      /* pricing region optional if API unreachable */
+    }
     window.dispatchEvent(new Event("sft_auth_updated"));
     if (isAdminLogin) {
       window.localStorage.setItem("sft_user_role", "admin");
@@ -126,28 +142,42 @@ export default function AccountPage() {
 
   const goldGradient = "bg-gradient-to-b from-[#f9b14d] to-[#eb9422]";
 
-  return (
-    <div className="min-h-screen bg-[#070707] text-white">
-      <main className="relative overflow-hidden px-6 py-10">
-        <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-amber-500/20 blur-[120px]" />
-        <div className="pointer-events-none absolute bottom-8 right-8 h-60 w-60 rounded-full bg-cyan-400/10 blur-[110px]" />
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold md:text-4xl">Account Access</h1>
-            <p className="mt-2 text-sm text-gray-300">
-              Secure onboarding and authentication for your selected profile.
-            </p>
-          </div>
+  const galaxyBackdropProps = {
+    mouseRepulsion: true,
+    mouseInteraction: false,
+    density: 1.2,
+    glowIntensity: 0.55,
+    saturation: 0.15,
+    hueShift: 140,
+    twinkleIntensity: 0.35,
+    rotationSpeed: 0.1,
+    repulsionStrength: 2,
+    autoCenterRepulsion: 0,
+    starSpeed: 0.5,
+    speed: 1,
+    transparent: true,
+  } as const;
 
+  return (
+    <div className="relative overflow-hidden bg-[#070707] text-white">
+      <Galaxy
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full"
+        aria-hidden
+        {...galaxyBackdropProps}
+      />
+      <main className="relative z-10 px-6 pt-4 pb-1">
+        <div className="mx-auto max-w-6xl">
         {!showAuthStep && (
           <>
-            <h2 className="bg-linear-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
-              Choose your avatar and account type
-            </h2>
-            <p className="mt-2 text-sm text-gray-300">
-              Pick one profile to continue with a futuristic access experience.
-            </p>
-            <div className="mt-8">
+            <div className="text-center">
+              <h2 className="bg-linear-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
+                Choose your avatar and account type
+              </h2>
+              <p className="mt-1 text-sm text-gray-300">
+                Pick one profile to continue with a futuristic access experience.
+              </p>
+            </div>
+            <div className="mt-4">
               <div className="flex flex-wrap items-start justify-center gap-5">
                 {accountTypes.map((type) => {
                   const active = selectedAccountType === type.id;
@@ -167,13 +197,16 @@ export default function AccountPage() {
                         aria-hidden
                       />
                       <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-black/40 p-2">
-                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(249,177,77,0.25),transparent_70%)]" />
+                        <div
+                          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(249,177,77,0.25),transparent_70%)]"
+                          aria-hidden
+                        />
                         <Image
                           src={type.imageSrc}
                           alt={`${type.title} avatar`}
                           width={420}
                           height={300}
-                          className="h-56 w-full object-cover"
+                          className="relative h-56 w-full object-cover"
                         />
                       </div>
                       <div className="relative mt-3 text-center">
@@ -185,18 +218,20 @@ export default function AccountPage() {
                 })}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleContinue}
-              className={`mt-8 rounded-full px-10 py-3.5 font-bold text-black transition-all hover:-translate-y-0.5 hover:brightness-110 ${goldGradient}`}
-            >
-              Continue
-            </button>
+            <div className="mt-4 flex justify-center pb-1">
+              <button
+                type="button"
+                onClick={handleContinue}
+                className={`rounded-full px-10 py-3.5 font-bold text-black transition-all hover:-translate-y-0.5 hover:brightness-110 ${goldGradient}`}
+              >
+                Continue
+              </button>
+            </div>
           </>
         )}
 
         {showAuthStep && (
-          <div className="rounded-3xl border border-white/15 bg-white/5 p-6 shadow-[0_0_45px_rgba(0,0,0,0.45)] backdrop-blur-xl md:p-8">
+          <div className="rounded-3xl border border-white/15 bg-black/40 p-6 shadow-[0_0_45px_rgba(0,0,0,0.45)] backdrop-blur-xl md:p-8">
             <div className="mb-6 flex flex-wrap items-center gap-3">
               <button
                 type="button"

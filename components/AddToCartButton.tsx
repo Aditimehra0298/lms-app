@@ -1,7 +1,9 @@
 "use client";
 
 import { ShoppingCart } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { isLearnerLoggedIn, loginRedirectHref } from "@/lib/learner-session-client";
 
 type CartItem = {
   slug: string;
@@ -58,6 +60,7 @@ export default function AddToCartButton({
   iconOnly?: boolean;
 }) {
   const [added, setAdded] = useState(false);
+  const router = useRouter();
 
   return (
     <button
@@ -65,6 +68,10 @@ export default function AddToCartButton({
       title={iconOnly ? "Add to cart" : undefined}
       aria-label={iconOnly ? "Add to cart" : undefined}
       onClick={() => {
+        if (!isLearnerLoggedIn()) {
+          router.push(loginRedirectHref());
+          return;
+        }
         addItemToCart({ slug, title, price, image });
         setAdded(true);
         window.setTimeout(() => setAdded(false), 1400);

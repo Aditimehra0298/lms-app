@@ -2,9 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { isLearnerLoggedIn, loginRedirectHref } from "@/lib/learner-session-client";
 import { Clock, GraduationCap, Star, Users } from "lucide-react";
 import type { ManagedCourse } from "@/lib/content-schema";
 import { instructorInitialLetter } from "@/lib/managed-course-to-post-hero";
+import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { CoursePrice } from "@/components/CoursePrice";
 
 function parseMoneyInput(s: string): number | null {
   const cleaned = s.replace(/[^\d.]/g, "");
@@ -23,6 +27,8 @@ function discountPercent(saleStr: string, listStr: string): number | null {
 type Props = { course: ManagedCourse };
 
 export default function SelfPacedCourseHero({ course }: Props) {
+  const router = useRouter();
+  const { showPrices, ready } = useLearnerPricing();
   const badge = (course.pageBadge ?? "SELF-PACED").trim() || "SELF-PACED";
   const pct = discountPercent(course.price, course.oldPrice);
   const initial = instructorInitialLetter(course);
@@ -103,21 +109,36 @@ export default function SelfPacedCourseHero({ course }: Props) {
 
             <aside className="rounded-2xl border border-[#FFB800]/35 bg-gradient-to-b from-zinc-900 to-black p-5 shadow-[0_0_0_1px_rgba(255,184,0,0.08)] lg:sticky lg:top-24">
               <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Enroll</p>
-              <div className="mt-2 flex flex-wrap items-end gap-2">
-                <span className="text-2xl font-extrabold text-white">{course.price}</span>
-                {course.oldPrice ? (
-                  <span className="text-sm text-zinc-500 line-through">{course.oldPrice}</span>
-                ) : null}
-                {pct !== null ? (
-                  <span className="rounded bg-[#FFB800]/15 px-2 py-0.5 text-xs font-bold text-[#FFB800]">{pct}% off</span>
-                ) : null}
-              </div>
-              <Link
-                href="/cart"
+              {ready && showPrices ? (
+                <div className="mt-2 flex flex-wrap items-end gap-2">
+                  <CoursePrice label={course.price} className="text-2xl font-extrabold text-white" />
+                  {course.oldPrice ? (
+                    <CoursePrice label={course.oldPrice} className="text-sm text-zinc-500 line-through" />
+                  ) : null}
+                  {pct !== null ? (
+                    <span className="rounded bg-[#FFB800]/15 px-2 py-0.5 text-xs font-bold text-[#FFB800]">
+                      {pct}% off
+                    </span>
+                  ) : null}
+                </div>
+              ) : ready ? (
+                <CoursePrice variant="button" className="mt-3" />
+              ) : (
+                <div className="mt-2 h-10 animate-pulse rounded-lg bg-zinc-800/80" aria-hidden />
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isLearnerLoggedIn()) {
+                    router.push(loginRedirectHref());
+                    return;
+                  }
+                  router.push("/cart");
+                }}
                 className="mt-4 flex w-full items-center justify-center rounded-xl bg-[#FFB800] py-3 text-sm font-extrabold text-black transition hover:bg-[#e5a500]"
               >
                 Add to cart
-              </Link>
+              </button>
               <p className="mt-3 text-center text-[11px] text-zinc-500">Secure checkout. Access details are confirmed after purchase.</p>
             </aside>
           </div>

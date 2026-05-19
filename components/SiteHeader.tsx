@@ -23,7 +23,7 @@ export default function SiteHeader() {
   const myLearningMenu = [
     { label: "🏠 Dashboard", href: "/my-learning?tab=dashboard" },
     { label: "🎓 My Learning", href: "/my-learning?tab=learning" },
-    { label: "🎥 Tutor Led", href: "/my-learning?tab=live" },
+    { label: "🎥 Tutor Led", href: "/tutor-led" },
     { label: "📅 Calendar", href: "/my-learning/calendar" },
     { label: "📝 Assignments", href: "/my-learning?tab=assignments" },
     { label: "💬 Community", href: "/my-learning?tab=community" },

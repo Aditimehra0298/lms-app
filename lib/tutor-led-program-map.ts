@@ -4,15 +4,21 @@ import type { LucideIcon } from "lucide-react";
 import {
   Award,
   BookOpen,
+  Brain,
   Calendar,
   Clock,
   Globe,
   GraduationCap,
+  Handshake,
   MessageCircle,
   Mic,
   Monitor,
   MonitorPlay,
+  Rocket,
+  Shield,
   Star,
+  TrendingUp,
+  UserRound,
   Users,
   Video,
   Zap,
@@ -22,15 +28,21 @@ import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 export const TUTOR_LED_ICON_MAP: Record<string, LucideIcon> = {
   Award,
   BookOpen,
+  Brain,
   Calendar,
   Clock,
   Globe,
   GraduationCap,
+  Handshake,
   MessageCircle,
   Mic,
   Monitor,
   MonitorPlay,
+  Rocket,
+  Shield,
   Star,
+  TrendingUp,
+  UserRound,
   Users,
   Video,
   Zap,
@@ -43,6 +55,14 @@ export function tutorLedIcon(name: string): LucideIcon {
 }
 
 /** Merged object passed to both TutorLedCourseHero and TutorLedPostHeroSections. */
+export function tutorLedLearnerBannerSrc(stored: TutorLedProgramStored): string {
+  return stored.learnerHeroSrc?.trim() || stored.heroSrc?.trim() || "/h1.png";
+}
+
+export function tutorLedEnrolledPrice(stored: TutorLedProgramStored): number {
+  return stored.priceAfterPayment ?? stored.price;
+}
+
 export function mapTutorLedProgramToPageCourse(stored: TutorLedProgramStored) {
   return {
     title: stored.title,
@@ -51,6 +71,9 @@ export function mapTutorLedProgramToPageCourse(stored: TutorLedProgramStored) {
     badge: stored.badge,
     price: stored.price,
     originalPrice: stored.originalPrice,
+    priceAfterPayment: stored.priceAfterPayment ?? stored.price,
+    learnerHeroSrc: stored.learnerHeroSrc,
+    learnerHeroAlt: stored.learnerHeroAlt,
     discount: stored.discount,
     batchLabel: stored.batchLabel,
     seatsFilling: stored.seatsFilling,

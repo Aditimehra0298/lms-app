@@ -1,3 +1,6 @@
+import type { TutorLedLearningMaterial } from "@/lib/tutor-led-learning-tools";
+import type { ZoomSessionRecording } from "@/lib/zoom-session-types";
+
 /**
  * JSON-safe tutor-led live program rows (icons stored as Lucide export names).
  * Used by admin and `/tutor-led/[slug]`.
@@ -9,8 +12,12 @@ export type TutorLedProgramStored = {
   subtitle: string;
   breadcrumb: string[];
   badge: string;
+  /** Checkout / marketing sale price (before payment). */
   price: number;
+  /** Strikethrough list price on the public page (before payment). */
   originalPrice: number;
+  /** Optional enrolled-dashboard price; defaults to `price` when omitted. */
+  priceAfterPayment?: number;
   discount: string;
   batchLabel: string;
   seatsFilling: boolean;
@@ -40,8 +47,28 @@ export type TutorLedProgramStored = {
   }[];
   whyChoose: { icon: string; title: string; desc: string }[];
   faqs: { q: string; a: string }[];
+  /** Hero on `/tutor-led/[slug]` before payment. */
   heroSrc?: string;
   heroAlt?: string;
+  /** Banner on My Learning after payment; falls back to `heroSrc`. */
+  learnerHeroSrc?: string;
+  learnerHeroAlt?: string;
+  /** Full Zoom join link (from Zoom → Meetings → copy invitation). */
+  liveJoinUrl?: string;
+  /** Optional — auto-filled when you paste a Zoom link; or enter PMI / meeting ID manually. */
+  zoomMeetingId?: string;
+  /** Optional — shown to enrolled learners; merged into join URL as ?pwd= when needed. */
+  zoomPasscode?: string;
+  /** Set when a meeting is created via Zoom API (used for cloud recording sync). */
+  zoomMeetingUuid?: string;
+  /** Cloud recordings synced from Zoom API — shown on the learner dashboard. */
+  zoomRecordings?: ZoomSessionRecording[];
+  /** Pad notes, PPT, webbook — managed in Admin → Tutor Led; learners download only. */
+  learningMaterials?: TutorLedLearningMaterial[];
+  /** auto = 5 days/week from topic; manual = edit days in admin. */
+  curriculumMode?: "auto" | "manual";
+  /** auto = Zoom API buttons; manual = paste join link only. */
+  zoomLinkMode?: "auto" | "manual";
 };
 
 export const defaultTutorLedPrograms: TutorLedProgramStored[] = [
@@ -54,81 +81,84 @@ export const defaultTutorLedPrograms: TutorLedProgramStored[] = [
     breadcrumb: ["Home", "Live Trainings", "Tutor Led Training"],
     badge: "TUTOR LED TRAINING",
     price: 12999,
-    originalPrice: 18999,
-    discount: "31% OFF",
+    originalPrice: 24999,
+    discount: "48% OFF",
     batchLabel: "Upcoming Live Batch",
     seatsFilling: true,
-    seatsLeft: 18,
+    seatsLeft: 10,
     trainer: {
       name: "Mr. Arvind Rao",
       role: "Cyber Security Expert & Trainer",
-      experience: "12+ Years of Experience",
-      bio: "12+ years of experience in cybersecurity, ethical hacking, and information security. Worked with top MNCs and trained more than 15,000+ professionals worldwide.",
-      certifications: ["CEH Certified", "CISSP Certified", "OSCP Certified"],
+      experience: "12+ Years Experience",
+      bio: "10+ years of experience in cybersecurity, ethical hacking, risk assessment and information security. Worked with top MNCs and trained 1000+ professionals.",
+      certifications: ["Ethical Hacking", "Network Security", "Risk Assessment", "GRC", "Pen Testing"],
       workedWith: ["IBM", "Deloitte", "Infosys", "KPMG", "WIPRO"],
       avatar: "/trainer-avatar.png",
     },
-    nextBatchDate: "25 May 2024",
-    schedule: "Sat & Sun (7:00 PM - 10:00 PM IST)",
+    nextBatchDate: "15 June 2024",
+    schedule: "Tue, Thu, Sat (7:00 PM - 9:00 PM IST)",
     language: "English",
     countdown: { days: 5, hours: 12, mins: 45, secs: 30 },
+    liveJoinUrl: "",
+    zoomMeetingId: "",
+    zoomPasscode: "",
     batchDetails: [
-      { icon: "Clock", label: "Duration", value: "24 Hours (12 Live Sessions)" },
-      { icon: "Calendar", label: "Live Sessions", value: "Sat & Sun (7:00 PM - 10:00 PM IST)" },
+      { icon: "Clock", label: "Duration", value: "12 Weeks" },
+      { icon: "Calendar", label: "Live Sessions", value: "Tue, Thu, Sat (7:00 PM - 9:00 PM IST)" },
       { icon: "Monitor", label: "Platform", value: "Zoom (Live Interactive)" },
       { icon: "Video", label: "Recording Access", value: "Lifetime access to recordings" },
-      { icon: "Award", label: "Certification", value: "Industry Recognized Certificate" },
+      { icon: "Award", label: "Certification", value: "IEB-Accredited Certificate of Attainment" },
     ],
     features: [
-      { icon: "Mic", title: "Live Expert Training", desc: "Learn directly from industry professionals" },
-      { icon: "MessageCircle", title: "Real-time Interaction", desc: "Ask questions and get instant answers" },
-      { icon: "MonitorPlay", title: "Hands-on Workshops", desc: "Practical labs and live demonstrations" },
-      { icon: "Users", title: "Peer Learning", desc: "Connect and learn with fellow professionals" },
-      { icon: "Video", title: "Session Recordings", desc: "Access all recordings after each session" },
-      { icon: "Award", title: "Certificate", desc: "Earn a recognized completion certificate" },
+      { icon: "Mic", title: "Live Expert Training", desc: "Learn directly from industry experts" },
+      { icon: "MessageCircle", title: "Public Discussion", desc: "Clarify doubts and share knowledge" },
+      { icon: "Users", title: "Peer Interaction", desc: "Engage with fellow learners" },
+      { icon: "Handshake", title: "Peer Learning", desc: "Collaborate and grow together" },
+      { icon: "Video", title: "Session Recordings", desc: "Watch anytime, revise at your convenience" },
+      { icon: "Shield", title: "Certificates", desc: "IEB-accredited Certificate of Attainment with QR verification" },
     ],
     highlights: [
-      "12 Live Interactive Sessions on Zoom",
-      "Real-Time Doubt Solving",
-      "Live Assignments & Hands-on Labs",
-      "Group Discussions & Breakout Rooms",
-      "Polls, Quizzes & Interactive Activities",
-      "Session Recordings & Notes Provided",
+      "Live interactive sessions on Zoom",
+      "Real-time doubt solving",
+      "Hands-on labs & practical demos",
+      "Industry-based case studies",
+      "IEB-accredited Certificate of Attainment",
+      "Career guidance & support",
     ],
     curriculum: [
       {
         week: 1,
-        label: "Foundations",
-        topic: "Introduction to Cyber Security & Information Security",
-        keyLearning: "Security principles, CIA Triad, Threats & Attack Vectors",
+        label: "Module 1",
+        topic: "Introduction to Cybersecurity",
+        keyLearning: "Security fundamentals, threats & attack vectors",
         sessionType: "Live Lecture",
       },
       {
         week: 2,
-        label: "Network Security",
-        topic: "Network Security Concepts & Firewalls",
-        keyLearning: "TCP/IP, Firewalls, IDS/IPS, VPN, Network Monitoring",
+        label: "Module 2",
+        topic: "Network Security",
+        keyLearning: "Firewalls, IDS/IPS, VPN, network monitoring",
         sessionType: "Live + Hands-on",
       },
       {
         week: 3,
-        label: "Ethical Hacking",
-        topic: "Penetration Testing Fundamentals",
-        keyLearning: "Reconnaissance, Scanning, Enumeration using industry tools",
+        label: "Module 3",
+        topic: "Practical Tools",
+        keyLearning: "Industry tools for scanning & enumeration",
         sessionType: "Live + Lab",
       },
       {
         week: 4,
-        label: "Web Security",
-        topic: "Web Application Security & OWASP Top 10",
-        keyLearning: "SQL Injection, XSS, CSRF, Secure Coding Practices",
+        label: "Module 4",
+        topic: "Web Application Security",
+        keyLearning: "OWASP Top 10, SQL injection, XSS",
         sessionType: "Live + Hands-on",
       },
       {
         week: 5,
-        label: "Security Testing",
-        topic: "Vulnerability Assessment & Reporting",
-        keyLearning: "Identify vulnerabilities, risk rating, report generation",
+        label: "Module 5",
+        topic: "Incident Response",
+        keyLearning: "Detection, containment & recovery",
         sessionType: "Live Workshop",
       },
       {
@@ -140,35 +170,58 @@ export const defaultTutorLedPrograms: TutorLedProgramStored[] = [
       },
     ],
     whyChoose: [
-      { icon: "MonitorPlay", title: "Live Learning Experience", desc: "Engage in real-time with expert trainers and peers" },
-      { icon: "Users", title: "Personalized Guidance", desc: "Get personalized feedback and mentorship" },
-      { icon: "BookOpen", title: "Better Understanding", desc: "Complex topics explained directly by experts" },
-      { icon: "Zap", title: "Career Advancement", desc: "Build in-demand skills and boost your career" },
-      { icon: "Globe", title: "Exclusive Community", desc: "Be part of a community of ambitious learners" },
+      { icon: "Rocket", title: "Live Learning Experience", desc: "Engage in real-time with expert trainers and peers" },
+      { icon: "Brain", title: "Practical Cybersecurity Skills", desc: "Hands-on labs and real-world security scenarios" },
+      { icon: "UserRound", title: "Real Trainer Support", desc: "Get doubts cleared directly by industry experts" },
+      { icon: "TrendingUp", title: "Career Improvement", desc: "Build in-demand skills and boost your career" },
+      { icon: "Users", title: "Interactive Community", desc: "Learn and grow with fellow cybersecurity professionals" },
     ],
     faqs: [
       {
-        q: "How do the live sessions work?",
-        a: "All sessions are conducted live on Zoom. You'll receive a joining link before each session. Sessions are interactive with Q&A, polls, and breakout rooms.",
+        q: "Who is this course for?",
+        a: "IT professionals, security analysts, network admins, and anyone looking to start or advance in cybersecurity.",
       },
       {
-        q: "Will I get recordings of the sessions?",
-        a: "Yes, recordings of all live sessions are made available within 24 hours and you get lifetime access to them.",
+        q: "Will I get a certificate?",
+        a: "Yes, upon successful completion you receive an industry-recognized Certificate of Attainment.",
       },
       {
-        q: "What if I miss a live session?",
-        a: "You can watch the recorded session at your convenience. You can also post your doubts in the community forum for trainer response.",
+        q: "Is this course beginner-friendly?",
+        a: "Yes. We start from fundamentals and build up to advanced topics with live trainer support.",
       },
       {
-        q: "Is prior experience required?",
-        a: "Basic understanding of computers and networking is helpful, but not mandatory. The course starts from fundamentals.",
+        q: "Will recordings be provided?",
+        a: "Yes. All live sessions are recorded and available for lifetime access in My Learning.",
       },
       {
-        q: "Will I get a certificate after the training?",
-        a: "Yes, upon successful completion of the training and final project, you'll receive an industry-recognized certificate.",
+        q: "How will the live classes be conducted?",
+        a: "Classes run on Zoom with screen share, live Q&A, polls, and breakout activities.",
       },
     ],
     heroSrc: "/h1.png",
     heroAlt: "Live interactive sessions with expert trainer",
+    learnerHeroSrc: "/h2.png",
+    learnerHeroAlt: "Your live cohort dashboard",
+    priceAfterPayment: 12999,
+    learningMaterials: [
+      {
+        id: "demo-pad-1",
+        kind: "pad-notes",
+        title: "Live session scratchpad",
+        downloadUrl: "/uploads/demo/session-notes.pdf",
+      },
+      {
+        id: "demo-ppt-1",
+        kind: "ppt",
+        title: "Week 1 — Introduction slides",
+        downloadUrl: "/uploads/demo/week-1-slides.pptx",
+      },
+      {
+        id: "demo-web-1",
+        kind: "webbook",
+        title: "Course workbook (PDF)",
+        downloadUrl: "/uploads/demo/course-workbook.pdf",
+      },
+    ],
   },
 ];

@@ -16,6 +16,11 @@ model LmsUser {
   email     String   @unique @db.VarChar(255)
   name      String?  @db.VarChar(255)
   role      String   @default("learner") @db.VarChar(32)
+  ipv4      String?  @db.VarChar(45)
+  ipv6      String?  @db.VarChar(45)
+  countryCode String? @db.VarChar(8)
+  countryName String? @db.VarChar(128)
+  lastLoginAt DateTime?
   createdAt DateTime @default(now())
 
   purchases LmsPurchase[]

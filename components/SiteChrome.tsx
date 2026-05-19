@@ -10,10 +10,16 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
     return <>{children}</>;
   }
 
+  const accountPage = pathname === "/account";
+
   return (
     <>
       <SiteHeader />
-      <div className="relative z-10 flex w-full min-w-0 flex-1 flex-col">{children}</div>
+      <div
+        className={`relative z-10 flex w-full min-w-0 flex-col${accountPage ? "" : " flex-1"}`}
+      >
+        {children}
+      </div>
       <SiteFooter />
     </>
   );

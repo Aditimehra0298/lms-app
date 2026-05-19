@@ -14,17 +14,31 @@ type Props = {
   compact?: boolean;
 };
 
-async function copyText(text: string) {
+async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
-    return false;
+    try {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.setAttribute("readonly", "");
+      el.style.position = "fixed";
+      el.style.left = "-9999px";
+      document.body.appendChild(el);
+      el.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(el);
+      return ok;
+    } catch {
+      return false;
+    }
   }
 }
 
 export function TutorLedZoomJoinCard({ program, compact = false }: Props) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const joinUrl = useMemo(() => resolveZoomJoinUrl(program), [program]);
   const meetingId = program.zoomMeetingId?.trim();
   const passcode = program.zoomPasscode?.trim();
@@ -40,8 +54,15 @@ export function TutorLedZoomJoinCard({ program, compact = false }: Props) {
 
   const onCopy = async (key: string, value: string) => {
     const ok = await copyText(value);
-    setCopied(ok ? key : null);
-    if (ok) setTimeout(() => setCopied(null), 2000);
+    setCopyError(null);
+    if (ok) {
+      setCopied(key);
+      setTimeout(() => setCopied(null), 2000);
+      return;
+    }
+    setCopied(null);
+    setCopyError(key);
+    setTimeout(() => setCopyError(null), 2500);
   };
 
   return (
@@ -65,35 +86,37 @@ export function TutorLedZoomJoinCard({ program, compact = false }: Props) {
       ) : null}
 
       {meetingId ? (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-          <div>
-            <p className="text-[10px] text-zinc-500">Meeting ID</p>
-            <p className="font-mono text-sm font-semibold text-white">{formatZoomMeetingId(meetingId)}</p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-amber-400/60 bg-amber-500/15 px-4 py-3 shadow-[0_0_20px_rgba(251,191,36,0.2)] ring-2 ring-amber-400/35">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-200">Meeting ID</p>
+            <p className="mt-0.5 font-mono text-xl font-bold tracking-[0.15em] text-white">
+              {formatZoomMeetingId(meetingId)}
+            </p>
           </div>
           <button
             type="button"
             onClick={() => void onCopy("id", meetingId.replace(/\s/g, ""))}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[10px] text-zinc-300 hover:bg-white/5"
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border-2 border-amber-400/50 bg-black/40 px-3 py-1.5 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/25"
           >
-            <Copy className="h-3 w-3" aria-hidden />
-            {copied === "id" ? "Copied" : "Copy"}
+            <Copy className="h-3.5 w-3.5" aria-hidden />
+            {copied === "id" ? "Copied!" : copyError === "id" ? "Select & copy" : "Copy"}
           </button>
         </div>
       ) : null}
 
       {passcode ? (
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-          <div>
-            <p className="text-[10px] text-zinc-500">Passcode</p>
-            <p className="font-mono text-sm font-semibold text-white">{passcode}</p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-violet-400/50 bg-violet-500/15 px-4 py-3 shadow-[0_0_16px_rgba(167,139,250,0.18)] ring-2 ring-violet-400/30">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-violet-200">Passcode</p>
+            <p className="mt-0.5 font-mono text-lg font-bold tracking-wide text-white">{passcode}</p>
           </div>
           <button
             type="button"
             onClick={() => void onCopy("pwd", passcode)}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[10px] text-zinc-300 hover:bg-white/5"
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border-2 border-violet-400/50 bg-black/40 px-3 py-1.5 text-[11px] font-semibold text-violet-100 hover:bg-violet-500/25"
           >
-            <Copy className="h-3 w-3" aria-hidden />
-            {copied === "pwd" ? "Copied" : "Copy"}
+            <Copy className="h-3.5 w-3.5" aria-hidden />
+            {copied === "pwd" ? "Copied!" : copyError === "pwd" ? "Select & copy" : "Copy"}
           </button>
         </div>
       ) : null}

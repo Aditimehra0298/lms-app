@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultAdminContent, defaultHomePageConfig, type AdminContent, type HomePageConfig, type ManagedCategory, type ManagedCourse } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
-import { courseBrowseHref } from "@/lib/tutor-led-routes";
+import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
+import { courseBrowseHref, liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import { CoursePrice } from "@/components/CoursePrice";
 import {
   Play,
   Star,
@@ -586,15 +588,27 @@ export default function LearnlyLanding() {
     return hit?.slug ?? null;
   }, [activeCategory, catalogForPills]);
 
+  const publishedTutorLedPrograms = useMemo(
+    () => defaultTutorLedPrograms.filter((p) => p.published),
+    [],
+  );
+
   const filteredCoursesForPath = useMemo(() => {
     if (catalogCourses.length === 0) return [];
-    if (learningPath !== "self-paced" && learningPath !== "interactive") return [];
+    if (learningPath !== "self-paced" && learningPath !== "interactive" && learningPath !== "live") {
+      return [];
+    }
     let list = catalogCourses;
     if (learningPath === "self-paced") {
       list = list.filter((c) => !c.learningFormat || c.learningFormat === "self-paced");
     }
     if (learningPath === "interactive") {
-      list = list.filter((c) => c.learningFormat !== "live");
+      list = list.filter(
+        (c) => c.learningFormat === "interactive" || c.learningFormat === "live" || !c.learningFormat,
+      );
+    }
+    if (learningPath === "live") {
+      list = list.filter((c) => c.learningFormat === "live" || c.learningFormat === "interactive");
     }
     if (!activeCategorySlug) return list;
     return list.filter(
@@ -810,6 +824,10 @@ export default function LearnlyLanding() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (item.id === "interactive" || item.id === "live") {
+                        window.location.href = liveTutorCourseHref();
+                        return;
+                      }
                       setLearningPath(item.id);
                       setTimeout(() => {
                         browseAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -965,7 +983,7 @@ export default function LearnlyLanding() {
             )}
           </div>
 
-          {(learningPath === "self-paced" || learningPath === "interactive") && (
+          {(learningPath === "self-paced" || learningPath === "interactive" || learningPath === "live") && (
             <div className="mt-16 border-t border-white/10 pt-12">
               <h4 className="text-center text-2xl font-extrabold tracking-tight text-white md:text-3xl">
                 📚 Explore <span className={goldText}>Professional Learning Programs</span>
@@ -976,7 +994,30 @@ export default function LearnlyLanding() {
                 Filter courses by category and access structured modules, tutor-led sessions, and
                 examinations — all in one modern learning platform.
               </p>
-              {filteredCoursesForPath.length === 0 ? (
+              {filteredCoursesForPath.length === 0 &&
+              (learningPath === "interactive" || learningPath === "live") &&
+              publishedTutorLedPrograms.length > 0 ? (
+                <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {publishedTutorLedPrograms.map((program) => (
+                    <article
+                      key={program.slug}
+                      className="flex flex-col rounded-2xl border border-violet-500/35 bg-linear-to-b from-[#1a1030] via-[#120c06] to-[#07070a] p-5"
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">
+                        Tutor-led live program
+                      </p>
+                      <h5 className="mt-2 text-lg font-bold text-white">{program.title}</h5>
+                      <p className="mt-2 line-clamp-3 text-sm text-gray-400">{program.subtitle}</p>
+                      <Link
+                        href={liveTutorCourseHref(program.slug)}
+                        className={`mt-4 inline-flex items-center gap-1 text-sm font-bold ${goldText} hover:underline`}
+                      >
+                        Open program <ChevronRight size={16} />
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              ) : filteredCoursesForPath.length === 0 ? (
                 <p className="mt-8 text-center text-sm text-gray-500">
                   No published courses match this category yet. Try &quot;All&quot; or add courses in Admin.
                 </p>
@@ -1009,16 +1050,21 @@ export default function LearnlyLanding() {
                             {course.rating}
                           </div>
                           <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-3">
-                            <span className="text-lg font-bold text-amber-400">{course.price}</span>
+                            <CoursePrice label={course.price} className="text-lg font-bold text-amber-400" />
                             <Link
                               href={
-                                learningPath === "interactive"
-                                  ? courseBrowseHref(course.slug, "interactive")
+                                learningPath === "interactive" || learningPath === "live"
+                                  ? courseBrowseHref(
+                                      course.slug,
+                                      learningPath === "live" ? "live" : "interactive",
+                                    )
                                   : `/courses/${course.slug}?tab=course-content`
                               }
                               className={`text-xs font-bold ${goldText} hover:underline`}
                             >
-                              {learningPath === "interactive" ? "View live program →" : "View curriculum →"}
+                              {learningPath === "interactive" || learningPath === "live"
+                                ? "View live program →"
+                                : "View curriculum →"}
                             </Link>
                           </div>
                         </div>
@@ -1104,7 +1150,7 @@ export default function LearnlyLanding() {
                     <p className="text-sm font-semibold text-amber-300">{plan.badge}</p>
                     <p className="mt-1 text-sm text-gray-300">{plan.tagline}</p>
                     <p className="mt-4 text-sm leading-relaxed text-gray-400">{plan.desc}</p>
-                    <p className="mt-5 text-2xl font-bold text-white">{plan.price}</p>
+                    <CoursePrice label={plan.price} className="mt-5 block text-2xl font-bold text-white" />
                     {plan.note ? <p className="mt-1 text-xs text-amber-100/90">{plan.note}</p> : null}
                     <ul className="mt-5 space-y-2 text-sm text-gray-200">
                       {plan.features.map((feature) => (
@@ -1147,7 +1193,7 @@ export default function LearnlyLanding() {
                 <p className="text-sm font-semibold text-amber-300">{liveOrgPlan.title}</p>
                 <p className="mt-1 text-sm text-gray-300">{liveOrgPlan.tagline}</p>
                 <p className="mt-4 text-sm leading-relaxed text-gray-400">{liveOrgPlan.desc}</p>
-                <p className="mt-5 text-2xl font-bold text-white">{liveOrgPlan.price}</p>
+                <CoursePrice label={liveOrgPlan.price} className="mt-5 block text-2xl font-bold text-white" />
                 <p className="mt-1 text-xs text-amber-100/90">{liveOrgPlan.note}</p>
                 <ul className="mt-5 space-y-2 text-sm text-gray-200">
                   {liveOrgPlan.features.map((feature) => (

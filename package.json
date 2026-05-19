@@ -16,7 +16,9 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:deploy": "prisma migrate deploy"
+    "db:deploy": "prisma migrate deploy",
+    "env:init": "node scripts/init-env-local.mjs",
+    "env:edit": "node scripts/open-env-local.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

@@ -8,6 +8,9 @@ const DOC_TYPES = new Set([
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
   "text/csv",
   "application/csv",
 ]);
@@ -31,6 +34,12 @@ function extForType(type: string): string {
       return ".doc";
     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
       return ".docx";
+    case "application/vnd.ms-powerpoint":
+      return ".ppt";
+    case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+      return ".pptx";
+    case "text/plain":
+      return ".txt";
     case "text/csv":
     case "application/csv":
       return ".csv";
@@ -61,7 +70,26 @@ function extFromOriginalName(fileName: string): string | null {
   const m = fileName.match(/\.(\w+)$/);
   if (!m) return null;
   const ext = `.${m[1].toLowerCase()}`;
-  if ([".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf", ".doc", ".docx", ".csv", ".mp4", ".webm", ".mov", ".m4v"].includes(ext)) {
+  if (
+    [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".webp",
+      ".gif",
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".ppt",
+      ".pptx",
+      ".txt",
+      ".csv",
+      ".mp4",
+      ".webm",
+      ".mov",
+      ".m4v",
+    ].includes(ext)
+  ) {
     return ext;
   }
   return null;
