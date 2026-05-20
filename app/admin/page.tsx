@@ -39,7 +39,9 @@ import AdminTutorLedWorkspace from "@/components/admin/AdminTutorLedWorkspace";
 import CategoryPageEditorModal from "@/components/admin/CategoryPageEditorModal";
 import CategoryPreviewIframe from "@/components/admin/CategoryPreviewIframe";
 import type { AdminContent, ManagedCategory } from "@/lib/content-schema";
+import AdminAccessDenied from "@/components/AdminAccessDenied";
 import { defaultAdminContent } from "@/lib/content-schema";
+import { getLearnerEmail, isLearnerLoggedIn } from "@/lib/learner-session-client";
 
 const menuSections = [
   {
@@ -99,40 +101,17 @@ const menuIcons: Record<string, typeof Home> = {
   Settings: Settings,
 };
 
+type AdminAccessState = {
+  status: "loading" | "allowed" | "denied";
+  message?: string;
+  mainAdminMasked?: string;
+};
+
 export default function AdminPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeMenu, setActiveMenu] = useState("Dashboard");
-
-  const selectMenu = useCallback(
-    (item: string) => {
-      setActiveMenu(item);
-      if (item === "Tutor Led") {
-        router.replace("/admin?panel=tutor-led", { scroll: false });
-      } else if (searchParams.get("panel") === "tutor-led") {
-        router.replace("/admin", { scroll: false });
-      }
-    },
-    [router, searchParams],
-  );
-
-  useEffect(() => {
-    const panel = searchParams.get("panel");
-    if (panel === "tutor-led") setActiveMenu("Tutor Led");
-  }, [searchParams]);
-  const showCoursesWorkspace = activeMenu === "Self-paced courses";
-  const showCoursesPageEditor = activeMenu === "Courses Page";
-  const showHomePageEditor = activeMenu === "Home Page";
-  const showAboutPageEditor = activeMenu === "About Page";
-  const showTutorLedWorkspace = activeMenu === "Tutor Led";
-  const hasMainPanel =
-    activeMenu === "Dashboard" ||
-    showCoursesWorkspace ||
-    showCoursesPageEditor ||
-    showHomePageEditor ||
-    showAboutPageEditor ||
-    showTutorLedWorkspace ||
-    activeMenu === "Categories";
+  const [access, setAccess] = useState<AdminAccessState>({ status: "loading" });
   const [categoryPageEditor, setCategoryPageEditor] = useState<{
     slug: string;
     title: string;
@@ -150,6 +129,63 @@ export default function AdminPage() {
   const [categoryRows, setCategoryRows] = useState<string[][]>([]);
   const [categoriesReady, setCategoriesReady] = useState(false);
   const [categoriesLoadError, setCategoriesLoadError] = useState<string | null>(null);
+
+  const selectMenu = useCallback(
+    (item: string) => {
+      setActiveMenu(item);
+      if (item === "Tutor Led") {
+        router.replace("/admin?panel=tutor-led", { scroll: false });
+      } else if (searchParams.get("panel") === "tutor-led") {
+        router.replace("/admin", { scroll: false });
+      }
+    },
+    [router, searchParams],
+  );
+
+  useEffect(() => {
+    const panel = searchParams.get("panel");
+    if (panel === "tutor-led") setActiveMenu("Tutor Led");
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!isLearnerLoggedIn()) {
+      router.replace("/account?admin=1");
+      return;
+    }
+    const email = getLearnerEmail();
+    if (!email) {
+      router.replace("/account?admin=1");
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/auth/admin-access?email=${encodeURIComponent(email)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: { allowed?: boolean; message?: string; mainAdminMasked?: string }) => {
+        if (cancelled) return;
+        if (data.allowed) {
+          window.localStorage.setItem("sft_user_role", "admin");
+          setAccess({ status: "allowed" });
+          return;
+        }
+        window.localStorage.setItem("sft_user_role", "learner");
+        setAccess({
+          status: "denied",
+          message: data.message,
+          mainAdminMasked: data.mainAdminMasked,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAccess({
+            status: "denied",
+            message: "Could not verify admin permission. Try again or sign in with the main Google account.",
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const toSlug = (value: string) =>
     value
@@ -182,6 +218,7 @@ export default function AdminPage() {
     ]);
 
   useEffect(() => {
+    if (access.status !== "allowed") return;
     let cancelled = false;
     (async () => {
       try {
@@ -210,7 +247,41 @@ export default function AdminPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [access.status]);
+
+  if (access.status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-zinc-400">
+        Checking administrator permission…
+      </div>
+    );
+  }
+
+  if (access.status === "denied") {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a]">
+        <AdminAccessDenied
+          mainAdminMasked={access.mainAdminMasked}
+          userEmail={getLearnerEmail()}
+          message={access.message}
+        />
+      </div>
+    );
+  }
+
+  const showCoursesWorkspace = activeMenu === "Self-paced courses";
+  const showCoursesPageEditor = activeMenu === "Courses Page";
+  const showHomePageEditor = activeMenu === "Home Page";
+  const showAboutPageEditor = activeMenu === "About Page";
+  const showTutorLedWorkspace = activeMenu === "Tutor Led";
+  const hasMainPanel =
+    activeMenu === "Dashboard" ||
+    showCoursesWorkspace ||
+    showCoursesPageEditor ||
+    showHomePageEditor ||
+    showAboutPageEditor ||
+    showTutorLedWorkspace ||
+    activeMenu === "Categories";
 
   const persistCategories = async (rows: string[][]) => {
     try {

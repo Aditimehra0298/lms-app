@@ -16,7 +16,7 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
     <>
       <SiteHeader />
       <div
-        className={`relative z-10 flex w-full min-w-0 flex-col${accountPage ? "" : " flex-1"}`}
+        className={`relative z-10 flex w-full min-w-0 flex-col${accountPage ? " shrink-0" : " flex-1"}`}
       >
         {children}
       </div>

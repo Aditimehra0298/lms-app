@@ -36,8 +36,8 @@ export function SignInToViewPrices({ redirectPath, className = "", compact = fal
       <Lock className="mx-auto h-8 w-8 text-[#FFB800]/80" aria-hidden />
       <p className="mt-2 text-sm font-semibold text-white">Pricing available after sign-in</p>
       <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-        We detect your country from your IP address when you register or log in, then show localized
-        course prices.
+        We detect your country from Google sign-in, your IP address, or the country you pick at
+        registration, then show localized course prices.
       </p>
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         <Link

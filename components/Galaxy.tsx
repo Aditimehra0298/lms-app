@@ -340,6 +340,10 @@ export default function Galaxy({
       gl.clearColor(0, 0, 0, 1);
     }
 
+    let lastLayoutW = 0;
+    let lastLayoutH = 0;
+    let resizeRaf = 0;
+
     function setResolution(width: number, height: number) {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = Math.max(1, Math.floor(width * dpr));
@@ -353,16 +357,22 @@ export default function Galaxy({
     }
 
     function resize() {
-      const w = ctn.clientWidth;
-      const h = ctn.clientHeight;
-      if (w > 0 && h > 0) {
+      cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        const w = ctn.clientWidth;
+        const h = ctn.clientHeight;
+        if (w <= 0 || h <= 0) return;
+        if (Math.abs(w - lastLayoutW) < 2 && Math.abs(h - lastLayoutH) < 2) return;
+        lastLayoutW = w;
+        lastLayoutH = h;
         setResolution(w, h);
-      }
+      });
     }
 
     const resizeObserver = new ResizeObserver(() => resize());
     resizeObserver.observe(ctn);
     window.addEventListener("resize", resize, false);
+    window.visualViewport?.addEventListener("resize", resize);
 
     let animateId = 0;
 
@@ -370,7 +380,6 @@ export default function Galaxy({
       animateId = requestAnimationFrame(update);
 
       gl.useProgram(program);
-      bindTriangleAttribs();
 
       if (!disableAnimation) {
         gl.uniform1f(uniforms.uTime, t * 0.001);
@@ -414,8 +423,10 @@ export default function Galaxy({
 
     return () => {
       cancelAnimationFrame(animateId);
+      cancelAnimationFrame(resizeRaf);
       resizeObserver.disconnect();
       window.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("resize", resize);
       if (mouseInteraction) {
         ctn.removeEventListener("mousemove", handleMouseMove);
         ctn.removeEventListener("mouseleave", handleMouseLeave);

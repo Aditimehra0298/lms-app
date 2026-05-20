@@ -7,8 +7,10 @@ import {
   type PricingRegion,
 } from "@/lib/country-pricing";
 import {
+  fetchGuestPricingRegion,
   getCachedPricingRegion,
   isLearnerLoggedIn,
+  PRICING_REGION_EVENT,
   refreshPricingRegion,
 } from "@/lib/learner-session-client";
 
@@ -17,34 +19,47 @@ export function useLearnerPricing() {
   const [region, setRegion] = useState<PricingRegion | null>(null);
   const [ready, setReady] = useState(false);
 
+  const applyRegion = useCallback((next: PricingRegion | null) => {
+    setRegion(next);
+    setShowPrices(Boolean(next));
+  }, []);
+
   const sync = useCallback(async () => {
     const loggedIn = isLearnerLoggedIn();
-    setShowPrices(loggedIn);
+    const cached = getCachedPricingRegion();
 
-    if (!loggedIn) {
-      setRegion(null);
+    if (cached) applyRegion(cached);
+
+    if (loggedIn) {
+      setReady(true);
+      const fresh = await refreshPricingRegion();
+      if (fresh) applyRegion(fresh);
+      return;
+    }
+
+    if (cached) {
       setReady(true);
       return;
     }
 
-    const cached = getCachedPricingRegion();
-    if (cached) setRegion(cached);
+    const guest = await fetchGuestPricingRegion();
+    applyRegion(guest);
     setReady(true);
-
-    const fresh = await refreshPricingRegion();
-    if (fresh) setRegion(fresh);
-  }, []);
+  }, [applyRegion]);
 
   useLayoutEffect(() => {
     void sync();
-    const onAuth = () => void sync();
-    window.addEventListener("sft_auth_updated", onAuth);
-    window.addEventListener("storage", onAuth);
+    const onAuthUpdate = () => void sync();
+    const onPricingCached = () => applyRegion(getCachedPricingRegion());
+    window.addEventListener("sft_auth_updated", onAuthUpdate);
+    window.addEventListener(PRICING_REGION_EVENT, onPricingCached);
+    window.addEventListener("storage", onAuthUpdate);
     return () => {
-      window.removeEventListener("sft_auth_updated", onAuth);
-      window.removeEventListener("storage", onAuth);
+      window.removeEventListener("sft_auth_updated", onAuthUpdate);
+      window.removeEventListener(PRICING_REGION_EVENT, onPricingCached);
+      window.removeEventListener("storage", onAuthUpdate);
     };
-  }, [sync]);
+  }, [sync, applyRegion]);
 
   const formatInr = useCallback(
     (amountInr: number) => {

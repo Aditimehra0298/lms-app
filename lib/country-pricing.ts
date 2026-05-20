@@ -1,3 +1,6 @@
+import { currencyForCountry } from "@/lib/currency-by-country";
+import { countryDisplayName } from "@/lib/iso-country-list";
+
 export type PricingRegion = {
   countryCode: string;
   countryName: string;
@@ -6,6 +9,60 @@ export type PricingRegion = {
   locale: string;
   /** Multiply INR base price to get local amount. */
   rateFromInr: number;
+};
+
+/** INR → local currency multipliers (approximate; admin prices stored in INR). */
+const RATE_BY_CURRENCY: Record<string, number> = {
+  INR: 1,
+  USD: 0.012,
+  EUR: 0.011,
+  GBP: 0.0095,
+  AED: 0.044,
+  SAR: 0.045,
+  AUD: 0.018,
+  CAD: 0.016,
+  SGD: 0.016,
+  JPY: 1.8,
+  CNY: 0.086,
+  HKD: 0.094,
+  TWD: 0.38,
+  KRW: 16,
+  CHF: 0.011,
+  NZD: 0.02,
+  MXN: 0.21,
+  BRL: 0.06,
+  ZAR: 0.22,
+  NGN: 18,
+  KES: 1.55,
+  EGP: 0.37,
+  PKR: 3.35,
+  BDT: 1.4,
+  LKR: 3.6,
+  NPR: 1.6,
+  THB: 0.42,
+  MYR: 0.056,
+  IDR: 190,
+  PHP: 0.68,
+  VND: 300,
+  TRY: 0.41,
+  PLN: 0.048,
+  SEK: 0.13,
+  NOK: 0.13,
+  DKK: 0.083,
+  CZK: 0.28,
+  HUF: 4.3,
+  RON: 0.055,
+  ILS: 0.044,
+  QAR: 0.044,
+  KWD: 0.0037,
+  BHD: 0.0045,
+  OMR: 0.0046,
+  RUB: 1.1,
+  UAH: 0.49,
+  ARS: 10,
+  CLP: 11,
+  COP: 48,
+  PEN: 0.045,
 };
 
 const REGION_META: Record<
@@ -24,18 +81,60 @@ const REGION_META: Record<
   FR: { name: "France", currency: "EUR", currencySymbol: "€", locale: "fr-FR", rateFromInr: 0.011 },
 };
 
-const DEFAULT_META = REGION_META.US;
+function localeForCountry(countryCode: string, currency: string): string {
+  const preset = REGION_META[countryCode];
+  if (preset) return preset.locale;
+  try {
+    return new Intl.Locale(`en-${countryCode}`).toString();
+  } catch {
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency }).resolvedOptions().locale;
+    } catch {
+      return "en-US";
+    }
+  }
+}
+
+function currencySymbol(currency: string, locale: string): string {
+  try {
+    const parts = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      currencyDisplay: "narrowSymbol",
+    }).formatToParts(1);
+    const sym = parts.find((p) => p.type === "currency")?.value;
+    if (sym) return sym;
+  } catch {
+    /* fall through */
+  }
+  return `${currency} `;
+}
 
 export function pricingRegionForCountry(countryCode: string, countryName?: string): PricingRegion {
   const code = countryCode.toUpperCase();
-  const meta = REGION_META[code] ?? DEFAULT_META;
+  const preset = REGION_META[code];
+  if (preset) {
+    return {
+      countryCode: code,
+      countryName: countryName?.trim() || preset.name,
+      currency: preset.currency,
+      currencySymbol: preset.currencySymbol,
+      locale: preset.locale,
+      rateFromInr: preset.rateFromInr,
+    };
+  }
+
+  const currency = currencyForCountry(code);
+  const rate = RATE_BY_CURRENCY[currency] ?? RATE_BY_CURRENCY.USD;
+  const locale = localeForCountry(code, currency);
+
   return {
     countryCode: code,
-    countryName: countryName?.trim() || meta.name,
-    currency: meta.currency,
-    currencySymbol: meta.currencySymbol,
-    locale: meta.locale,
-    rateFromInr: meta.rateFromInr,
+    countryName: countryName?.trim() || countryDisplayName(code),
+    currency,
+    currencySymbol: currencySymbol(currency, locale),
+    locale,
+    rateFromInr: rate,
   };
 }
 

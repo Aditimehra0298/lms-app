@@ -7,6 +7,13 @@ import { useEffect, useState } from "react";
 import { Bell, Globe, Menu, Moon, Search, ShoppingCart, Sun, X } from "lucide-react";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
 import sfLightLogo from "@/Untitled design (4).png";
+import {
+  profileInitial,
+  readLearnerProfileFromStorage,
+  clearLearnerProfileStorage,
+  type LearnerAuthProfile,
+} from "@/lib/auth-profile";
+import { getLearnerEmail, syncLearnerProfileFromServer } from "@/lib/learner-session-client";
 
 export default function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -16,6 +23,7 @@ export default function SiteHeader() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userProfile, setUserProfile] = useState<LearnerAuthProfile>({});
   const [cartCount, setCartCount] = useState(0);
   const goldGradient = "bg-gradient-to-b from-[#f9b14d] to-[#eb9422]";
   const goldText = theme === "light" ? "text-[#8a6412]" : "text-[#fde68a]";
@@ -58,10 +66,21 @@ export default function SiteHeader() {
   }, [theme]);
 
   useEffect(() => {
-    const syncAuth = () => setIsLoggedIn(window.localStorage.getItem("sft_logged_in") === "true");
+    const syncAuth = () => {
+      const loggedIn = window.localStorage.getItem("sft_logged_in") === "true";
+      setIsLoggedIn(loggedIn);
+      setUserProfile(readLearnerProfileFromStorage());
+      if (loggedIn) {
+        const email = getLearnerEmail();
+        if (email) {
+          void syncLearnerProfileFromServer(email).then((p) => {
+            if (p) setUserProfile(p);
+          });
+        }
+      }
+    };
     syncAuth();
     window.addEventListener("storage", syncAuth);
-    /** Same-tab login does not fire `storage`; account page dispatches this after setting session. */
     window.addEventListener("sft_auth_updated", syncAuth);
     return () => {
       window.removeEventListener("storage", syncAuth);
@@ -100,10 +119,15 @@ export default function SiteHeader() {
     window.localStorage.removeItem("sft_logged_in");
     window.localStorage.removeItem("sft_learner_email");
     window.localStorage.removeItem("sft_user_role");
+    clearLearnerProfileStorage();
     setIsLoggedIn(false);
+    setUserProfile({});
     setIsProfileOpen(false);
     window.location.href = "/";
   };
+
+  const profileAvatar = userProfile.avatarUrl?.trim();
+  const profileLabel = profileInitial(userProfile.name, userProfile.email ?? getLearnerEmail());
   const isLight = theme === "light";
 
   return (
@@ -303,18 +327,50 @@ export default function SiteHeader() {
                     className="ml-1 h-9 w-9 overflow-hidden rounded-full border border-amber-300/60 bg-linear-to-br from-[#f9b14d] to-[#eb9422] p-px shadow-[0_0_18px_rgba(249,177,77,0.35)]"
                     aria-label="Open profile menu"
                   >
-                    <span className="flex h-full w-full items-center justify-center rounded-full bg-[#121212] text-sm font-semibold text-amber-100">
-                      A
-                    </span>
+                    {profileAvatar ? (
+                      <Image
+                        src={profileAvatar}
+                        alt={userProfile.name ?? "Profile"}
+                        width={36}
+                        height={36}
+                        className="h-full w-full rounded-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center rounded-full bg-[#121212] text-sm font-semibold text-amber-100">
+                        {profileLabel}
+                      </span>
+                    )}
                   </button>
                   {isProfileOpen && (
                     <div
-                      className={`absolute right-0 top-11 z-50 min-w-[150px] rounded-xl border p-1 shadow-xl ${
+                      className={`absolute right-0 top-11 z-50 min-w-[200px] rounded-xl border p-1 shadow-xl ${
                         isLight
                           ? "border-[#b4965a]/45 bg-[#f6efe3]"
                           : "border-white/15 bg-[#101010]"
                       }`}
                     >
+                      <div
+                        className={`border-b px-3 py-2 ${isLight ? "border-[#b4965a]/25" : "border-white/10"}`}
+                      >
+                        <p className={`truncate text-sm font-semibold ${isLight ? "text-slate-800" : "text-white"}`}>
+                          {userProfile.name ?? "Learner"}
+                        </p>
+                        <p className={`truncate text-xs ${isLight ? "text-slate-600" : "text-gray-400"}`}>
+                          {userProfile.email ?? getLearnerEmail()}
+                        </p>
+                      </div>
+                      {userProfile.role === "admin" && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setIsProfileOpen(false)}
+                          className={`block w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                            isLight ? "text-slate-700 hover:bg-amber-100/45" : "text-amber-200 hover:bg-white/10"
+                          }`}
+                        >
+                          Admin panel
+                        </Link>
+                      )}
                       <Link
                         href="/profile"
                         onClick={() => setIsProfileOpen(false)}

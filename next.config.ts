@@ -5,7 +5,7 @@ import type { NextConfig } from "next";
 const nanoidNonSecure = path.join(process.cwd(), "vendor/nanoid-non-secure.cjs");
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@prisma/client", "prisma"],
+  serverExternalPackages: ["@prisma/client", "prisma", "nodemailer"],
   webpack: (config) => {
     config.resolve = config.resolve ?? {};
     config.resolve.alias = {
@@ -43,6 +43,31 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "i.pinimg.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "flagcdn.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "flagsapi.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "purecatamphetamine.github.io",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "lh4.googleusercontent.com",
         pathname: "/**",
       },
     ],

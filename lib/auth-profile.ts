@@ -1,0 +1,114 @@
+import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
+
+export type AccountTypeId = "individual" | "organisation" | "self";
+
+export type LearnerAuthProfile = {
+  name?: string;
+  accountType?: AccountTypeId;
+  avatarUrl?: string;
+  phone?: string;
+  companyName?: string;
+  personalEmail?: string;
+  industryType?: string;
+  companySize?: string;
+  email?: string;
+  role?: string;
+  countryCode?: string;
+  countryName?: string;
+};
+
+export const AUTH_PROFILE_KEYS = {
+  accountType: "sft_account_type",
+  avatarUrl: "sft_avatar_url",
+  learnerName: "sft_learner_name",
+  role: "sft_user_role",
+  phone: "sft_learner_phone",
+  companyName: "sft_company_name",
+  personalEmail: "sft_personal_email",
+  industryType: "sft_industry_type",
+  companySize: "sft_company_size",
+} as const;
+
+export function learnerProfileFromDb(profile: LmsUserProfilePayload): LearnerAuthProfile {
+  return {
+    email: profile.email,
+    name: profile.name ?? undefined,
+    accountType: profile.accountType ?? undefined,
+    avatarUrl: profile.avatarUrl ?? undefined,
+    phone: profile.phone ?? undefined,
+    companyName: profile.companyName ?? undefined,
+    personalEmail: profile.personalEmail ?? undefined,
+    industryType: profile.industryType ?? undefined,
+    companySize: profile.companySize ?? undefined,
+    role: profile.role,
+    countryCode: profile.countryCode ?? undefined,
+    countryName: profile.countryName ?? undefined,
+  };
+}
+
+export function cacheLearnerProfile(profile: LearnerAuthProfile): void {
+  if (typeof window === "undefined") return;
+  if (profile.name?.trim()) {
+    window.localStorage.setItem(AUTH_PROFILE_KEYS.learnerName, profile.name.trim());
+  }
+  if (profile.accountType) {
+    window.localStorage.setItem(AUTH_PROFILE_KEYS.accountType, profile.accountType);
+  }
+  if (profile.avatarUrl?.trim()) {
+    window.localStorage.setItem(AUTH_PROFILE_KEYS.avatarUrl, profile.avatarUrl.trim());
+  }
+  if (profile.role) {
+    window.localStorage.setItem(AUTH_PROFILE_KEYS.role, profile.role);
+  }
+  if (profile.phone?.trim()) {
+    window.localStorage.setItem(AUTH_PROFILE_KEYS.phone, profile.phone.trim());
+  }
+  if (profile.companyName?.trim()) {
+    window.localStorage.setItem(AUTH_PROFILE_KEYS.companyName, profile.companyName.trim());
+  }
+  if (profile.personalEmail?.trim()) {
+    window.localStorage.setItem(AUTH_PROFILE_KEYS.personalEmail, profile.personalEmail.trim());
+  }
+  if (profile.industryType?.trim()) {
+    window.localStorage.setItem(AUTH_PROFILE_KEYS.industryType, profile.industryType.trim());
+  }
+  if (profile.companySize?.trim()) {
+    window.localStorage.setItem(AUTH_PROFILE_KEYS.companySize, profile.companySize.trim());
+  }
+}
+
+export function readLearnerProfileFromStorage(): LearnerAuthProfile {
+  if (typeof window === "undefined") return {};
+  const email = window.localStorage.getItem("sft_learner_email") ?? undefined;
+  const accountType = window.localStorage.getItem(AUTH_PROFILE_KEYS.accountType) as AccountTypeId | null;
+  return {
+    email: email ?? undefined,
+    name: window.localStorage.getItem(AUTH_PROFILE_KEYS.learnerName) ?? undefined,
+    accountType:
+      accountType === "individual" || accountType === "organisation" || accountType === "self"
+        ? accountType
+        : undefined,
+    avatarUrl: window.localStorage.getItem(AUTH_PROFILE_KEYS.avatarUrl) ?? undefined,
+    role: window.localStorage.getItem(AUTH_PROFILE_KEYS.role) ?? undefined,
+    phone: window.localStorage.getItem(AUTH_PROFILE_KEYS.phone) ?? undefined,
+    companyName: window.localStorage.getItem(AUTH_PROFILE_KEYS.companyName) ?? undefined,
+    personalEmail: window.localStorage.getItem(AUTH_PROFILE_KEYS.personalEmail) ?? undefined,
+    industryType: window.localStorage.getItem(AUTH_PROFILE_KEYS.industryType) ?? undefined,
+    companySize: window.localStorage.getItem(AUTH_PROFILE_KEYS.companySize) ?? undefined,
+  };
+}
+
+export function clearLearnerProfileStorage(): void {
+  if (typeof window === "undefined") return;
+  for (const key of Object.values(AUTH_PROFILE_KEYS)) {
+    window.localStorage.removeItem(key);
+  }
+}
+
+export function profileInitial(name?: string | null, email?: string | null): string {
+  const fromName = name?.trim()?.[0];
+  if (fromName) return fromName.toUpperCase();
+  const fromEmail = email?.trim()?.[0];
+  if (fromEmail) return fromEmail.toUpperCase();
+  return "U";
+}

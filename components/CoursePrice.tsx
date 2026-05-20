@@ -45,9 +45,9 @@ export function CoursePrice({ inr, label, className = "", variant = "text" }: Pr
     return (
       <div className={`rounded-xl border border-[#FFB800]/30 bg-[#FFB800]/5 p-4 ${className}`}>
         <Lock className="h-6 w-6 text-[#FFB800]" aria-hidden />
-        <p className="mt-2 text-sm font-semibold text-white">Sign in to see your price</p>
+        <p className="mt-2 text-sm font-semibold text-white">Detecting your location…</p>
         <p className="mt-1 text-xs text-zinc-400">
-          We use your IP address at login to detect your country and show localized pricing.
+          Prices appear automatically from your IP, Google account, or country code at registration.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
