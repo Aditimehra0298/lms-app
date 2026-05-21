@@ -12,6 +12,13 @@ export function tutorLedTemplatePath(slug: string) {
   return `/tutor-led/${encodeURIComponent(slug)}`;
 }
 
+/** Whether a published tutor-led marketing page exists for this slug. */
+export function hasPublishedTutorLedProgram(slug: string): boolean {
+  const key = slug?.trim();
+  return Boolean(key && publishedTutorLedSlugs.has(key));
+}
+
+/** For checkout / enroll — fall back to default program when slug is unknown. */
 export function resolveTutorLedSlug(slug?: string | null): string {
   const trimmed = slug?.trim();
   if (trimmed && publishedTutorLedSlugs.has(trimmed)) return trimmed;
@@ -19,11 +26,13 @@ export function resolveTutorLedSlug(slug?: string | null): string {
 }
 
 /**
- * First step for live tutor-led: open the designed marketing template (no login).
- * Use on Register / Join / course cards for interactive & live formats.
+ * Link to the tutor-led marketing page (exact slug).
+ * Use only when {@link hasPublishedTutorLedProgram} is true, or for generic CTAs with no slug.
  */
 export function liveTutorCourseHref(slug?: string | null): string {
-  return tutorLedTemplatePath(resolveTutorLedSlug(slug));
+  const key = slug?.trim();
+  if (!key) return tutorLedTemplatePath(DEFAULT_TUTOR_LED_SLUG);
+  return tutorLedTemplatePath(key);
 }
 
 /** Enrolled learner hub: live join, recordings, and cohort materials. */
@@ -41,16 +50,26 @@ export function tutorLedLiveZoomHref(slug?: string | null): string {
   return `${tutorLedLearnerJoinHref(slug)}#zoom-live`;
 }
 
-/** Catalog browse link: self-paced → course page; interactive/live → tutor-led template. */
+/**
+ * Pre-payment marketing page:
+ * - tutor-led program slug → `/tutor-led/[slug]` (designed live template)
+ * - self-paced / unknown slug → `/courses/[slug]` (designed self-paced template)
+ */
 export function courseBrowseHref(
   slug: string,
   learningFormat?: CourseLearningFormat | null,
-  categorySlug?: string | null,
+  _categorySlug?: string | null,
 ): string {
-  const cat = categorySlug?.toLowerCase() ?? "";
-  const isLiveCategory = cat === "cyber-security" || cat === "information-security";
-  if (learningFormat === "interactive" || learningFormat === "live" || isLiveCategory) {
-    return liveTutorCourseHref(slug);
+  const key = slug.trim();
+  if (!key) return "/courses";
+
+  if (learningFormat === "self-paced") {
+    return `/courses/${encodeURIComponent(key)}`;
   }
-  return `/courses/${encodeURIComponent(slug)}`;
+
+  if (hasPublishedTutorLedProgram(key)) {
+    return liveTutorCourseHref(key);
+  }
+
+  return `/courses/${encodeURIComponent(key)}`;
 }

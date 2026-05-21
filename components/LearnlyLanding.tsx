@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultAdminContent, defaultHomePageConfig, type AdminContent, type HomePageConfig, type ManagedCategory, type ManagedCourse } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
-import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
-import { courseBrowseHref, liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { catalogCourseLandingHref } from "@/lib/course-landing";
+import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import { CoursePrice } from "@/components/CoursePrice";
+import CourseCardActions from "@/components/CourseCardActions";
 import {
   Play,
   Star,
@@ -456,6 +458,9 @@ export default function LearnlyLanding() {
   /** Default to self-paced so the course grid loads without an extra click (still switchable). */
   const [learningPath, setLearningPath] = useState<LearningPathId | null>("self-paced");
   const [catalogCourses, setCatalogCourses] = useState<ManagedCourse[]>(() => fallbackPublishedCatalog());
+  const [tutorLedPrograms, setTutorLedPrograms] = useState<TutorLedProgramStored[]>(() =>
+    defaultTutorLedPrograms.filter((p) => p.published),
+  );
   const [planAudience, setPlanAudience] = useState<"individual" | "organisation">("individual");
   const [openFaq, setOpenFaq] = useState<string | null>(faqs[0]?.q ?? null);
   const [showAllFaqs, setShowAllFaqs] = useState(false);
@@ -529,6 +534,25 @@ export default function LearnlyLanding() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/tutor-led/programs", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { programs?: TutorLedProgramStored[] };
+        if (!cancelled && Array.isArray(data.programs) && data.programs.length > 0) {
+          setTutorLedPrograms(data.programs);
+        }
+      } catch {
+        /* keep defaults */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (liveCategories === null || activeCategory === "All") return;
     const titles = liveCategories.map((c) => c.title);
     if (!titles.includes(activeCategory)) setActiveCategory("All");
@@ -589,32 +613,27 @@ export default function LearnlyLanding() {
   }, [activeCategory, catalogForPills]);
 
   const publishedTutorLedPrograms = useMemo(
-    () => defaultTutorLedPrograms.filter((p) => p.published),
-    [],
+    () => tutorLedPrograms.filter((p) => p.published),
+    [tutorLedPrograms],
   );
+
+  const tutorLedSlugSet = useMemo(
+    () => new Set(publishedTutorLedPrograms.map((p) => p.slug)),
+    [publishedTutorLedPrograms],
+  );
+
+  const isTutorLedBrowsePath = learningPath === "interactive" || learningPath === "live";
 
   const filteredCoursesForPath = useMemo(() => {
     if (catalogCourses.length === 0) return [];
-    if (learningPath !== "self-paced" && learningPath !== "interactive" && learningPath !== "live") {
-      return [];
-    }
-    let list = catalogCourses;
-    if (learningPath === "self-paced") {
-      list = list.filter((c) => !c.learningFormat || c.learningFormat === "self-paced");
-    }
-    if (learningPath === "interactive") {
-      list = list.filter(
-        (c) => c.learningFormat === "interactive" || c.learningFormat === "live" || !c.learningFormat,
-      );
-    }
-    if (learningPath === "live") {
-      list = list.filter((c) => c.learningFormat === "live" || c.learningFormat === "interactive");
-    }
+    if (!learningPath) return [];
+    if (isTutorLedBrowsePath) return [];
+    let list = catalogCourses.filter((c) => !c.learningFormat || c.learningFormat === "self-paced");
     if (!activeCategorySlug) return list;
     return list.filter(
       (c) => canonicalCategorySlug(c.category) === canonicalCategorySlug(activeCategorySlug),
     );
-  }, [catalogCourses, activeCategorySlug, learningPath]);
+  }, [catalogCourses, activeCategorySlug, learningPath, isTutorLedBrowsePath]);
 
   const displayedCourses = useMemo(
     () => (showAllCourses ? filteredCoursesForPath : filteredCoursesForPath.slice(0, 8)),
@@ -824,10 +843,6 @@ export default function LearnlyLanding() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (item.id === "interactive" || item.id === "live") {
-                        window.location.href = liveTutorCourseHref();
-                        return;
-                      }
                       setLearningPath(item.id);
                       setTimeout(() => {
                         browseAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -994,26 +1009,38 @@ export default function LearnlyLanding() {
                 Filter courses by category and access structured modules, tutor-led sessions, and
                 examinations — all in one modern learning platform.
               </p>
-              {filteredCoursesForPath.length === 0 &&
-              (learningPath === "interactive" || learningPath === "live") &&
-              publishedTutorLedPrograms.length > 0 ? (
-                <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {isTutorLedBrowsePath && publishedTutorLedPrograms.length > 0 ? (
+                <div className="mt-8 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {publishedTutorLedPrograms.map((program) => (
                     <article
                       key={program.slug}
-                      className="flex flex-col rounded-2xl border border-violet-500/35 bg-linear-to-b from-[#1a1030] via-[#120c06] to-[#07070a] p-5"
+                      className="lh-course-card flex h-full flex-col overflow-hidden rounded-2xl border border-violet-500/35 bg-linear-to-b from-[#1a1030] via-[#120c06] to-[#07070a]"
                     >
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">
-                        Tutor-led live program
-                      </p>
-                      <h5 className="mt-2 text-lg font-bold text-white">{program.title}</h5>
-                      <p className="mt-2 line-clamp-3 text-sm text-gray-400">{program.subtitle}</p>
-                      <Link
-                        href={liveTutorCourseHref(program.slug)}
-                        className={`mt-4 inline-flex items-center gap-1 text-sm font-bold ${goldText} hover:underline`}
-                      >
-                        Open program <ChevronRight size={16} />
+                      <Link href={liveTutorCourseHref(program.slug)} className="block">
+                        <div className="relative aspect-[16/10] bg-black/40">
+                          <Image
+                            src={program.heroSrc || "/h1.png"}
+                            alt={program.title}
+                            width={1200}
+                            height={750}
+                            unoptimized
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
                       </Link>
+                      <div className="flex flex-1 flex-col p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">
+                          Tutor-led · Live on Zoom
+                        </p>
+                        <h5 className="mt-1 line-clamp-2 text-base font-bold leading-snug text-white">
+                          {program.title}
+                        </h5>
+                        <CourseCardActions
+                          descriptionHref={liveTutorCourseHref(program.slug)}
+                          priceInr={program.price}
+                          className="px-0"
+                        />
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -1023,50 +1050,43 @@ export default function LearnlyLanding() {
                 </p>
               ) : (
                 <>
-                  <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="mt-8 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {displayedCourses.map((course) => (
                       <article
                         key={course.slug}
-                        className="lh-course-card flex flex-col overflow-hidden rounded-2xl border border-amber-500/35 bg-linear-to-b from-[#1b1305] via-[#120c06] to-[#07070a] transition-all hover:border-amber-300/80 hover:shadow-[0_0_28px_rgba(249,177,77,0.24)]"
+                        className="lh-course-card flex h-full flex-col overflow-hidden rounded-2xl border border-amber-500/35 bg-linear-to-b from-[#1b1305] via-[#120c06] to-[#07070a] transition-all hover:border-amber-300/80 hover:shadow-[0_0_28px_rgba(249,177,77,0.24)]"
                       >
-                        <div className="relative aspect-[16/10] bg-black/40">
-                          <Image
-                            src={resolveCourseCardImage(course.image)}
-                            alt=""
-                            width={1200}
-                            height={750}
-                            unoptimized
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
+                        <Link
+                          href={catalogCourseLandingHref(course.slug, tutorLedSlugSet, course.learningFormat)}
+                          className="block"
+                        >
+                          <div className="relative aspect-[16/10] bg-black/40">
+                            <Image
+                              src={resolveCourseCardImage(course.image)}
+                              alt={course.title}
+                              width={1200}
+                              height={750}
+                              unoptimized
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        </Link>
                         <div className="flex flex-1 flex-col p-4">
                           <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-200/80">
-                            {course.level} · {course.duration}
+                            Self-paced · {course.level} · {course.duration}
                           </p>
-                          <h5 className="mt-1 line-clamp-2 text-base font-bold leading-snug text-white">{course.title}</h5>
-                          <p className="mt-2 line-clamp-2 text-xs text-gray-500">{course.subtitle}</p>
+                          <h5 className="mt-1 line-clamp-2 text-base font-bold leading-snug text-white">
+                            {course.title}
+                          </h5>
                           <div className="mt-2 flex items-center gap-1 text-xs text-amber-200/90">
                             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" size={14} />
                             {course.rating}
                           </div>
-                          <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-3">
-                            <CoursePrice label={course.price} className="text-lg font-bold text-amber-400" />
-                            <Link
-                              href={
-                                learningPath === "interactive" || learningPath === "live"
-                                  ? courseBrowseHref(
-                                      course.slug,
-                                      learningPath === "live" ? "live" : "interactive",
-                                    )
-                                  : `/courses/${course.slug}?tab=course-content`
-                              }
-                              className={`text-xs font-bold ${goldText} hover:underline`}
-                            >
-                              {learningPath === "interactive" || learningPath === "live"
-                                ? "View live program →"
-                                : "View curriculum →"}
-                            </Link>
-                          </div>
+                          <CourseCardActions
+                            descriptionHref={catalogCourseLandingHref(course.slug, tutorLedSlugSet, course.learningFormat)}
+                            priceLabel={course.price}
+                            className="px-0"
+                          />
                         </div>
                       </article>
                     ))}
@@ -1400,8 +1420,11 @@ export default function LearnlyLanding() {
             </div>
             <div className="flex w-full justify-center lg:w-[380px] lg:justify-end">
               <Image
-                src="/Untitled (Instagram Post (45)).png"
-                alt="FAQ visual"
+                src={
+                  homeConfig.faqImage?.trim() ||
+                  "https://res.cloudinary.com/dwnnakrrh/image/upload/v1779337638/Untitled_design_1_zdyxfv.png"
+                }
+                alt="FAQ support avatar"
                 width={360}
                 height={520}
                 className="h-auto max-w-full object-contain"

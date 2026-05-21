@@ -70,6 +70,11 @@ const nextConfig: NextConfig = {
         hostname: "lh4.googleusercontent.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        pathname: "/**",
+      },
     ],
   },
 };

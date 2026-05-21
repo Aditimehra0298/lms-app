@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, ShieldCheck, Trash2 } from "lucide-react";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
-import { SignInToViewPrices } from "@/components/SignInToViewPrices";
-
 type CartItem = {
   slug: string;
   title: string;
@@ -23,7 +21,7 @@ function parsePrice(value: string) {
 }
 
 export default function CartPage() {
-  const { showPrices, formatPriceLabel, ready } = useLearnerPricing();
+  const { showPrices, formatPriceLabel, ready, openPricingPanel } = useLearnerPricing();
   const [items, setItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
@@ -150,15 +148,25 @@ export default function CartPage() {
                   </div>
                 </div>
               ) : ready ? (
-                <div className="mt-3">
-                  <SignInToViewPrices compact redirectPath="/cart" />
-                </div>
+                <button
+                  type="button"
+                  onClick={openPricingPanel}
+                  className="mt-3 w-full rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-bold text-amber-200 hover:bg-amber-500/20"
+                >
+                  Price
+                </button>
               ) : null}
 
               <button
                 type="button"
-                onClick={handleCheckout}
-                disabled={items.length === 0 || (ready && !showPrices)}
+                onClick={() => {
+                  if (ready && !showPrices) {
+                    openPricingPanel();
+                    return;
+                  }
+                  handleCheckout();
+                }}
+                disabled={items.length === 0}
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-400 py-2.5 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Proceed to Checkout <ArrowRight size={15} />

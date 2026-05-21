@@ -350,6 +350,8 @@ export type HomePageConfig = {
   unlock: HomePageUnlock;
   accreditationLogos: string[];
   exploreProgramImages: string[];
+  /** Avatar shown beside the home page FAQ accordion. */
+  faqImage: string;
 };
 
 export const defaultHomePageConfig: HomePageConfig = {
@@ -428,6 +430,8 @@ export const defaultHomePageConfig: HomePageConfig = {
     { quote: "Tutor-led sessions and assignments helped me build confidence with real scenarios, not just theory.", name: "Priya Rao", role: "Data Analyst" },
     { quote: "Great mentorship and structured learning path. The certification gave my profile a strong boost.", name: "Aman Kumar", role: "Cloud Engineer" },
     { quote: "Clear modules, supportive trainers, and strong outcomes. One of the best learning platforms I used.", name: "Neha Sharma", role: "Program Coordinator" },
+    { quote: "The trainer-led sessions were highly practical. I improved my process audit skills and could apply them at work immediately.", name: "Vikram Singh", role: "Quality Specialist" },
+    { quote: "Excellent balance of self-paced modules and live expert guidance. The certifications added real value to my profile.", name: "Sneha Iyer", role: "Compliance Analyst" },
   ],
   individualPlans: [
     {
@@ -493,6 +497,8 @@ export const defaultHomePageConfig: HomePageConfig = {
   },
   accreditationLogos: ["/e1.png", "/e2.png", "/e3.png", "/e4.png"],
   exploreProgramImages: ["/p1.png", "/p2.png", "/p3.png", "/p4.jpg", "/p5.png", "/p6.png", "/p7.png", "/p8.png"],
+  faqImage:
+    "https://res.cloudinary.com/dwnnakrrh/image/upload/v1779337638/Untitled_design_1_zdyxfv.png",
 };
 
 /* ─── About Page Config Types ─── */

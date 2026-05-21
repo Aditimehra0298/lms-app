@@ -12,5 +12,14 @@ export async function getManagedCourses() {
 
 export async function getManagedCourseBySlug(slug: string) {
   const courses = await getManagedCourses();
-  return courses.find((course) => course.slug === slug);
+  const key = slug.trim();
+  let decoded = key;
+  try {
+    decoded = decodeURIComponent(key);
+  } catch {
+    /* use raw */
+  }
+  return courses.find(
+    (course) => course.slug === key || course.slug === decoded,
+  );
 }

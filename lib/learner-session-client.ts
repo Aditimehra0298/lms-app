@@ -7,6 +7,7 @@ import {
 import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
 import { pricingRegionForCountry, type PricingRegion } from "@/lib/country-pricing";
 import { countryDisplayName } from "@/lib/iso-country-list";
+import { setPricingRevealed } from "@/lib/pricing-reveal";
 
 export const AUTH_KEYS = {
   loggedIn: "sft_logged_in",
@@ -114,6 +115,7 @@ export function applyDbProfileToSession(profile: LmsUserProfilePayload): Learner
     cachePricingRegion(
       pricingRegionForCountry(profile.countryCode, profile.countryName),
     );
+    setPricingRevealed(true);
   }
   window.dispatchEvent(new Event("sft_auth_updated"));
   return learner;
@@ -174,6 +176,7 @@ export async function recordLearnerAuth(
   }
   if (data.ok && data.region) {
     cachePricingRegion(data.region);
+    setPricingRevealed(true);
   }
   if (data.ok && data.profile) {
     applyDbProfileToSession(data.profile);

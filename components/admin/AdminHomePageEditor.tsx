@@ -463,6 +463,14 @@ export default function AdminHomePageEditor() {
       {/* ── FAQs ── */}
       <div className={cardCls}><SectionHeader sectionKey="faqs" />{expanded.faqs && (
         <div className="mt-4 space-y-3">
+          <div className="mb-4">
+            <p className="mb-2 text-xs font-semibold text-gray-300">FAQ section avatar</p>
+            <ImageUploader
+              label="Avatar image"
+              value={config.faqImage ?? ""}
+              onChange={(v) => setConfig((p) => ({ ...p, faqImage: v }))}
+            />
+          </div>
           {config.faqs.map((faq, idx) => (<div key={idx} className={`space-y-2 ${itemCls}`}>
             <div className="flex items-center gap-2">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#6366f1]/20 text-[10px] font-bold text-[#a5b4fc]">{idx + 1}</span>

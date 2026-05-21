@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 import { getManagedCourseBySlug } from "@/lib/server/course-catalog";
+import { getTutorLedProgramBySlug } from "@/lib/server/tutor-led-catalog";
+import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import SelfPacedCourseShell from "@/components/SelfPacedCourseShell";
 
 export const dynamic = "force-dynamic";
@@ -19,5 +22,14 @@ export default async function CourseDetailPage({ params }: PageProps) {
   const course = await getManagedCourseBySlug(slug);
   if (!course) notFound();
 
-  return <SelfPacedCourseShell course={course} />;
+  const tutorLed = await getTutorLedProgramBySlug(slug);
+  if (tutorLed?.published && course.learningFormat !== "self-paced") {
+    redirect(liveTutorCourseHref(slug));
+  }
+
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <SelfPacedCourseShell course={course} />
+    </Suspense>
+  );
 }

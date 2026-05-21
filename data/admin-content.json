@@ -790,6 +790,16 @@
         "quote": "Clear modules, supportive trainers, and strong outcomes. One of the best learning platforms I used.",
         "name": "Neha Sharma",
         "role": "Program Coordinator"
+      },
+      {
+        "quote": "The trainer-led sessions were highly practical. I improved my process audit skills and could apply them at work immediately.",
+        "name": "Vikram Singh",
+        "role": "Quality Specialist"
+      },
+      {
+        "quote": "Excellent balance of self-paced modules and live expert guidance. The certifications added real value to my profile.",
+        "name": "Sneha Iyer",
+        "role": "Compliance Analyst"
       }
     ],
     "individualPlans": [
@@ -884,7 +894,8 @@
       "/p6.png",
       "/p7.png",
       "/p8.png"
-    ]
+    ],
+    "faqImage": "https://res.cloudinary.com/dwnnakrrh/image/upload/v1779337638/Untitled_design_1_zdyxfv.png"
   },
   "aboutPage": {
     "hero": {

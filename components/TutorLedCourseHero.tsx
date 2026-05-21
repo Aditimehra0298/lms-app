@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
-import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
-import { CoursePrice } from "@/components/CoursePrice";
+import CourseEnrollActions from "@/components/CourseEnrollActions";
+import { tutorLedLandingHref } from "@/lib/course-landing";
 import type { LucideIcon } from "lucide-react";
 import {
   Award,
@@ -111,7 +111,6 @@ export default function TutorLedCourseHero({
   reviewCountLabel = "800+ Reviews",
 }: Props) {
   const router = useRouter();
-  const { showPrices, ready } = useLearnerPricing();
   const timeIst = scheduleTimeIst(course.schedule);
   const duration = batchDuration(course);
 
@@ -154,12 +153,9 @@ export default function TutorLedCourseHero({
             <div className="flex h-full w-full min-w-0 flex-1 flex-col lg:w-1/3">
               <div className="flex h-full min-h-0 flex-1 flex-col">
                 <div className="flex-1">
-                  <h1 className="mb-4 text-[1.75rem] font-extrabold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-[2.35rem] lg:leading-[1.12]">
+                  <h1 className="mb-6 text-[1.75rem] font-extrabold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-[2.35rem] lg:leading-[1.12]">
                     <HeroTitle title={course.title} />
                   </h1>
-                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-[15px]">
-                    {course.subtitle}
-                  </p>
 
                   <div className="mb-6 flex w-full items-center justify-between gap-3">
                 <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -249,7 +245,7 @@ export default function TutorLedCourseHero({
             </div>
 
             {/* Right — pricing card */}
-            <aside className="flex w-full min-w-0 flex-1 flex-col lg:w-1/3">
+            <aside id="course-enroll" className="flex w-full min-w-0 flex-1 scroll-mt-24 flex-col lg:w-1/3">
               <div className="flex h-full min-h-[280px] flex-col overflow-hidden rounded-xl border border-[#FFB800]/30 bg-zinc-950 lg:min-h-0">
                 <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3.5 sm:px-5">
                   <span className="text-sm font-bold text-white">{course.batchLabel}</span>
@@ -260,24 +256,19 @@ export default function TutorLedCourseHero({
                   ) : null}
                 </div>
                 <div className="flex flex-1 flex-col justify-between space-y-4 p-4 sm:p-5">
-                  {ready && showPrices ? (
-                    <div>
-                      <div className="flex flex-wrap items-baseline gap-2">
-                        <CoursePrice inr={course.price} className="text-[1.75rem] font-extrabold leading-none text-white sm:text-3xl" />
-                        <CoursePrice
-                          inr={course.originalPrice}
-                          className="text-sm text-zinc-500 line-through sm:text-base"
-                        />
-                        {discountLabel ? (
-                          <span className="rounded-md bg-[#FFB800] px-2 py-0.5 text-[10px] font-bold text-black sm:text-[11px]">
-                            {discountLabel}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : (
-                    <CoursePrice variant="hero" className="w-full" />
-                  )}
+                  <CourseEnrollActions
+                    courseTitle={course.title}
+                    description={course.subtitle}
+                    descriptionHref={
+                      primaryCta?.kind === "register"
+                        ? `${tutorLedLandingHref(primaryCta.slug)}#course-details`
+                        : "#course-details"
+                    }
+                    highlights={course.features.map((f) => f.title)}
+                    priceInr={course.price}
+                    oldPriceInr={course.originalPrice}
+                    discountBadge={discountLabel}
+                  />
 
                   <ul className="space-y-2.5 border-b border-zinc-800/80 pb-4">
                     {pricingRows.map((row) => (

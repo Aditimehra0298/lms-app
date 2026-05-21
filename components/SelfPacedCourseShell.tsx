@@ -1,29 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
 import type { ManagedCourse } from "@/lib/content-schema";
-import { managedCourseToPostHero } from "@/lib/managed-course-to-post-hero";
-import SelfPacedCourseHero from "@/components/SelfPacedCourseHero";
-import TutorLedPostHeroSections from "@/components/TutorLedPostHeroSections";
+import { resolveSelfPacedLandingCourse } from "@/lib/food-safety-masterclass-page";
+import CourseLandingVisit from "@/components/CourseLandingVisit";
+import SelfPacedCourseLanding from "@/components/SelfPacedCourseLanding";
 
 type Props = { course: ManagedCourse };
 
+function SelfPacedCourseLandingFallback() {
+  return <div className="min-h-screen animate-pulse bg-[#0a0a0a]" aria-hidden />;
+}
+
+/**
+ * Pre-payment self-paced marketing page — Udemy-style layout
+ * (hero, floating enroll card, stats bar, tabs, sidebar, bottom CTA).
+ */
 export default function SelfPacedCourseShell({ course }: Props) {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const postHero = managedCourseToPostHero(course);
+  const displayCourse = resolveSelfPacedLandingCourse(course);
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <SelfPacedCourseHero course={course} />
-      <TutorLedPostHeroSections
-        variant="self-paced"
-        course={postHero}
-        openFaq={openFaq}
-        setOpenFaq={setOpenFaq}
-        highlightsImageSrc="/h2.png"
-        classroomImageSrc="/h3.png"
-      />
-      <div className="h-8" />
-    </div>
+    <>
+      <CourseLandingVisit slug={displayCourse.slug} />
+      <Suspense fallback={<SelfPacedCourseLandingFallback />}>
+        <SelfPacedCourseLanding course={displayCourse} />
+      </Suspense>
+    </>
   );
 }

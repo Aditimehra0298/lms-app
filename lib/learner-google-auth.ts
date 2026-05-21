@@ -9,6 +9,7 @@ import {
 } from "@/lib/learner-session-client";
 import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
 import type { PricingRegion } from "@/lib/country-pricing";
+import { setPricingRevealed } from "@/lib/pricing-reveal";
 
 export type GoogleAuthResult = AuthRecordResult & {
   email?: string;
@@ -46,6 +47,7 @@ export async function signInWithGoogleAccessToken(
   }
   if (data.ok && data.region) {
     cachePricingRegion(data.region);
+    setPricingRevealed(true);
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("sft_auth_updated"));
     }

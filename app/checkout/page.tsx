@@ -12,6 +12,7 @@ import {
   tutorLedProgramBySlug,
 } from "@/lib/shop-cart";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { hasViewedCourseLanding, tutorLedLandingHref } from "@/lib/course-landing";
 import { SignInToViewPrices } from "@/components/SignInToViewPrices";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +53,7 @@ const fallbackCourseBySlug: Record<string, Omit<ShopCartItem, "qty">> = {
 const parsePrice = (value: string) => Number(value.replace(/[^0-9.]/g, "")) || 0;
 
 export default function CheckoutPage() {
-  const { showPrices, formatPriceLabel, ready } = useLearnerPricing();
+  const { showPrices, formatPriceLabel, ready, openPricingPanel } = useLearnerPricing();
   const [paymentMethod, setPaymentMethod] = useState<"upi" | "card" | "netbanking" | "wallet">("upi");
   const [isSuccess, setIsSuccess] = useState(false);
   const [items, setItems] = useState<ShopCartItem[]>([]);
@@ -62,10 +63,15 @@ export default function CheckoutPage() {
   useEffect(() => {
     setIsHydrated(true);
     const search = new URLSearchParams(window.location.search);
-    setBuyNowSlug(search.get("buyNow"));
+    const buyNow = search.get("buyNow");
+    setBuyNowSlug(buyNow);
     if (window.localStorage.getItem("sft_logged_in") !== "true") {
       const redirect = encodeURIComponent(window.location.pathname + window.location.search);
       window.location.href = `/account?mode=login&redirect=${redirect}`;
+      return;
+    }
+    if (buyNow && !hasViewedCourseLanding(buyNow)) {
+      window.location.replace(tutorLedLandingHref(buyNow, true));
     }
   }, []);
 
@@ -387,11 +393,17 @@ export default function CheckoutPage() {
               </div>
 
               <button
-                disabled={items.length === 0 || (ready && !showPrices)}
-                onClick={completePurchase}
+                disabled={items.length === 0}
+                onClick={() => {
+                  if (ready && !showPrices) {
+                    openPricingPanel();
+                    return;
+                  }
+                  completePurchase();
+                }}
                 className="mt-4 w-full rounded-lg bg-amber-400 py-2.5 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {ready && showPrices ? `Pay Now $${total.toFixed(2)}` : "Sign in to see price"}
+                {ready && showPrices ? `Pay Now $${total.toFixed(2)}` : "Price"}
               </button>
               <p className="mt-2 text-xs text-gray-400">
                 Gateway integration will be added later. This button currently completes enrollment directly.

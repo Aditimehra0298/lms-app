@@ -5,7 +5,9 @@ import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { mapTutorLedProgramToPageCourse } from "@/lib/tutor-led-program-map";
 import TutorLedCourseHero from "@/components/TutorLedCourseHero";
 import TutorLedLearnerDashboard from "@/components/TutorLedLearnerDashboard";
+import CourseLandingVisit from "@/components/CourseLandingVisit";
 import TutorLedPostHeroSections from "@/components/TutorLedPostHeroSections";
+import { tutorLedLandingHref } from "@/lib/course-landing";
 
 type Props = { program: TutorLedProgramStored; enrolledLearning?: boolean };
 
@@ -89,6 +91,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
 
   return (
     <div className="min-h-screen bg-black text-white">
+      <CourseLandingVisit slug={program.slug} enrollAnchorId="course-enroll" />
       <TutorLedCourseHero
         breadcrumbs={breadcrumbs}
         course={heroCourse}
@@ -98,6 +101,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
         primaryCta={{ kind: "register", slug: program.slug, label: "Reserve Your Seat" }}
       />
 
+      <div id="course-details">
       <TutorLedPostHeroSections
         course={{
           trainer: { ...course.trainer, avatar: program.trainer.avatar },
@@ -127,6 +131,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
           mode: "Online Live",
         }}
       />
+      </div>
 
       <div className="h-8" />
     </div>

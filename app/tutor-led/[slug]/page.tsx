@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import TutorLedProgramClient from "@/components/TutorLedProgramClient";
 import { TutorLedUnpublishedNotice } from "@/components/TutorLedUnpublishedNotice";
 import { getTutorLedProgramBySlug, normalizeTutorLedSlug } from "@/lib/server/tutor-led-catalog";
@@ -32,5 +33,9 @@ export default async function TutorLedCoursePage({ params, searchParams }: PageP
     return <TutorLedUnpublishedNotice program={program} />;
   }
 
-  return <TutorLedProgramClient program={program} />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <TutorLedProgramClient program={program} />
+    </Suspense>
+  );
 }

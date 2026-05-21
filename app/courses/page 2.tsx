@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CoursePrice } from "@/components/CoursePrice";
+import CourseCardActions from "@/components/CourseCardActions";
+import { catalogCourseLandingHref } from "@/lib/course-landing";
+import { getPublishedTutorLedPrograms } from "@/lib/server/tutor-led-catalog";
 import type { ComponentType } from "react";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
 import { getManagedCourses } from "@/lib/server/course-catalog";
@@ -190,6 +192,7 @@ export default async function CoursesPage() {
     .filter((category) => category.isActive)
     .map((category) => ({ label: category.title, slug: category.slug }));
   const allCourses = await getManagedCourses();
+  const tutorLedSlugs = new Set((await getPublishedTutorLedPrograms()).map((p) => p.slug));
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -362,32 +365,27 @@ export default async function CoursesPage() {
 
         <section className="mt-4">
           <h2 className="text-xl font-bold md:text-2xl">All Courses</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-4 grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-5">
             {allCourses.map((course) => (
-              <Link
+              <article
                 key={course.slug}
-                href={`/courses/${course.slug}`}
-                target="_blank"
-                rel="noreferrer"
-                className="group block"
+                className="group flex h-full flex-col rounded-xl border border-white/10 bg-white/[0.03] p-3 transition hover:border-amber-300/40 hover:bg-white/[0.05]"
               >
-                <article className="rounded-xl border border-white/10 bg-white/[0.03] p-3 transition hover:border-amber-300/40 hover:bg-white/[0.05]">
-                <div className="relative h-32 overflow-hidden rounded-lg border border-white/15 bg-black/35">
-                  <Image
-                    src={course.image}
-                    alt={course.title}
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
-                </div>
-                  <p className="mt-3 text-sm font-semibold group-hover:text-amber-200">{course.title}</p>
+                <Link href={`/courses/${course.slug}`} className="block min-h-0 flex-1">
+                  <div className="relative h-32 overflow-hidden rounded-lg border border-white/15 bg-black/35">
+                    <Image src={course.image} alt={course.title} fill unoptimized className="object-cover" />
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-sm font-semibold group-hover:text-amber-200">{course.title}</p>
                   <p className="mt-1 text-xs text-gray-400">
                     {course.level} • {course.duration} • {course.rating}★
                   </p>
-                  <CoursePrice label={course.price} className="mt-2 text-sm font-bold text-amber-200" />
-                </article>
-              </Link>
+                </Link>
+                <CourseCardActions
+                  descriptionHref={catalogCourseLandingHref(course.slug, tutorLedSlugs, course.learningFormat)}
+                  priceLabel={course.price}
+                  className="border-t-0 pt-2"
+                />
+              </article>
             ))}
           </div>
         </section>

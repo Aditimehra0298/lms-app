@@ -14,8 +14,7 @@ import {
   Users,
   ScrollText,
 } from "lucide-react";
-import AddToCartButton from "@/components/AddToCartButton";
-import { CoursePrice } from "@/components/CoursePrice";
+import CourseCardActions from "@/components/CourseCardActions";
 import CategoryFaqAccordion from "@/components/CategoryFaqAccordion";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
 import type { CategoryWhyTone, CourseLearningFormat } from "@/lib/content-schema";
@@ -25,9 +24,11 @@ import {
   mergeCategoryPageConfig,
   whyLearnToRows,
 } from "@/lib/category-page-resolve";
+import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { getManagedCourses } from "@/lib/server/course-catalog";
+import { getPublishedTutorLedPrograms } from "@/lib/server/tutor-led-catalog";
 import { readAdminContent } from "@/lib/server/content-store";
-import { courseBrowseHref, liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 
 export const dynamic = "force-dynamic";
 
@@ -190,10 +191,12 @@ export default async function CourseCategoryPage({
 }) {
   const { category } = await params;
   const categoryKey = canonicalCategorySlug(category);
-  const [managedCourses, adminContent] = await Promise.all([
+  const [managedCourses, adminContent, tutorLedPrograms] = await Promise.all([
     getManagedCourses(),
     readAdminContent(),
+    getPublishedTutorLedPrograms(),
   ]);
+  const tutorLedSlugs = new Set(tutorLedPrograms.map((p) => p.slug));
   const pageCfg = mergeCategoryPageConfig(categoryKey, adminContent);
   const current = categories[categoryKey];
 
@@ -431,13 +434,16 @@ export default async function CourseCategoryPage({
             </Link>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {courses.map((course, i) => (
               <article
                 key={`${course.slug}-${course.title}-${i}`}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f0f] transition hover:border-amber-500/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f0f] transition hover:border-amber-500/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
               >
-                <div className="relative aspect-[16/10] overflow-hidden bg-black/40">
+                <Link
+                  href={catalogCourseLandingHref(course.slug, tutorLedSlugs, course.learningFormat)}
+                  className="relative block aspect-[16/10] overflow-hidden bg-black/40"
+                >
                   <Image
                     src={course.image ?? heroImage}
                     alt={course.title}
@@ -455,11 +461,13 @@ export default async function CourseCategoryPage({
                       Popular
                     </span>
                   ) : null}
-                </div>
+                </Link>
                 <div className="flex flex-1 flex-col p-4">
-                  <h3 className="line-clamp-2 text-base font-bold leading-snug text-white">
-                    {course.title}
-                  </h3>
+                  <Link href={catalogCourseLandingHref(course.slug, tutorLedSlugs, course.learningFormat)}>
+                    <h3 className="line-clamp-2 text-base font-bold leading-snug text-white transition hover:text-amber-200">
+                      {course.title}
+                    </h3>
+                  </Link>
                   <p className="mt-2 text-xs text-gray-500">
                     {course.level} · {course.duration}
                   </p>
@@ -467,25 +475,10 @@ export default async function CourseCategoryPage({
                     <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                     {course.rating}
                   </p>
-                  <div className="mt-auto flex items-center justify-between gap-3 border-t border-white/5 pt-4">
-                    <CoursePrice label={course.price} className="text-lg font-bold text-amber-400" />
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={courseBrowseHref(course.slug, course.learningFormat, categoryKey)}
-                        className="text-xs font-semibold text-gray-400 underline-offset-4 hover:text-white hover:underline"
-                      >
-                        View Details
-                      </Link>
-                      <AddToCartButton
-                        slug={course.slug}
-                        title={course.title}
-                        price={course.price}
-                        image={course.image ?? heroImage}
-                        iconOnly
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-b from-[#f9b14d] to-[#eb9422] text-black shadow-md transition hover:brightness-110"
-                      />
-                    </div>
-                  </div>
+                  <CourseCardActions
+                    descriptionHref={catalogCourseLandingHref(course.slug, tutorLedSlugs, course.learningFormat)}
+                    priceLabel={course.price}
+                  />
                 </div>
               </article>
             ))}

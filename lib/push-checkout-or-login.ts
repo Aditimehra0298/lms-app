@@ -5,6 +5,10 @@
  * 3. After auth → checkout (payment)
  * 4. After payment → My Learning → Tutor Led (checkout success screen)
  */
+import {
+  hasViewedCourseLanding,
+  tutorLedLandingHref,
+} from "@/lib/course-landing";
 import { liveTutorCourseHref, resolveTutorLedSlug, tutorLedTemplatePath } from "@/lib/tutor-led-routes";
 
 export type AppPush = { push: (href: string) => void };
@@ -29,7 +33,12 @@ export function openTutorLedProgram(router: AppPush, slug: string) {
  */
 export function registerTutorLedFromTemplate(router: AppPush, slug: string) {
   if (typeof window === "undefined") return;
-  const checkout = checkoutBuyNowPath(slug);
+  const resolved = resolveTutorLedSlug(slug);
+  if (!hasViewedCourseLanding(resolved)) {
+    router.push(tutorLedLandingHref(resolved, true));
+    return;
+  }
+  const checkout = checkoutBuyNowPath(resolved);
   if (!isLoggedInLearner()) {
     router.push(`/account?mode=login&redirect=${encodeURIComponent(checkout)}`);
     return;

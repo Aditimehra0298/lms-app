@@ -1,8 +1,14 @@
 "use client";
 
 import { ShoppingCart } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  courseLandingHref,
+  hasViewedCourseLanding,
+  markCourseLandingViewed,
+} from "@/lib/course-landing";
+import type { CourseLearningFormat } from "@/lib/content-schema";
 import { isLearnerLoggedIn, loginRedirectHref } from "@/lib/learner-session-client";
 
 type CartItem = {
@@ -50,6 +56,7 @@ export default function AddToCartButton({
   className,
   label = "Add to Cart",
   iconOnly = false,
+  learningFormat,
 }: {
   slug: string;
   title: string;
@@ -58,9 +65,17 @@ export default function AddToCartButton({
   className?: string;
   label?: string;
   iconOnly?: boolean;
+  learningFormat?: CourseLearningFormat | null;
 }) {
   const [added, setAdded] = useState(false);
   const router = useRouter();
+  const pathname = usePathname() ?? "";
+  const landingPath = courseLandingHref(slug, learningFormat);
+
+  const onLandingPage =
+    pathname === landingPath ||
+    pathname.startsWith(`/courses/${slug}`) ||
+    pathname.startsWith(`/tutor-led/${slug}`);
 
   return (
     <button
@@ -68,10 +83,15 @@ export default function AddToCartButton({
       title={iconOnly ? "Add to cart" : undefined}
       aria-label={iconOnly ? "Add to cart" : undefined}
       onClick={() => {
-        if (!isLearnerLoggedIn()) {
-          router.push(loginRedirectHref());
+        if (!hasViewedCourseLanding(slug) || !onLandingPage) {
+          router.push(courseLandingHref(slug, learningFormat, null, true));
           return;
         }
+        if (!isLearnerLoggedIn()) {
+          router.push(loginRedirectHref(courseLandingHref(slug, learningFormat, null, true)));
+          return;
+        }
+        markCourseLandingViewed(slug);
         addItemToCart({ slug, title, price, image });
         setAdded(true);
         window.setTimeout(() => setAdded(false), 1400);
