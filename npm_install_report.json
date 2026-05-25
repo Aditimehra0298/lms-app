@@ -1,0 +1,8 @@
+{
+    "projectDir":  "D:\\Download\\lms-app-main\\lms-app-main",
+    "npmExitCode":  null,
+    "nodeModulesNextExists":  false,
+    "port3000Listening":  false,
+    "devScriptFromPackageJson":  "next dev --hostname 0.0.0.0 --webpack -p 3000",
+    "devUrlTypical":  "http://localhost:3000"
+}

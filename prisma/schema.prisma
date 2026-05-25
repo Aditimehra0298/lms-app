@@ -1,0 +1,69 @@
+// MySQL — point DATABASE_URL in .env.local at your Workbench / cloud instance.
+// Create tables: `npm run db:migrate` (dev) or run the SQL in prisma/migrations/.../migration.sql in Workbench.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// LMS users — registration, login, and profile (avatar + account type).
+model LmsUser {
+  id            String    @id @default(cuid())
+  email         String    @unique @db.VarChar(255)
+  name          String?   @db.VarChar(255)
+  role          String    @default("learner") @db.VarChar(32)
+  accountType   String?   @db.VarChar(32)
+  avatarUrl     String?   @db.VarChar(512)
+  phone         String?   @db.VarChar(32)
+  companyName   String?   @db.VarChar(255)
+  personalEmail String?   @db.VarChar(255)
+  industryType  String?   @db.VarChar(64)
+  companySize   String?   @db.VarChar(32)
+  ipv4          String?   @db.VarChar(45)
+  ipv6          String?   @db.VarChar(45)
+  countryCode   String?   @db.VarChar(8)
+  countryName   String?   @db.VarChar(128)
+  passwordHash    String?   @db.VarChar(255)
+  lastLoginAt     DateTime?
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+
+  purchases LmsPurchase[]
+
+  @@map("lms_user")
+}
+
+/// One-time codes for email verification during registration.
+model LmsEmailOtp {
+  id         String    @id @default(cuid())
+  email      String    @db.VarChar(255)
+  codeHash   String    @db.VarChar(128)
+  purpose    String    @default("register") @db.VarChar(32)
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email, purpose])
+  @@index([expiresAt])
+  @@map("lms_email_otp")
+}
+
+/// Purchases / enrollments written from checkout (parallel path to localStorage).
+model LmsPurchase {
+  id           String   @id @default(cuid())
+  userId       String?
+  learnerEmail String   @db.VarChar(255)
+  courseSlug   String   @db.VarChar(191)
+  title        String   @db.VarChar(512)
+  createdAt    DateTime @default(now())
+
+  user LmsUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([learnerEmail])
+  @@index([courseSlug])
+  @@map("lms_purchase")
+}

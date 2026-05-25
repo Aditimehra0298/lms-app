@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE `lms_user` ADD COLUMN `ipv4` VARCHAR(45) NULL,
+    ADD COLUMN `ipv6` VARCHAR(45) NULL,
+    ADD COLUMN `countryCode` VARCHAR(8) NULL,
+    ADD COLUMN `countryName` VARCHAR(128) NULL,
+    ADD COLUMN `lastLoginAt` DATETIME(3) NULL;
