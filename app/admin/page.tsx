@@ -27,6 +27,7 @@ import {
   Settings,
   ShoppingCart,
   Star,
+  TicketCheck,
   Trash2,
   Users,
   Video,
@@ -37,6 +38,7 @@ import AdminHomePageEditor from "@/components/admin/AdminHomePageEditor";
 import AdminAboutPageEditor from "@/components/admin/AdminAboutPageEditor";
 import AdminTutorLedWorkspace from "@/components/admin/AdminTutorLedWorkspace";
 import AdminCourseQAModeration from "@/components/admin/AdminCourseQAModeration";
+import AdminSupportTickets from "@/components/admin/AdminSupportTickets";
 import CategoryPageEditorModal from "@/components/admin/CategoryPageEditorModal";
 import CategoryPreviewIframe from "@/components/admin/CategoryPreviewIframe";
 import type { AdminContent, ManagedCategory } from "@/lib/content-schema";
@@ -74,6 +76,10 @@ const menuSections = [
     items: ["Orders", "Payments", "Invoices", "Refunds"],
   },
   {
+    title: "Support",
+    items: ["Support Tickets"],
+  },
+  {
     title: "Other",
     items: ["Settings", "Newsletter", "Analytics", "Reports"],
   },
@@ -109,6 +115,7 @@ const menuIcons: Record<string, typeof Home> = {
   Batches: Users,
   Users: Users,
   Settings: Settings,
+  "Support Tickets": TicketCheck,
 };
 
 type AdminAccessState = {
@@ -285,6 +292,7 @@ export default function AdminPage() {
   const showHomePageEditor = activeMenu === "Home Page";
   const showAboutPageEditor = activeMenu === "About Page";
   const showTutorLedWorkspace = activeMenu === "Tutor Led";
+  const showSupportTickets = activeMenu === "Support Tickets";
   const hasMainPanel =
     activeMenu === "Dashboard" ||
     showCoursesWorkspace ||
@@ -293,6 +301,7 @@ export default function AdminPage() {
     showHomePageEditor ||
     showAboutPageEditor ||
     showTutorLedWorkspace ||
+    showSupportTickets ||
     activeMenu === "Categories";
 
   const persistCategories = async (rows: string[][]) => {
@@ -732,6 +741,8 @@ export default function AdminPage() {
           {showHomePageEditor && <AdminHomePageEditor />}
 
           {showAboutPageEditor && <AdminAboutPageEditor />}
+
+          {showSupportTickets && <AdminSupportTickets />}
 
           {activeMenu === "Categories" && (
             <>

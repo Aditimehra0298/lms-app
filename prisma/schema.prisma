@@ -165,7 +165,6 @@ model LmsPurchase {
   @@index([courseSlug])
   @@map("lms_purchase")
 }
-
 /// Issued completion certificate — unique number per holder per course.
 model LmsCertificate {
   id                  String   @id @default(cuid())
@@ -206,4 +205,22 @@ model LmsCertificate {
   @@index([organizationId])
   @@index([holderType])
   @@map("lms_certificate")
+}
+
+/// Support tickets created by the AI chatbot when a technical issue is reported.
+model LmsIssue {
+  id          String   @id @default(cuid())
+  issueToken  String   @unique @db.VarChar(32)   // e.g. SFT-TECH-1023
+  userId      String?  @db.VarChar(255)
+  userName    String?  @db.VarChar(255)
+  userEmail   String?  @db.VarChar(255)
+  issueText   String   @db.Text
+  issueStatus String   @default("open") @db.VarChar(32)  // open | in_progress | closed
+  category    String?  @db.VarChar(32)            // TECH | QUIZ | VIDEO | AUTH | PAY | CERT | LMS
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([issueStatus])
+  @@index([createdAt])
+  @@map("lms_issue")
 }

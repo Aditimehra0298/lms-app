@@ -25,20 +25,24 @@
     "install:nodemailer:offline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-nodemailer-offline.ps1"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.64",
+    "@ai-sdk/react": "^3.0.193",
     "@prisma/client": "^6.19.0",
     "@swc/helpers": "^0.5.21",
+    "ai": "^6.0.188",
     "lucide-react": "^1.14.0",
     "nanoid": "^3.3.11",
-    "nodemailer": "^6.10.1",
     "next": "16.2.3",
+    "nodemailer": "^6.10.1",
+    "openai": "^6.38.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-easy-crop": "^5.5.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/nodemailer": "^6.4.17",
     "@types/node": "20.19.39",
+    "@types/nodemailer": "^6.4.17",
     "@types/react": "19.2.14",
     "@types/react-dom": "^19",
     "eslint": "^9",

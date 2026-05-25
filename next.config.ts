@@ -80,3 +80,5 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+// Force Next.js dev server restart to reload cached node_modules/Prisma Client
+

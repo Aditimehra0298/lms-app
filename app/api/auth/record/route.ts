@@ -233,13 +233,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const profile = dbSaved ? await fetchLmsUserProfile(email) : null;
+  const userProfile = dbSaved ? await fetchLmsUserProfile(email) : null;
 
   return NextResponse.json({
     ok: true,
     dbSaved,
     dbError,
-    profile,
+    profile: userProfile,
     ipv4: ips.ipv4,
     ipv6: ips.ipv6,
     region,
