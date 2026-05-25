@@ -7,7 +7,9 @@ export async function getManagedCourses() {
     content.managedCourses && content.managedCourses.length > 0
       ? content.managedCourses
       : defaultAdminContent.managedCourses;
-  return courses.filter((course) => course.published);
+  return courses.filter(
+    (course) => course.published && course.settings?.showInCatalog !== false,
+  );
 }
 
 export async function getManagedCourseBySlug(slug: string) {

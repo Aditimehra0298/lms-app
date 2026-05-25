@@ -37,7 +37,7 @@ export default function AdminAccessDenied({
             href="/account?admin=1"
             className="rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-bold text-black hover:bg-amber-400"
           >
-            Sign in with main Google account
+            Continue with Google (admin sign-in)
           </Link>
           <Link
             href="/"

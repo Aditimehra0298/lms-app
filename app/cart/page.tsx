@@ -112,7 +112,7 @@ export default function CartPage() {
                         <p className="text-base font-semibold">{item.title}</p>
                         <p className="mt-1 text-xs text-gray-400">Qty: {item.qty}</p>
                         <p className="mt-1 text-sm text-amber-200">
-                          {ready && showPrices ? formatPriceLabel(item.price) : "—"}
+                          {ready && showPrices ? item.price : "—"}
                         </p>
                       </div>
                     </div>

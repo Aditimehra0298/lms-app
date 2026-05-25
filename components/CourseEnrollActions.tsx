@@ -21,6 +21,7 @@ type Props = {
   oldPriceInr?: number;
   discountPct?: number | null;
   discountBadge?: string | null;
+  exactPriceLabels?: boolean;
   children?: ReactNode;
   className?: string;
 };
@@ -37,6 +38,7 @@ export default function CourseEnrollActions({
   oldPriceInr,
   discountPct,
   discountBadge,
+  exactPriceLabels = false,
   children,
   className = "",
 }: Props) {
@@ -53,12 +55,20 @@ export default function CourseEnrollActions({
           {hasInrPrice ? (
             <CoursePrice inr={priceInr} className="text-2xl font-extrabold text-white sm:text-3xl" />
           ) : (
-            <CoursePrice label={priceLabel} className="text-2xl font-extrabold text-white" />
+            <CoursePrice
+              label={priceLabel}
+              exactLabel={exactPriceLabels}
+              className="text-2xl font-extrabold text-white"
+            />
           )}
           {hasInrPrice && oldPriceInr != null ? (
             <CoursePrice inr={oldPriceInr} className="text-sm text-zinc-500 line-through" />
           ) : oldPriceLabel ? (
-            <CoursePrice label={oldPriceLabel} className="text-sm text-zinc-500 line-through" />
+            <CoursePrice
+              label={oldPriceLabel}
+              exactLabel={exactPriceLabels}
+              className="text-sm text-zinc-500 line-through"
+            />
           ) : null}
           {discountBadge ? (
             <span className="rounded-md bg-[#FFB800] px-2 py-0.5 text-[10px] font-bold text-black">{discountBadge}</span>

@@ -1,5 +1,10 @@
 import type { AccountTypeId } from "@/lib/auth-profile";
 import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
+import {
+  formatIndividualRegistrationCode,
+  formatOrganizationRegistrationCode,
+} from "@/lib/registration-ids";
+import { getOrganizationByWorkEmail } from "@/lib/server/organization-identification";
 import { prisma } from "@/lib/prisma";
 
 export type { LmsUserProfilePayload };
@@ -20,6 +25,10 @@ export const LMS_USER_PROFILE_SELECT = {
   lastLoginAt: true,
   emailVerifiedAt: true,
   createdAt: true,
+  identificationNumber: true,
+  registrationMonth: true,
+  registrationYear: true,
+  registrationMonthYear: true,
 } as const;
 
 export async function fetchLmsUserProfile(email: string): Promise<LmsUserProfilePayload | null> {
@@ -28,7 +37,56 @@ export async function fetchLmsUserProfile(email: string): Promise<LmsUserProfile
     select: LMS_USER_PROFILE_SELECT,
   });
   if (!user) return null;
-  return serializeLmsUserProfile(user);
+  const base = {
+    ...serializeLmsUserProfile(user),
+    ...registrationFieldsFromUser(user),
+  };
+  return enrichProfileWithRegistration(base, user.identificationNumber);
+}
+
+async function enrichProfileWithRegistration(
+  profile: LmsUserProfilePayload,
+  userIdentificationNumber: number | null,
+): Promise<LmsUserProfilePayload> {
+  if (profile.accountType === "organisation") {
+    const org = await getOrganizationByWorkEmail(profile.email);
+    if (org) {
+      return {
+        ...profile,
+        identificationNumber: org.identificationNumber,
+        registrationCode: formatOrganizationRegistrationCode(org.identificationNumber),
+        organizationId: org.id,
+        companyName: org.companyName,
+        registrationMonth: org.registrationMonth,
+        registrationYear: org.registrationYear,
+        registrationMonthYear: org.registrationMonthYear,
+      };
+    }
+    return profile;
+  }
+  if (userIdentificationNumber != null) {
+    return {
+      ...profile,
+      identificationNumber: userIdentificationNumber,
+      registrationCode: formatIndividualRegistrationCode(userIdentificationNumber),
+    };
+  }
+  return profile;
+}
+
+function registrationFieldsFromUser(user: {
+  registrationMonth?: number | null;
+  registrationYear?: number | null;
+  registrationMonthYear?: string | null;
+}): Pick<
+  LmsUserProfilePayload,
+  "registrationMonth" | "registrationYear" | "registrationMonthYear"
+> {
+  return {
+    registrationMonth: user.registrationMonth ?? null,
+    registrationYear: user.registrationYear ?? null,
+    registrationMonthYear: user.registrationMonthYear ?? null,
+  };
 }
 
 export function serializeLmsUserProfile(user: {
@@ -47,6 +105,7 @@ export function serializeLmsUserProfile(user: {
   lastLoginAt: Date | null;
   emailVerifiedAt: Date | null;
   createdAt: Date;
+  identificationNumber?: number | null;
 }): LmsUserProfilePayload {
   const accountType = user.accountType as AccountTypeId | null;
   return {

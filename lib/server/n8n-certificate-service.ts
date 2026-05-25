@@ -1,0 +1,362 @@
+import type { ManagedCourse } from "@/lib/content-schema";
+import { readAdminContent } from "@/lib/server/content-store";
+import {
+  resolveCertificatePermissions,
+  shouldShowOnLearnerDashboard,
+} from "@/lib/server/certificate-permissions";
+import { ensureCourseInMysql, getCourseBySlug } from "@/lib/server/course-mysql-sync";
+import { lookupRegistrationByEmail } from "@/lib/server/registration-lookup";
+import type { CertificateRowDto } from "@/lib/certificate-types";
+import { issueCourseCertificate } from "@/lib/server/certificate-service";
+import { prisma } from "@/lib/prisma";
+
+export type { CertificateRowDto };
+
+function appBaseUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel}`;
+  return "http://localhost:3000";
+}
+
+function toDto(row: {
+  id: string;
+  certificateNumber: string;
+  identificationNumber: number;
+  holderType: string;
+  organizationId: string | null;
+  learnerName: string | null;
+  learnerEmail: string;
+  courseSlug: string;
+  courseTitle: string;
+  issuedAt: Date;
+  scorePercent: number | null;
+  templateImage: string | null;
+  badgeImage: string | null;
+  supplementaryDocs: unknown;
+  status: string;
+  visibleToLearner: boolean;
+  pdfUrl: string | null;
+  issuedVia: string;
+}): CertificateRowDto {
+  let supplementaryDocs: { title: string; url: string }[] = [];
+  if (Array.isArray(row.supplementaryDocs)) {
+    supplementaryDocs = row.supplementaryDocs as { title: string; url: string }[];
+  }
+  return {
+    id: row.id,
+    certificateNumber: row.certificateNumber,
+    identificationNumber: row.identificationNumber,
+    holderType: row.holderType === "organisation" ? "organisation" : "individual",
+    organizationId: row.organizationId,
+    companyName: null,
+    learnerName: row.learnerName ?? row.learnerEmail,
+    learnerEmail: row.learnerEmail,
+    courseSlug: row.courseSlug,
+    courseTitle: row.courseTitle,
+    issuedAt: row.issuedAt.toISOString(),
+    scorePercent: row.scorePercent,
+    templateImage: row.templateImage,
+    badgeImage: row.badgeImage,
+    supplementaryDocs,
+    status: row.status,
+    visibleToLearner: row.visibleToLearner,
+    pdfUrl: row.pdfUrl,
+    issuedVia: row.issuedVia,
+  };
+}
+
+async function findCourse(slug: string): Promise<ManagedCourse | undefined> {
+  const content = await readAdminContent();
+  return content.managedCourses?.find((c) => c.slug === slug);
+}
+
+/** Learner passed exam → request certificate via n8n (or builtin fallback). */
+export async function requestCourseCertificate(input: {
+  learnerEmail: string;
+  learnerName?: string;
+  courseSlug: string;
+  scorePercent?: number;
+}): Promise<
+  | { ok: true; certificate: CertificateRowDto; message?: string }
+  | { ok: false; message: string }
+> {
+  const email = input.learnerEmail.trim().toLowerCase();
+  const slug = input.courseSlug.trim();
+  if (!email || !slug) return { ok: false, message: "Email and course slug are required." };
+
+  const course = await findCourse(slug);
+  if (!course) return { ok: false, message: "Course not found." };
+
+  const courseRow =
+    (await getCourseBySlug(slug)) ??
+    (await ensureCourseInMysql({
+      slug: course.slug,
+      title: course.title,
+      subtitle: course.subtitle,
+      category: course.category,
+      level: course.level,
+      published: course.published,
+      learningFormat: course.learningFormat,
+    }));
+  if (!courseRow) {
+    return { ok: false, message: "Could not save course to MySQL (lms_course)." };
+  }
+
+  const perms = resolveCertificatePermissions(course);
+  if (!perms.enabled) return { ok: false, message: "Certificates are not enabled for this course." };
+
+  const existing = await prisma.lmsCertificate.findFirst({
+    where: { learnerEmail: email, courseSlug: slug },
+  });
+  if (existing) {
+    if (existing.status === "pending") {
+      return {
+        ok: true,
+        certificate: toDto(existing),
+        message: "Certificate is already being generated.",
+      };
+    }
+    if (existing.status === "ready") {
+      return { ok: true, certificate: toDto(existing) };
+    }
+  }
+
+  if (perms.provider === "builtin") {
+    const built = await issueCourseCertificate({
+      learnerEmail: email,
+      learnerName: input.learnerName,
+      courseSlug: slug,
+      scorePercent: input.scorePercent,
+    });
+    if (!built.ok) return built;
+    await prisma.lmsCertificate.update({
+      where: { id: built.certificate.id },
+      data: {
+        status: "ready",
+        visibleToLearner: perms.autoVisibleWhenReady,
+        issuedVia: "builtin",
+      },
+    });
+    const row = await prisma.lmsCertificate.findUnique({ where: { id: built.certificate.id } });
+    return { ok: true, certificate: toDto(row!) };
+  }
+
+  if (!perms.n8nWebhookUrl) {
+    return {
+      ok: false,
+      message: "n8n webhook URL not configured. Set N8N_CERTIFICATE_WEBHOOK_URL in .env.local or Admin → Certificates.",
+    };
+  }
+
+  const registration = await lookupRegistrationByEmail(email);
+  if (!registration?.identificationNumber) {
+    return { ok: false, message: "User must be registered in MySQL before requesting a certificate." };
+  }
+
+  const displayName =
+    registration.companyName ?? input.learnerName?.trim() ?? email.split("@")[0];
+  const tempNumber = `TEMP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const row = await prisma.lmsCertificate.create({
+    data: {
+      learnerEmail: email,
+      learnerName: displayName,
+      courseSlug: slug,
+      courseId: courseRow.id,
+      courseTitle: course.title,
+      certificateNumber: tempNumber,
+      identificationNumber: registration.identificationNumber,
+      holderType: registration.accountType === "organisation" ? "organisation" : "individual",
+      scorePercent: input.scorePercent ?? null,
+      status: "pending",
+      visibleToLearner: false,
+      issuedVia: "n8n",
+    },
+  });
+
+  const callbackUrl = `${appBaseUrl()}/api/certificates/n8n-callback`;
+  const payload = {
+    event: "course_completed",
+    certificateId: row.id,
+    callbackUrl,
+    email,
+    learnerName: displayName,
+    learner: registration
+      ? {
+          ...registration,
+          displayName,
+        }
+      : { email, displayName },
+    courseSlug: slug,
+    courseTitle: course.title,
+    course: courseRow,
+    courseCategory: course.category,
+    courseLevel: course.level,
+    scorePercent: input.scorePercent ?? null,
+    completedAt: new Date().toISOString(),
+    registration,
+    requireAdminApproval: perms.requireAdminApproval,
+    autoVisibleWhenReady: perms.autoVisibleWhenReady,
+  };
+
+  try {
+    const res = await fetch(perms.n8nWebhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(process.env.N8N_WEBHOOK_SECRET
+          ? { "X-Webhook-Secret": process.env.N8N_WEBHOOK_SECRET }
+          : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      await prisma.lmsCertificate.update({
+        where: { id: row.id },
+        data: { status: "failed" },
+      });
+      return { ok: false, message: `n8n webhook returned ${res.status}. Check your workflow.` };
+    }
+  } catch (err) {
+    await prisma.lmsCertificate.update({
+      where: { id: row.id },
+      data: { status: "failed" },
+    });
+    const msg = err instanceof Error ? err.message : "n8n request failed";
+    return { ok: false, message: msg };
+  }
+
+  return {
+    ok: true,
+    certificate: toDto(row),
+    message: "Certificate generation started in n8n.",
+  };
+}
+
+/** n8n calls this when PDF is ready. */
+export async function completeN8nCertificateCallback(input: {
+  certificateId: string;
+  certificateNumber?: string;
+  pdfUrl?: string;
+  status?: "ready" | "failed";
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const id = input.certificateId.trim();
+  if (!id) return { ok: false, message: "certificateId required" };
+
+  const row = await prisma.lmsCertificate.findUnique({ where: { id } });
+  if (!row) return { ok: false, message: "Certificate not found" };
+
+  const course = await findCourse(row.courseSlug);
+  const perms = course ? resolveCertificatePermissions(course) : null;
+  const status = input.status === "failed" ? "failed" : "ready";
+  const visible =
+    status === "ready" && perms
+      ? perms.autoVisibleWhenReady && !perms.requireAdminApproval
+      : false;
+
+  await prisma.lmsCertificate.update({
+    where: { id },
+    data: {
+      status,
+      certificateNumber: input.certificateNumber?.trim() || row.certificateNumber,
+      pdfUrl: input.pdfUrl?.trim() || null,
+      visibleToLearner: visible,
+      issuedAt: status === "ready" ? new Date() : row.issuedAt,
+    },
+  });
+
+  return { ok: true };
+}
+
+export async function listLearnerCertificates(email: string): Promise<CertificateRowDto[]> {
+  const normalized = email.trim().toLowerCase();
+  const rows = await prisma.lmsCertificate.findMany({
+    where: { learnerEmail: normalized },
+    orderBy: { issuedAt: "desc" },
+  });
+
+  const content = await readAdminContent();
+  const out: CertificateRowDto[] = [];
+
+  for (const row of rows) {
+    const course = content.managedCourses?.find((c) => c.slug === row.courseSlug);
+    if (!course) continue;
+    const perms = resolveCertificatePermissions(course);
+    if (!shouldShowOnLearnerDashboard(perms, row)) continue;
+    out.push(toDto(row));
+  }
+
+  return out;
+}
+
+export async function listAdminCertificatesForCourse(
+  courseSlug: string,
+): Promise<CertificateRowDto[]> {
+  const rows = await prisma.lmsCertificate.findMany({
+    where: { courseSlug: courseSlug.trim() },
+    orderBy: { issuedAt: "desc" },
+  });
+  return rows.map(toDto);
+}
+
+export async function setCertificateVisibility(
+  certificateId: string,
+  visibleToLearner: boolean,
+): Promise<{ ok: true; certificate: CertificateRowDto } | { ok: false; message: string }> {
+  const row = await prisma.lmsCertificate.findUnique({ where: { id: certificateId } });
+  if (!row) return { ok: false, message: "Not found" };
+  if (row.status !== "ready") {
+    return { ok: false, message: "Certificate must be ready before changing visibility." };
+  }
+  const updated = await prisma.lmsCertificate.update({
+    where: { id: certificateId },
+    data: { visibleToLearner },
+  });
+  return { ok: true, certificate: toDto(updated) };
+}
+
+/** Admin manually marks certificate ready (upload PDF in Drive, paste URL here). */
+export async function adminUpdateCertificateManual(input: {
+  certificateId: string;
+  pdfUrl?: string;
+  certificateNumber?: string;
+  status?: "ready" | "failed" | "pending";
+  visibleToLearner?: boolean;
+}): Promise<{ ok: true; certificate: CertificateRowDto } | { ok: false; message: string }> {
+  const row = await prisma.lmsCertificate.findUnique({ where: { id: input.certificateId } });
+  if (!row) return { ok: false, message: "Not found" };
+
+  const status = input.status ?? row.status;
+  const updated = await prisma.lmsCertificate.update({
+    where: { id: input.certificateId },
+    data: {
+      ...(input.pdfUrl !== undefined ? { pdfUrl: input.pdfUrl.trim() || null } : {}),
+      ...(input.certificateNumber?.trim() &&
+      !input.certificateNumber.trim().startsWith("TEMP-")
+        ? { certificateNumber: input.certificateNumber.trim() }
+        : {}),
+      status,
+      ...(typeof input.visibleToLearner === "boolean"
+        ? { visibleToLearner: input.visibleToLearner }
+        : {}),
+      ...(status === "ready" ? { issuedAt: new Date() } : {}),
+      issuedVia: "manual",
+    },
+  });
+  return { ok: true, certificate: toDto(updated) };
+}
+
+/** Admin manually starts n8n for a learner (re-issue / first issue). */
+export async function adminTriggerCertificateForLearner(input: {
+  learnerEmail: string;
+  courseSlug: string;
+  learnerName?: string;
+  scorePercent?: number;
+}): Promise<
+  | { ok: true; certificate: CertificateRowDto; message?: string }
+  | { ok: false; message: string }
+> {
+  return requestCourseCertificate(input);
+}

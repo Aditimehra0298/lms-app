@@ -12,6 +12,9 @@ import {
 import { resolveLearnerCountry } from "@/lib/server/resolve-learner-country";
 import { fetchLmsUserProfile } from "@/lib/server/lms-user-profile";
 import { prisma } from "@/lib/prisma";
+import { registrationPeriodFromDate } from "@/lib/registration-ids";
+import { ensureOrganizationProfile } from "@/lib/server/organization-identification";
+import { ensureUserIdentificationNumber } from "@/lib/server/user-identification";
 import { getClientIps } from "@/lib/request-ip";
 
 export const dynamic = "force-dynamic";
@@ -99,7 +102,7 @@ export async function POST(request: Request) {
   const region = pricingRegionForAuthResponse(action, hasManualCountry, resolvedRegion, existing);
   const countryFields = countryUpdateFields(action, hasManualCountry, resolvedRegion, existing);
 
-  const profile = {
+  const userFields = {
     name: trimOrNull(body.name),
     accountType: accountType ?? null,
     avatarUrl: trimOrNull(body.avatarUrl),
@@ -110,6 +113,8 @@ export async function POST(request: Request) {
     companySize: trimOrNull(body.companySize),
   };
 
+  const registrationPeriod = action === "register" ? registrationPeriodFromDate() : null;
+
   let dbSaved = false;
   let dbError: string | undefined;
   try {
@@ -117,15 +122,15 @@ export async function POST(request: Request) {
       where: { email },
       create: {
         email,
-        name: profile.name,
+        name: userFields.name,
         role: roleForEmail(email),
-        accountType: profile.accountType,
-        avatarUrl: profile.avatarUrl,
-        phone: profile.phone,
-        companyName: profile.companyName,
-        personalEmail: profile.personalEmail,
-        industryType: profile.industryType,
-        companySize: profile.companySize,
+        accountType: userFields.accountType,
+        avatarUrl: userFields.avatarUrl,
+        phone: userFields.phone,
+        companyName: userFields.companyName,
+        personalEmail: userFields.personalEmail,
+        industryType: userFields.industryType,
+        companySize: userFields.companySize,
         ipv4: ips.ipv4,
         ipv6: ips.ipv6,
         countryCode: resolvedRegion.countryCode,
@@ -133,16 +138,23 @@ export async function POST(request: Request) {
         passwordHash,
         lastLoginAt: new Date(),
         emailVerifiedAt: action === "register" ? new Date() : undefined,
+        ...(registrationPeriod
+          ? {
+              registrationMonth: registrationPeriod.registrationMonth,
+              registrationYear: registrationPeriod.registrationYear,
+              registrationMonthYear: registrationPeriod.registrationMonthYear,
+            }
+          : {}),
       },
       update: {
-        name: profile.name ?? undefined,
-        accountType: profile.accountType ?? undefined,
-        avatarUrl: profile.avatarUrl ?? undefined,
-        phone: profile.phone ?? undefined,
-        companyName: profile.companyName ?? undefined,
-        personalEmail: profile.personalEmail ?? undefined,
-        industryType: profile.industryType ?? undefined,
-        companySize: profile.companySize ?? undefined,
+        name: userFields.name ?? undefined,
+        accountType: userFields.accountType ?? undefined,
+        avatarUrl: userFields.avatarUrl ?? undefined,
+        phone: userFields.phone ?? undefined,
+        companyName: userFields.companyName ?? undefined,
+        personalEmail: userFields.personalEmail ?? undefined,
+        industryType: userFields.industryType ?? undefined,
+        companySize: userFields.companySize ?? undefined,
         ipv4: ips.ipv4 ?? undefined,
         ipv6: ips.ipv6 ?? undefined,
         ...countryFields,
@@ -152,6 +164,46 @@ export async function POST(request: Request) {
       },
     });
     dbSaved = true;
+    if (action === "register" && registrationPeriod) {
+      await prisma.lmsUser.updateMany({
+        where: { email, registrationMonthYear: null },
+        data: {
+          registrationMonth: registrationPeriod.registrationMonth,
+          registrationYear: registrationPeriod.registrationYear,
+          registrationMonthYear: registrationPeriod.registrationMonthYear,
+        },
+      });
+    }
+    const savedUser = await prisma.lmsUser.findUnique({
+      where: { email },
+      select: { id: true, accountType: true },
+    });
+    const isOrg =
+      userFields.accountType === "organisation" || savedUser?.accountType === "organisation";
+    if (action === "register") {
+      if (isOrg && userFields.companyName) {
+        await ensureOrganizationProfile({
+          workEmail: email,
+          companyName: userFields.companyName,
+          personalEmail: userFields.personalEmail,
+          industryType: userFields.industryType,
+          companySize: userFields.companySize,
+          userId: savedUser?.id,
+          registrationPeriod: registrationPeriod ?? undefined,
+        });
+      } else if (!isOrg) {
+        await ensureUserIdentificationNumber(email);
+      }
+    } else if (isOrg && userFields.companyName) {
+      void ensureOrganizationProfile({
+        workEmail: email,
+        companyName: userFields.companyName,
+        personalEmail: userFields.personalEmail,
+        industryType: userFields.industryType,
+        companySize: userFields.companySize,
+        userId: savedUser?.id,
+      }).catch((e) => console.error("[auth/record] organization", e));
+    }
   } catch (err) {
     dbSaved = false;
     dbError = err instanceof Error ? err.message : "Database save failed";

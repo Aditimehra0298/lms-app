@@ -15,6 +15,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { CourseCurriculumItem, CourseCurriculumModule, CourseFinalExam } from "@/lib/content-schema";
+import { getLearnerEmail } from "@/lib/learner-session-client";
+import { requestCourseCertificateClient } from "@/lib/request-course-certificate-client";
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +111,7 @@ function CourseExamPageInner() {
     () => Array.from({ length: quizQuestions.length }, () => null),
   );
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [certMessage, setCertMessage] = useState("");
   const [timeRemainingSec, setTimeRemainingSec] = useState<number | null>(null);
   const currentQuestion = quizQuestions[currentQuestionIndex];
   const answeredQuestions = useMemo(
@@ -245,8 +248,22 @@ function CourseExamPageInner() {
     saveModuleScorePercent(percentage);
     if (percentage >= examRuntime.passingScorePercent) {
       markModuleCompleted();
+      const email = getLearnerEmail();
+      if (email && courseMeta?.slug) {
+        void requestCourseCertificateClient({
+          learnerEmail: email,
+          courseSlug: courseMeta.slug,
+          scorePercent: percentage,
+        }).then((r) => {
+          setCertMessage(
+            r.ok
+              ? "Your certificate is being generated. Check My Learning → Certificates after admin approval."
+              : r.message ?? "Certificate could not be started.",
+          );
+        });
+      }
     }
-  }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug]);
+  }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug, courseMeta?.slug]);
 
   if (courseMeta === undefined) {
     return (
@@ -326,7 +343,20 @@ function CourseExamPageInner() {
                 </p>
               </div>
             </div>
+            {passed && certMessage ? (
+              <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                {certMessage}
+              </p>
+            ) : null}
             <div className="mt-5 flex flex-wrap gap-2">
+              {passed ? (
+                <Link
+                  href="/my-learning?tab=certificates"
+                  className="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-black"
+                >
+                  My Certificates
+                </Link>
+              ) : null}
               <Link href={`/my-learning/course/${slug}`} className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold">
                 Back to My Learning
               </Link>

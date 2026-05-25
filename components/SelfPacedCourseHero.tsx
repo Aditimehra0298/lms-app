@@ -14,40 +14,11 @@ import { isLearnerLoggedIn, loginRedirectHref } from "@/lib/learner-session-clie
 import { Clock, GraduationCap, Star, Users } from "lucide-react";
 
 import type { ManagedCourse } from "@/lib/content-schema";
+import { useResolvedCoursePrice } from "@/lib/hooks/useResolvedCoursePrice";
 
 import { instructorInitialLetter } from "@/lib/managed-course-to-post-hero";
 
 import CourseEnrollActions from "@/components/CourseEnrollActions";
-
-
-
-function parseMoneyInput(s: string): number | null {
-
-  const cleaned = s.replace(/[^\d.]/g, "");
-
-  if (!cleaned) return null;
-
-  const n = parseFloat(cleaned);
-
-  return Number.isFinite(n) && n >= 0 ? n : null;
-
-}
-
-
-
-function discountPercent(saleStr: string, listStr: string): number | null {
-
-  const sale = parseMoneyInput(saleStr);
-
-  const list = parseMoneyInput(listStr);
-
-  if (sale === null || list === null || list <= 0 || sale >= list) return null;
-
-  return Math.round((1 - sale / list) * 100);
-
-}
-
-
 
 type Props = { course: ManagedCourse };
 
@@ -59,7 +30,8 @@ export default function SelfPacedCourseHero({ course }: Props) {
 
   const badge = (course.pageBadge ?? "SELF-PACED").trim() || "SELF-PACED";
 
-  const pct = discountPercent(course.price, course.oldPrice);
+  const resolved = useResolvedCoursePrice(course);
+  const pct = resolved.discountPercent;
 
   const initial = instructorInitialLetter(course);
 
@@ -238,11 +210,13 @@ export default function SelfPacedCourseHero({ course }: Props) {
 
                 highlights={highlights}
 
-                priceLabel={course.price}
+                priceLabel={resolved.price}
 
-                oldPriceLabel={course.oldPrice}
+                oldPriceLabel={resolved.oldPrice}
 
                 discountPct={pct}
+
+                exactPriceLabels
 
               >
 

@@ -31,10 +31,45 @@ model LmsUser {
   lastLoginAt     DateTime?
   emailVerifiedAt DateTime?
   createdAt       DateTime  @default(now())
+  /// Permanent learner ID — first user 101, then 102, 103…
+  identificationNumber Int? @unique
+  /// Month (1–12) when the user registered — set once automatically
+  registrationMonth     Int?
+  /// Year (e.g. 2026) when the user registered — set once automatically
+  registrationYear      Int?
+  /// Display MM-YYYY at registration, e.g. 05-2026
+  registrationMonthYear String? @db.VarChar(7)
 
-  purchases LmsPurchase[]
+  purchases      LmsPurchase[]
+  certificates   LmsCertificate[]
+  organization   LmsOrganization?
 
   @@map("lms_user")
+}
+
+/// Organisation accounts — permanent ID from 101 (certificate format: {id}-org/{MM-YYYY}/{seq}).
+model LmsOrganization {
+  id                   String   @id @default(cuid())
+  /// Permanent organisation ID — first org 101, then 102, 103…
+  identificationNumber Int      @unique
+  companyName          String   @db.VarChar(255)
+  workEmail            String   @unique @db.VarChar(255)
+  personalEmail        String?  @db.VarChar(255)
+  industryType         String?  @db.VarChar(64)
+  companySize          String?  @db.VarChar(32)
+  userId               String?  @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  /// Month (1–12) when the organisation registered — set once automatically
+  registrationMonth     Int?
+  registrationYear      Int?
+  registrationMonthYear String? @db.VarChar(7)
+
+  user         LmsUser?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  certificates LmsCertificate[]
+
+  @@index([companyName])
+  @@map("lms_organization")
 }
 
 /// One-time codes for email verification during registration.
@@ -52,18 +87,84 @@ model LmsEmailOtp {
   @@map("lms_email_otp")
 }
 
+/// Self-paced / catalog courses — permanent course ID from 101 (synced from admin JSON).
+model LmsCourse {
+  id                         String   @id @default(cuid())
+  /// Permanent course ID — first course 101, then 102, 103…
+  courseIdentificationNumber Int      @unique
+  slug                       String   @unique @db.VarChar(191)
+  title                      String   @db.VarChar(512)
+  subtitle                   String?  @db.VarChar(512)
+  category                   String?  @db.VarChar(128)
+  level                      String?  @db.VarChar(64)
+  published                  Boolean  @default(true)
+  learningFormat             String?  @db.VarChar(32)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  certificates LmsCertificate[]
+  purchases    LmsPurchase[]
+
+  @@index([category])
+  @@map("lms_course")
+}
+
 /// Purchases / enrollments written from checkout (parallel path to localStorage).
 model LmsPurchase {
   id           String   @id @default(cuid())
   userId       String?
   learnerEmail String   @db.VarChar(255)
   courseSlug   String   @db.VarChar(191)
+  courseId     String?
   title        String   @db.VarChar(512)
   createdAt    DateTime @default(now())
 
-  user LmsUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user   LmsUser?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  course LmsCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([learnerEmail])
   @@index([courseSlug])
   @@map("lms_purchase")
+}
+
+/// Issued completion certificate — unique number per holder per course.
+model LmsCertificate {
+  id                  String   @id @default(cuid())
+  userId              String?
+  organizationId      String?
+  /// individual | organisation
+  holderType          String   @default("individual") @db.VarChar(32)
+  learnerEmail        String   @db.VarChar(255)
+  learnerName         String?  @db.VarChar(255)
+  courseSlug          String   @db.VarChar(191)
+  courseId            String?
+  courseTitle         String   @db.VarChar(512)
+  /// Individual: 101/05-2026/001 — Organisation: 101-org/05-2026/001 (TEMP-{id} until n8n returns final)
+  certificateNumber   String   @unique @db.VarChar(64)
+  identificationNumber Int
+  issuedAt            DateTime @default(now())
+  scorePercent        Int?
+  templateImage       String?  @db.VarChar(512)
+  badgeImage          String?  @db.VarChar(512)
+  supplementaryDocs   Json?
+  /// pending | ready | failed
+  status              String   @default("pending") @db.VarChar(32)
+  /// Admin can hide/show on learner dashboard
+  visibleToLearner    Boolean  @default(false)
+  /// PDF URL from n8n (Google Drive, S3, etc.)
+  pdfUrl              String?  @db.VarChar(1024)
+  /// n8n | builtin
+  issuedVia           String   @default("n8n") @db.VarChar(32)
+
+  user         LmsUser?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization LmsOrganization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  course       LmsCourse?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([learnerEmail])
+  @@index([courseSlug])
+  @@index([courseId])
+  @@index([identificationNumber])
+  @@index([organizationId])
+  @@index([holderType])
+  @@map("lms_certificate")
 }

@@ -17,4 +17,16 @@ export type LmsUserProfilePayload = {
   lastLoginAt: string | null;
   emailVerifiedAt: string | null;
   createdAt: string;
+  /** Permanent registration ID in MySQL (starts 101). Not a certificate number. */
+  identificationNumber?: number | null;
+  /** e.g. "101" or "101-org" — for n8n / display */
+  registrationCode?: string | null;
+  /** Set when accountType is organisation */
+  organizationId?: string | null;
+  /** 1–12 — month when user/org registered */
+  registrationMonth?: number | null;
+  /** e.g. 2026 */
+  registrationYear?: number | null;
+  /** e.g. 05-2026 */
+  registrationMonthYear?: string | null;
 };

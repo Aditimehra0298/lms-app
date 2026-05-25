@@ -14,7 +14,7 @@ import {
   Users,
   ScrollText,
 } from "lucide-react";
-import CourseCardActions from "@/components/CourseCardActions";
+import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
 import CategoryFaqAccordion from "@/components/CategoryFaqAccordion";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
 import type { CategoryWhyTone, CourseLearningFormat } from "@/lib/content-schema";
@@ -475,9 +475,9 @@ export default async function CourseCategoryPage({
                     <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                     {course.rating}
                   </p>
-                  <CourseCardActions
+                  <CourseResolvedCardActions
+                    course={course}
                     descriptionHref={catalogCourseLandingHref(course.slug, tutorLedSlugs, course.learningFormat)}
-                    priceLabel={course.price}
                   />
                 </div>
               </article>

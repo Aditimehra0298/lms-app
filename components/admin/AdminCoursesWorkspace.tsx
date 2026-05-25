@@ -9,6 +9,10 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
+  Coins,
+  Search,
+  Rocket,
+  Settings,
   ClipboardList,
   FileText,
   FolderOpen,
@@ -17,7 +21,6 @@ import {
   Loader2,
   Mic,
   Pencil,
-  Percent,
   Plus,
   Sparkles,
   Timer,
@@ -42,6 +45,20 @@ import { sanitizeCourseHero } from "@/lib/course-hero-resolve";
 import { sanitizeInstructorSection } from "@/lib/course-instructor-section";
 import { sanitizeCoursePageContent } from "@/lib/course-page-content-sanitize";
 import AdminSelfPacedPageContentEditor from "@/components/admin/AdminSelfPacedPageContentEditor";
+import AdminRegionalPricingEditor from "@/components/admin/AdminRegionalPricingEditor";
+import AdminCourseSettingsPanel from "@/components/admin/AdminCourseSettingsPanel";
+import AdminCourseSeoPanel from "@/components/admin/AdminCourseSeoPanel";
+import AdminCourseCertificatesPanel from "@/components/admin/AdminCourseCertificatesPanel";
+import AdminImageUrlUpload from "@/components/admin/AdminImageUrlUpload";
+import AdminCoursePublishPanel from "@/components/admin/AdminCoursePublishPanel";
+import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
+import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
+import { describeCertificateIdFormat } from "@/lib/certificate-ids";
+import { sanitizeCourseSeo, sanitizeCourseSettings } from "@/lib/course-workspace-panels";
+import AdminCurrencyBadge from "@/components/admin/AdminCurrencyBadge";
+import AdminPriceInput from "@/components/admin/AdminPriceInput";
+import { sanitizeRegionalPrices } from "@/lib/course-regional-pricing";
+import { currencyDisplayForCountry, resolvePriceCurrency } from "@/lib/price-currency-detect";
 import {
   FOOD_SAFETY_DIPLOMA_CURRICULUM,
   buildGenericCurriculum,
@@ -169,6 +186,10 @@ function sanitizeManagedCourse(c: ManagedCourse): ManagedCourse {
       : [],
     hero: sanitizeCourseHero(c.hero),
     instructorSection: sanitizeInstructorSection(c.instructorSection),
+    regionalPrices: sanitizeRegionalPrices(c.regionalPrices),
+    settings: sanitizeCourseSettings(c.settings),
+    seo: sanitizeCourseSeo(c.seo),
+    certificateConfig: sanitizeCertificateConfig(c.certificateConfig),
     ...sanitizeCoursePageContent(c),
   };
 }
@@ -301,6 +322,9 @@ export default function AdminCoursesWorkspace() {
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [draft, setDraft] = useState<ManagedCourse>(emptyDraft);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingHeroField, setUploadingHeroField] = useState<
+    null | "backgroundImage" | "previewImage" | "certificatePreviewImage"
+  >(null);
 
   const [modules, setModules] = useState<CourseCurriculumModule[]>([]);
   const [expandedModuleIdx, setExpandedModuleIdx] = useState(0);
@@ -424,12 +448,13 @@ export default function AdminCoursesWorkspace() {
       setLoadError("Slug or title is required.");
       return;
     }
-    const normalized: ManagedCourse = {
+    const normalized: ManagedCourse = sanitizeManagedCourse({
       ...draft,
       slug,
       learningFormat: "self-paced",
       faqs: (draft.faqs ?? []).filter((f) => f.q.trim() && f.a.trim()),
-    };
+      finalExam: editingSlug || slug ? stripFinalExamForSave(finalExamDraft) : draft.finalExam,
+    });
     const others = (content.managedCourses ?? []).filter((c) => {
       if (editingSlug) return c.slug !== editingSlug;
       return c.slug !== slug;
@@ -456,20 +481,41 @@ export default function AdminCoursesWorkspace() {
     }
   };
 
+  const uploadAdminFile = async (file: File): Promise<string> => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+    if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
+    return data.url;
+  };
+
   const uploadCover = async (file: File) => {
     setUploadingImage(true);
     setLoadError(null);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
-      setDraft((d) => ({ ...d, image: data.url! }));
+      const url = await uploadAdminFile(file);
+      setDraft((d) => ({ ...d, image: url }));
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Image upload failed.");
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const uploadHeroImage = async (
+    field: "backgroundImage" | "previewImage" | "certificatePreviewImage",
+    file: File,
+  ) => {
+    setUploadingHeroField(field);
+    setLoadError(null);
+    try {
+      const url = await uploadAdminFile(file);
+      updateDraftHero(setDraft, { [field]: url });
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Image upload failed.");
+    } finally {
+      setUploadingHeroField(null);
     }
   };
 
@@ -930,10 +976,6 @@ export default function AdminCoursesWorkspace() {
   const catalogFormOpen = isCreating || !!editingSlug;
   const canEditCurriculum = !!selectedSlug && !isCreating && !!selectedCourse;
   const canEditPricing = isCreating || !!selectedCourse;
-  const pricingDiscountPct = useMemo(
-    () => computeDiscountPercent(draft.price, draft.oldPrice),
-    [draft.price, draft.oldPrice],
-  );
 
   const enrollmentsForCourse = useMemo(
     () => enrollmentRows.filter((e) => e.courseSlug === workspaceCourseSlug),
@@ -1026,7 +1068,39 @@ export default function AdminCoursesWorkspace() {
                     : "text-gray-500 hover:bg-white/[0.04] hover:text-gray-200"
                 }`}
               >
-                {tab}
+                {tab === "Pricing" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Coins className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {tab}
+                  </span>
+                ) : tab === "Settings" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Settings className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {tab}
+                  </span>
+                ) : tab === "SEO" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {tab}
+                  </span>
+                ) : tab === "Students" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {tab}
+                  </span>
+                ) : tab === "Certificates" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Award className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {tab}
+                  </span>
+                ) : tab === "Publish" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Rocket className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {tab}
+                  </span>
+                ) : (
+                  tab
+                )}
               </button>
             ))}
           </div>
@@ -1127,7 +1201,27 @@ export default function AdminCoursesWorkspace() {
                           <td className="px-4 py-3">
                             <span className="rounded-md bg-white/[0.06] px-2 py-0.5 text-[11px] text-gray-300">{c.level}</span>
                           </td>
-                          <td className="px-4 py-3 font-semibold tabular-nums text-amber-300">{c.price}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <AdminCurrencyBadge
+                                  currency={resolvePriceCurrency(c.price)}
+                                  showCode={false}
+                                />
+                                <span className="font-semibold tabular-nums text-amber-300">{c.price}</span>
+                              </div>
+                              {(c.regionalPrices?.length ?? 0) > 0 ? (
+                                <span className="text-[10px] text-gray-500">
+                                  +{c.regionalPrices!.length} regional (
+                                  {c.regionalPrices!
+                                    .slice(0, 3)
+                                    .map((r) => currencyDisplayForCountry(r.countryCode).code)
+                                    .join(", ")}
+                                  {c.regionalPrices!.length > 3 ? "…" : ""})
+                                </span>
+                              ) : null}
+                            </div>
+                          </td>
                           <td className="px-4 py-3">
                             <span
                               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
@@ -1247,15 +1341,15 @@ export default function AdminCoursesWorkspace() {
                     before checkout. Leave blank to use defaults from course info above.
                   </p>
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <label className="block md:col-span-2">
-                      <span className="text-[11px] text-gray-500">Hero background image URL</span>
-                      <input
-                        value={draft.hero?.backgroundImage ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { backgroundImage: e.target.value })}
-                        className={spField}
-                        placeholder="/p2.png (empty = course image)"
-                      />
-                    </label>
+                    <AdminImageUrlUpload
+                      label="Hero background image"
+                      value={draft.hero?.backgroundImage ?? ""}
+                      onChange={(url) => updateDraftHero(setDraft, { backgroundImage: url })}
+                      onUploadFile={(f) => uploadHeroImage("backgroundImage", f)}
+                      uploading={uploadingHeroField === "backgroundImage"}
+                      placeholder="/p2.png (empty = course cover image)"
+                      hint="Large image behind the hero title on the course page."
+                    />
                     <label className="block">
                       <span className="text-[11px] text-gray-500">Rating count</span>
                       <input
@@ -1302,15 +1396,16 @@ export default function AdminCoursesWorkspace() {
                         placeholder="English [Auto]"
                       />
                     </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Enroll card — preview image URL</span>
-                      <input
-                        value={draft.hero?.previewImage ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { previewImage: e.target.value })}
-                        className={spField}
-                        placeholder="/p2.png"
-                      />
-                    </label>
+                    <AdminImageUrlUpload
+                      label="Enroll card — preview image"
+                      value={draft.hero?.previewImage ?? ""}
+                      onChange={(url) => updateDraftHero(setDraft, { previewImage: url })}
+                      onUploadFile={(f) => uploadHeroImage("previewImage", f)}
+                      uploading={uploadingHeroField === "previewImage"}
+                      placeholder="/p2.png"
+                      hint="Thumbnail in the enroll card on the right."
+                      className="block md:col-span-2"
+                    />
                     <label className="block">
                       <span className="text-[11px] text-gray-500">Preview label</span>
                       <input
@@ -1423,21 +1518,17 @@ export default function AdminCoursesWorkspace() {
                       />
                     </label>
                     <p className="md:col-span-2 text-[11px] font-medium text-amber-200/90">Certificate preview (bottom of sidebar)</p>
-                    <label className="block md:col-span-2">
-                      <span className="text-[11px] text-gray-500">Certificate image URL</span>
-                      <input
-                        value={draft.hero?.certificatePreviewImage ?? ""}
-                        onChange={(e) =>
-                          updateDraftHero(setDraft, { certificatePreviewImage: e.target.value })
-                        }
-                        className={spField}
-                        placeholder="/certificates/haccp-certificate-preview.jpg"
-                      />
-                      <p className="mt-1 text-[10px] text-gray-600">
-                        Upload to <code className="text-violet-300">public/certificates/</code> or use an
-                        admin upload path. Food-safety courses default to the HACCP sample if empty.
-                      </p>
-                    </label>
+                    <AdminImageUrlUpload
+                      label="Certificate preview image (sidebar)"
+                      value={draft.hero?.certificatePreviewImage ?? ""}
+                      onChange={(url) =>
+                        updateDraftHero(setDraft, { certificatePreviewImage: url })
+                      }
+                      onUploadFile={(f) => uploadHeroImage("certificatePreviewImage", f)}
+                      uploading={uploadingHeroField === "certificatePreviewImage"}
+                      placeholder="/certificates/haccp-certificate-preview.jpg"
+                      hint="Shown in the hero sidebar. Saves to /uploads/admin/… — or paste a URL."
+                    />
                     <label className="block md:col-span-2">
                       <span className="text-[11px] text-gray-500">Certificate label</span>
                       <input
@@ -1722,23 +1813,17 @@ export default function AdminCoursesWorkspace() {
                     />
                   </label>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="block">
-                    <span className="text-[11px] text-gray-500">Sale price</span>
-                    <input
-                      value={draft.price}
-                      onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
-                      className={spField}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-[11px] text-gray-500">Old price (list)</span>
-                    <input
-                      value={draft.oldPrice}
-                      onChange={(e) => setDraft((d) => ({ ...d, oldPrice: e.target.value }))}
-                      className={spField}
-                    />
-                  </label>
+                <div className="grid grid-cols-2 gap-2 md:col-span-2">
+                  <AdminPriceInput
+                    label="Sale price"
+                    value={draft.price}
+                    onChange={(price) => setDraft((d) => ({ ...d, price }))}
+                  />
+                  <AdminPriceInput
+                    label="Old price (list)"
+                    value={draft.oldPrice}
+                    onChange={(oldPrice) => setDraft((d) => ({ ...d, oldPrice }))}
+                  />
                 </div>
                 <p className="md:col-span-2 text-[10px] text-gray-600">
                   Discount vs list price: use the{" "}
@@ -1776,19 +1861,23 @@ export default function AdminCoursesWorkspace() {
                     />
                   </label>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-black/25 px-4 py-3 md:col-span-2">
-                  <input
-                    id="course-published"
-                    type="checkbox"
-                    checked={draft.published}
-                    onChange={(e) => setDraft((d) => ({ ...d, published: e.target.checked }))}
-                    className="h-4 w-4 shrink-0 rounded border-white/20 bg-black/40 accent-emerald-500"
-                  />
-                  <label htmlFor="course-published" className="cursor-pointer text-xs leading-snug text-gray-300">
-                    <span className="font-semibold text-white">Published on site</span>
-                    <span className="mt-0.5 block text-[11px] text-gray-500">When off, the course stays hidden from the catalog.</span>
-                  </label>
-                </div>
+                <p className="md:col-span-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-[11px] text-gray-400">
+                  <span className="font-semibold text-emerald-200/90">Publish status:</span>{" "}
+                  {draft.published ? (
+                    <span className="text-emerald-300">Live</span>
+                  ) : (
+                    <span className="text-amber-300">Draft (hidden)</span>
+                  )}
+                  {" — "}
+                  <button
+                    type="button"
+                    onClick={() => setWorkspaceTab("Publish")}
+                    className="font-medium text-violet-300 underline decoration-violet-500/40 hover:text-violet-200"
+                  >
+                    Open Publish tab
+                  </button>{" "}
+                  for checklist and go-live toggle.
+                </p>
               </div>
               <div className="mt-6 flex flex-wrap gap-2 border-t border-white/[0.06] pt-5">
                 <button
@@ -2760,11 +2849,13 @@ export default function AdminCoursesWorkspace() {
                       {selectedCourse?.title?.trim() || draft.title?.trim() || "New course"}
                     </span>
                   </nav>
-                  <h2 className="text-xl font-semibold text-white md:text-2xl">Pricing &amp; discounts</h2>
+                  <h2 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-white md:text-2xl">
+                    <Coins className="h-6 w-6 text-amber-300" aria-hidden />
+                    Pricing by country &amp; currency
+                  </h2>
                   <p className="mt-1 max-w-2xl text-xs text-gray-400">
-                    Set the <strong className="font-medium text-gray-300">sale price</strong> learners pay and an optional{" "}
-                    <strong className="font-medium text-gray-300">list price</strong> to show savings (strike-through on the
-                    site when list is higher than sale).
+                    Set prices in Indian Rupee (₹), US Dollar ($), Euro (€), British Pound (£), and other currencies per
+                    country. Currency icons show which symbol each row uses.
                   </p>
                 </div>
                 <button
@@ -2777,199 +2868,70 @@ export default function AdminCoursesWorkspace() {
                 </button>
               </div>
 
-              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,340px)]">
-                <div className="space-y-4 rounded-xl border border-white/10 bg-[#0d1528] p-4">
-                  <h3 className="text-sm font-semibold text-white">Course prices</h3>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Sale price (current)</span>
-                      <input
-                        value={draft.price}
-                        onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
-                        placeholder="$49.00"
-                        className="mt-1 w-full rounded-lg border border-emerald-500/25 bg-black/40 px-3 py-2 text-sm text-emerald-100 outline-none placeholder:text-gray-600 focus:border-emerald-500/45"
-                      />
-                      <p className="mt-1 text-[10px] text-gray-600">Amount charged at checkout.</p>
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">List price (original)</span>
-                      <input
-                        value={draft.oldPrice}
-                        onChange={(e) => setDraft((d) => ({ ...d, oldPrice: e.target.value }))}
-                        placeholder="$89.00"
-                        className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none placeholder:text-gray-600 focus:border-violet-500/35"
-                      />
-                      <p className="mt-1 text-[10px] text-gray-600">
-                        Optional. Must be <strong className="text-gray-500">above</strong> sale price to show a discount.
-                      </p>
-                    </label>
-                  </div>
-                  <p className="text-[11px] text-gray-500">
-                    Same fields as <strong className="text-gray-400">Course Info</strong> — edit here or there; one catalog
-                    save updates both.
-                  </p>
-                </div>
-
-                <aside className="rounded-xl border border-violet-500/25 bg-violet-500/10 p-4">
-                  <div className="flex items-start gap-2">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/25 text-violet-200">
-                      <Percent className="h-4 w-4" aria-hidden />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-white">Discount preview</h3>
-                      <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
-                        Based on sale vs list price (numbers only; currency symbols are ignored for math).
-                      </p>
-                    </div>
-                  </div>
-                  {pricingDiscountPct !== null ? (
-                    <div className="mt-4 rounded-lg border border-emerald-400/25 bg-emerald-500/15 px-3 py-3">
-                      <p className="text-[11px] font-medium text-emerald-100">Active discount</p>
-                      <p className="mt-1 text-2xl font-bold text-emerald-50">{pricingDiscountPct}% off</p>
-                      <p className="mt-2 text-[11px] text-emerald-200/85">
-                        List <span className="line-through opacity-80">{draft.oldPrice || "—"}</span>
-                        {" → "}
-                        <span className="font-semibold">{draft.price || "—"}</span>
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mt-4 rounded-lg border border-white/10 bg-black/25 px-3 py-3 text-[11px] text-gray-500">
-                      <p className="font-medium text-gray-400">No discount shown</p>
-                      <p className="mt-1 leading-relaxed">
-                        Enter a <strong className="text-gray-400">list price</strong> higher than the{" "}
-                        <strong className="text-gray-400">sale price</strong>, or leave list empty for full-price display.
-                      </p>
-                    </div>
-                  )}
-                </aside>
+              <div className="mt-4">
+                <AdminRegionalPricingEditor draft={draft} setDraft={setDraft} />
               </div>
             </>
           )}
         </>
+      ) : null}
+
+      {workspaceTab === "Settings" ? (
+        <AdminCourseSettingsPanel
+          draft={draft}
+          setDraft={setDraft}
+          canEdit={canEditPricing}
+          saving={savingCatalog}
+          onSave={() => void saveCatalogDraft()}
+          onGoCourseInfo={() => setWorkspaceTab("Course Info")}
+        />
+      ) : null}
+
+      {workspaceTab === "SEO" ? (
+        <AdminCourseSeoPanel
+          draft={draft}
+          setDraft={setDraft}
+          canEdit={canEditPricing}
+          saving={savingCatalog}
+          onSave={() => void saveCatalogDraft()}
+          onGoCourseInfo={() => setWorkspaceTab("Course Info")}
+        />
       ) : null}
 
       {workspaceTab === "Students" ? (
-        <>
-          {!canEditPricing ? (
-            <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-8 text-center">
-              <p className="text-sm font-medium text-amber-100">Select or create a course</p>
-              <p className="mt-2 text-xs text-amber-200/80">
-                Choose a course from the catalog or create one, then view enrolled learners here.
-              </p>
-              <button
-                type="button"
-                onClick={() => setWorkspaceTab("Course Info")}
-                className="mt-4 rounded-lg bg-[#6f55ff] px-4 py-2 text-xs font-semibold text-white hover:bg-[#7d63ff]"
-              >
-                Go to Course Info
-              </button>
-            </div>
-          ) : !workspaceCourseSlug ? (
-            <div className="rounded-xl border border-white/10 bg-[#0b1224] px-4 py-8 text-center">
-              <Users className="mx-auto h-10 w-10 text-violet-400/80" aria-hidden />
-              <p className="mt-3 text-sm font-medium text-gray-200">Course URL slug required</p>
-              <p className="mx-auto mt-2 max-w-md text-xs text-gray-500">
-                Add a <strong className="text-gray-400">slug</strong> (or title to auto-generate one) on{" "}
-                <strong className="text-gray-400">Course Info</strong> so enrollments from checkout can match this course.
-              </p>
-              <button
-                type="button"
-                onClick={() => setWorkspaceTab("Course Info")}
-                className="mt-4 rounded-lg border border-white/15 bg-black/30 px-4 py-2 text-xs font-semibold text-gray-200 hover:bg-white/5"
-              >
-                Edit Course Info
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-white/10 bg-[#0b1224] p-4">
-                <div>
-                  <nav className="mb-2 flex flex-wrap items-center gap-1 text-[11px] text-gray-500">
-                    <span>Courses</span>
-                    <ChevronRight className="h-3 w-3 shrink-0" />
-                    <span className="max-w-[240px] truncate font-medium text-violet-300">
-                      {selectedCourse?.title?.trim() || draft.title?.trim() || "Course"}
-                    </span>
-                    <ChevronRight className="h-3 w-3 shrink-0" />
-                    <span className="text-gray-400">Students</span>
-                  </nav>
-                  <h2 className="text-xl font-semibold text-white md:text-2xl">Enrolled learners</h2>
-                  <p className="mt-1 max-w-2xl text-xs text-gray-400">
-                    Learners who completed checkout for this course while signed in are listed below (same browser profile).
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-[11px] text-gray-400">
-                  <Users className="h-4 w-4 text-violet-400" aria-hidden />
-                  <span>
-                    <strong className="font-semibold text-gray-200">{enrollmentsDisplay.length}</strong> enrolled
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-[#0d1528]">
-                {enrollmentsDisplay.length === 0 ? (
-                  <div className="px-4 py-12 text-center text-sm text-gray-500">
-                    No enrollments recorded for <span className="font-mono text-gray-400">{workspaceCourseSlug}</span> yet.
-                    <p className="mx-auto mt-2 max-w-lg text-xs text-gray-600">
-                      Complete a purchase from checkout while logged in as a learner — the email used at sign-in is attached to
-                      the enrollment.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[520px] text-left text-sm">
-                      <thead className="border-b border-white/10 bg-black/30 text-[11px] uppercase tracking-wide text-gray-500">
-                        <tr>
-                          <th className="px-4 py-3 font-medium">Learner</th>
-                          <th className="px-4 py-3 font-medium">Email</th>
-                          <th className="px-4 py-3 font-medium">Enrolled</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {enrollmentsDisplay.map((row) => (
-                          <tr key={row.learnerEmail} className="text-gray-200">
-                            <td className="px-4 py-3">
-                              {row.learnerName?.trim() ? (
-                                <span>{row.learnerName}</span>
-                              ) : (
-                                <span className="text-gray-500">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 font-mono text-xs text-violet-200/90">{row.learnerEmail}</td>
-                            <td className="px-4 py-3 text-xs text-gray-400">
-                              {new Date(row.enrolledAt).toLocaleString(undefined, {
-                                dateStyle: "medium",
-                                timeStyle: "short",
-                              })}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              <p className="mt-3 text-[11px] text-gray-600">
-                Demo storage: enrollments are kept in this browser&apos;s local storage. Guests who checkout without an email on
-                file appear as <span className="font-mono text-gray-500">guest@demo.local</span>.
-              </p>
-            </>
-          )}
-        </>
+        <AdminCourseStudentsPanel
+          courseTitle={selectedCourse?.title?.trim() || draft.title?.trim() || ""}
+          workspaceCourseSlug={workspaceCourseSlug}
+          enrollments={enrollmentsDisplay}
+          canEdit={canEditPricing}
+          onGoCourseInfo={() => setWorkspaceTab("Course Info")}
+        />
       ) : null}
 
-      {workspaceTab !== "Course Info" &&
-      workspaceTab !== "Core Section" &&
-      workspaceTab !== "Pricing" &&
-      workspaceTab !== "Students" ? (
-        <div className="rounded-xl border border-white/10 border-dashed bg-[#0b1224]/80 px-6 py-16 text-center">
-          <p className="text-sm font-medium text-gray-300">{workspaceTab}</p>
-          <p className="mx-auto mt-2 max-w-md text-xs text-gray-500">
-            Not wired yet — matches the SF Trainings tab pattern. Use <strong className="text-gray-400">Course Info</strong>,{" "}
-            <strong className="text-gray-400">Pricing</strong>, or <strong className="text-gray-400">Core Section</strong>.
-          </p>
-        </div>
+      {workspaceTab === "Certificates" ? (
+        <AdminCourseCertificatesPanel
+          draft={draft}
+          setDraft={setDraft}
+          workspaceCourseSlug={workspaceCourseSlug}
+          finalExam={finalExamDraft}
+          canEdit={canEditPricing}
+          saving={savingCatalog}
+          onSave={() => void saveCatalogDraft()}
+          onGoCourseInfo={() => setWorkspaceTab("Course Info")}
+          onGoCoreSection={() => setWorkspaceTab("Core Section")}
+        />
+      ) : null}
+
+      {workspaceTab === "Publish" ? (
+        <AdminCoursePublishPanel
+          draft={draft}
+          setDraft={setDraft}
+          modules={modules}
+          canEdit={canEditPricing}
+          saving={savingCatalog}
+          onSave={() => void saveCatalogDraft()}
+          onGoCourseInfo={() => setWorkspaceTab("Course Info")}
+        />
       ) : null}
     </div>
   );

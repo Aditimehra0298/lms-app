@@ -28,6 +28,7 @@ import SelfPacedQASection from "@/components/SelfPacedQASection";
 import { CoursePrice } from "@/components/CoursePrice";
 import { KnowPriceButton } from "@/components/KnowPriceButton";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { useResolvedCoursePrice } from "@/lib/hooks/useResolvedCoursePrice";
 import { isLearnerLoggedIn, loginRedirectHref } from "@/lib/learner-session-client";
 import {
   Award,
@@ -175,20 +176,6 @@ function CertificatePreviewCard({
   );
 }
 
-function parseMoneyInput(s: string): number | null {
-  const cleaned = s.replace(/[^\d.]/g, "");
-  if (!cleaned) return null;
-  const n = parseFloat(cleaned);
-  return Number.isFinite(n) && n >= 0 ? n : null;
-}
-
-function discountPercent(saleStr: string, listStr: string): number | null {
-  const sale = parseMoneyInput(saleStr);
-  const list = parseMoneyInput(listStr);
-  if (sale === null || list === null || list <= 0 || sale >= list) return null;
-  return Math.round((1 - sale / list) * 100);
-}
-
 function categoryLabel(slug: string): string {
   return canonicalCategorySlug(slug)
     .split("-")
@@ -199,6 +186,8 @@ function categoryLabel(slug: string): string {
 function PurchaseCard({
   course,
   hero,
+  salePrice,
+  listPrice,
   pct,
   onEnroll,
   wishlisted,
@@ -206,6 +195,8 @@ function PurchaseCard({
 }: {
   course: ManagedCourse;
   hero: ResolvedCourseHero;
+  salePrice: string;
+  listPrice: string;
   pct: number | null;
   onEnroll: () => void;
   wishlisted: boolean;
@@ -237,9 +228,9 @@ function PurchaseCard({
           <div className="mb-4 h-9 animate-pulse rounded-lg bg-zinc-800" />
         ) : showPrices ? (
           <div className="mb-1 flex flex-wrap items-end gap-2">
-            <CoursePrice label={course.price} className="text-3xl font-extrabold text-white" />
-            {course.oldPrice ? (
-              <CoursePrice label={course.oldPrice} className="text-sm text-zinc-500 line-through" />
+            <CoursePrice label={salePrice} exactLabel className="text-3xl font-extrabold text-white" />
+            {listPrice ? (
+              <CoursePrice label={listPrice} exactLabel className="text-sm text-zinc-500 line-through" />
             ) : null}
             {pct != null ? (
               <span className="rounded bg-violet-600/90 px-2 py-0.5 text-[11px] font-bold text-white">
@@ -327,9 +318,12 @@ export default function SelfPacedCourseLanding({ course }: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [wishlisted, setWishlisted] = useState(false);
 
+  const allowQa = course.settings?.allowQa !== false;
   const initialTab = searchParams.get("tab");
   const tabSection = initialTab ? SECTION_IDS[initialTab.toLowerCase()] : undefined;
-  const [activeSection, setActiveSection] = useState<SectionId>(tabSection ?? "overview");
+  const initialSection: SectionId =
+    tabSection === "qa" && !allowQa ? "overview" : (tabSection ?? "overview");
+  const [activeSection, setActiveSection] = useState<SectionId>(initialSection);
 
   const catSlug = canonicalCategorySlug(course.category);
   const catTitle = categoryLabel(course.category);
@@ -339,7 +333,8 @@ export default function SelfPacedCourseLanding({ course }: Props) {
   const overview = useMemo(() => resolveOverviewSection(course), [course]);
   const tabLabels = useMemo(() => resolveTabLabels(course), [course]);
   const includesLines = parseCourseIncludesFromHero(course.hero);
-  const pct = discountPercent(course.price, course.oldPrice);
+  const resolved = useResolvedCoursePrice(course);
+  const pct = resolved.discountPercent;
   const instructor = (course.instructorName ?? "").trim() || "SF Trainings Team";
   const heroResolved = useMemo(
     () => resolveCourseHero(course, lectureCount),
@@ -382,7 +377,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
     addItemToCart({
       slug: course.slug,
       title: course.title,
-      price: course.price,
+      price: resolved.price,
       image: course.image,
     });
     router.push("/cart");
@@ -445,7 +440,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
     { id: "curriculum", label: tabLabels.curriculum, hash: "curriculum" },
     { id: "instructor", label: tabLabels.instructor, hash: "instructor" },
     { id: "reviews", label: tabLabels.reviews, hash: "reviews" },
-    { id: "qa", label: tabLabels.qa, hash: "qa" },
+    ...(allowQa ? [{ id: "qa" as const, label: tabLabels.qa, hash: "qa" }] : []),
   ];
 
   const selectTab = (id: SectionId) => {
@@ -539,6 +534,8 @@ export default function SelfPacedCourseLanding({ course }: Props) {
               <PurchaseCard
                 course={course}
                 hero={heroResolved}
+                salePrice={resolved.price}
+                listPrice={resolved.oldPrice}
                 pct={pct}
                 onEnroll={enroll}
                 wishlisted={wishlisted}

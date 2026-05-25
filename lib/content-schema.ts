@@ -188,6 +188,13 @@ export type ManagedCourseTabLabels = {
   qa?: string;
 };
 
+/** Per-country sale + list price — overrides global `price` / `oldPrice` for that region. */
+export type CourseRegionalPriceRow = {
+  countryCode: string;
+  price: string;
+  oldPrice?: string;
+};
+
 export type ManagedCourse = {
   slug: string;
   title: string;
@@ -199,6 +206,8 @@ export type ManagedCourse = {
   learners: string;
   price: string;
   oldPrice: string;
+  /** Country-specific sale + list prices (ISO 3166-1 alpha-2). Falls back to global prices. */
+  regionalPrices?: CourseRegionalPriceRow[];
   image: string;
   published: boolean;
   /** Defaults to self-paced when omitted (legacy rows). */
@@ -234,6 +243,59 @@ export type ManagedCourse = {
   tabLabels?: ManagedCourseTabLabels;
   /** My Learning player — logos, labels, defaults (after payment). */
   learningSection?: ManagedCourseLearningSection;
+  /** Auto-generated PDF/HTML certificate template (Admin → Certificates). */
+  certificateConfig?: ManagedCourseCertificateConfig;
+  /** Catalog visibility, enrollment, learner features (Admin → Settings). */
+  settings?: ManagedCourseSettings;
+  /** Search & social sharing (Admin → SEO). */
+  seo?: ManagedCourseSeo;
+};
+
+/** Learner-facing course options — edited under Admin → Settings. */
+export type ManagedCourseSettings = {
+  /** Show on /courses and home grids (still requires Published). Default true. */
+  showInCatalog?: boolean;
+  /** Allow new enrollments / add to cart. Default true. */
+  enrollmentOpen?: boolean;
+  /** Show Q&A tab on course landing. Default true. */
+  allowQa?: boolean;
+  /** Highlight on marketing sections. */
+  featured?: boolean;
+  /** e.g. Lifetime, 12 months — shown in hero if hero.access empty. */
+  accessLabel?: string;
+};
+
+/** Template + layout for issued certificates (name & number overlaid on image). */
+export type ManagedCourseCertificateConfig = {
+  enabled?: boolean;
+  /** builtin = LMS template; n8n = external workflow (recommended). */
+  provider?: "builtin" | "n8n";
+  /** Per-course n8n webhook URL (optional; falls back to N8N_CERTIFICATE_WEBHOOK_URL env). */
+  n8nWebhookUrl?: string;
+  /** Show Certificates tab/cards on learner dashboard for this course. */
+  showInLearnerDashboard?: boolean;
+  /** When n8n finishes, auto-show on dashboard (if requireAdminApproval is false). */
+  autoVisibleWhenReady?: boolean;
+  /** Learner cannot see certificate until admin approves in Certificates tab. */
+  requireAdminApproval?: boolean;
+  title?: string;
+  templateImage?: string;
+  badgeImage?: string;
+  /** Vertical position % for learner name on template (0–100). */
+  nameTopPercent?: number;
+  numberTopPercent?: number;
+  dateTopPercent?: number;
+  supplementaryDocs?: { title: string; url: string }[];
+};
+
+/** Google / social metadata — edited under Admin → SEO. */
+export type ManagedCourseSeo = {
+  metaTitle?: string;
+  metaDescription?: string;
+  focusKeyword?: string;
+  ogImage?: string;
+  /** Hide from search engines when true. */
+  noIndex?: boolean;
 };
 
 export type CategoryTone = "violet" | "blue" | "emerald" | "amber";

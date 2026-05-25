@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import CourseCardActions from "@/components/CourseCardActions";
+import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
 import type { ComponentType } from "react";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
 import { getManagedCourses } from "@/lib/server/course-catalog";
@@ -528,9 +529,9 @@ export default async function CoursesPage({
                     {course.level} • {course.duration} • {course.rating}★
                   </p>
                 </Link>
-                <CourseCardActions
+                <CourseResolvedCardActions
+                  course={course}
                   descriptionHref={catalogCourseLandingHref(course.slug, tutorLedSlugs, course.learningFormat)}
-                  priceLabel={course.price}
                   className="border-t-0 pt-2"
                 />
               </article>

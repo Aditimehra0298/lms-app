@@ -10,6 +10,7 @@ import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import { CoursePrice } from "@/components/CoursePrice";
 import CourseCardActions from "@/components/CourseCardActions";
+import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
 import {
   Play,
   Star,
@@ -1082,9 +1083,9 @@ export default function LearnlyLanding() {
                             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" size={14} />
                             {course.rating}
                           </div>
-                          <CourseCardActions
+                          <CourseResolvedCardActions
+                            course={course}
                             descriptionHref={catalogCourseLandingHref(course.slug, tutorLedSlugSet, course.learningFormat)}
-                            priceLabel={course.price}
                             className="px-0"
                           />
                         </div>

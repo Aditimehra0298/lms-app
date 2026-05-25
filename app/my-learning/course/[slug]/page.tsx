@@ -30,6 +30,8 @@ import {
 import TutorLedProgramClient from "@/components/TutorLedProgramClient";
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { getCurriculumForCourse } from "@/lib/course-detail-template";
+import { getLearnerEmail } from "@/lib/learner-session-client";
+import { requestCourseCertificateClient } from "@/lib/request-course-certificate-client";
 import { openTutorLedProgram } from "@/lib/push-checkout-or-login";
 
 const toTitle = (slug: string) =>
@@ -176,6 +178,27 @@ export default function CourseLearningPlayerPage() {
       setOverallExamPercent(null);
     }
   }, [slug, completedModules]);
+
+  useEffect(() => {
+    if (!curriculum.length || !slug) return;
+    const allDone = curriculum.every((_, idx) => completedModules.includes(idx + 1));
+    const examOk = overallExamPercent != null && overallExamPercent >= 60;
+    if (!allDone || !examOk) return;
+
+    const flagKey = `sft_cert_requested_${slug}`;
+    if (window.localStorage.getItem(flagKey) === "1") return;
+
+    const email = getLearnerEmail();
+    if (!email) return;
+
+    void requestCourseCertificateClient({
+      learnerEmail: email,
+      courseSlug: slug,
+      scorePercent: overallExamPercent ?? undefined,
+    }).then((r) => {
+      if (r.ok) window.localStorage.setItem(flagKey, "1");
+    });
+  }, [slug, curriculum.length, completedModules, overallExamPercent]);
 
   useEffect(() => {
     setPurchaseHydrated(false);

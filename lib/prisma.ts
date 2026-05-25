@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 /** Bump when Prisma schema changes so dev HMR does not keep a stale client. */
-const PRISMA_CLIENT_KEY = "prisma-v2-email-otp";
+const PRISMA_CLIENT_KEY = "prisma-v5-lms-course";
 
 const globalForPrisma = globalThis as unknown as {
   [key: string]: PrismaClient | undefined;

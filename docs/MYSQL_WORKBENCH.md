@@ -324,6 +324,29 @@ JOIN lms_purchase p ON p.userId = u.id;
 
 You should see **one row** — good demo for a senior that data **stores** in MySQL and **queries** return it.
 
+### Registration IDs (not certificates — see `docs/REGISTRATION_IDS.md`)
+
+Permanent IDs at signup start at **101**. Certificates can be built in **n8n** separately.
+
+| Account | Table | Stored value | Display code |
+|---------|-------|--------------|--------------|
+| Individual | `lms_user.identificationNumber` | `101`, `102`… | `101` |
+| Organisation | `lms_organization.identificationNumber` | `101`, `102`… | `101-org` |
+
+On signup, `registrationMonth`, `registrationYear`, and `registrationMonthYear` (e.g. `05-2026`) are saved automatically.
+
+In Workbench:
+
+```sql
+USE sft_lms;
+
+SELECT identificationNumber, companyName, workEmail, createdAt
+FROM lms_organization
+ORDER BY identificationNumber;
+```
+
+Manual SQL (if you skip Prisma): `prisma/migrations/organization_identification/migration.sql`
+
 ---
 
 ## Troubleshooting (short)
@@ -343,6 +366,9 @@ You should see **one row** — good demo for a senior that data **stores** in My
 | Topic | Path |
 |-------|------|
 | Table design in code | `prisma/schema.prisma` |
+| Organisation table SQL | `prisma/migrations/organization_identification/migration.sql` |
+| Course table SQL | `prisma/migrations/lms_course_table/migration.sql` |
+| Courses in MySQL | `docs/COURSES_MYSQL.md` |
 | SQL that creates tables | `prisma/migrations/20260214180000_init_lms_tables/migration.sql` |
 | App connection helper | `lib/prisma.ts` |
 | HTTP test route | `app/api/health/mysql/route.ts` |

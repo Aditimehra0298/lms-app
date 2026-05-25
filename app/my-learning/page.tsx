@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { AdminContent, defaultAdminContent, type ManagedCourse } from "@/lib/content-schema";
 import { MyLearningLiveHub } from "@/components/MyLearningLiveHub";
+import MyCertificatesList from "@/components/MyCertificatesList";
 import { examLinksFromManagedCourse, resolveLearningCourseSlug } from "@/lib/my-learning-exams";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 
@@ -407,135 +408,7 @@ export default function MyLearningPage() {
           />
         ) : isCertificates ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
-            <div className="grid gap-4 xl:grid-cols-[1.7fr_0.7fr]">
-              <section>
-                <h1 className="text-4xl font-bold">My Certificates</h1>
-                <p className="mt-1 text-sm text-gray-300">
-                  View and download all the certificates you&apos;ve earned from SF Trainings.
-                </p>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  {[
-                    [Award, "08", "Total Certificates", "Certificates Earned"],
-                    [CheckCircle2, "08", "Courses Completed", "Courses"],
-                    [CalendarDays, "May 18, 2025", "Latest Certificate", "Network Security Test"],
-                    [Download, "08", "Available to Download", "Certificates"],
-                  ].map(([Icon, value, label, hint]) => (
-                    <article key={label as string} className="rounded-xl border border-white/10 bg-black/30 p-3">
-                      <p className="inline-flex items-center gap-1 text-xs text-gray-300">
-                        <Icon size={13} className="text-amber-300" /> {label as string}
-                      </p>
-                      <p className="mt-2 text-3xl font-bold">{value as string}</p>
-                      <p className="text-xs text-gray-400">{hint as string}</p>
-                    </article>
-                  ))}
-                </div>
-
-                <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex gap-2 text-xs">
-                      {["All Certificates", "Completed", "In Progress", "Not Eligible"].map((f, idx) => (
-                        <button
-                          key={f}
-                          className={`rounded-full px-3 py-1.5 ${
-                            idx === 0
-                              ? "bg-amber-500/20 text-amber-100"
-                              : "border border-white/10 bg-white/5 text-gray-300"
-                          }`}
-                        >
-                          {f}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        placeholder="Search certificates..."
-                        className="rounded-md border border-white/10 bg-black/25 px-3 py-1.5 text-xs"
-                      />
-                      <button className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-gray-300">
-                        Most Recent
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {[
-                      ["Network Security Test", "SFT-NS-2025-0518", "May 18, 2025", "Completed"],
-                      ["Ethical Hacking with Tools", "SFT-EH-2025-0515", "May 15, 2025", "Completed"],
-                      ["Advanced Cyber Security", "SFT-ACS-2025-0512", "May 12, 2025", "Completed"],
-                      ["Cyber Security Basics Quiz", "SFT-CSBQ-2025-0510", "May 10, 2025", "Completed"],
-                    ].map(([title, credential, issued, status]) => (
-                      <article
-                        key={title}
-                        className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-3 xl:grid-cols-[130px_1fr_120px_180px]"
-                      >
-                        <div className="h-20 rounded-lg border border-dashed border-white/20 bg-black/30 text-center text-[10px] leading-[80px] text-gray-400">
-                          Certificate
-                        </div>
-                        <div>
-                          <p className="text-lg font-semibold">{title}</p>
-                          <p className="mt-1 text-xs text-gray-400">Credential ID: {credential}</p>
-                          <p className="text-xs text-gray-400">Issued on: {issued}</p>
-                        </div>
-                        <div className="text-sm">
-                          <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs text-emerald-200">
-                            Verified
-                          </span>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <button className="rounded-md bg-violet-500 px-3 py-1 text-xs font-semibold">
-                            Download Certificate
-                          </button>
-                          <button className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200">
-                            View Details
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              </section>
-
-              <aside className="space-y-3">
-                <article className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <h3 className="inline-flex items-center gap-1 font-semibold">
-                    <Shield size={14} className="text-emerald-300" /> Certificate Verification
-                  </h3>
-                  <p className="mt-1 text-xs text-gray-400">
-                    All certificates are securely verified and blockchain protected.
-                  </p>
-                  <button className="mt-2 rounded-md border border-white/15 px-3 py-1 text-xs text-amber-100">
-                    Verify Certificate
-                  </button>
-                </article>
-
-                <article className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <h3 className="inline-flex items-center gap-1 font-semibold">
-                    <HelpCircle size={14} className="text-amber-300" /> Need Help?
-                  </h3>
-                  <p className="mt-1 text-xs text-gray-400">
-                    If you face any issues with your certificate, our support team is here to help.
-                  </p>
-                  <button className="mt-2 rounded-md border border-white/15 px-3 py-1 text-xs text-amber-100">
-                    Contact Support
-                  </button>
-                </article>
-
-                <article className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <h3 className="inline-flex items-center gap-1 font-semibold">
-                    <Share2 size={14} className="text-amber-300" /> Share Your Achievement
-                  </h3>
-                  <p className="mt-1 text-xs text-gray-400">
-                    Showcase your success! Share your certificate on LinkedIn and other platforms.
-                  </p>
-                  <div className="mt-2 flex gap-2">
-                    <button className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs">LinkedIn</button>
-                    <button className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs">X</button>
-                    <button className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs">Download</button>
-                  </div>
-                </article>
-              </aside>
-            </div>
+            <MyCertificatesList />
           </section>
         ) : isSubscriptions ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">

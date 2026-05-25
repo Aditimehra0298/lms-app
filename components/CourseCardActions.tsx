@@ -16,6 +16,10 @@ type Props = {
   priceInr?: number;
   oldPriceLabel?: string;
   oldPriceInr?: number;
+  /** Shown as badge when list price is above sale */
+  discountPercent?: number | null;
+  /** Prices already formatted for the learner region */
+  exactPriceLabels?: boolean;
   className?: string;
   trailing?: ReactNode;
 };
@@ -27,6 +31,8 @@ export default function CourseCardActions({
   priceInr,
   oldPriceLabel,
   oldPriceInr,
+  discountPercent,
+  exactPriceLabels = false,
   className = "",
   trailing,
 }: Props) {
@@ -46,12 +52,25 @@ export default function CourseCardActions({
           {hasInrPrice ? (
             <CoursePrice inr={priceInr} className="text-base font-bold text-amber-400 sm:text-lg" />
           ) : (
-            <CoursePrice label={priceLabel} className="text-base font-bold text-amber-400 sm:text-lg" />
+            <CoursePrice
+              label={priceLabel}
+              exactLabel={exactPriceLabels}
+              className="text-base font-bold text-amber-400 sm:text-lg"
+            />
           )}
           {hasInrPrice && oldPriceInr != null ? (
             <CoursePrice inr={oldPriceInr} className="ml-2 text-xs text-zinc-500 line-through" />
           ) : oldPriceLabel ? (
-            <CoursePrice label={oldPriceLabel} className="ml-2 text-xs text-zinc-500 line-through" />
+            <CoursePrice
+              label={oldPriceLabel}
+              exactLabel={exactPriceLabels}
+              className="ml-2 text-xs text-zinc-500 line-through"
+            />
+          ) : null}
+          {discountPercent != null ? (
+            <span className="ml-1 rounded bg-violet-600/90 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              {discountPercent}% OFF
+            </span>
           ) : null}
         </div>
       ) : (

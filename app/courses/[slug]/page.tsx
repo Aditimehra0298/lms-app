@@ -14,7 +14,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const course = await getManagedCourseBySlug(slug);
   if (!course) return { title: "Course not found" };
-  return { title: `${course.title} | Courses`, description: course.subtitle };
+  const seo = course.seo;
+  const title = seo?.metaTitle?.trim() || `${course.title} | SF Trainings`;
+  const description = seo?.metaDescription?.trim() || course.subtitle;
+  const images = seo?.ogImage?.trim() || course.image?.trim();
+  return {
+    title,
+    description,
+    robots: seo?.noIndex ? { index: false, follow: false } : undefined,
+    openGraph: {
+      title,
+      description,
+      ...(images ? { images: [{ url: images }] } : {}),
+    },
+  };
 }
 
 export default async function CourseDetailPage({ params }: PageProps) {

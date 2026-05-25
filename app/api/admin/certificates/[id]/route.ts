@@ -1,0 +1,62 @@
+import { NextResponse } from "next/server";
+import {
+  adminUpdateCertificateManual,
+  setCertificateVisibility,
+} from "@/lib/server/n8n-certificate-service";
+
+export const dynamic = "force-dynamic";
+
+/** Admin: show or hide certificate on learner dashboard. */
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
+  let body: {
+    visibleToLearner?: boolean;
+    pdfUrl?: string;
+    certificateNumber?: string;
+    status?: "ready" | "failed" | "pending";
+    allowDownload?: boolean;
+  };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ ok: false, message: "Invalid JSON" }, { status: 400 });
+  }
+
+  try {
+    const hasManualFields =
+      body.pdfUrl !== undefined ||
+      body.certificateNumber !== undefined ||
+      body.status !== undefined;
+
+    if (hasManualFields) {
+      const result = await adminUpdateCertificateManual({
+        certificateId: id,
+        pdfUrl: body.pdfUrl,
+        certificateNumber: body.certificateNumber,
+        status: body.status,
+        visibleToLearner: body.allowDownload ?? body.visibleToLearner,
+      });
+      if (!result.ok) return NextResponse.json(result, { status: 400 });
+      return NextResponse.json(result);
+    }
+
+    if (typeof body.visibleToLearner !== "boolean") {
+      return NextResponse.json(
+        { ok: false, message: "Send visibleToLearner or manual fields (pdfUrl, status, …)" },
+        { status: 400 },
+      );
+    }
+
+    const result = await setCertificateVisibility(id, body.visibleToLearner);
+    if (!result.ok) {
+      return NextResponse.json(result, { status: 400 });
+    }
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error("[admin/certificates PATCH]", err);
+    return NextResponse.json({ ok: false, message: "Update failed." }, { status: 503 });
+  }
+}

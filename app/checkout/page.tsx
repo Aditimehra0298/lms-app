@@ -302,7 +302,7 @@ export default function CheckoutPage() {
                     <p className="text-xs text-gray-400">Qty {item.qty}</p>
                   </div>
                   <p className="text-sm font-semibold text-amber-200">
-                    {ready && showPrices ? formatPriceLabel(item.price) : "—"}
+                    {ready && showPrices ? item.price : "—"}
                   </p>
                 </div>
               ))}

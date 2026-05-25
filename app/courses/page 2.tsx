@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import CourseCardActions from "@/components/CourseCardActions";
+import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { getPublishedTutorLedPrograms } from "@/lib/server/tutor-led-catalog";
 import type { ComponentType } from "react";
@@ -380,9 +380,9 @@ export default async function CoursesPage() {
                     {course.level} • {course.duration} • {course.rating}★
                   </p>
                 </Link>
-                <CourseCardActions
+                <CourseResolvedCardActions
+                  course={course}
                   descriptionHref={catalogCourseLandingHref(course.slug, tutorLedSlugs, course.learningFormat)}
-                  priceLabel={course.price}
                   className="border-t-0 pt-2"
                 />
               </article>

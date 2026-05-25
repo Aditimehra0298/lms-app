@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AdminContent, defaultAdminContent } from "@/lib/content-schema";
+import { syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
 import { readAdminContent, writeAdminContent } from "@/lib/server/content-store";
 
 /** Always read fresh JSON from disk — marketing/admin UIs must not serve a stale cached payload. */
@@ -9,6 +10,9 @@ const noStoreJson = { "Cache-Control": "private, no-store, max-age=0" };
 
 export async function GET() {
   const content = await readAdminContent();
+  void syncManagedCoursesToMysql(content.managedCourses ?? []).catch((err) =>
+    console.error("[admin/content GET] course sync", err),
+  );
   return NextResponse.json(content, { headers: noStoreJson });
 }
 
@@ -48,7 +52,16 @@ export async function PUT(request: Request) {
     };
 
     await writeAdminContent(nextContent);
-    return NextResponse.json({ ok: true }, { headers: noStoreJson });
+
+    let mysqlCourses: { synced: number } | undefined;
+    try {
+      const sync = await syncManagedCoursesToMysql(nextContent.managedCourses ?? []);
+      mysqlCourses = { synced: sync.synced };
+    } catch (err) {
+      console.error("[admin/content] course MySQL sync", err);
+    }
+
+    return NextResponse.json({ ok: true, mysqlCourses }, { headers: noStoreJson });
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
   }

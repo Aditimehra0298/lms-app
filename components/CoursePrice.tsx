@@ -8,12 +8,14 @@ type Props = {
   inr?: number;
   /** Catalog price string e.g. "$49.00" or "₹12,999" */
   label?: string;
+  /** Show label as-is (already regional / formatted) */
+  exactLabel?: boolean;
   className?: string;
   /** Button-style lock CTA for hero / cards */
   variant?: "text" | "button" | "hero";
 };
 
-export function CoursePrice({ inr, label, className = "", variant = "text" }: Props) {
+export function CoursePrice({ inr, label, exactLabel = false, className = "", variant = "text" }: Props) {
   const { showPrices, formatInr, formatPriceLabel, ready } = useLearnerPricing();
 
   if (!ready) {
@@ -26,7 +28,8 @@ export function CoursePrice({ inr, label, className = "", variant = "text" }: Pr
   }
 
   if (showPrices) {
-    const text = inr != null ? formatInr(inr) : label ? formatPriceLabel(label) : null;
+    const text =
+      inr != null ? formatInr(inr) : label ? (exactLabel ? label : formatPriceLabel(label)) : null;
     if (!text) return null;
     return <span className={className}>{text}</span>;
   }
