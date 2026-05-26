@@ -32,14 +32,14 @@ export default function AdminCourseStudentsPanel({
         <Users className="mx-auto h-10 w-10 text-violet-400/80" aria-hidden />
         <p className="mt-3 text-sm font-medium text-gray-200">Course URL slug required</p>
         <p className="mx-auto mt-2 max-w-md text-xs text-gray-500">
-          Add a <strong className="text-gray-400">slug</strong> on Course Info so checkout enrollments match this course.
+          Add a <strong className="text-gray-400">slug</strong> on the Course tab so checkout enrollments match this course.
         </p>
         <button
           type="button"
           onClick={onGoCourseInfo}
           className="mt-4 rounded-lg border border-white/15 bg-black/30 px-4 py-2 text-xs font-semibold text-gray-200 hover:bg-white/5"
         >
-          Edit Course Info
+          Edit Course
         </button>
       </div>
     );
@@ -49,7 +49,7 @@ export default function AdminCourseStudentsPanel({
     <AdminCourseTabShell
       courseTitle={courseTitle}
       tabTitle="Enrolled students"
-      description="Learners who bought this course while signed in. Emails come from checkout — use the same slug as Course Info."
+      description="Learners who bought this course while signed in. Emails come from checkout — use the same slug as on the Course tab."
       icon={<Users className="h-6 w-6 text-violet-300" aria-hidden />}
       aside={
         <AdminPanelSection title="How enrollments work">

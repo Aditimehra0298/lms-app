@@ -13,6 +13,7 @@ import {
   Video,
 } from "lucide-react";
 import type { ManagedCourse } from "@/lib/content-schema";
+import { formatSimpleRichTextBlock } from "@/lib/simple-rich-text";
 import type { ResolvedCourseHero } from "@/lib/course-hero-resolve";
 import { landingCourseIncludes, type CourseIncludeRow } from "@/lib/course-landing-content";
 import { resolveReviewsCopy } from "@/lib/course-reviews-section";
@@ -80,7 +81,7 @@ export default function ReviewsTabSidebar({
 
       <div className={card + " p-5"}>
         <h3 className="text-sm font-bold text-white">{copy.writeReviewTitle}</h3>
-        <p className="mt-2 text-sm text-zinc-500">{copy.writeReviewSubtitle}</p>
+        <p className="mt-2 text-sm text-zinc-500">{formatSimpleRichTextBlock(copy.writeReviewSubtitle)}</p>
         <div className="mt-4 flex justify-center gap-1.5" role="group" aria-label="Rate this course">
           {[1, 2, 3, 4, 5].map((n) => (
             <button

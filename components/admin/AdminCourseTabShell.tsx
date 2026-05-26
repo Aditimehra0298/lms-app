@@ -74,14 +74,15 @@ export function AdminCourseSelectPrompt({
     <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-8 text-center">
       <p className="text-sm font-medium text-amber-100">Select or create a course</p>
       <p className="mt-2 text-xs text-amber-200/80">
-        Open <strong>Course Info</strong>, pick a course from the catalog or create one, then use <strong>{tabName}</strong>.
+        Open the <strong>Catalog</strong> or <strong>Course</strong> tab, pick or create a course, then use{" "}
+        <strong>{tabName}</strong>.
       </p>
       <button
         type="button"
         onClick={onGoCourseInfo}
         className="mt-4 rounded-lg bg-[#6f55ff] px-4 py-2 text-xs font-semibold text-white hover:bg-[#7d63ff]"
       >
-        Go to Course Info
+        Go to Course
       </button>
     </div>
   );

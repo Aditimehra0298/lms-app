@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Award,
-  BarChart3,
   BookOpen,
   ChevronDown,
   ChevronRight,
@@ -19,17 +18,17 @@ import {
   GripVertical,
   Layers,
   Loader2,
-  Mic,
   Pencil,
   Plus,
-  Sparkles,
-  Timer,
   Trash2,
-  Type,
   Upload,
   Users,
   Video,
 } from "lucide-react";
+import AdminCourseLivePreview from "@/components/admin/AdminCourseLivePreview";
+import LessonTypeAddControl from "@/components/admin/LessonTypeAddControl";
+import AdminContentScopeSection from "@/components/admin/AdminContentScopeSection";
+import SimpleRichTextArea from "@/components/admin/SimpleRichTextArea";
 import type {
   AdminContent,
   CourseCurriculumItem,
@@ -78,29 +77,12 @@ const spField =
 const spFieldSm =
   "w-full rounded-lg border border-white/[0.07] bg-[#060b14]/90 px-2.5 py-2 text-xs text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition placeholder:text-gray-600 focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20";
 
-/** Matches SF Trainings admin curriculum mock: Course Info → Core Section → … */
-const COURSE_WORKSPACE_TABS = [
-  "Course Info",
-  "Core Section",
-  "Pricing",
-  "Settings",
-  "SEO",
-  "Students",
-  "Certificates",
-  "Publish",
-] as const;
-type CourseWorkspaceTab = (typeof COURSE_WORKSPACE_TABS)[number];
-
-const CONTENT_TYPES: { label: string; icon: typeof Video; color: string; kind: CourseCurriculumKind }[] = [
-  { label: "Video", icon: Video, color: "from-violet-600 to-indigo-600", kind: "video" },
-  { label: "PDF / Doc", icon: FileText, color: "from-rose-500 to-orange-500", kind: "reading" },
-  { label: "Quiz", icon: ClipboardList, color: "from-emerald-500 to-teal-600", kind: "exam" },
-  { label: "Assignment", icon: FileText, color: "from-sky-500 to-blue-600", kind: "reading" },
-  { label: "Tutor Led", icon: Mic, color: "from-fuchsia-500 to-purple-600", kind: "video" },
-  { label: "Text", icon: Type, color: "from-slate-500 to-slate-700", kind: "reading" },
-  { label: "Timer", icon: Timer, color: "from-amber-500 to-yellow-600", kind: "reading" },
-  { label: "Survey", icon: BarChart3, color: "from-cyan-500 to-blue-500", kind: "exam" },
-];
+/** Primary flow: pick course → edit details → add content → price → publish */
+const PRIMARY_WORKSPACE_TABS = ["Catalog", "Course", "Content", "Pricing", "Publish"] as const;
+const MORE_WORKSPACE_TABS = ["Settings", "SEO", "Students", "Certificates"] as const;
+type PrimaryWorkspaceTab = (typeof PRIMARY_WORKSPACE_TABS)[number];
+type MoreWorkspaceTab = (typeof MORE_WORKSPACE_TABS)[number];
+type CourseWorkspaceTab = PrimaryWorkspaceTab | MoreWorkspaceTab;
 
 /** Module & final exam attachments — aligned with `app/api/admin/upload` (includes CSV). */
 const EXAM_FILE_ACCEPT =
@@ -314,7 +296,7 @@ export default function AdminCoursesWorkspace() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [savingCatalog, setSavingCatalog] = useState(false);
   const [savingCurriculum, setSavingCurriculum] = useState(false);
-  const [workspaceTab, setWorkspaceTab] = useState<CourseWorkspaceTab>("Course Info");
+  const [workspaceTab, setWorkspaceTab] = useState<CourseWorkspaceTab>("Catalog");
 
   const [categoryFilterSlug, setCategoryFilterSlug] = useState("");
   const [selectedSlug, setSelectedSlug] = useState<string>("");
@@ -426,7 +408,7 @@ export default function AdminCoursesWorkspace() {
 
   const openCreate = () => {
     const firstCat = categories[0]?.slug ?? "";
-    setWorkspaceTab("Course Info");
+    setWorkspaceTab("Course");
     setIsCreating(true);
     setEditingSlug(null);
     setSelectedSlug("");
@@ -434,7 +416,7 @@ export default function AdminCoursesWorkspace() {
   };
 
   const openEditTableRow = (course: ManagedCourse) => {
-    setWorkspaceTab("Course Info");
+    setWorkspaceTab("Course");
     setIsCreating(false);
     setEditingSlug(course.slug);
     setSelectedSlug(course.slug);
@@ -464,7 +446,7 @@ export default function AdminCoursesWorkspace() {
     setEditingSlug(slug);
     setSelectedSlug(slug);
     if (opts?.goToCurriculumAfter) {
-      setWorkspaceTab("Core Section");
+      setWorkspaceTab("Content");
     }
   };
 
@@ -974,6 +956,12 @@ export default function AdminCoursesWorkspace() {
   }, [modules]);
 
   const catalogFormOpen = isCreating || !!editingSlug;
+  const previewSlug = useMemo(() => {
+    const raw =
+      editingSlug ?? selectedSlug ?? (isCreating ? slugify(draft.slug || draft.title) : "");
+    const s = raw.trim();
+    return s.length >= 2 ? s : null;
+  }, [editingSlug, selectedSlug, isCreating, draft.slug, draft.title]);
   const canEditCurriculum = !!selectedSlug && !isCreating && !!selectedCourse;
   const canEditPricing = isCreating || !!selectedCourse;
 
@@ -1020,31 +1008,17 @@ export default function AdminCoursesWorkspace() {
                 <h1 className="mt-1 text-xl font-bold tracking-tight text-white sm:text-2xl">Course workspace</h1>
                 <p className="mt-2 max-w-2xl text-xs leading-relaxed text-gray-400">
                   <span className="inline-flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-0.5 text-[10px] font-medium text-gray-300">
-                      Course Info
-                    </span>
-                    <span className="text-gray-600">→</span>
-                    <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-0.5 text-[10px] font-medium text-gray-300">
-                      Core Section
-                    </span>
-                    <span className="text-gray-600">→</span>
-                    <span className="text-[10px] text-gray-500">Publish when ready</span>
+                    {(["Catalog", "Course", "Content", "Publish"] as const).map((step, i) => (
+                      <span key={step} className="inline-flex items-center gap-2">
+                        {i > 0 ? <span className="text-gray-600">→</span> : null}
+                        <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-0.5 text-[10px] font-medium text-gray-300">
+                          {step}
+                        </span>
+                      </span>
+                    ))}
                   </span>
                 </p>
               </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {selectedCourse ? (
-                <Link
-                  href={`/courses/${selectedCourse.slug}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-black/40 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:border-violet-400/40 hover:bg-violet-500/10"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-300" aria-hidden />
-                  Preview live page
-                </Link>
-              ) : null}
             </div>
           </div>
         </div>
@@ -1056,8 +1030,8 @@ export default function AdminCoursesWorkspace() {
         ) : null}
 
         <div className="px-2 pb-2 pt-3 sm:px-3">
-          <div className="flex flex-wrap gap-1 rounded-xl bg-black/35 p-1 ring-1 ring-white/[0.04]">
-            {COURSE_WORKSPACE_TABS.map((tab) => (
+          <div className="flex flex-wrap items-center gap-1 rounded-xl bg-black/35 p-1 ring-1 ring-white/[0.04]">
+            {PRIMARY_WORKSPACE_TABS.map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -1073,26 +1047,6 @@ export default function AdminCoursesWorkspace() {
                     <Coins className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     {tab}
                   </span>
-                ) : tab === "Settings" ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Settings className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {tab}
-                  </span>
-                ) : tab === "SEO" ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {tab}
-                  </span>
-                ) : tab === "Students" ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Users className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {tab}
-                  </span>
-                ) : tab === "Certificates" ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Award className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {tab}
-                  </span>
                 ) : tab === "Publish" ? (
                   <span className="inline-flex items-center gap-1.5">
                     <Rocket className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -1103,11 +1057,36 @@ export default function AdminCoursesWorkspace() {
                 )}
               </button>
             ))}
+            <label className="ml-auto flex min-w-[7.5rem] items-center gap-1.5 rounded-lg px-2 py-1">
+              <span className="sr-only">More options</span>
+              <select
+                value={(MORE_WORKSPACE_TABS as readonly string[]).includes(workspaceTab) ? workspaceTab : ""}
+                onChange={(e) => {
+                  const v = e.target.value as MoreWorkspaceTab;
+                  if (v) setWorkspaceTab(v);
+                }}
+                className={`cursor-pointer rounded-lg border bg-black/50 px-2.5 py-2 text-[11px] font-semibold outline-none transition ${
+                  (MORE_WORKSPACE_TABS as readonly string[]).includes(workspaceTab)
+                    ? "border-violet-500/50 text-violet-100 ring-2 ring-violet-500/25"
+                    : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
+                }`}
+              >
+                <option value="">More…</option>
+                {MORE_WORKSPACE_TABS.map((tab) => (
+                  <option key={tab} value={tab}>
+                    {tab}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
       </div>
 
-      {workspaceTab === "Course Info" ? (
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+        <div className="min-w-0 flex-1 space-y-6">
+
+      {workspaceTab === "Catalog" ? (
         <>
           <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0b1224] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/20 px-4 py-4 sm:px-5">
@@ -1259,7 +1238,11 @@ export default function AdminCoursesWorkspace() {
               </table>
             </div>
           </section>
+        </>
+      ) : null}
 
+      {workspaceTab === "Course" ? (
+        <>
           {catalogFormOpen ? (
             <section className="overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-b from-[#101a32] via-[#0d1528] to-[#0a0f1c] shadow-[0_20px_60px_rgba(0,0,0,0.5)] ring-1 ring-violet-500/10">
               <div className="border-b border-white/[0.06] bg-violet-500/[0.08] px-4 py-4 sm:px-6">
@@ -1270,8 +1253,9 @@ export default function AdminCoursesWorkspace() {
                       {isCreating ? "Create self-paced course" : `Edit “${draft.title || editingSlug}”`}
                     </h2>
                     <p className="mt-2 max-w-xl text-xs leading-relaxed text-gray-400">
-                      Save here first, then use <strong className="text-gray-300">Core Section</strong> for modules, lessons, and
-                      exams. Public URL:{" "}
+                      <span className="text-slate-300">Same for most courses</span> = shared labels.{" "}
+                      <span className="text-violet-200">This course only</span> = title, about, FAQs, modules.
+                      Save here, then use <strong className="text-gray-300">Content</strong> for lessons. URL:{" "}
                       <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-[11px] text-violet-200">
                         /courses/{editingSlug ?? slugify(draft.slug || draft.title || "slug")}
                       </code>
@@ -1279,7 +1263,12 @@ export default function AdminCoursesWorkspace() {
                   </div>
                 </div>
               </div>
-              <div className="p-4 sm:p-6">
+              <div className="space-y-5 p-4 sm:p-6">
+              <AdminContentScopeSection
+                scope="course"
+                title="Course card & basics"
+                description="Title, cover, instructor, and catalog listing — unique for every course."
+              >
               <div className="grid gap-4 md:grid-cols-2 md:gap-5">
                 {!editingSlug || isCreating ? (
                   <label className="block md:col-span-2">
@@ -1330,9 +1319,17 @@ export default function AdminCoursesWorkspace() {
                     placeholder="SELF-PACED"
                   />
                 </label>
+              </div>
+              </AdminContentScopeSection>
 
-                <div className="md:col-span-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4">
-                  <h3 className="text-sm font-semibold text-amber-100">Hero section (public landing page)</h3>
+              <AdminContentScopeSection
+                scope="course"
+                title="Hero & enroll card"
+                description="Top of the public course page before checkout — images, stats, and about text."
+              >
+                <div className="grid gap-4 md:grid-cols-2 md:gap-5">
+                <div className="md:col-span-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
+                  <h3 className="text-sm font-semibold text-amber-100">Hero fields</h3>
                   <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
                     Left column, enroll card on the right, and stats bar — shown at{" "}
                     <code className="rounded bg-black/40 px-1 font-mono text-[10px] text-violet-200">
@@ -1488,16 +1485,16 @@ export default function AdminCoursesWorkspace() {
                         placeholder="Yes"
                       />
                     </label>
-                    <label className="block md:col-span-2">
-                      <span className="text-[11px] text-gray-500">About this course (overview paragraph)</span>
-                      <textarea
+                    <div className="md:col-span-2">
+                      <span className="mb-1.5 block text-[11px] text-gray-500">About this course (overview paragraph)</span>
+                      <SimpleRichTextArea
                         value={draft.hero?.aboutText ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { aboutText: e.target.value })}
-                        rows={4}
-                        className={`${spField} min-h-[6rem] resize-y text-[12px] leading-relaxed`}
+                        onChange={(v) => updateDraftHero(setDraft, { aboutText: v })}
+                        rows={5}
+                        label="About"
                         placeholder="Long description shown under “About this course”…"
                       />
-                    </label>
+                    </div>
                     <label className="block md:col-span-2">
                       <span className="text-[11px] text-gray-500">
                         This course includes (one line per item — sidebar)
@@ -1542,7 +1539,7 @@ export default function AdminCoursesWorkspace() {
                     </label>
                     <p className="md:col-span-2 text-[10px] text-gray-600">
                       Duration and Level use <strong className="text-gray-500">Duration</strong> and{" "}
-                      <strong className="text-gray-500">Level</strong> from Course Info. Rating and price use fields above.
+                      <strong className="text-gray-500">Level</strong> from the Course tab. Rating and price use fields above.
                     </p>
                   </div>
                 </div>
@@ -1633,14 +1630,22 @@ export default function AdminCoursesWorkspace() {
                     </label>
                   </div>
                 </div>
+                </div>
+              </AdminContentScopeSection>
 
-                <AdminSelfPacedPageContentEditor
-                  draft={draft}
-                  setDraft={setDraft}
-                  fieldClass={spField}
-                  textareaClass={`${spField} min-h-[5rem] resize-y text-[12px] leading-relaxed`}
-                />
+              <AdminSelfPacedPageContentEditor
+                draft={draft}
+                setDraft={setDraft}
+                fieldClass={spField}
+                textareaClass={`${spField} min-h-[5rem] resize-y text-[12px] leading-relaxed`}
+              />
 
+              <AdminContentScopeSection
+                scope="course"
+                title="Instructor bio, highlights & FAQs"
+                description="Trainer profile, bullet highlights, and FAQ pairs shown on the public course page."
+              >
+              <div className="grid gap-4 md:grid-cols-2 md:gap-5">
                 <label className="block">
                   <span className="text-[11px] text-gray-500">Instructor role (public page)</span>
                   <input
@@ -1659,16 +1664,16 @@ export default function AdminCoursesWorkspace() {
                     placeholder="10+ years · 5,000+ learners taught"
                   />
                 </label>
-                <label className="block md:col-span-2">
-                  <span className="text-[11px] text-gray-500">Instructor bio (public page)</span>
-                  <textarea
+                <div className="md:col-span-2">
+                  <span className="mb-1.5 block text-[11px] text-gray-500">Instructor bio (public page)</span>
+                  <SimpleRichTextArea
                     value={draft.trainerBio ?? ""}
-                    onChange={(e) => setDraft((d) => ({ ...d, trainerBio: e.target.value }))}
-                    rows={3}
-                    className={`${spField} min-h-[5.5rem] resize-y font-mono text-[12px]`}
+                    onChange={(v) => setDraft((d) => ({ ...d, trainerBio: v }))}
+                    rows={4}
+                    label="Bio"
                     placeholder="Short bio shown on /courses/[slug]…"
                   />
-                </label>
+                </div>
                 <label className="block md:col-span-2">
                   <span className="text-[11px] text-gray-500">Certifications (comma-separated)</span>
                   <input
@@ -1741,18 +1746,18 @@ export default function AdminCoursesWorkspace() {
                           className={spFieldSm}
                           placeholder="Question"
                         />
-                        <textarea
+                        <SimpleRichTextArea
                           value={faq.a}
-                          onChange={(e) =>
+                          onChange={(v) =>
                             setDraft((d) => {
                               const next = [...(d.faqs ?? [])];
-                              next[i] = { ...next[i], a: e.target.value };
+                              next[i] = { ...next[i], a: v };
                               return { ...d, faqs: next };
                             })
                           }
                           rows={2}
-                          className={`${spFieldSm} resize-y sm:min-h-[2.75rem]`}
-                          placeholder="Answer"
+                          label="Answer"
+                          placeholder="Answer text for learners…"
                         />
                         <button
                           type="button"
@@ -1879,6 +1884,7 @@ export default function AdminCoursesWorkspace() {
                   for checklist and go-live toggle.
                 </p>
               </div>
+              </AdminContentScopeSection>
               <div className="mt-6 flex flex-wrap gap-2 border-t border-white/[0.06] pt-5">
                 <button
                   type="button"
@@ -1894,13 +1900,14 @@ export default function AdminCoursesWorkspace() {
                   onClick={() => void saveCatalogDraft({ goToCurriculumAfter: true })}
                   className="rounded-xl border border-white/15 bg-white/[0.04] px-5 py-2.5 text-xs font-semibold text-gray-100 transition hover:border-violet-400/35 hover:bg-violet-500/10 disabled:opacity-50"
                 >
-                  Save &amp; go to Core Section
+                  Save &amp; go to Content
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     setIsCreating(false);
                     setEditingSlug(null);
+                    setWorkspaceTab("Catalog");
                     if (isCreating) {
                       setDraft(emptyDraft());
                       setSelectedSlug("");
@@ -1914,34 +1921,38 @@ export default function AdminCoursesWorkspace() {
               </div>
             </section>
           ) : (
-            <p className="rounded-xl border border-dashed border-white/15 bg-[#0b1224]/60 px-4 py-6 text-center text-xs text-gray-500">
-              <span className="mb-2 block font-medium text-gray-300">No course selected</span>
-              Click <strong className="text-gray-400">New course</strong> or the pencil on a row to open the editor.
-              <span className="mt-2 block text-[11px] leading-relaxed text-gray-500">
-                There you can edit the catalog card, <strong className="text-gray-400">public /courses/[slug] page</strong> fields
-                (badge, highlights, FAQs, instructor copy), then use <strong className="text-gray-400">Core Section</strong> for
-                modules.
-              </span>
-            </p>
+            <div className="rounded-xl border border-dashed border-white/15 bg-[#0b1224]/60 px-4 py-10 text-center">
+              <p className="text-sm font-medium text-gray-300">No course open for editing</p>
+              <p className="mt-2 text-xs text-gray-500">
+                Pick a course from the catalog or create a new one — the editor opens on this tab.
+              </p>
+              <button
+                type="button"
+                onClick={() => setWorkspaceTab("Catalog")}
+                className="mt-4 rounded-xl bg-violet-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-violet-500"
+              >
+                Go to Catalog
+              </button>
+            </div>
           )}
         </>
       ) : null}
 
-      {workspaceTab === "Core Section" ? (
+      {workspaceTab === "Content" ? (
         <>
           {!canEditCurriculum ? (
             <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-8 text-center">
               <p className="text-sm font-medium text-amber-100">Choose a saved course first</p>
               <p className="mt-2 text-xs text-amber-200/80">
-                Open <strong>Course Info</strong>, create the course (title, cover image) and click{" "}
-                <strong>Save course</strong>. Then open this tab to build modules.
+                Open the <strong>Course</strong> tab, add title and cover image, then click{" "}
+                <strong>Save course</strong>. Then return here to build modules.
               </p>
               <button
                 type="button"
-                onClick={() => setWorkspaceTab("Course Info")}
+                onClick={() => setWorkspaceTab("Course")}
                 className="mt-4 rounded-lg bg-[#6f55ff] px-4 py-2 text-xs font-semibold text-white hover:bg-[#7d63ff]"
               >
-                Go to Course Info
+                Go to Course
               </button>
             </div>
           ) : (
@@ -1954,7 +1965,7 @@ export default function AdminCoursesWorkspace() {
                     <ChevronRight className="h-3 w-3 shrink-0" />
                     <span className="max-w-[220px] truncate font-medium text-violet-300">{selectedCourse!.title}</span>
                   </nav>
-                  <h2 className="text-xl font-semibold text-white md:text-2xl">Core Section</h2>
+                  <h2 className="text-xl font-semibold text-white md:text-2xl">Course content</h2>
                   <p className="mt-1 text-xs text-gray-400">
                     {catLabel} · Edit <strong className="font-medium text-gray-300">modules &amp; module exams</strong> below,
                     then configure the <strong className="font-medium text-gray-300">final exam</strong> in its own panel.
@@ -2234,21 +2245,11 @@ export default function AdminCoursesWorkspace() {
                               </div>
                               <div className="rounded-lg border border-white/10 bg-[#0b1326] p-2">
                                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                                  Add New Content (this module)
+                                  Add lesson to this module
                                 </p>
-                                <div className="grid grid-cols-4 gap-1.5">
-                                  {CONTENT_TYPES.map(({ label, icon: Icon, color, kind }) => (
-                                    <button
-                                      key={`mod-${mi}-${label}`}
-                                      type="button"
-                                      onClick={() => appendLessonOfKindToModule(mi, kind, `${label} — New item`)}
-                                      className={`flex flex-col items-center gap-1 rounded-lg bg-linear-to-br ${color} px-1 py-1.5 text-center shadow-lg transition hover:brightness-110`}
-                                    >
-                                      <Icon className="h-3.5 w-3.5 text-white" strokeWidth={2} />
-                                      <span className="text-[8px] font-semibold leading-tight text-white">{label}</span>
-                                    </button>
-                                  ))}
-                                </div>
+                                <LessonTypeAddControl
+                                  onAdd={(kind, title) => appendLessonOfKindToModule(mi, kind, title)}
+                                />
                               </div>
                               <button
                                 type="button"
@@ -2827,15 +2828,15 @@ export default function AdminCoursesWorkspace() {
             <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-8 text-center">
               <p className="text-sm font-medium text-amber-100">Select or create a course</p>
               <p className="mt-2 text-xs text-amber-200/80">
-                Open <strong>Course Info</strong>, pick a course from the catalog or create one, then set sale and list prices
+                Open the <strong>Course</strong> tab, pick a course from the catalog or create one, then set sale and list prices
                 here.
               </p>
               <button
                 type="button"
-                onClick={() => setWorkspaceTab("Course Info")}
+                onClick={() => setWorkspaceTab("Course")}
                 className="mt-4 rounded-lg bg-[#6f55ff] px-4 py-2 text-xs font-semibold text-white hover:bg-[#7d63ff]"
               >
-                Go to Course Info
+                Go to Course
               </button>
             </div>
           ) : (
@@ -2883,7 +2884,7 @@ export default function AdminCoursesWorkspace() {
           canEdit={canEditPricing}
           saving={savingCatalog}
           onSave={() => void saveCatalogDraft()}
-          onGoCourseInfo={() => setWorkspaceTab("Course Info")}
+          onGoCourseInfo={() => setWorkspaceTab("Course")}
         />
       ) : null}
 
@@ -2894,7 +2895,7 @@ export default function AdminCoursesWorkspace() {
           canEdit={canEditPricing}
           saving={savingCatalog}
           onSave={() => void saveCatalogDraft()}
-          onGoCourseInfo={() => setWorkspaceTab("Course Info")}
+          onGoCourseInfo={() => setWorkspaceTab("Course")}
         />
       ) : null}
 
@@ -2904,7 +2905,7 @@ export default function AdminCoursesWorkspace() {
           workspaceCourseSlug={workspaceCourseSlug}
           enrollments={enrollmentsDisplay}
           canEdit={canEditPricing}
-          onGoCourseInfo={() => setWorkspaceTab("Course Info")}
+          onGoCourseInfo={() => setWorkspaceTab("Course")}
         />
       ) : null}
 
@@ -2917,8 +2918,8 @@ export default function AdminCoursesWorkspace() {
           canEdit={canEditPricing}
           saving={savingCatalog}
           onSave={() => void saveCatalogDraft()}
-          onGoCourseInfo={() => setWorkspaceTab("Course Info")}
-          onGoCoreSection={() => setWorkspaceTab("Core Section")}
+          onGoCourseInfo={() => setWorkspaceTab("Course")}
+          onGoCoreSection={() => setWorkspaceTab("Content")}
         />
       ) : null}
 
@@ -2930,9 +2931,18 @@ export default function AdminCoursesWorkspace() {
           canEdit={canEditPricing}
           saving={savingCatalog}
           onSave={() => void saveCatalogDraft()}
-          onGoCourseInfo={() => setWorkspaceTab("Course Info")}
+          onGoCourseInfo={() => setWorkspaceTab("Course")}
         />
       ) : null}
+
+        </div>
+        {previewSlug ? (
+          <AdminCourseLivePreview
+            slug={previewSlug}
+            title={draft.title?.trim() || selectedCourse?.title}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }

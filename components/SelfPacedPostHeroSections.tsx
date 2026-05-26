@@ -18,6 +18,7 @@ import {
   Video,
 } from "lucide-react";
 import type { ManagedCourse } from "@/lib/content-schema";
+import { formatSimpleRichTextBlock } from "@/lib/simple-rich-text";
 import type { CourseCurriculumKind } from "@/lib/content-schema";
 import {
   getCurriculumForCourse,
@@ -258,7 +259,9 @@ export default function SelfPacedPostHeroSections({ course, openFaq, setOpenFaq 
             <div>
               <h2 className="text-xl font-bold text-white md:text-2xl">Meet your instructor</h2>
               <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-                {course.trainerBio?.trim() || course.subtitle}
+                {course.trainerBio?.trim()
+                  ? formatSimpleRichTextBlock(course.trainerBio.trim())
+                  : course.subtitle}
               </p>
               {course.trainerCertifications && course.trainerCertifications.length > 0 ? (
                 <div className="mt-4 flex flex-wrap gap-2">

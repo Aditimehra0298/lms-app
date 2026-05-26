@@ -28,6 +28,7 @@ import SelfPacedQASection from "@/components/SelfPacedQASection";
 import { CoursePrice } from "@/components/CoursePrice";
 import { KnowPriceButton } from "@/components/KnowPriceButton";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { formatSimpleRichTextBlock } from "@/lib/simple-rich-text";
 import { useResolvedCoursePrice } from "@/lib/hooks/useResolvedCoursePrice";
 import { isLearnerLoggedIn, loginRedirectHref } from "@/lib/learner-session-client";
 import {
@@ -606,7 +607,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white">{overview.aboutTitle}</h2>
                 <p className="mt-4 text-sm leading-relaxed text-zinc-400 md:text-[15px] md:leading-7">
-                  {aboutText}
+                  {formatSimpleRichTextBlock(aboutText)}
                 </p>
                 <p className="mt-8 text-base font-semibold text-white">{overview.youWillLearnTitle}</p>
                 <ul className="mt-4 space-y-2.5">
@@ -674,7 +675,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
                       </button>
                       {openFaq === i ? (
                         <p className="border-t border-white/5 px-4 py-3 text-sm leading-relaxed text-zinc-500">
-                          {faq.a}
+                          {formatSimpleRichTextBlock(faq.a)}
                         </p>
                       ) : null}
                     </div>

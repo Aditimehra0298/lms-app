@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import LmsChatbot from "@/components/LmsChatbot";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { PricingProvider } from "@/components/PricingProvider";
@@ -22,6 +23,7 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
         {children}
       </div>
       <SiteFooter />
+      <LmsChatbot />
     </PricingProvider>
   );
 }

@@ -13,6 +13,7 @@ import type { ManagedCourse } from "@/lib/content-schema";
 import type { CourseQAItem } from "@/lib/course-qa-section";
 import QATabSidebar from "@/components/QATabSidebar";
 import { resolveQACopy } from "@/lib/course-qa-section";
+import { formatSimpleRichTextBlock } from "@/lib/simple-rich-text";
 import AskQuestionModal from "@/components/AskQuestionModal";
 import {
   canParticipateInCourseQA,
@@ -329,7 +330,7 @@ export default function SelfPacedQASection({ course, onRequireEnroll }: Props) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-white">{qaCopy.title}</h2>
-            <p className="mt-2 text-sm text-zinc-500">{qaCopy.subtitle}</p>
+            <p className="mt-2 text-sm text-zinc-500">{formatSimpleRichTextBlock(qaCopy.subtitle)}</p>
           </div>
           <button
             type="button"

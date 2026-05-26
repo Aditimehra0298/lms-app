@@ -2,6 +2,8 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import type { ManagedCourse } from "@/lib/content-schema";
+import AdminContentScopeSection from "@/components/admin/AdminContentScopeSection";
+import SimpleRichTextArea from "@/components/admin/SimpleRichTextArea";
 
 type Props = {
   draft: ManagedCourse;
@@ -50,16 +52,13 @@ export default function AdminSelfPacedPageContentEditor({
     .join("\n");
 
   return (
-    <>
-      <div className="md:col-span-2 rounded-xl border border-sky-500/30 bg-sky-500/[0.06] p-4">
-        <h3 className="text-sm font-semibold text-sky-100">Before payment — public landing page</h3>
-        <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
-          Shown at <code className="rounded bg-black/40 px-1 font-mono text-[10px]">/courses/[slug]</code>{" "}
-          (Overview, Reviews, Q&amp;A tabs). Hero and Instructor blocks are above. Leave blank for smart
-          defaults.
-        </p>
-
-        <p className="mt-4 text-[11px] font-medium text-gray-300">Tab labels</p>
+    <div className="md:col-span-2 space-y-5">
+      <AdminContentScopeSection
+        scope="common"
+        title="Shared labels & headings"
+        description="Tab names and section titles — often the same across courses (Overview, Reviews, Requirements). Leave blank to use defaults."
+      >
+        <p className="text-[11px] font-medium text-gray-300">Tab labels</p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2 md:grid-cols-5">
           {(
             [
@@ -82,8 +81,7 @@ export default function AdminSelfPacedPageContentEditor({
           ))}
         </div>
 
-        <p className="mt-4 text-[11px] font-medium text-gray-300">Overview tab</p>
-        <div className="mt-2 grid gap-2 md:grid-cols-2">
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
           <label className="block">
             <span className="text-[10px] text-gray-500">About section title</span>
             <input
@@ -102,19 +100,6 @@ export default function AdminSelfPacedPageContentEditor({
               placeholder="You will learn to:"
             />
           </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Learning outcomes (one per line)</span>
-            <textarea
-              value={(draft.overviewSection?.learnOutcomes ?? []).join("\n")}
-              onChange={(e) =>
-                patchOverview(setDraft, {
-                  learnOutcomes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
-                })
-              }
-              rows={5}
-              className={textareaClass}
-            />
-          </label>
           <label className="block">
             <span className="text-[10px] text-gray-500">What you&apos;ll learn — title</span>
             <input
@@ -122,33 +107,6 @@ export default function AdminSelfPacedPageContentEditor({
               onChange={(e) => patchOverview(setDraft, { whatYouLearnTitle: e.target.value })}
               className={fieldClass}
               placeholder="What you'll learn"
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">
-              What you&apos;ll learn grid — one per line: Title | Description
-            </span>
-            <textarea
-              value={whatYouLearnText}
-              onChange={(e) =>
-                patchOverview(setDraft, {
-                  whatYouLearn: e.target.value
-                    .split("\n")
-                    .map((line) => line.trim())
-                    .filter(Boolean)
-                    .map((line) => {
-                      const [title, ...rest] = line.split("|");
-                      return {
-                        title: (title ?? "").trim(),
-                        description: rest.join("|").trim(),
-                      };
-                    })
-                    .filter((w) => w.title),
-                })
-              }
-              rows={6}
-              className={textareaClass}
-              placeholder="Threat Detection | Identify and analyze breaches…"
             />
           </label>
           <label className="block">
@@ -161,20 +119,7 @@ export default function AdminSelfPacedPageContentEditor({
             />
           </label>
           <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Requirements (one per line)</span>
-            <textarea
-              value={(draft.overviewSection?.requirements ?? []).join("\n")}
-              onChange={(e) =>
-                patchOverview(setDraft, {
-                  requirements: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
-                })
-              }
-              rows={4}
-              className={textareaClass}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">FAQ section title</span>
+            <span className="text-[10px] text-gray-500">FAQ block title</span>
             <input
               value={draft.overviewSection?.faqSectionTitle ?? ""}
               onChange={(e) => patchOverview(setDraft, { faqSectionTitle: e.target.value })}
@@ -182,29 +127,13 @@ export default function AdminSelfPacedPageContentEditor({
               placeholder="Frequently asked questions"
             />
           </label>
-        </div>
-
-        <p className="mt-4 text-[11px] font-medium text-gray-300">Reviews tab (copy)</p>
-        <div className="mt-2 grid gap-2 md:grid-cols-2">
           <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Learners love — title</span>
+            <span className="text-[10px] text-gray-500">Reviews — learners love title</span>
             <input
               value={draft.reviewsSection?.learnersLoveTitle ?? ""}
               onChange={(e) => patchReviews(setDraft, { learnersLoveTitle: e.target.value })}
               className={fieldClass}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Highly rated checklist (one per line)</span>
-            <textarea
-              value={(draft.reviewsSection?.highlyRatedItems ?? []).join("\n")}
-              onChange={(e) =>
-                patchReviews(setDraft, {
-                  highlyRatedItems: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
-                })
-              }
-              rows={4}
-              className={textareaClass}
+              placeholder="Learners love this course"
             />
           </label>
           <label className="block">
@@ -215,18 +144,6 @@ export default function AdminSelfPacedPageContentEditor({
               className={fieldClass}
             />
           </label>
-          <label className="block">
-            <span className="text-[10px] text-gray-500">Write review — subtitle</span>
-            <input
-              value={draft.reviewsSection?.writeReviewSubtitle ?? ""}
-              onChange={(e) => patchReviews(setDraft, { writeReviewSubtitle: e.target.value })}
-              className={fieldClass}
-            />
-          </label>
-        </div>
-
-        <p className="mt-4 text-[11px] font-medium text-gray-300">Q&amp;A tab (copy)</p>
-        <div className="mt-2 grid gap-2 md:grid-cols-2">
           <label className="block">
             <span className="text-[10px] text-gray-500">Q&amp;A title</span>
             <input
@@ -241,142 +158,15 @@ export default function AdminSelfPacedPageContentEditor({
               value={draft.qaSection?.askButtonLabel ?? ""}
               onChange={(e) => patchQa(setDraft, { askButtonLabel: e.target.value })}
               className={fieldClass}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Q&amp;A subtitle</span>
-            <textarea
-              value={draft.qaSection?.subtitle ?? ""}
-              onChange={(e) => patchQa(setDraft, { subtitle: e.target.value })}
-              rows={2}
-              className={textareaClass}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Community guidelines (one per line)</span>
-            <textarea
-              value={(draft.qaSection?.guidelines ?? []).join("\n")}
-              onChange={(e) =>
-                patchQa(setDraft, {
-                  guidelines: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
-                })
-              }
-              rows={5}
-              className={textareaClass}
+              placeholder="Ask a question"
             />
           </label>
         </div>
-      </div>
 
-      <div className="md:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4">
-        <h3 className="text-sm font-semibold text-emerald-100">After payment — learning player</h3>
-        <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
-          Shown at <code className="rounded bg-black/40 px-1 font-mono text-[10px]">/my-learning/course/[slug]</code>{" "}
-          when the learner starts the course. Curriculum videos are edited under Core Section.
-        </p>
-        <div className="mt-4 grid gap-2 md:grid-cols-2">
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Brand logo URL (video watermark &amp; sidebar)</span>
-            <input
-              value={draft.learningSection?.brandLogoUrl ?? ""}
-              onChange={(e) => patchLearning(setDraft, { brandLogoUrl: e.target.value })}
-              className={fieldClass}
-              placeholder="/SF-WHITE-LOGO.png — upload to public/ or use admin upload"
-            />
-          </label>
+        <p className="mt-5 text-[11px] font-medium text-gray-300">Learning player buttons (after purchase)</p>
+        <div className="mt-2 grid gap-2 md:grid-cols-2">
           <label className="block">
-            <span className="text-[10px] text-gray-500">Certified badge (on video)</span>
-            <input
-              value={draft.learningSection?.certifiedBadgeLabel ?? ""}
-              onChange={(e) => patchLearning(setDraft, { certifiedBadgeLabel: e.target.value })}
-              className={fieldClass}
-            />
-          </label>
-          <label className="block">
-            <span className="text-[10px] text-gray-500">Accredited label (sidebar logo card)</span>
-            <input
-              value={draft.learningSection?.accreditedBadgeLabel ?? ""}
-              onChange={(e) => patchLearning(setDraft, { accreditedBadgeLabel: e.target.value })}
-              className={fieldClass}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Accredited description (under logo)</span>
-            <input
-              value={draft.learningSection?.accreditedDescription ?? ""}
-              onChange={(e) => patchLearning(setDraft, { accreditedDescription: e.target.value })}
-              className={fieldClass}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Certification rule text (modules panel)</span>
-            <textarea
-              value={draft.learningSection?.certificationRuleText ?? ""}
-              onChange={(e) => patchLearning(setDraft, { certificationRuleText: e.target.value })}
-              rows={2}
-              className={textareaClass}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">No video message</span>
-            <input
-              value={draft.learningSection?.noVideoMessage ?? ""}
-              onChange={(e) => patchLearning(setDraft, { noVideoMessage: e.target.value })}
-              className={fieldClass}
-            />
-          </label>
-          <label className="block">
-            <span className="text-[10px] text-gray-500">Learning tools — title</span>
-            <input
-              value={draft.learningSection?.learningToolsTitle ?? ""}
-              onChange={(e) => patchLearning(setDraft, { learningToolsTitle: e.target.value })}
-              className={fieldClass}
-            />
-          </label>
-          <label className="block">
-            <span className="text-[10px] text-gray-500">Learning tools — hint</span>
-            <input
-              value={draft.learningSection?.learningToolsHint ?? ""}
-              onChange={(e) => patchLearning(setDraft, { learningToolsHint: e.target.value })}
-              className={fieldClass}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Default lesson about (when admin lesson empty)</span>
-            <textarea
-              value={draft.learningSection?.defaultLessonAbout ?? ""}
-              onChange={(e) => patchLearning(setDraft, { defaultLessonAbout: e.target.value })}
-              rows={3}
-              className={textareaClass}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Default lesson description</span>
-            <textarea
-              value={draft.learningSection?.defaultLessonDescription ?? ""}
-              onChange={(e) => patchLearning(setDraft, { defaultLessonDescription: e.target.value })}
-              rows={2}
-              className={textareaClass}
-            />
-          </label>
-          <label className="block md:col-span-2">
-            <span className="text-[10px] text-gray-500">Default learning outcomes (one per line)</span>
-            <textarea
-              value={(draft.learningSection?.defaultLearningOutcomes ?? []).join("\n")}
-              onChange={(e) =>
-                patchLearning(setDraft, {
-                  defaultLearningOutcomes: e.target.value
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-              rows={5}
-              className={textareaClass}
-            />
-          </label>
-          <label className="block">
-            <span className="text-[10px] text-gray-500">Mark complete / Previous / Next</span>
+            <span className="text-[10px] text-gray-500">Mark complete</span>
             <input
               value={draft.learningSection?.markCompleteLabel ?? ""}
               onChange={(e) => patchLearning(setDraft, { markCompleteLabel: e.target.value })}
@@ -385,7 +175,7 @@ export default function AdminSelfPacedPageContentEditor({
             />
           </label>
           <label className="block">
-            <span className="text-[10px] text-gray-500">&nbsp;</span>
+            <span className="text-[10px] text-gray-500">Previous / Next</span>
             <div className="grid grid-cols-2 gap-2">
               <input
                 value={draft.learningSection?.previousLabel ?? ""}
@@ -401,8 +191,226 @@ export default function AdminSelfPacedPageContentEditor({
               />
             </div>
           </label>
+          <label className="block">
+            <span className="text-[10px] text-gray-500">Learning tools — title</span>
+            <input
+              value={draft.learningSection?.learningToolsTitle ?? ""}
+              onChange={(e) => patchLearning(setDraft, { learningToolsTitle: e.target.value })}
+              className={fieldClass}
+            />
+          </label>
+          <label className="block">
+            <span className="text-[10px] text-gray-500">Certified badge (on video)</span>
+            <input
+              value={draft.learningSection?.certifiedBadgeLabel ?? ""}
+              onChange={(e) => patchLearning(setDraft, { certifiedBadgeLabel: e.target.value })}
+              className={fieldClass}
+            />
+          </label>
         </div>
-      </div>
-    </>
+      </AdminContentScopeSection>
+
+      <AdminContentScopeSection
+        scope="course"
+        title="Unique page content"
+        description="Text and lists that change for each course — outcomes, requirements, review copy, and lesson defaults."
+      >
+        <label className="block md:col-span-2">
+          <span className="mb-1.5 block text-[10px] text-gray-500">Learning outcomes (one per line)</span>
+          <textarea
+            value={(draft.overviewSection?.learnOutcomes ?? []).join("\n")}
+            onChange={(e) =>
+              patchOverview(setDraft, {
+                learnOutcomes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+              })
+            }
+            rows={5}
+            className={textareaClass}
+          />
+        </label>
+
+        <label className="mt-4 block md:col-span-2">
+          <span className="mb-1.5 block text-[10px] text-gray-500">
+            What you&apos;ll learn grid — one per line: Title | Description
+          </span>
+          <textarea
+            value={whatYouLearnText}
+            onChange={(e) =>
+              patchOverview(setDraft, {
+                whatYouLearn: e.target.value
+                  .split("\n")
+                  .map((line) => line.trim())
+                  .filter(Boolean)
+                  .map((line) => {
+                    const [title, ...rest] = line.split("|");
+                    return {
+                      title: (title ?? "").trim(),
+                      description: rest.join("|").trim(),
+                    };
+                  })
+                  .filter((w) => w.title),
+              })
+            }
+            rows={6}
+            className={textareaClass}
+            placeholder="Threat Detection | Identify and analyze breaches…"
+          />
+        </label>
+
+        <label className="mt-4 block md:col-span-2">
+          <span className="mb-1.5 block text-[10px] text-gray-500">Requirements (one per line)</span>
+          <textarea
+            value={(draft.overviewSection?.requirements ?? []).join("\n")}
+            onChange={(e) =>
+              patchOverview(setDraft, {
+                requirements: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+              })
+            }
+            rows={4}
+            className={textareaClass}
+          />
+        </label>
+
+        <label className="mt-4 block md:col-span-2">
+          <span className="mb-1.5 block text-[10px] text-gray-500">Highly rated checklist (Reviews tab)</span>
+          <textarea
+            value={(draft.reviewsSection?.highlyRatedItems ?? []).join("\n")}
+            onChange={(e) =>
+              patchReviews(setDraft, {
+                highlyRatedItems: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+              })
+            }
+            rows={4}
+            className={textareaClass}
+          />
+        </label>
+
+        <div className="mt-4">
+          <span className="mb-1.5 block text-[10px] text-gray-500">Write review — subtitle</span>
+          <SimpleRichTextArea
+            value={draft.reviewsSection?.writeReviewSubtitle ?? ""}
+            onChange={(v) => patchReviews(setDraft, { writeReviewSubtitle: v })}
+            rows={3}
+            label="Reviews"
+            placeholder="Share your experience with this course…"
+          />
+        </div>
+
+        <div className="mt-4">
+          <span className="mb-1.5 block text-[10px] text-gray-500">Q&amp;A subtitle</span>
+          <SimpleRichTextArea
+            value={draft.qaSection?.subtitle ?? ""}
+            onChange={(v) => patchQa(setDraft, { subtitle: v })}
+            rows={3}
+            label="Q&A"
+            placeholder="Ask the instructor or other learners…"
+          />
+        </div>
+
+        <label className="mt-4 block md:col-span-2">
+          <span className="mb-1.5 block text-[10px] text-gray-500">Community guidelines (one per line)</span>
+          <textarea
+            value={(draft.qaSection?.guidelines ?? []).join("\n")}
+            onChange={(e) =>
+              patchQa(setDraft, {
+                guidelines: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+              })
+            }
+            rows={5}
+            className={textareaClass}
+          />
+        </label>
+
+        <div className="mt-5 border-t border-white/[0.06] pt-5">
+          <p className="text-[11px] font-medium text-gray-300">Learning player (this course)</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <label className="block md:col-span-2">
+              <span className="text-[10px] text-gray-500">Brand logo URL</span>
+              <input
+                value={draft.learningSection?.brandLogoUrl ?? ""}
+                onChange={(e) => patchLearning(setDraft, { brandLogoUrl: e.target.value })}
+                className={fieldClass}
+                placeholder="/SF-WHITE-LOGO.png"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] text-gray-500">Accredited label</span>
+              <input
+                value={draft.learningSection?.accreditedBadgeLabel ?? ""}
+                onChange={(e) => patchLearning(setDraft, { accreditedBadgeLabel: e.target.value })}
+                className={fieldClass}
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] text-gray-500">Learning tools hint</span>
+              <input
+                value={draft.learningSection?.learningToolsHint ?? ""}
+                onChange={(e) => patchLearning(setDraft, { learningToolsHint: e.target.value })}
+                className={fieldClass}
+              />
+            </label>
+            <label className="block md:col-span-2">
+              <span className="mb-1.5 block text-[10px] text-gray-500">Accredited description</span>
+              <SimpleRichTextArea
+                value={draft.learningSection?.accreditedDescription ?? ""}
+                onChange={(v) => patchLearning(setDraft, { accreditedDescription: v })}
+                rows={2}
+                label="Accredited"
+              />
+            </label>
+            <div className="md:col-span-2">
+              <span className="mb-1.5 block text-[10px] text-gray-500">Certification rule text</span>
+              <SimpleRichTextArea
+                value={draft.learningSection?.certificationRuleText ?? ""}
+                onChange={(v) => patchLearning(setDraft, { certificationRuleText: v })}
+                rows={3}
+                label="Certificate"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <span className="mb-1.5 block text-[10px] text-gray-500">Default lesson about</span>
+              <SimpleRichTextArea
+                value={draft.learningSection?.defaultLessonAbout ?? ""}
+                onChange={(v) => patchLearning(setDraft, { defaultLessonAbout: v })}
+                rows={4}
+                label="Lesson"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <span className="mb-1.5 block text-[10px] text-gray-500">Default lesson description</span>
+              <SimpleRichTextArea
+                value={draft.learningSection?.defaultLessonDescription ?? ""}
+                onChange={(v) => patchLearning(setDraft, { defaultLessonDescription: v })}
+                rows={3}
+              />
+            </div>
+            <label className="block md:col-span-2">
+              <span className="text-[10px] text-gray-500">No video message</span>
+              <input
+                value={draft.learningSection?.noVideoMessage ?? ""}
+                onChange={(e) => patchLearning(setDraft, { noVideoMessage: e.target.value })}
+                className={fieldClass}
+              />
+            </label>
+            <label className="block md:col-span-2">
+              <span className="text-[10px] text-gray-500">Default learning outcomes (one per line)</span>
+              <textarea
+                value={(draft.learningSection?.defaultLearningOutcomes ?? []).join("\n")}
+                onChange={(e) =>
+                  patchLearning(setDraft, {
+                    defaultLearningOutcomes: e.target.value
+                      .split("\n")
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                  })
+                }
+                rows={5}
+                className={textareaClass}
+              />
+            </label>
+          </div>
+        </div>
+      </AdminContentScopeSection>
+    </div>
   );
 }

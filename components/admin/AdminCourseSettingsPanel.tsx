@@ -151,7 +151,7 @@ export default function AdminCourseSettingsPanel({
       <AdminPanelSection title="Related admin areas" step={3}>
         <p className="text-[11px] text-gray-500">Edit content and exams in other tabs:</p>
         <div className="mt-2 flex flex-wrap gap-2">
-          {(["Core Section", "Pricing", "Certificates", "SEO", "Publish"] as const).map((tab) => (
+          {(["Content", "Pricing", "Certificates", "SEO", "Publish"] as const).map((tab) => (
             <span
               key={tab}
               className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] text-gray-400"

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { AccountTypeId } from "@/lib/auth-profile";
 import { pricingRegionForCountry } from "@/lib/country-pricing";
-import { isMainAdminEmail, roleForEmail } from "@/lib/server/admin-emails";
+import { getMainAdminEmail, isMainAdminEmail, roleForEmail } from "@/lib/server/admin-emails";
 import { verifyAdminVerifyToken } from "@/lib/server/admin-verify-token";
 import { fetchGoogleUserInfo } from "@/lib/server/google-userinfo";
 import {
@@ -86,10 +86,11 @@ export async function POST(request: Request) {
       );
     }
     if (!isMainAdminEmail(email)) {
+      const required = getMainAdminEmail();
       return NextResponse.json(
         {
           ok: false,
-          message: "Use the same Google account as your main admin email.",
+          message: `Admin access requires Google account ${required}. You signed in as ${email}.`,
         },
         { status: 403 },
       );
@@ -99,7 +100,8 @@ export async function POST(request: Request) {
   const accountType =
     body.accountType && ACCOUNT_TYPES.has(body.accountType) ? body.accountType : "individual";
   const action = body.action ?? "login";
-  const role = adminVerifyToken ? "admin" : roleForEmail(email);
+  const isAdminGoogleStep = Boolean(adminVerifyToken);
+  const role = isAdminGoogleStep ? "admin" : roleForEmail(email);
   const name = googleUser.name?.trim() || null;
   const avatarUrl = googleUser.picture?.trim() || null;
 
@@ -142,7 +144,8 @@ export async function POST(request: Request) {
       },
       update: {
         name: name ?? undefined,
-        accountType: adminVerifyToken ? "self" : accountType,
+        role: isAdminGoogleStep ? "admin" : undefined,
+        accountType: isAdminGoogleStep ? "self" : accountType,
         avatarUrl: avatarUrl ?? undefined,
         ipv4: ips.ipv4 ?? undefined,
         ipv6: ips.ipv6 ?? undefined,
@@ -171,7 +174,7 @@ export async function POST(request: Request) {
     action,
     region,
     countrySource: geo.source,
-    role: profile?.role ?? role,
+    role: isAdminGoogleStep ? "admin" : (profile?.role ?? role),
     profile,
   });
 }

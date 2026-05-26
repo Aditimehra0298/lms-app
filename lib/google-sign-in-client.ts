@@ -18,6 +18,8 @@ export type GoogleAccountsOAuth2 = {
   initTokenClient: (config: {
     client_id: string;
     scope: string;
+    /** Pre-select this Google account (admin must use MAIN_ADMIN_EMAIL). */
+    hint?: string;
     callback: (response: GoogleTokenResponse) => void;
     error_callback?: (err: { type?: string; message?: string }) => void;
   }) => { requestAccessToken: (overrides?: { prompt?: string }) => void };
@@ -44,7 +46,11 @@ export function getGoogleClientId(): string | null {
 export function requestGoogleAccessToken(
   onToken: (accessToken: string) => void,
   onError: (message: string) => void,
-  options?: { prompt?: "" | "none" | "consent" | "select_account" },
+  options?: {
+    prompt?: "" | "none" | "consent" | "select_account";
+    /** e.g. social.sftrainings@gmail.com — opens that Google account when possible */
+    loginHint?: string;
+  },
 ): void {
   const clientId = getGoogleClientId();
   if (!clientId) {
@@ -58,9 +64,12 @@ export function requestGoogleAccessToken(
     return;
   }
 
+  const loginHint = options?.loginHint?.trim().toLowerCase();
+
   const tokenClient = window.google.accounts.oauth2.initTokenClient({
     client_id: clientId,
     scope: "openid email profile",
+    ...(loginHint ? { hint: loginHint } : {}),
     callback: (response) => {
       if (response.error) {
         if (response.error === "popup_closed_by_user") return;
@@ -80,5 +89,7 @@ export function requestGoogleAccessToken(
     },
   });
 
-  tokenClient.requestAccessToken({ prompt: options?.prompt ?? "" });
+  tokenClient.requestAccessToken({
+    prompt: options?.prompt ?? (loginHint ? "" : "select_account"),
+  });
 }

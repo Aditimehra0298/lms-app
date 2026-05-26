@@ -23,8 +23,8 @@ Restart: `npm run dev`
 
 1. Open [http://localhost:3000/account?admin=1](http://localhost:3000/account?admin=1)
 2. Choose **Admin**
-3. **Step 1 — LMS:** enter admin email and `ADMIN_PASSWORD`, then **Continue — verify with Google**
-4. **Step 2 — Google:** the Google window opens automatically. Sign in with the **same** Google account as `MAIN_ADMIN_EMAIL`.
+3. **Step 1 — LMS:** enter admin email and `ADMIN_PASSWORD`, then **Sign in to Admin**
+4. **Step 2 — Google:** click **Verify with Google** (or use the popup if it opens). Sign in with the **same** Google account as `MAIN_ADMIN_EMAIL`.
 5. Google may ask for a code or prompt — that uses the **phone or 2-Step Verification on your Google account**, not an OTP from this LMS.
 
 To enable Google’s extra check on new devices:
