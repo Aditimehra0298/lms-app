@@ -84,7 +84,32 @@ Prisma reads **`DATABASE_URL`** from the environment; there is **no** embedded p
 |------|----------|
 | Table definitions | `prisma/schema.prisma` |
 | Initial migration SQL (paste in Workbench or `db:migrate`) | `prisma/migrations/20260214180000_init_lms_tables/migration.sql` |
+| Course content + media registry | `prisma/migrations/20260527120000_course_content_media/migration.sql` |
 | App client | `lib/prisma.ts` |
+
+**Course content in MySQL (when `DATABASE_URL` is set):**
+
+| Table | What is stored |
+|-------|----------------|
+| `lms_course` | Slug, title, category, published (catalog row) |
+| `lms_course_content` | Full course JSON: curriculum, `videoUrl`, hero images, page text |
+| `lms_media_asset` | Each admin upload: URL, filename, size, type (image/video/document) |
+
+**Not stored in MySQL:** actual video/image **files** (too large). Files stay in `public/uploads/admin/` (or cloud later); the database keeps **URLs and metadata** only.
+
+Sync runs on **`PUT /api/admin/content`** and each **`POST /api/admin/upload`**.
+
+### Protected media (videos / images)
+
+| Item | Location |
+|------|----------|
+| **Files on disk** | `storage/private/admin/` (not under `public/`) |
+| **Stored URL in JSON** | `/api/media/serve/{filename}` — **not playable without a token** |
+| **Get a playable link** | `POST /api/media/token` with `url`, `email`, `courseSlug` |
+| **Stream file** | `GET /api/media/serve/{filename}?t=...` |
+| **Legacy `/uploads/admin/`** | Blocked by `middleware.ts` (403); old files still readable via token if path is in JSON |
+
+Set **`MEDIA_SIGNING_SECRET`** in `.env.local`. For production enrollments, set **`MEDIA_REQUIRE_MYSQL_ENROLLMENT=true`** so only `lms_purchase` rows can watch course videos.
 
 Full Workbench + CLI steps: **`docs/MYSQL_WORKBENCH.md`**.
 

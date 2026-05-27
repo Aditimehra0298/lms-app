@@ -1,6 +1,13 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import {
+  mediaKindFromMime,
+  recordMediaAssetInMysql,
+} from "@/lib/server/media-asset-mysql";
+import {
+  protectedMediaServePath,
+  savePrivateMediaFile,
+} from "@/lib/server/private-media-storage";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 /** Documents & data files for exams (PDF/Word/CSV). */
@@ -127,10 +134,30 @@ export async function POST(request: Request) {
         : extFromOriginalName(originalName) ?? extForType(type);
     const safeBase = originalName.includes(".") ? originalName.slice(0, originalName.lastIndexOf(".")) : originalName;
     const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${safeBase.slice(0, 40)}${ext}`;
-    const dir = path.join(process.cwd(), "public", "uploads", "admin");
-    await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, name), buf);
-    return NextResponse.json({ ok: true, url: `/uploads/admin/${name}` });
+    await savePrivateMediaFile(name, buf);
+    const url = protectedMediaServePath(name);
+
+    const courseSlug =
+      typeof form.get("courseSlug") === "string" ? form.get("courseSlug") as string : undefined;
+    const uploadedBy =
+      typeof form.get("uploadedBy") === "string" ? form.get("uploadedBy") as string : undefined;
+
+    try {
+      await recordMediaAssetInMysql({
+        url,
+        originalName,
+        mimeType: type || undefined,
+        sizeBytes: buf.length,
+        kind: mediaKindFromMime(type, originalName),
+        courseSlug,
+        uploadedBy,
+        storage: "local",
+      });
+    } catch (err) {
+      console.error("[admin/upload] media asset DB record", err);
+    }
+
+    return NextResponse.json({ ok: true, url });
   } catch {
     return NextResponse.json({ ok: false, error: "Upload failed" }, { status: 500 });
   }

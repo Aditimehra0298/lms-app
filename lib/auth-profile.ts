@@ -112,3 +112,28 @@ export function profileInitial(name?: string | null, email?: string | null): str
   if (fromEmail) return fromEmail.toUpperCase();
   return "U";
 }
+
+/** First name (or email local-part) for greetings — dashboard, chatbot, etc. */
+export function learnerDisplayFirstName(name?: string | null, email?: string | null): string {
+  const trimmed = name?.trim();
+  if (trimmed) {
+    const first = trimmed.split(/\s+/)[0];
+    if (first) return first;
+  }
+  const local = email?.trim().split("@")[0];
+  if (local) {
+    const cleaned = local.replace(/[._-]+/g, " ").trim();
+    if (cleaned) {
+      const word = cleaned.split(/\s+/)[0];
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }
+  }
+  return "there";
+}
+
+export function timeOfDayGreeting(date = new Date()): "Good Morning" | "Good Afternoon" | "Good Evening" {
+  const hour = date.getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
+}

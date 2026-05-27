@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Pencil, Plus, Trash2, Upload } from "lucide-react";
 import type { AdminContent, ManagedCategory, ManagedCourse } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
+import { selfPacedCoverImageHint } from "@/lib/admin-image-hints";
 
 function isSelfPacedCourse(c: ManagedCourse): boolean {
   return !c.learningFormat || c.learningFormat === "self-paced";
@@ -420,11 +421,31 @@ export default function AdminSelfPacedCoursesPanel() {
               </div>
               <label className="block">
                 <span className="text-gray-500">Cover image URL</span>
-                <input
-                  value={draft.image}
-                  onChange={(e) => setDraft((d) => ({ ...d, image: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[11px] outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={draft.image}
+                    onChange={(e) => setDraft((d) => ({ ...d, image: e.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 pr-20 font-mono text-[11px] outline-none"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      const input = (e.currentTarget
+                        .parentElement?.querySelector("input") ??
+                        null) as HTMLInputElement | null;
+                      if (!input) return;
+                      input.type = input.type === "password" ? "text" : "password";
+                      e.currentTarget.textContent = input.type === "password" ? "Show" : "Hide";
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-[10px] font-semibold text-gray-300 hover:bg-black/55"
+                  >
+                    Show
+                  </button>
+                </div>
+                <p className="mt-1 text-[10px] leading-relaxed text-gray-600">{selfPacedCoverImageHint}</p>
               </label>
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/10 py-2 text-violet-100 hover:bg-violet-500/20">
                 <Upload className="h-3.5 w-3.5" />

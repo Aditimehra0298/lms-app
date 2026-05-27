@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AdminContent, defaultAdminContent } from "@/lib/content-schema";
+import { syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
 import { syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
 import { readAdminContent, writeAdminContent } from "@/lib/server/content-store";
 
@@ -53,15 +54,17 @@ export async function PUT(request: Request) {
 
     await writeAdminContent(nextContent);
 
-    let mysqlCourses: { synced: number } | undefined;
-    try {
-      const sync = await syncManagedCoursesToMysql(nextContent.managedCourses ?? []);
-      mysqlCourses = { synced: sync.synced };
-    } catch (err) {
-      console.error("[admin/content] course MySQL sync", err);
-    }
+    // Do not block the admin UI on MySQL — sync in the background (slow or missing DB was freezing saves).
+    void (async () => {
+      try {
+        await syncManagedCoursesToMysql(nextContent.managedCourses ?? []);
+        await syncAllCourseContentToMysql(nextContent.managedCourses ?? []);
+      } catch (err) {
+        console.error("[admin/content PUT] course MySQL sync", err);
+      }
+    })();
 
-    return NextResponse.json({ ok: true, mysqlCourses }, { headers: noStoreJson });
+    return NextResponse.json({ ok: true }, { headers: noStoreJson });
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
   }

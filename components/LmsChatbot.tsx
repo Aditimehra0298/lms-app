@@ -2,9 +2,15 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Send, X } from "lucide-react";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
+import { learnerDisplayFirstName, readLearnerProfileFromStorage } from "@/lib/auth-profile";
+import {
+  getLearnerEmail,
+  isLearnerLoggedIn,
+  syncLearnerProfileFromServer,
+} from "@/lib/learner-session-client";
 
 type ChatLine = { role: "user" | "assistant"; content: string };
 
@@ -41,11 +47,13 @@ function getOrCreateSessionId(): string {
   }
 }
 
-const WELCOME: ChatLine = {
-  role: "assistant",
-  content:
-    "Hi! I'm your SF Trainings learning assistant. Ask about courses, enrollments, certificates, or how to use the LMS.",
-};
+function buildWelcomeMessage(firstName: string, onDashboard: boolean): string {
+  const hi = firstName === "there" ? "Hi!" : `Hi ${firstName}!`;
+  if (onDashboard) {
+    return `${hi} I'm your SF Trainings learning assistant. You're on your dashboard — ask about your courses, progress, certificates, or what to learn next.`;
+  }
+  return `${hi} I'm your SF Trainings learning assistant. Ask about courses, enrollments, certificates, or how to use the LMS.`;
+}
 
 function ChatLogo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const img =
@@ -63,14 +71,21 @@ function ChatLogo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
 
 export default function LmsChatbot() {
   const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
+  const onDashboard =
+    pathname === "/my-learning" && (searchParams.get("tab") ?? "overview") === "dashboard";
   const [open, setOpen] = useState(false);
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [provider, setProvider] = useState<"openai" | "n8n" | null>(null);
   const [threadId, setThreadId] = useState("");
-  const [lines, setLines] = useState<ChatLine[]>([WELCOME]);
+  const [learnerFirstName, setLearnerFirstName] = useState("there");
+  const [lines, setLines] = useState<ChatLine[]>([
+    { role: "assistant", content: buildWelcomeMessage("there", false) },
+  ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [sessionId, setSessionId] = useState("");
+  const hasUserMessagedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -78,6 +93,28 @@ export default function LmsChatbot() {
     setSessionId(getOrCreateSessionId());
     setThreadId(getStoredThreadId());
   }, []);
+
+  useEffect(() => {
+    const applyProfile = () => {
+      const profile = readLearnerProfileFromStorage();
+      setLearnerFirstName(learnerDisplayFirstName(profile.name, profile.email));
+    };
+    applyProfile();
+    const onAuth = () => applyProfile();
+    window.addEventListener("sft_auth_updated", onAuth);
+    if (isLearnerLoggedIn()) {
+      const email = getLearnerEmail();
+      if (email) void syncLearnerProfileFromServer(email).then((p) => {
+        if (p) setLearnerFirstName(learnerDisplayFirstName(p.name, p.email));
+      });
+    }
+    return () => window.removeEventListener("sft_auth_updated", onAuth);
+  }, []);
+
+  useEffect(() => {
+    if (hasUserMessagedRef.current) return;
+    setLines([{ role: "assistant", content: buildWelcomeMessage(learnerFirstName, onDashboard) }]);
+  }, [learnerFirstName, onDashboard]);
 
   useEffect(() => {
     if (!open) return;
@@ -116,6 +153,7 @@ export default function LmsChatbot() {
     const text = input.trim();
     if (!text || sending) return;
 
+    hasUserMessagedRef.current = true;
     setInput("");
     setLines((prev) => [...prev, { role: "user", content: text }]);
     setSending(true);
@@ -209,7 +247,11 @@ export default function LmsChatbot() {
             <div className="flex items-center gap-2">
               <ChatLogo />
               <div>
-                <p className="text-sm font-semibold text-amber-50">AI Learning Assistant</p>
+                <p className="text-sm font-semibold text-amber-50">
+                  {learnerFirstName !== "there"
+                    ? `${learnerFirstName}'s Learning Assistant`
+                    : "AI Learning Assistant"}
+                </p>
                 <p className="text-[10px] text-amber-100/80">
                   {configured === false
                     ? "Setup needed — add OpenAI keys to .env.local"

@@ -45,6 +45,9 @@ env
 # netlify local build output (large, regenerable)
 .netlify/
 
+# Private LMS uploads (videos/images) — served only via /api/media/serve + signed token
+/storage/private/
+
 # media over GitHub's 100MB single-file limit (keep locally; use CDN/LFS if needed in repo)
 /public/1773913728What is Phishing__1080p_caption.mp4
 /public/uploads/admin/1777973208786-i7jor0sf-1773913728What_is_Phishing__1080p_captio.mp4

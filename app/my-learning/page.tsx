@@ -37,6 +37,16 @@ import { AdminContent, defaultAdminContent, type ManagedCourse } from "@/lib/con
 import { MyLearningLiveHub } from "@/components/MyLearningLiveHub";
 import { examLinksFromManagedCourse, resolveLearningCourseSlug } from "@/lib/my-learning-exams";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import {
+  learnerDisplayFirstName,
+  readLearnerProfileFromStorage,
+  timeOfDayGreeting,
+} from "@/lib/auth-profile";
+import {
+  getLearnerEmail,
+  isLearnerLoggedIn,
+  syncLearnerProfileFromServer,
+} from "@/lib/learner-session-client";
 
 export const dynamic = "force-dynamic";
 
@@ -128,6 +138,26 @@ export default function MyLearningPage() {
   const isCertificates = activeTab === "certificates";
   const isSubscriptions = activeTab === "subscriptions";
   const [adminContent, setAdminContent] = useState<AdminContent>(defaultAdminContent);
+  const [learnerFirstName, setLearnerFirstName] = useState("there");
+
+  useEffect(() => {
+    const applyProfile = () => {
+      const profile = readLearnerProfileFromStorage();
+      setLearnerFirstName(learnerDisplayFirstName(profile.name, profile.email));
+    };
+    applyProfile();
+    const onAuth = () => applyProfile();
+    window.addEventListener("sft_auth_updated", onAuth);
+    if (isLearnerLoggedIn()) {
+      const email = getLearnerEmail();
+      if (email) {
+        void syncLearnerProfileFromServer(email).then((p) => {
+          if (p) setLearnerFirstName(learnerDisplayFirstName(p.name, p.email));
+        });
+      }
+    }
+    return () => window.removeEventListener("sft_auth_updated", onAuth);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -265,7 +295,14 @@ export default function MyLearningPage() {
             <div className="grid gap-3 lg:grid-cols-[1fr_1.5fr]">
               <article className="rounded-xl border border-white/10 bg-linear-to-br from-violet-500/15 via-[#101933] to-[#0a1023] p-4">
                 <p className="text-3xl font-bold">
-                  Good Morning, <span className="text-amber-300">Aditi!</span> 👋
+                  {learnerFirstName !== "there" ? (
+                    <>
+                      {timeOfDayGreeting()},{" "}
+                      <span className="text-amber-300">{learnerFirstName}!</span> 👋
+                    </>
+                  ) : (
+                    <>{timeOfDayGreeting()}! 👋</>
+                  )}
                 </p>
                 <p className="mt-1 text-sm text-amber-200">9:24 AM • Friday, May 16, 2025</p>
                 <h2 className="mt-3 text-2xl font-bold">Welcome to SF Trainings</h2>
@@ -1185,7 +1222,9 @@ export default function MyLearningPage() {
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
             <div className="grid gap-4 lg:grid-cols-[2fr_1.1fr]">
               <div>
-                <h1 className="text-4xl font-bold">Welcome back, Aditi!</h1>
+                <h1 className="text-4xl font-bold">
+                  Welcome back{learnerFirstName === "there" ? "" : `, ${learnerFirstName}`}!
+                </h1>
                 <p className="mt-1 text-sm text-gray-300">
                   Keep going! You are making great progress.
                 </p>

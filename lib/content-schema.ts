@@ -37,7 +37,11 @@ export type CourseCurriculumItem = {
   notes?: string;
   captions?: string;
   pdfUrl?: string;
+  /** Lesson PPT/slide deck URL (ppt/pptx) for the learner tools panel. */
+  pptUrl?: string;
   podcastUrl?: string;
+  /** Optional learner webhook URL (stored as a URL string). */
+  webhookUrl?: string;
   resourceUrl?: string;
   downloadUrl?: string;
   /** Uploaded lesson video file or direct video URL for video rows. */

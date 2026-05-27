@@ -104,9 +104,48 @@ model LmsCourse {
 
   certificates LmsCertificate[]
   purchases    LmsPurchase[]
+  content      LmsCourseContent?
 
   @@index([category])
   @@map("lms_course")
+}
+
+/// Full self-paced course payload from admin (curriculum, hero, lesson video URLs, page copy).
+/// Video/image files stay on disk or cloud; this table stores JSON + URLs — not binary blobs.
+model LmsCourseContent {
+  id         String   @id @default(cuid())
+  courseId   String   @unique
+  courseSlug String   @unique @db.VarChar(191)
+  /// ManagedCourse-shaped JSON (curriculum, hero, overviewSection, image URLs, etc.)
+  payload    Json
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  course LmsCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseSlug])
+  @@map("lms_course_content")
+}
+
+/// Registry of admin uploads (images, videos, exam files) — URL + metadata for audit and backup.
+model LmsMediaAsset {
+  id           String   @id @default(cuid())
+  url          String   @db.VarChar(1024)
+  originalName String?  @db.VarChar(255)
+  mimeType     String?  @db.VarChar(128)
+  sizeBytes    Int?
+  /// image | video | document
+  kind         String   @db.VarChar(32)
+  courseSlug   String?  @db.VarChar(191)
+  uploadedBy   String?  @db.VarChar(255)
+  /// local (public/uploads/admin) | r2 | s3 | cloudinary
+  storage      String   @default("local") @db.VarChar(32)
+  createdAt    DateTime @default(now())
+
+  @@index([courseSlug])
+  @@index([kind])
+  @@index([createdAt])
+  @@map("lms_media_asset")
 }
 
 /// Purchases / enrollments written from checkout (parallel path to localStorage).

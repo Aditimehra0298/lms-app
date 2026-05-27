@@ -588,6 +588,850 @@
       "trainerCertifications": [],
       "trainerWorkedWith": [],
       "regionalPrices": []
+    },
+    {
+      "slug": "cousers-esg-esg-management-development-training-program",
+      "title": "ESG Management Development Training Program",
+      "subtitle": "Develop practical knowledge of Environmental, Social, and Governance principles for modern organizations. Learn how ESG supports sustainability, compliance, risk management, and responsible business decisions. Build the skills needed to contribute to ESG planning, reporting, and long-term business value.",
+      "category": "esg",
+      "level": "Beginner",
+      "duration": "8h 00m",
+      "rating": "4.6",
+      "learners": "0",
+      "price": "$104.47",
+      "oldPrice": "$83.57",
+      "image": "/course-food-safety.png",
+      "published": true,
+      "learningFormat": "self-paced",
+      "instructorName": "Sustainble Future Trainings",
+      "pageBadge": "Self-Paced",
+      "highlights": [
+        "Learning videos with simple and practical ESG explanations.",
+        "Structured modules for step-by-step understanding.",
+        "Knowledge checks and quizzes after key lessons.",
+        "Final assessment to test your ESG learning.",
+        "Certificate after successful course completion.",
+        "Digital badge to showcase your achievement.",
+        "Practical examples from real business situations.",
+        "Career development support for ESG, sustainability, and compliance roles.",
+        "Self-paced access so you can learn anytime.",
+        "Opportunity to build confidence in ESG implementation and reporting."
+      ],
+      "faqs": [
+        {
+          "q": "What is this course about?",
+          "a": "This course helps learners understand ESG principles, sustainability practices, governance expectations, and practical ESG implementation in organizations"
+        },
+        {
+          "q": "Who should enroll in this course?",
+          "a": "This course is suitable for students, professionals, managers, auditors, consultants, business owners, and anyone interested in ESG and sustainability."
+        },
+        {
+          "q": "Do I need prior ESG knowledge?",
+          "a": "No. The course starts with basic concepts and explains ESG in a simple, practical, and easy-to-understand way."
+        },
+        {
+          "q": "What does this course include?",
+          "a": "The course includes learning videos, structured modules, quizzes, assessments, practical examples, and certification after successful completion."
+        },
+        {
+          "q": "Will I receive a certificate?",
+          "a": "Yes. Learners will receive a certificate after completing all required lessons, activities, and assessments."
+        },
+        {
+          "q": "Is this course useful for career growth?",
+          "a": "Yes. It builds practical ESG knowledge that can support roles in sustainability, compliance, governance, reporting, auditing, and responsible business management"
+        }
+      ],
+      "trainerRole": "Senior Insructor",
+      "trainerExperience": "10+ years .5000+ leaner taught",
+      "trainerBio": "Sustainable Futures Training Expert Team brings together experienced professionals in ESG, sustainability, compliance, governance, and responsible business practices. The team designs practical learning content that helps learners understand ESG concepts, apply them in real workplace situations, and build confidence in sustainability-focused decision-making.\n\nTheir training approach focuses on simple explanations, industry-relevant examples, structured modules, and practical application so learners can move beyond theory and understand how ESG works inside modern organizations.",
+      "trainerCertifications": [
+        "Certified"
+      ],
+      "trainerWorkedWith": [
+        "SFT"
+      ],
+      "hero": {
+        "backgroundImage": "/api/media/serve/1779863033761-b4u9i0c1-ChatGPT_Image_May_27_2026_11_53_35_AM.png",
+        "previewImage": "/api/media/serve/1779863712780-d75yos72-ChatGPT_Image_May_27_2026_12_04_59_PM.png",
+        "previewLabel": "Preview this Course",
+        "ratingCount": "4.5",
+        "studentsLabel": "999",
+        "lastUpdated": "05/2026",
+        "language": "English",
+        "captions": "English [Auto]",
+        "lectureCount": "34",
+        "certificate": "Yes",
+        "access": "Lifetime",
+        "shareable": "Yes",
+        "moneyBackGuarantee": "7 days money- back gurantee",
+        "enrollButtonLabel": "Enroll Now",
+        "wishlistButtonLabel": "Add to Wishlist",
+        "certificatePreviewImage": "/api/media/serve/1779863946421-pe8xd53r-HACCP_final.pdf_page-0001.jpg",
+        "aboutText": "The ESG Management Development Training Program is designed to help learners understand the practical role of Environmental, Social, and Governance practices in modern business.\nThis course explains how organizations can manage sustainability risks, improve compliance, strengthen stakeholder trust, and support responsible decision-making.\nLearners will gain practical insights into ESG strategy, reporting, implementation, and continuous improvement for long-term business value.",
+        "courseIncludes": [
+          "ESG fundamentals and core concepts.",
+          "Environmental, Social, and Governance principles.",
+          "Sustainability and responsible business practices.",
+          "ESG strategy development and implementation.",
+          "ESG risk management and compliance requirements.",
+          "Stakeholder expectations and communication.",
+          "ESG reporting, documentation, and performance monitoring.",
+          "Real-world examples and practical case studies.",
+          "Knowledge checks, quizzes, and learning activities.",
+          "Practical tools to support ESG implementation in organizations."
+        ]
+      },
+      "instructorSection": {
+        "headline": "Course Developed by Sustaibable future Experts",
+        "teamImage": "/api/media/serve/1779864123722-2etonu76-Untitled_design_3_.png",
+        "introParagraphs": [
+          "This course is designed by the SFT Expert Team — professionals with strong experience in ESG, sustainability, compliance, and responsible business practices.",
+          "Every module is structured to help you understand real-world ESG challenges, sustainability risks, governance expectations, and practical implementation methods.",
+          "You learn from experts who support organizations, professionals, and business teams in building ESG awareness, improving compliance, and creating long-term sustainable value."
+        ],
+        "sidebarInstructors": [
+          {
+            "name": "ESG Industry Professionals",
+            "role": "Courses built by specialists who understand sustainability, business responsibility, compliance, and ESG implementation."
+          },
+          {
+            "name": "Sustainability Specialists",
+            "role": "Practical knowledge of environmental performance, social responsibility, governance practices, and stakeholder expectations."
+          },
+          {
+            "name": "Training Experts",
+            "role": "Structured learning paths designed for clarity, engagement, and practical application in real business situations."
+          },
+          {
+            "name": "Compliance & Reporting Experts",
+            "role": "Content aligned with ESG principles, reporting practices, and recognized sustainability frameworks to build practical competence, not just theoretical understanding."
+          }
+        ]
+      },
+      "regionalPrices": [],
+      "overviewSection": {
+        "aboutTitle": "About the Course",
+        "youWillLearnTitle": "You will learn to:",
+        "learnOutcomes": [
+          "Understand the core concepts of Environmental, Social, and Governance practices.",
+          "Explain why ESG is important for modern businesses and long-term sustainability.",
+          "Identify key ESG risks, opportunities, and stakeholder expectations.",
+          "Understand how ESG supports compliance, reputation, and responsible decision-making.",
+          "Recognize the role of environmental performance, social responsibility, and governance systems.",
+          "Support ESG planning, implementation, monitoring, and improvement within an organization.",
+          "Understand the basics of ESG reporting, documentation, and performance indicators.",
+          "Apply practical ESG knowledge to real business situations and organizational challenges."
+        ],
+        "whatYouLearnTitle": "What you'll learn",
+        "whatYouLearn": [
+          {
+            "title": "ESG Fundamentals",
+            "description": "Understand the meaning, purpose, and importance of Environmental, Social, and Governance practices."
+          },
+          {
+            "title": "Sustainability in Business",
+            "description": "Learn how ESG supports responsible growth, long-term value, and sustainable decision-making."
+          },
+          {
+            "title": "Environmental Responsibility",
+            "description": "Understand key environmental issues such as resource use, emissions, waste, and climate-related risks."
+          },
+          {
+            "title": "Social Responsibility",
+            "description": "Learn how organizations manage people, communities, human rights, workplace safety, and stakeholder expectations."
+          },
+          {
+            "title": "Governance Practices",
+            "description": "Understand the role of leadership, ethics, accountability, transparency, and compliance in ESG."
+          },
+          {
+            "title": "ESG Risk Management",
+            "description": "Identify ESG-related risks and opportunities that may affect business performance and reputation."
+          },
+          {
+            "title": "ESG Strategy & Implementation",
+            "description": "Learn how organizations can plan, implement, and improve ESG practices in a structured way."
+          },
+          {
+            "title": "ESG Reporting Basics",
+            "description": "Understand the basics of ESG documentation, performance indicators, and reporting expectations."
+          },
+          {
+            "title": "Stakeholder Engagement",
+            "description": "Learn how businesses communicate with stakeholders and respond to ESG concerns."
+          },
+          {
+            "title": "Practical ESG Application",
+            "description": "Apply ESG concepts through real-world examples, case studies, and workplace-based learning."
+          }
+        ],
+        "requirementsTitle": "Requirements",
+        "requirements": [
+          "Basic understanding of business, management, or organizational operations.",
+          "Interest in sustainability, compliance, governance, or responsible business practices.",
+          "No prior ESG experience is required; the course starts with fundamental concepts.",
+          "Suitable for students, working professionals, managers, auditors, consultants, and business owners.",
+          "Learners should be willing to apply ESG concepts to real workplace situations.",
+          "Basic English reading and understanding skills are recommended.",
+          "Access to internet, laptop, tablet, or mobile device for online learning.",
+          "Willingness to complete videos, activities, quizzes, and assessments."
+        ],
+        "faqSectionTitle": "Frequently Asked Question"
+      },
+      "learningSection": {
+        "brandLogoUrl": "/SF-WHITE-LOGO.png",
+        "certifiedBadgeLabel": "Certified Badge",
+        "accreditedBadgeLabel": "Accredited label",
+        "accreditedDescription": "This training program is designed to support professional development in ESG management, sustainability practices, compliance, and responsible business operations.\n\nThe course content is structured by the SFT Expert Team to provide practical, industry-relevant learning aligned with current ESG expectations and organizational needs.\n\nUpon successful completion, learners receive a certificate that reflects their participation, learning achievement, and understanding of ESG principles and implementation practices.",
+        "certificationRuleText": "Learners must complete all required course modules, learning activities, and assessments to become eligible for certification.\n\nA certificate will be issued only after successful course completion and meeting the minimum assessment requirements set by SFT.\n\nThe certificate confirms the learner’s participation, completion, and understanding of the ESG Management Development Training Program.",
+        "noVideoMessage": "preview this video",
+        "learningToolsTitle": "Learning tools",
+        "learningToolsHint": "Learning tools hint",
+        "markCompleteLabel": "Mark as Complete",
+        "previousLabel": "Previous",
+        "nextLabel": "Next",
+        "defaultLessonAbout": "This lesson introduces the key concepts of ESG and explains why Environmental, Social, and Governance practices are important for modern organizations. Learners will understand how ESG supports responsible business decisions, sustainability performance, compliance, and long-term value creation.\n\nThe lesson is designed in a simple and practical way so learners can connect ESG concepts with real workplace situations.",
+        "defaultLessonDescription": "In this lesson, learners will explore the basic meaning and importance of ESG in today’s business environment. The lesson explains how Environmental, Social, and Governance practices help organizations improve sustainability, manage risks, meet stakeholder expectations, and make responsible decisions.\n\nLearners will also understand how ESG concepts can be applied in real workplace situations through simple explanations and practical examples.",
+        "defaultLearningOutcomes": [
+          "Understand the basic meaning and purpose of ESG.",
+          "Explain why ESG is important for modern organizations.",
+          "Identify the three main pillars: Environmental, Social, and Governance.",
+          "Recognize how ESG supports sustainability and responsible decision-making.",
+          "Understand how ESG helps manage business risks and stakeholder expectations.",
+          "Relate ESG concepts to simple workplace and organizational examples."
+        ]
+      },
+      "reviewsSection": {
+        "learnersLoveTitle": "Leaners Love this Course",
+        "highlyRatedItems": [
+          "Clear and practical course content",
+          "Easy-to-understand explanations",
+          "Real-world ESG examples included",
+          "Structured modules with smooth learning flow",
+          "Useful for professionals and beginners",
+          "Expert-designed learning material",
+          "Practical activities and knowledge checks",
+          "Relevant to sustainability, compliance, and governance roles",
+          "Certificate adds professional value",
+          "Positive learner experience and course clarity"
+        ],
+        "writeReviewTitle": "Write review",
+        "writeReviewSubtitle": "Share your learning experience and help others understand how this course can support their ESG journey."
+      },
+      "qaSection": {
+        "title": "Q&A",
+        "subtitle": "Find quick answers to common questions about the course, learning process, certification, and support.",
+        "askButtonLabel": "Ask a question",
+        "guidelines": [
+          "Be respectful and professional in all discussions.",
+          "Share constructive questions, feedback, and learning experiences.",
+          "Avoid offensive, discriminatory, or inappropriate language.",
+          "Do not share personal, confidential, or company-sensitive information.",
+          "Support other learners with helpful and relevant responses.",
+          "Keep discussions focused on ESG, sustainability, compliance, and course topics.",
+          "Do not post spam, advertisements, or unrelated promotional content.",
+          "Respect different opinions, industries, and learning backgrounds.",
+          "Use clear language so everyone can understand and participate.",
+          "Report any issue or inappropriate content to the course support team."
+        ]
+      },
+      "tabLabels": {
+        "overview": "Overview",
+        "curriculum": "Course content",
+        "instructor": "Instructor",
+        "reviews": "Reviews",
+        "qa": "Q&A"
+      },
+      "curriculum": [
+        {
+          "title": "General Instructions for Candidate",
+          "items": [
+            {
+              "label": "Video — How to use this course & navigation",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1779870252475-xpxv1fnh-video_completion_guide_1_.mp4",
+              "description": "This ESG Management Development Training Program is designed to help learners understand ESG concepts, sustainability practices, governance expectations, and practical business application.\n\nThe training is delivered through video-based modules, short assessments, and certificate-based completion. Learners can select any module from the course list and watch the video in the main viewing window.\n\nVideos must be watched completely, as skipping or fast-forwarding is not allowed. After completing each video, the Go to Next and Appear for Exam buttons will become active. Each module includes a 10-question MCQ quiz with no negative marking.\n\nLearners get two attempts to pass the assessment. After successful completion, the certificate can be downloaded from the portal. Progress will be shown using completion indicators, and support is available through the Google Form provided on the portal or welcome email.",
+              "about": "This lesson explains the key ESG concepts covered in the video and connects them with practical business situations. Learners will understand how Environmental, Social, and Governance practices support sustainability, compliance, responsible decision-making, and long-term organizational value.\n\nPlease watch the full video carefully before appearing for the assessment.",
+              "learningOutcomes": [
+                "Understand the key concept explained in this lesson.",
+                "Identify how the concept relates to ESG practices.",
+                "Recognize the role of ESG in sustainability and responsible business decisions.",
+                "Explain how Environmental, Social, and Governance factors affect organizations.",
+                "Connect the lesson topic with real workplace situations.",
+                "Prepare for the module assessment with clear conceptual understanding."
+              ]
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam",
+              "description": "",
+              "examUploadUrl": "/api/media/serve/1779871024205-iftmiopu-Untitled_spreadsheet_-_esg1.csv"
+            }
+          ]
+        },
+        {
+          "title": "Module 1 — First Aid Kit and Its Use ",
+          "items": [
+            {
+              "label": "Video — Course overview and learning outcomes",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1779875484117-3it72muq-1731991247First_Aid_Kit_and_It_s_Use.mp4.mp4",
+              "description": "This workplace first aid course is designed to help learners respond confidently to common medical emergencies. It covers the basics of injury identification, first aid kit usage, wound care, burns, fractures, CPR and AED awareness, choking response, allergic reactions, and emergency communication. The course supports safer workplace practices by preparing learners to take quick and appropriate action until professional medical help arrives.",
+              "about": "This lesson explains the essential steps of workplace first aid and emergency response. Learners will understand how to recognize common injuries, use a first aid kit properly, give basic support for wounds, burns, fractures, choking, and allergic reactions, and know when to call for professional medical help. The lesson also introduces CPR and AED awareness to help learners respond calmly and safely during emergency situations.",
+              "learningOutcomes": [
+                "Identify common workplace medical emergencies and injuries.",
+                "Explain the main components and purpose of a first aid kit.",
+                "Apply basic first aid steps for wounds, burns, fractures, and minor injuries.",
+                "Describe the correct response for choking and allergic reactions.",
+                "Understand the basic purpose of CPR and AED usage.",
+                "Follow emergency procedures calmly and safely.",
+                "Know when and how to call for professional medical help.",
+                "Support an injured person until medical assistance arrives."
+              ]
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam",
+              "examPassingScorePercent": 70,
+              "examUploadUrl": "/api/media/serve/1779875942963-hjlxocm6-Untitled_spreadsheet_-_esg2.csv"
+            }
+          ]
+        },
+        {
+          "title": "Module 2 — Core foundations (ESG Management Development Training Program)",
+          "items": [
+            {
+              "label": "Video — Key principles and terminology",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Reference readings and frameworks",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 3 — Applied practices (ESG Management Development Training Program)",
+          "items": [
+            {
+              "label": "Video — Scenario-based lesson",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Worksheets, templates, and examples",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 4 — Standards & compliance (ESG Management Development Training Program)",
+          "items": [
+            {
+              "label": "Video — Regulatory and policy context",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Checklists and guidance notes",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 5 — Risk assessment & controls (ESG Management Development Training Program)",
+          "items": [
+            {
+              "label": "Video — Identification and mitigation walkthrough",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Case studies and exercises",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 6 — Implementation (ESG Management Development Training Program)",
+          "items": [
+            {
+              "label": "Video — Operational best practices on the job",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — SOP excerpts and job aids",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 7 — Review & assessment prep (ESG Management Development Training Program)",
+          "items": [
+            {
+              "label": "Video — Summary and practice session",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Revision materials and sample questions",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 8 — Capstone & certification path (ESG Management Development Training Program)",
+          "items": [
+            {
+              "label": "Video — Final wrap-up and next steps",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Completion requirements overview",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "fssc-22000-v6-food-fraud-mitigation-auditing",
+      "title": "Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6",
+      "subtitle": "This course helps learners strengthen their understanding of food fraud prevention under FSSC 22000 Version 6. It focuses on food fraud vulnerability assessment, mitigation planning, audit evidence, and practical controls required to build an audit-ready food safety management system.",
+      "category": "food-safety",
+      "level": "Beginner",
+      "duration": "3h 00m",
+      "rating": "4.6",
+      "learners": "0",
+      "price": "1999",
+      "oldPrice": "2199",
+      "image": "/course-food-safety.png",
+      "published": true,
+      "learningFormat": "self-paced",
+      "instructorName": "Sustainable Futures Training Expert",
+      "pageBadge": "SELF-PACED",
+      "highlights": [
+        "E-Learning Course",
+        "Self-Paced Modules",
+        "Lifetime Access",
+        "Expert-Led Content",
+        "Audit-Ready Learning",
+        "Practical Course Material",
+        "Flexible Online Training",
+        "Certificate After Completion",
+        "Accessible Anytime Anywhere",
+        "Industry-Focused Lessons"
+      ],
+      "faqs": [
+        {
+          "q": "Who is this course suitable for?",
+          "a": "This course is suitable for food safety professionals, quality managers, internal auditors, consultants, technical teams, and learners involved in FSSC 22000 compliance."
+        },
+        {
+          "q": "Is this course self-paced?",
+          "a": "Yes, this is a self-paced e-learning course. Learners can complete the modules at their own convenience."
+        },
+        {
+          "q": "What will I learn in this course?",
+          "a": "You will learn food fraud risks, vulnerability assessment, mitigation planning, supplier risk control, documentation, and audit evidence requirements."
+        },
+        {
+          "q": "Is the course aligned with FSSC 22000 Version 6?",
+          "a": "Yes, the course is designed around food fraud mitigation and auditing requirements relevant to FSSC 22000 Version 6."
+        },
+        {
+          "q": "Will I receive a certificate?",
+          "a": "Yes, learners will receive a course completion certificate after completing the required modules and final assessment."
+        },
+        {
+          "q": "Do I need prior experience?",
+          "a": "Basic knowledge of food safety or HACCP is helpful, but the course is structured to explain concepts in a clear and practical way."
+        }
+      ],
+      "trainerRole": "Senior Instructor by Sustainable Future Expert",
+      "trainerExperience": "10 year+ . 5000+ Learner Taught",
+      "trainerBio": "The SFT Expert Team consists of experienced professionals in food safety, compliance, auditing, and management system implementation. The team brings practical industry knowledge in FSSC 22000, HACCP principles, food fraud vulnerability assessment, mitigation planning, and audit-ready documentation.\n\nThe instructors focus on making complex requirements simple, practical, and easy to apply in real food business environments. Their training approach is designed to help learners understand not only the requirements, but also how to implement, document, and verify them effectively.",
+      "trainerCertifications": [
+        "Certified-Trainer"
+      ],
+      "trainerWorkedWith": [
+        "SFT"
+      ],
+      "hero": {
+        "backgroundImage": "/api/media/serve/1779876189098-n65l91rh-ChatGPT_Image_May_27_2026_03_32_50_PM.png",
+        "previewLabel": "Preview this Course",
+        "ratingCount": "4.5",
+        "studentsLabel": "999",
+        "language": "English",
+        "captions": "English [Auto]",
+        "lectureCount": "7 Lectures",
+        "certificate": "Yes",
+        "access": "Lifetime",
+        "shareable": "Yes",
+        "moneyBackGuarantee": "7 days money-back gurantee",
+        "enrollButtonLabel": "Enroll Now",
+        "wishlistButtonLabel": "Add to Wishlist",
+        "certificatePreviewImage": "/api/media/serve/1779876278897-noxduahi-ChatGPT_Image_May_27_2026_03_34_30_PM.png",
+        "certificatePreviewLabel": "Certificate of Attainment",
+        "aboutText": "This course provides advanced knowledge of food fraud mitigation and auditing within the FSSC 22000 Version 6 framework. It helps learners understand how food fraud risks can affect food safety, product integrity, brand reputation, and certification compliance.\n\nThe course covers food fraud vulnerability assessment, mitigation strategies, audit evidence, documentation requirements, and practical control measures. It is designed for food safety professionals, auditors, quality managers, consultants, and technical teams who want to build stronger, audit-ready food fraud prevention systems.",
+        "courseIncludes": [
+          "Includes 7 structured modules on food fraud mitigation and auditing.",
+          "Aligned with FSSC 22000 Version 6 requirements.",
+          "Covers food fraud risks, vulnerability assessment, and mitigation planning.",
+          "Explains documentation, audit evidence, and compliance expectations.",
+          "Suitable for food safety professionals, auditors, quality managers, and consultants.",
+          "Helps learners prepare for stronger food fraud control and audit readiness."
+        ]
+      },
+      "instructorSection": {
+        "headline": "Course Developed by Sustainable Future  Industrial Expert",
+        "teamImage": "/api/media/serve/1779876749158-e43jsjh2-Untitled_design_3_.png",
+        "introParagraphs": [
+          "This course is designed by the SFT Expert Team — professionals with practical experience in food safety systems, FSSC 22000 requirements, food fraud risk assessment, and audit preparation.",
+          "Each module is structured to help learners understand real-world food fraud risks, vulnerability assessment, mitigation planning, documentation, and audit evidence.",
+          "You learn from experts who have worked with food businesses, auditors, quality teams, and compliance professionals across manufacturing, processing, hospitality, and supply chain operations."
+        ],
+        "sidebarInstructors": [
+          {
+            "name": "SFT Expert Team",
+            "role": "Food Safety and Compliance Trainers"
+          },
+          {
+            "name": "Food Safety Auditor",
+            "role": "FSSC 22000 and Audit Documentation Expert"
+          },
+          {
+            "name": "HACCP Specialist",
+            "role": "Food Fraud Risk and Preventive Control Expert"
+          },
+          {
+            "name": "Compliance Consultant",
+            "role": "Food Safety Management System Advisor"
+          }
+        ]
+      },
+      "tabLabels": {
+        "overview": "Overview",
+        "curriculum": "Course Content",
+        "instructor": "nstructor",
+        "reviews": "nstructor Reviews",
+        "qa": "nstructor Reviews Q&A"
+      },
+      "overviewSection": {
+        "aboutTitle": "About this Course",
+        "youWillLearnTitle": "You will learn to:",
+        "learnOutcomes": [
+          "Understand food fraud risks and their impact on food safety and compliance.",
+          "Identify common types of food fraud in food supply chains.",
+          "Conduct a basic food fraud vulnerability assessment.",
+          "Develop practical food fraud mitigation measures.",
+          "Understand supplier, raw material, and supply chain fraud risks.",
+          "Prepare documentation and records required for audit readiness.",
+          "Evaluate food fraud controls during internal or external audits.",
+          "Apply FSSC 22000 Version 6 requirements related to food fraud mitigation.",
+          "Improve food fraud prevention through monitoring and continual improvement."
+        ],
+        "whatYouLearnTitle": "what you'll learn",
+        "whatYouLearn": [
+          {
+            "title": "Food Fraud Fundamentals",
+            "description": "Understand what food fraud is and why it matters in food safety systems."
+          },
+          {
+            "title": "FSSC 22000 Version 6 Requirements",
+            "description": "Learn how food fraud mitigation fits into FSSC 22000 compliance."
+          },
+          {
+            "title": "Vulnerability Assessment",
+            "description": "Identify weak points in raw materials, suppliers, and supply chains."
+          },
+          {
+            "title": "Food Fraud Risk Factors",
+            "description": "Understand economic, historical, geographic, and supplier-related fraud risks."
+          },
+          {
+            "title": "Mitigation Planning",
+            "description": "Learn how to develop practical controls to reduce food fraud risks."
+          },
+          {
+            "title": "Audit Evidence",
+            "description": "Understand what documents, records, and proof auditors may review."
+          },
+          {
+            "title": "Supplier Control",
+            "description": "Learn how supplier approval, monitoring, and verification support fraud prevention."
+          },
+          {
+            "title": "Continual Improvement",
+            "description": "Improve food fraud controls through review, monitoring, and corrective action."
+          }
+        ],
+        "requirementsTitle": "Requirements",
+        "requirements": [
+          "Basic understanding of food safety management systems.",
+          "Awareness of HACCP principles is helpful but not mandatory.",
+          "Interest in food fraud prevention, auditing, or compliance.",
+          "Suitable for food safety professionals, auditors, quality teams, consultants, and students.",
+          "Learners should have access to a computer, tablet, or mobile device with internet.",
+          "Learners must complete all video lessons and module activities.",
+          "Final assessment must be completed as per course instructions."
+        ],
+        "faqSectionTitle": "Frequently Asked Question"
+      },
+      "reviewsSection": {
+        "learnersLoveTitle": "Leaners love this Course",
+        "highlyRatedItems": [
+          "Expert-developed course content",
+          "Clear and practical explanations",
+          "Aligned with FSSC 22000 Version 6",
+          "Useful for food safety and quality professionals",
+          "Covers real-world food fraud risks",
+          "Includes vulnerability assessment and mitigation planning",
+          "Helps improve audit readiness",
+          "Self-paced and easy to follow"
+        ],
+        "writeReviewTitle": "write a review",
+        "writeReviewSubtitle": "Share your learning experience and help others understand the value of this course.\n\nOther options:\n\nTell us how this course helped improve your understanding of food fraud mitigation and auditing.\n\nShare your feedback on the course content, learning experience, and practical usefulness.\n\nYour review helps us improve the course and guide future learners."
+      },
+      "qaSection": {
+        "title": "Q&A",
+        "subtitle": "Ask questions, clarify doubts, and explore important course topics with expert support.",
+        "askButtonLabel": "Ask a Question",
+        "guidelines": [
+          "Be respectful and professional in all discussions.",
+          "Ask course-related questions clearly and politely.",
+          "Avoid sharing personal, sensitive, or confidential information.",
+          "Do not post spam, promotional content, or unrelated links.",
+          "Support other learners with helpful and constructive responses.",
+          "Use appropriate language and avoid offensive comments.",
+          "Respect different learning levels and professional backgrounds.",
+          "Report any technical issue or inappropriate content to the support team."
+        ]
+      },
+      "learningSection": {
+        "brandLogoUrl": "/SF-WHITE-LOGO.png",
+        "accreditedBadgeLabel": "Accredited label",
+        "accreditedDescription": "This course is developed by the SFT Expert Team and aligned with the learning needs of food safety, quality, compliance, and auditing professionals. It supports learners in understanding food fraud mitigation, vulnerability assessment, documentation, and audit readiness under FSSC 22000 Version 6.\n\nUpon successful completion, learners will receive a course completion certificate from Sustainable Futures Training (SFT).",
+        "certificationRuleText": "Certification is awarded after the learner successfully completes all required course modules and passes the final assessment as per the course completion criteria.",
+        "noVideoMessage": "Preview loading",
+        "learningToolsTitle": "Learning tools",
+        "learningToolsHint": "Accredited label Learning tools hint",
+        "markCompleteLabel": "Mark as Complete",
+        "previousLabel": "Previous",
+        "nextLabel": "Next",
+        "defaultLessonAbout": "This lesson introduces key concepts related to food fraud mitigation and auditing under FSSC 22000 Version 6. It explains the topic in a practical, easy-to-follow manner so learners can understand the requirements, apply them in real food safety systems, and prepare for audit-ready documentation.",
+        "defaultLessonDescription": "This lesson explains the selected topic in a clear and practical way, helping learners understand its importance in food fraud mitigation and FSSC 22000 Version 6 compliance. It covers key concepts, real-world relevance, basic implementation points, and audit-focused documentation expectations.",
+        "defaultLearningOutcomes": [
+          "Understand the key concept covered in this lesson.",
+          "Explain why the topic is important for food fraud mitigation.",
+          "Identify practical risks related to the lesson topic.",
+          "Apply the learning in a food safety management system.",
+          "Recognize documentation and evidence needed for audit readiness.",
+          "Connect the lesson topic with FSSC 22000 Version 6 expectations."
+        ]
+      },
+      "regionalPrices": [],
+      "curriculum": [
+        {
+          "title": "General Instructions for Candidate",
+          "items": [
+            {
+              "label": "Food Fraud Introduction: Course Overview and Learning Outcomes",
+              "kind": "video",
+              "description": "The self-paced course admin panel should allow the admin to manage all module content from one simple icon-based interface. Each module will include options such as Video, Notes, Captions, PDF, PPT, Podcast, Documents, Webhook, and Module Exam.\n\nWhen the admin clicks on any content icon, the related editor should open. Each editor should provide both Upload File and Add URL/Link options. The course will not have a final exam; instead, assessments will be managed module-wise through the Module Exam option. This structure will make content uploading, editing, and module management easy, flexible, and organized.",
+              "videoUrl": "/api/media/serve/1779881052790-gz0ojvbt-1775807105introduction_video_1080p_capti.mp4",
+              "learningOutcomes": [
+                "Understand the key topic covered in this lesson.",
+                "Explain how the topic supports food fraud mitigation.",
+                "Identify related food safety and supply chain risks.",
+                "Recognize the controls needed to reduce food fraud vulnerability.",
+                "Understand documentation and records required for audit readiness.",
+                "Apply the lesson concept within an FSSC 22000 Version 6 food safety system."
+              ],
+              "about": "This lesson explains the selected topic in a simple and practical way, helping learners understand how it connects with food fraud mitigation, FSSC 22000 Version 6 requirements, and audit readiness. It focuses on key concepts, real-world food safety risks, required controls, and the type of evidence or documentation that may be reviewed during audits."
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam",
+              "description": "",
+              "examUploadUrl": "/api/media/serve/1779881268244-hja2k4a9-Untitled_spreadsheet_-_Sheet8.csv",
+              "examPassingScorePercent": 69
+            }
+          ]
+        },
+        {
+          "title": "Module 1 - Foundations of Food Fraud and FSSC 22000 Requirements",
+          "items": [
+            {
+              "label": "Module 1 - Foundations of Food Fraud and FSSC 22000 Requirements",
+              "kind": "video",
+              "description": "This self-paced course provides practical training on Food Fraud Mitigation and Auditing under FSSC 22000 Version 6. It helps learners understand food fraud concepts, conduct Food Fraud Vulnerability Assessments, identify significant vulnerabilities, prepare mitigation plans, integrate controls into the FSMS, and verify compliance through effective auditing.\n\nThe course is designed for food safety professionals, quality teams, auditors, consultants, and compliance personnel who want to build strong, audit-ready food fraud control systems aligned with FSSC 22000 Version 6, Section 2.5.4.",
+              "about": "This lesson explains the selected topic in a practical and audit-focused way, helping learners understand how it connects with food fraud mitigation under FSSC 22000 Version 6, Section 2.5.4. It covers key concepts, implementation expectations, documentation needs, and audit evidence required to support an effective food fraud control system.",
+              "learningOutcomes": [
+                "Understand the key concept covered in this lesson.",
+                "Explain how the lesson topic supports food fraud mitigation.",
+                "Relate the lesson topic to FSSC 22000 Version 6, Section 2.5.4.",
+                "Identify relevant food fraud vulnerabilities and risk factors.",
+                "Recognize the required controls, records, and documentation.",
+                "Apply the lesson learning in a practical FSMS context.",
+                "Understand what audit evidence may be reviewed for this topic."
+              ],
+              "videoUrl": "/api/media/serve/1779881493500-bg6vnp9v-1775807283module_1_720p_caption.mp4"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam",
+              "description": "",
+              "examPassingScorePercent": 70
+            }
+          ]
+        },
+        {
+          "title": "Module 2 — Core foundations (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "items": [
+            {
+              "label": "Video — Key principles and terminology",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Reference readings and frameworks",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 3 — Applied practices (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "items": [
+            {
+              "label": "Video — Scenario-based lesson",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Worksheets, templates, and examples",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 4 — Standards & compliance (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "items": [
+            {
+              "label": "Video — Regulatory and policy context",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Checklists and guidance notes",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 5 — Risk assessment & controls (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "items": [
+            {
+              "label": "Video — Identification and mitigation walkthrough",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Case studies and exercises",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 6 — Implementation (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "items": [
+            {
+              "label": "Video — Operational best practices on the job",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — SOP excerpts and job aids",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 7 — Review & assessment prep (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "items": [
+            {
+              "label": "Video — Summary and practice session",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Revision materials and sample questions",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 8 — Capstone & certification path (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "items": [
+            {
+              "label": "Video — Final wrap-up and next steps",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Completion requirements overview",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination (10 MCQs)",
+              "kind": "exam"
+            }
+          ]
+        }
+      ]
     }
   ],
   "categories": [

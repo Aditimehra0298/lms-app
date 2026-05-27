@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { ResolvedLearningSection } from "@/lib/course-learning-resolve";
 import { resolveLearningSection } from "@/lib/course-learning-resolve";
+import { resolveProtectedMediaUrl } from "@/lib/media-client";
 import {
   BadgeCheck,
   Bookmark,
@@ -20,9 +21,11 @@ import {
   FileText,
   FolderOpen,
   Headphones,
+  Link2,
   MessageCircle,
   Play,
   PlayCircle,
+  Presentation,
   Search,
   StickyNote,
   Subtitles,
@@ -51,7 +54,9 @@ type CourseCurriculumItem = {
   notes?: string;
   captions?: string;
   pdfUrl?: string;
+  pptUrl?: string;
   podcastUrl?: string;
+  webhookUrl?: string;
   resourceUrl?: string;
   downloadUrl?: string;
 };
@@ -258,7 +263,10 @@ export default function CourseLearningPlayerPage() {
         for (const mod of resolved) {
           for (const item of mod.items ?? []) {
             if (item.kind === "video" && item.videoUrl?.trim()) {
-              setVideoSrc(item.videoUrl.trim());
+              void resolveProtectedMediaUrl(item.videoUrl.trim(), {
+                courseSlug: slug,
+                scope: "learner",
+              }).then(setVideoSrc);
               return;
             }
           }
@@ -281,21 +289,23 @@ export default function CourseLearningPlayerPage() {
   useEffect(() => {
     const itemVideo = activeItem?.kind === "video" ? activeItem.videoUrl?.trim() : "";
     if (itemVideo) {
-      setVideoSrc(itemVideo);
+            void resolveProtectedMediaUrl(itemVideo, { courseSlug: slug }).then(setVideoSrc);
       return;
     }
     const moduleVideo = activeModule?.items?.find((it) => it.kind === "video" && it.videoUrl?.trim())?.videoUrl?.trim();
     if (moduleVideo) {
-      setVideoSrc(moduleVideo);
+      void resolveProtectedMediaUrl(moduleVideo, { courseSlug: slug }).then(setVideoSrc);
     }
-  }, [activeItem?.kind, activeItem?.videoUrl, activeModule]);
+  }, [activeItem?.kind, activeItem?.videoUrl, activeModule, slug]);
 
   const resourceLinks = useMemo(() => {
     const out: Array<{ label: string; url: string }> = [];
     if (activeItem?.pdfUrl?.trim()) out.push({ label: "PDF", url: activeItem.pdfUrl.trim() });
+    if (activeItem?.pptUrl?.trim()) out.push({ label: "PPT", url: activeItem.pptUrl.trim() });
     if (activeItem?.podcastUrl?.trim()) out.push({ label: "Podcast", url: activeItem.podcastUrl.trim() });
-    if (activeItem?.resourceUrl?.trim()) out.push({ label: "Resources", url: activeItem.resourceUrl.trim() });
-    if (activeItem?.downloadUrl?.trim()) out.push({ label: "Download", url: activeItem.downloadUrl.trim() });
+    if (activeItem?.resourceUrl?.trim()) out.push({ label: "Documents", url: activeItem.resourceUrl.trim() });
+    if (activeItem?.webhookUrl?.trim()) out.push({ label: "Webhook", url: activeItem.webhookUrl.trim() });
+    // Security: do not show direct download link in the learner dashboard.
     for (const row of activeModule?.items ?? []) {
       if (row.kind === "reading" && row.videoUrl?.trim()) {
         out.push({ label: row.label?.trim() || "Reading resource", url: row.videoUrl.trim() });
@@ -312,9 +322,11 @@ export default function CourseLearningPlayerPage() {
       { label: "Notes", value: activeItem?.notes?.trim() || "", icon: StickyNote },
       { label: "Captions", value: activeItem?.captions?.trim() || "", icon: Subtitles },
       { label: "PDF", value: activeItem?.pdfUrl?.trim() || "", icon: FileText },
+      { label: "PPT", value: activeItem?.pptUrl?.trim() || "", icon: Presentation },
       { label: "Podcast", value: activeItem?.podcastUrl?.trim() || "", icon: Headphones },
-      { label: "Resources", value: activeItem?.resourceUrl?.trim() || "", icon: FolderOpen },
-      { label: "Download", value: activeItem?.downloadUrl?.trim() || "", icon: Download },
+      { label: "Documents", value: activeItem?.resourceUrl?.trim() || "", icon: FolderOpen },
+      { label: "Webhook", value: activeItem?.webhookUrl?.trim() || "", icon: Link2 },
+      // Security: do not show "Download" tool in the learner dashboard.
     ],
     [activeItem],
   );
@@ -401,6 +413,8 @@ export default function CourseLearningPlayerPage() {
                     key={videoSrc}
                     src={videoSrc}
                     controls
+                    controlsList="nodownload"
+                    disablePictureInPicture
                     playsInline
                     preload="metadata"
                     className="h-[320px] w-full bg-black object-contain md:h-[460px] xl:h-[560px]"
@@ -486,8 +500,10 @@ export default function CourseLearningPlayerPage() {
                   <div className="mt-3 rounded-md border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-gray-300">
                     {activeToolItem?.value ? (
                       activeToolItem.label === "PDF" ||
+                      activeToolItem.label === "PPT" ||
                       activeToolItem.label === "Podcast" ||
-                      activeToolItem.label === "Resources" ||
+                      activeToolItem.label === "Documents" ||
+                      activeToolItem.label === "Webhook" ||
                       activeToolItem.label === "Download" ? (
                         <a
                           href={activeToolItem.value}
@@ -676,6 +692,19 @@ export default function CourseLearningPlayerPage() {
                       <div className="mt-1.5 space-y-1 rounded border border-white/10 bg-black/25 p-2">
                         {(module.items ?? []).map((entry, entryIdx) => {
                           const entryKey = `${module.title ?? "module"}-${entry.label ?? "entry"}-${entry.kind ?? "item"}-${entryIdx}`;
+                          const lessonTools = [
+                            entry.notes?.trim() ? { key: "notes", label: "Notes", icon: StickyNote } : null,
+                            entry.pdfUrl?.trim() ? { key: "pdf", label: "PDF", icon: FileText } : null,
+                            entry.pptUrl?.trim() ? { key: "ppt", label: "PPT", icon: Presentation } : null,
+                            entry.podcastUrl?.trim() ? { key: "podcast", label: "Podcast", icon: Headphones } : null,
+                            entry.resourceUrl?.trim()
+                              ? { key: "docs", label: "Docs", icon: FolderOpen }
+                              : null,
+                          ].filter(Boolean) as Array<{
+                            key: string;
+                            label: string;
+                            icon: typeof StickyNote;
+                          }>;
                           return entry.kind === "exam" ? (
                             <Link
                               key={entryKey}
@@ -686,7 +715,14 @@ export default function CourseLearningPlayerPage() {
                                 <Circle size={10} className="text-emerald-300" />
                                 {entry.label?.trim() || `Module ${idx + 1} exam`}
                               </span>
-                              <span className="text-[10px] text-emerald-200">Open Exam</span>
+                              <span className="inline-flex items-center gap-2 text-[10px] text-emerald-200">
+                                {entry.examUploadUrl?.trim() ? (
+                                  <span className="inline-flex items-center gap-1 rounded border border-emerald-200/30 bg-emerald-500/20 px-1.5 py-0.5">
+                                    <FileText size={9} /> File
+                                  </span>
+                                ) : null}
+                                Open Exam
+                              </span>
                             </Link>
                           ) : (
                             <button
@@ -710,7 +746,25 @@ export default function CourseLearningPlayerPage() {
                                 )}
                                 {entry.label?.trim() || `Lesson ${entryIdx + 1}`}
                               </span>
-                              <span className="text-[10px] text-gray-400">{entry.kind === "video" ? "Video" : "Reading"}</span>
+                              <span className="inline-flex items-center gap-1">
+                                <span className="text-[10px] text-gray-400">{entry.kind === "video" ? "Video" : "Reading"}</span>
+                                {lessonTools.length > 0 ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    {lessonTools.slice(0, 3).map((tool) => {
+                                      const ToolIcon = tool.icon;
+                                      return (
+                                        <span
+                                          key={`${entryKey}-${tool.key}`}
+                                          className="inline-flex items-center gap-1 rounded border border-violet-300/30 bg-violet-500/15 px-1 py-0.5 text-[9px] text-violet-100"
+                                        >
+                                          <ToolIcon size={9} />
+                                          {tool.label}
+                                        </span>
+                                      );
+                                    })}
+                                  </span>
+                                ) : null}
+                              </span>
                             </button>
                           );
                         })}

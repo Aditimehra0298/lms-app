@@ -349,6 +349,49 @@ Manual SQL (if you skip Prisma): `prisma/migrations/organization_identification/
 
 ---
 
+## View uploaded videos from Workbench
+
+MySQL stores the **video link and details**, not the video file itself. The `.mp4` file stays on your PC under:
+
+`lms-app-main/public/uploads/admin/`
+
+After you run the migration `prisma/migrations/20260527120000_course_content_media/migration.sql` (or `npm run db:push`), use these queries in Workbench:
+
+```sql
+USE sft_lms;
+
+-- All uploaded videos (easiest table)
+SELECT id, courseSlug, url, originalName,
+       ROUND(sizeBytes / 1024 / 1024, 2) AS size_mb,
+       createdAt
+FROM lms_media_asset
+WHERE kind = 'video'
+ORDER BY createdAt DESC;
+```
+
+**To watch a video:** copy the `url` column (e.g. `/uploads/admin/1234-lesson.mp4`) and open in your browser:
+
+`http://localhost:3000/uploads/admin/1234-lesson.mp4`
+
+(Replace `3000` if your dev server uses another port. The app must be running.)
+
+**Lesson videos inside a course** are also inside JSON:
+
+```sql
+SELECT courseSlug,
+       JSON_EXTRACT(payload, '$.curriculum[0].items[0].videoUrl') AS first_lesson_video
+FROM lms_course_content;
+```
+
+Workbench cannot play video inside a grid cell — it only shows text/JSON. Use the browser URL above.
+
+| What you see in Workbench | Where the real file is |
+|---------------------------|-------------------------|
+| `lms_media_asset.url` | `public/uploads/admin/` + that path |
+| `lms_course_content.payload` → `videoUrl` | Same file path |
+
+---
+
 ## Troubleshooting (short)
 
 | Symptom | Fix |
@@ -368,11 +411,13 @@ Manual SQL (if you skip Prisma): `prisma/migrations/organization_identification/
 | Table design in code | `prisma/schema.prisma` |
 | Organisation table SQL | `prisma/migrations/organization_identification/migration.sql` |
 | Course table SQL | `prisma/migrations/lms_course_table/migration.sql` |
+| Course content + media URLs | `prisma/migrations/20260527120000_course_content_media/migration.sql` |
 | Courses in MySQL | `docs/COURSES_MYSQL.md` |
 | SQL that creates tables | `prisma/migrations/20260214180000_init_lms_tables/migration.sql` |
 | App connection helper | `lib/prisma.ts` |
 | HTTP test route | `app/api/health/mysql/route.ts` |
-| Where catalog still lives (not MySQL yet) | `data/admin-content.json` |
+| Catalog JSON (primary for the app today) | `data/admin-content.json` |
+| Video files on disk | `public/uploads/admin/` |
 | Full senior demo script | `docs/SENIOR_DEMO_DATABASE_STEPS.md` |
 
 ---

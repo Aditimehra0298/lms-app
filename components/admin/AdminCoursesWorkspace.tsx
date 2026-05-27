@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetState
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Award,
   BookOpen,
   ChevronDown,
   ChevronRight,
@@ -39,6 +38,8 @@ import type {
   ManagedCourse,
   ManagedCourseHeroSection,
 } from "@/lib/content-schema";
+import { selfPacedCoverImageHint } from "@/lib/admin-image-hints";
+import AdminCourseHeroFieldsEditor from "@/components/admin/AdminCourseHeroFieldsEditor";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { sanitizeCourseHero } from "@/lib/course-hero-resolve";
 import { sanitizeInstructorSection } from "@/lib/course-instructor-section";
@@ -51,6 +52,7 @@ import AdminCourseCertificatesPanel from "@/components/admin/AdminCourseCertific
 import AdminImageUrlUpload from "@/components/admin/AdminImageUrlUpload";
 import AdminCoursePublishPanel from "@/components/admin/AdminCoursePublishPanel";
 import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
+import AdminLessonEditor from "@/components/admin/AdminLessonEditor";
 import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
 import { describeCertificateIdFormat } from "@/lib/certificate-ids";
 import { sanitizeCourseSeo, sanitizeCourseSettings } from "@/lib/course-workspace-panels";
@@ -83,12 +85,6 @@ const MORE_WORKSPACE_TABS = ["Settings", "SEO", "Students", "Certificates"] as c
 type PrimaryWorkspaceTab = (typeof PRIMARY_WORKSPACE_TABS)[number];
 type MoreWorkspaceTab = (typeof MORE_WORKSPACE_TABS)[number];
 type CourseWorkspaceTab = PrimaryWorkspaceTab | MoreWorkspaceTab;
-
-/** Module & final exam attachments — aligned with `app/api/admin/upload` (includes CSV). */
-const EXAM_FILE_ACCEPT =
-  ".pdf,.doc,.docx,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,application/csv";
-const VIDEO_FILE_ACCEPT =
-  ".mp4,.webm,.mov,.m4v,video/mp4,video/webm,video/quicktime,video/x-m4v";
 
 /** Parse currency-ish strings like "$49.00" or "49" for discount math. */
 function parseMoneyInput(s: string): number | null {
@@ -204,16 +200,10 @@ function kindToLessonLabel(kind: CourseCurriculumKind): string {
     case "video":
       return "Video";
     case "exam":
-      return "Quiz";
+      return "Exam";
     default:
       return "Document";
   }
-}
-
-function lessonLabelToKind(label: string): CourseCurriculumKind {
-  if (label === "Quiz") return "exam";
-  if (label === "Video") return "video";
-  return "reading";
 }
 
 type LessonSelection =
@@ -269,7 +259,9 @@ type RowPatch = Partial<{
   notes: string;
   captions: string;
   pdfUrl: string;
+  pptUrl: string;
   podcastUrl: string;
+  webhookUrl: string;
   resourceUrl: string;
   downloadUrl: string;
   videoUrl: string;
@@ -279,21 +271,10 @@ type RowPatch = Partial<{
   examPassingScorePercent: number;
 }>;
 
-function stripFinalExamForSave(f: CourseFinalExam): CourseFinalExam | undefined {
-  const title = f.title?.trim();
-  const has =
-    !!title ||
-    !!f.examUploadUrl?.trim() ||
-    typeof f.passingScorePercent === "number" ||
-    !!f.timedExam ||
-    typeof f.examDurationMinutes === "number";
-  if (!has) return undefined;
-  return { ...f, title: title || undefined };
-}
-
 export default function AdminCoursesWorkspace() {
   const [content, setContent] = useState<AdminContent | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [savingCatalog, setSavingCatalog] = useState(false);
   const [savingCurriculum, setSavingCurriculum] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState<CourseWorkspaceTab>("Catalog");
@@ -304,6 +285,7 @@ export default function AdminCoursesWorkspace() {
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [draft, setDraft] = useState<ManagedCourse>(emptyDraft);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingTeamImage, setUploadingTeamImage] = useState(false);
   const [uploadingHeroField, setUploadingHeroField] = useState<
     null | "backgroundImage" | "previewImage" | "certificatePreviewImage"
   >(null);
@@ -311,13 +293,7 @@ export default function AdminCoursesWorkspace() {
   const [modules, setModules] = useState<CourseCurriculumModule[]>([]);
   const [expandedModuleIdx, setExpandedModuleIdx] = useState(0);
   const [selectedLesson, setSelectedLesson] = useState<LessonSelection | null>(null);
-  const [videoSource, setVideoSource] = useState<"upload" | "url">("upload");
-  const [lessonPreviewable, setLessonPreviewable] = useState(true);
-  const [lessonFree, setLessonFree] = useState(false);
-  const [lessonDownload, setLessonDownload] = useState(true);
-  const [uploadingExam, setUploadingExam] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [finalExamDraft, setFinalExamDraft] = useState<CourseFinalExam>({});
+  const [finalExamDraft] = useState<CourseFinalExam>({});
   const [enrollmentRows, setEnrollmentRows] = useState<StoredCourseEnrollment[]>([]);
 
   const load = useCallback(async () => {
@@ -337,6 +313,30 @@ export default function AdminCoursesWorkspace() {
     } catch {
       setLoadError("Could not load admin content. Check that the dev server is running and try again.");
       setContent(null);
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  }, []);
+
+  const putAdminContent = useCallback(async (payload: AdminContent) => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 30_000);
+    try {
+      const put = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      if (!put.ok) {
+        const errBody = (await put.json().catch(() => ({}))) as { error?: string };
+        throw new Error(errBody.error ?? `Save failed (${put.status})`);
+      }
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") {
+        throw new Error("Save timed out. Check the dev server and try again.");
+      }
+      throw e;
     } finally {
       window.clearTimeout(timeoutId);
     }
@@ -390,17 +390,15 @@ export default function AdminCoursesWorkspace() {
     if (!content) return;
     setSavingCatalog(true);
     setLoadError(null);
+    setSaveNotice(null);
     try {
       const payload: AdminContent = { ...content, managedCourses: nextCourses };
-      const put = await fetch("/api/admin/content", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!put.ok) throw new Error("save");
-      await load();
-    } catch {
-      setLoadError("Save failed. Try again.");
+      await putAdminContent(payload);
+      setContent(payload);
+      setSaveNotice("Course saved.");
+      void load();
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Save failed. Try again.");
     } finally {
       setSavingCatalog(false);
     }
@@ -435,7 +433,7 @@ export default function AdminCoursesWorkspace() {
       slug,
       learningFormat: "self-paced",
       faqs: (draft.faqs ?? []).filter((f) => f.q.trim() && f.a.trim()),
-      finalExam: editingSlug || slug ? stripFinalExamForSave(finalExamDraft) : draft.finalExam,
+      finalExam: undefined,
     });
     const others = (content.managedCourses ?? []).filter((c) => {
       if (editingSlug) return c.slug !== editingSlug;
@@ -509,14 +507,12 @@ export default function AdminCoursesWorkspace() {
   useEffect(() => {
     if (!content || !selectedSlug || isCreating) {
       setModules([]);
-      setFinalExamDraft({});
       setSelectedLesson(null);
       return;
     }
     const c = (content.managedCourses ?? []).find((x) => x.slug === selectedSlug && isSelfPaced(x));
     if (!c) return;
     setModules(cloneMods(getCurriculumForCourse(c.slug, c.category, c.title, c.curriculum)));
-    setFinalExamDraft({ ...(c.finalExam ?? {}) });
   }, [selectedSlug, content, isCreating]);
 
   useEffect(() => {
@@ -555,35 +551,37 @@ export default function AdminCoursesWorkspace() {
   }, [workspaceTab, selectedCourse?.slug, isCreating]);
 
   const saveCurriculumOnly = async () => {
-    if (!content || !selectedCourse || isCreating) return;
+    if (!content) {
+      setLoadError("Admin content is still loading. Wait a moment and try again.");
+      return;
+    }
+    if (isCreating || !selectedCourse) {
+      setLoadError("Save the course on the Course tab first, then edit content here.");
+      return;
+    }
     setSavingCurriculum(true);
     setLoadError(null);
+    setSaveNotice(null);
     try {
       const updated: ManagedCourse = {
         ...selectedCourse,
         curriculum: cloneMods(modules),
-        finalExam: stripFinalExamForSave(finalExamDraft),
+        finalExam: undefined,
       };
       const others = (content.managedCourses ?? []).filter((c) => c.slug !== updated.slug);
       const payload: AdminContent = { ...content, managedCourses: [...others, updated] };
-      const put = await fetch("/api/admin/content", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!put.ok) throw new Error("save");
-      await load();
-    } catch {
-      setLoadError("Curriculum save failed.");
+      await putAdminContent(payload);
+      setContent(payload);
+      setSaveNotice("Curriculum saved.");
+      void load();
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Curriculum save failed.");
     } finally {
       setSavingCurriculum(false);
     }
   };
 
-  const persistCurriculumSnapshot = async (
-    nextModules: CourseCurriculumModule[],
-    nextFinalExam: CourseFinalExam = finalExamDraft,
-  ) => {
+  const persistCurriculumSnapshot = async (nextModules: CourseCurriculumModule[]) => {
     if (!content || !selectedCourse || isCreating) return;
     setSavingCurriculum(true);
     setLoadError(null);
@@ -591,19 +589,15 @@ export default function AdminCoursesWorkspace() {
       const updated: ManagedCourse = {
         ...selectedCourse,
         curriculum: cloneMods(nextModules),
-        finalExam: stripFinalExamForSave(nextFinalExam),
+        finalExam: undefined,
       };
       const others = (content.managedCourses ?? []).filter((c) => c.slug !== updated.slug);
       const payload: AdminContent = { ...content, managedCourses: [...others, updated] };
-      const put = await fetch("/api/admin/content", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!put.ok) throw new Error("save");
-      await load();
-    } catch {
-      setLoadError("Curriculum save failed.");
+      await putAdminContent(payload);
+      setContent(payload);
+      void load();
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Curriculum save failed.");
     } finally {
       setSavingCurriculum(false);
     }
@@ -863,64 +857,6 @@ export default function AdminCoursesWorkspace() {
     if (nextSel) setSelectedLesson(nextSel);
   };
 
-  const uploadLessonVideo = async (sel: LessonSelection, file: File) => {
-    setUploadingVideo(true);
-    setLoadError(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
-      const nextModules = patchLessonRow(modules, sel, { videoUrl: data.url });
-      setModules(nextModules);
-      await persistCurriculumSnapshot(nextModules);
-      setVideoSource("upload");
-    } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Video upload failed.");
-    } finally {
-      setUploadingVideo(false);
-    }
-  };
-
-  const uploadExamAsset = async (sel: LessonSelection, file: File) => {
-    setUploadingExam(true);
-    setLoadError(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
-      const nextModules = patchLessonRow(modules, sel, { examUploadUrl: data.url });
-      setModules(nextModules);
-      await persistCurriculumSnapshot(nextModules);
-    } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Exam file upload failed.");
-    } finally {
-      setUploadingExam(false);
-    }
-  };
-
-  const uploadFinalExamAsset = async (file: File) => {
-    setUploadingExam(true);
-    setLoadError(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
-      const nextFinalExam = { ...finalExamDraft, examUploadUrl: data.url };
-      setFinalExamDraft(nextFinalExam);
-      await persistCurriculumSnapshot(modules, nextFinalExam);
-    } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Final exam upload failed.");
-    } finally {
-      setUploadingExam(false);
-    }
-  };
-
   const steps = totalCurriculumSteps(modules);
   const catLabel =
     categories.find((c) => canonicalCategorySlug(c.slug) === canonicalCategorySlug(selectedCourse?.category ?? ""))
@@ -1026,6 +962,11 @@ export default function AdminCoursesWorkspace() {
         {loadError ? (
           <p className="mx-4 mb-4 mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-100 sm:mx-6">
             {loadError}
+          </p>
+        ) : null}
+        {saveNotice ? (
+          <p className="mx-4 mb-4 mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-100 sm:mx-6">
+            {saveNotice}
           </p>
         ) : null}
 
@@ -1328,220 +1269,23 @@ export default function AdminCoursesWorkspace() {
                 description="Top of the public course page before checkout — images, stats, and about text."
               >
                 <div className="grid gap-4 md:grid-cols-2 md:gap-5">
-                <div className="md:col-span-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
+                <div className="md:col-span-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3">
                   <h3 className="text-sm font-semibold text-amber-100">Hero fields</h3>
-                  <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
-                    Left column, enroll card on the right, and stats bar — shown at{" "}
-                    <code className="rounded bg-black/40 px-1 font-mono text-[10px] text-violet-200">
-                      /courses/[slug]
-                    </code>{" "}
-                    before checkout. Leave blank to use defaults from course info above.
+                  <p className="mt-0.5 text-[10px] text-gray-500">
+                    Public page at <code className="font-mono text-violet-200/90">/courses/[slug]</code> — expand sections below.
                   </p>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <AdminImageUrlUpload
-                      label="Hero background image"
-                      value={draft.hero?.backgroundImage ?? ""}
-                      onChange={(url) => updateDraftHero(setDraft, { backgroundImage: url })}
-                      onUploadFile={(f) => uploadHeroImage("backgroundImage", f)}
-                      uploading={uploadingHeroField === "backgroundImage"}
-                      placeholder="/p2.png (empty = course cover image)"
-                      hint="Large image behind the hero title on the course page."
+                  <div className="mt-3">
+                    <AdminCourseHeroFieldsEditor
+                      draft={draft}
+                      setDraft={setDraft}
+                      onUploadHeroImage={uploadHeroImage}
+                      uploadingHeroField={uploadingHeroField}
+                      fieldClass={spField}
                     />
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Rating count</span>
-                      <input
-                        value={draft.hero?.ratingCount ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { ratingCount: e.target.value })}
-                        className={spField}
-                        placeholder="1,245"
-                      />
-                      <p className="mt-1 text-[10px] text-gray-600">Shown as “(1,245 ratings)” next to star rating.</p>
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Students enrolled line</span>
-                      <input
-                        value={draft.hero?.studentsLabel ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { studentsLabel: e.target.value })}
-                        className={spField}
-                        placeholder="23,455 students enrolled"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Last updated</span>
-                      <input
-                        value={draft.hero?.lastUpdated ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { lastUpdated: e.target.value })}
-                        className={spField}
-                        placeholder="05/2024"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Language</span>
-                      <input
-                        value={draft.hero?.language ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { language: e.target.value })}
-                        className={spField}
-                        placeholder="English"
-                      />
-                    </label>
-                    <label className="block md:col-span-2">
-                      <span className="text-[11px] text-gray-500">Captions / subtitles line</span>
-                      <input
-                        value={draft.hero?.captions ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { captions: e.target.value })}
-                        className={spField}
-                        placeholder="English [Auto]"
-                      />
-                    </label>
-                    <AdminImageUrlUpload
-                      label="Enroll card — preview image"
-                      value={draft.hero?.previewImage ?? ""}
-                      onChange={(url) => updateDraftHero(setDraft, { previewImage: url })}
-                      onUploadFile={(f) => uploadHeroImage("previewImage", f)}
-                      uploading={uploadingHeroField === "previewImage"}
-                      placeholder="/p2.png"
-                      hint="Thumbnail in the enroll card on the right."
-                      className="block md:col-span-2"
-                    />
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Preview label</span>
-                      <input
-                        value={draft.hero?.previewLabel ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { previewLabel: e.target.value })}
-                        className={spField}
-                        placeholder="Preview this course"
-                      />
-                    </label>
-                    <label className="block md:col-span-2">
-                      <span className="text-[11px] text-gray-500">Money-back guarantee line</span>
-                      <input
-                        value={draft.hero?.moneyBackGuarantee ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { moneyBackGuarantee: e.target.value })}
-                        className={spField}
-                        placeholder="7 days money-back guarantee"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Enroll button label</span>
-                      <input
-                        value={draft.hero?.enrollButtonLabel ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { enrollButtonLabel: e.target.value })}
-                        className={spField}
-                        placeholder="Enroll Now"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Wishlist button label</span>
-                      <input
-                        value={draft.hero?.wishlistButtonLabel ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { wishlistButtonLabel: e.target.value })}
-                        className={spField}
-                        placeholder="Add to Wishlist"
-                      />
-                    </label>
-                    <p className="md:col-span-2 text-[11px] font-medium text-gray-400">Stats bar (bottom of hero)</p>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Lectures</span>
-                      <input
-                        value={draft.hero?.lectureCount ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { lectureCount: e.target.value })}
-                        className={spField}
-                        placeholder="85 Lectures"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Projects</span>
-                      <input
-                        value={draft.hero?.projects ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { projects: e.target.value })}
-                        className={spField}
-                        placeholder="5 Hands-on"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Certificate</span>
-                      <input
-                        value={draft.hero?.certificate ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { certificate: e.target.value })}
-                        className={spField}
-                        placeholder="Yes"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Access</span>
-                      <input
-                        value={draft.hero?.access ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { access: e.target.value })}
-                        className={spField}
-                        placeholder="Lifetime"
-                      />
-                    </label>
-                    <label className="block md:col-span-2">
-                      <span className="text-[11px] text-gray-500">Shareable</span>
-                      <input
-                        value={draft.hero?.shareable ?? ""}
-                        onChange={(e) => updateDraftHero(setDraft, { shareable: e.target.value })}
-                        className={spField}
-                        placeholder="Yes"
-                      />
-                    </label>
-                    <div className="md:col-span-2">
-                      <span className="mb-1.5 block text-[11px] text-gray-500">About this course (overview paragraph)</span>
-                      <SimpleRichTextArea
-                        value={draft.hero?.aboutText ?? ""}
-                        onChange={(v) => updateDraftHero(setDraft, { aboutText: v })}
-                        rows={5}
-                        label="About"
-                        placeholder="Long description shown under “About this course”…"
-                      />
-                    </div>
-                    <label className="block md:col-span-2">
-                      <span className="text-[11px] text-gray-500">
-                        This course includes (one line per item — sidebar)
-                      </span>
-                      <textarea
-                        value={(draft.hero?.courseIncludes ?? []).join("\n")}
-                        onChange={(e) =>
-                          updateDraftHero(setDraft, {
-                            courseIncludes: e.target.value
-                              .split("\n")
-                              .map((s) => s.trim())
-                              .filter(Boolean),
-                          })
-                        }
-                        rows={6}
-                        className={`${spField} min-h-[8rem] resize-y font-mono text-[12px]`}
-                        placeholder={"12 hours on-demand video\n85 downloadable resources\n5 hands-on projects"}
-                      />
-                    </label>
-                    <p className="md:col-span-2 text-[11px] font-medium text-amber-200/90">Certificate preview (bottom of sidebar)</p>
-                    <AdminImageUrlUpload
-                      label="Certificate preview image (sidebar)"
-                      value={draft.hero?.certificatePreviewImage ?? ""}
-                      onChange={(url) =>
-                        updateDraftHero(setDraft, { certificatePreviewImage: url })
-                      }
-                      onUploadFile={(f) => uploadHeroImage("certificatePreviewImage", f)}
-                      uploading={uploadingHeroField === "certificatePreviewImage"}
-                      placeholder="/certificates/haccp-certificate-preview.jpg"
-                      hint="Shown in the hero sidebar. Saves to /uploads/admin/… — or paste a URL."
-                    />
-                    <label className="block md:col-span-2">
-                      <span className="text-[11px] text-gray-500">Certificate label</span>
-                      <input
-                        value={draft.hero?.certificatePreviewLabel ?? ""}
-                        onChange={(e) =>
-                          updateDraftHero(setDraft, { certificatePreviewLabel: e.target.value })
-                        }
-                        className={spField}
-                        placeholder="Certificate of Attainment"
-                      />
-                    </label>
-                    <p className="md:col-span-2 text-[10px] text-gray-600">
-                      Duration and Level use <strong className="text-gray-500">Duration</strong> and{" "}
-                      <strong className="text-gray-500">Level</strong> from the Course tab. Rating and price use fields above.
-                    </p>
                   </div>
+                  <p className="mt-2 text-[10px] text-gray-600">
+                    Duration & level come from the Course tab; star rating & price from fields above.
+                  </p>
                 </div>
 
                 <div className="md:col-span-2 rounded-xl border border-violet-500/25 bg-violet-500/[0.06] p-4">
@@ -1565,20 +1309,36 @@ export default function AdminCoursesWorkspace() {
                         placeholder="Course developed by industry experts"
                       />
                     </label>
-                    <label className="block md:col-span-2">
-                      <span className="text-[11px] text-gray-500">Team image URL</span>
-                      <input
-                        value={draft.instructorSection?.teamImage ?? ""}
-                        onChange={(e) =>
+                    <AdminImageUrlUpload
+                      label="Team image (Instructor tab)"
+                      value={draft.instructorSection?.teamImage ?? ""}
+                      onChange={(url) =>
+                        setDraft((d) => ({
+                          ...d,
+                          instructorSection: { ...d.instructorSection, teamImage: url },
+                        }))
+                      }
+                      onUploadFile={async (file) => {
+                        setUploadingTeamImage(true);
+                        setLoadError(null);
+                        try {
+                          const url = await uploadAdminFile(file);
                           setDraft((d) => ({
                             ...d,
-                            instructorSection: { ...d.instructorSection, teamImage: e.target.value },
-                          }))
+                            instructorSection: { ...d.instructorSection, teamImage: url },
+                          }));
+                        } catch (e) {
+                          setLoadError(e instanceof Error ? e.message : "Team image upload failed.");
+                        } finally {
+                          setUploadingTeamImage(false);
                         }
-                        className={spField}
-                        placeholder="/sft-expert-team.png"
-                      />
-                    </label>
+                      }}
+                      uploading={uploadingTeamImage}
+                      placeholder="/sft-expert-team.png"
+                      hint="Shown on the Instructor tab (~4:3). Recommended 1200×900 px. JPEG, PNG, WebP, or GIF · max 6 MB."
+                      obscureValue
+                      className="block md:col-span-2"
+                    />
                     <label className="block md:col-span-2">
                       <span className="text-[11px] text-gray-500">Intro paragraphs (one per line)</span>
                       <textarea
@@ -1843,11 +1603,31 @@ export default function AdminCoursesWorkspace() {
                 </p>
                 <label className="block md:col-span-2">
                   <span className="text-[11px] text-gray-500">Cover image URL</span>
-                  <input
-                    value={draft.image}
-                    onChange={(e) => setDraft((d) => ({ ...d, image: e.target.value }))}
-                    className={`${spField} font-mono text-[12px]`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="password"
+                      value={draft.image}
+                      onChange={(e) => setDraft((d) => ({ ...d, image: e.target.value }))}
+                      className={`${spField} pr-20 font-mono text-[12px]`}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        const input = (e.currentTarget
+                          .parentElement?.querySelector("input") ??
+                          null) as HTMLInputElement | null;
+                        if (!input) return;
+                        input.type = input.type === "password" ? "text" : "password";
+                        e.currentTarget.textContent = input.type === "password" ? "Show" : "Hide";
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-[10px] font-semibold text-gray-300 hover:bg-black/55"
+                    >
+                      Show
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[10px] leading-relaxed text-gray-600">{selfPacedCoverImageHint}</p>
                 </label>
                 <div className="md:col-span-2">
                   <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-violet-400/35 bg-violet-500/[0.07] py-3 text-xs font-semibold text-violet-100 transition hover:border-violet-400/55 hover:bg-violet-500/15">
@@ -1967,8 +1747,8 @@ export default function AdminCoursesWorkspace() {
                   </nav>
                   <h2 className="text-xl font-semibold text-white md:text-2xl">Course content</h2>
                   <p className="mt-1 text-xs text-gray-400">
-                    {catLabel} · Edit <strong className="font-medium text-gray-300">modules &amp; module exams</strong> below,
-                    then configure the <strong className="font-medium text-gray-300">final exam</strong> in its own panel.
+                    {catLabel} · Build <strong className="font-medium text-gray-300">modules</strong>, add video / document /
+                    exam lessons, and attach learning tools (notes, PDF, captions, etc.) per lesson.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -2290,372 +2070,13 @@ export default function AdminCoursesWorkspace() {
                 {/* Middle — Edit lesson */}
                 <div className="rounded-xl border border-white/10 bg-[#0d1528] p-4">
                   {selectedLesson && getLessonFromModules(modules, selectedLesson) ? (
-                    <>
-                      <div className="mb-4 flex items-center justify-between gap-2">
-                        <h3 className="text-sm font-semibold text-white">Edit Lesson</h3>
-                        <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] text-gray-400">
-                          {lessonIndexLabel(selectedLesson)}
-                        </span>
-                      </div>
-                      <div className="space-y-3">
-                        <label className="block">
-                          <span className="mb-1 block text-[11px] text-gray-500">Lesson Title</span>
-                          <input
-                            value={getLessonFromModules(modules, selectedLesson)!.label}
-                            onChange={(e) => updateRow(selectedLesson, { label: e.target.value })}
-                            className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/40"
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="mb-1 block text-[11px] text-gray-500">Lesson Type</span>
-                          <select
-                            value={kindToLessonLabel(getLessonFromModules(modules, selectedLesson)!.kind)}
-                            onChange={(e) =>
-                              updateRow(selectedLesson, {
-                                kind: lessonLabelToKind(e.target.value),
-                              })
-                            }
-                            className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/40"
-                          >
-                            <option>Video</option>
-                            <option>Document</option>
-                            <option>Quiz</option>
-                          </select>
-                        </label>
-                        <label className="block">
-                          <span className="mb-1 block text-[11px] text-gray-500">Description</span>
-                          <textarea
-                            value={getLessonFromModules(modules, selectedLesson)!.description ?? ""}
-                            onChange={(e) => updateRow(selectedLesson, { description: e.target.value })}
-                            rows={5}
-                            placeholder="Lesson summary for your team (saved with curriculum)."
-                            className="w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm leading-relaxed outline-none focus:border-violet-500/40"
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="mb-1 block text-[11px] text-gray-500">About this lesson (shown below video)</span>
-                          <textarea
-                            value={getLessonFromModules(modules, selectedLesson)!.about ?? ""}
-                            onChange={(e) => updateRow(selectedLesson, { about: e.target.value })}
-                            rows={4}
-                            placeholder="What this lesson/module covers."
-                            className="w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm leading-relaxed outline-none focus:border-violet-500/40"
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="mb-1 block text-[11px] text-gray-500">
-                            Learning outcomes (one per line)
-                          </span>
-                          <textarea
-                            value={(getLessonFromModules(modules, selectedLesson)!.learningOutcomes ?? []).join("\n")}
-                            onChange={(e) =>
-                              updateRow(selectedLesson, {
-                                learningOutcomes: e.target.value
-                                  .split("\n")
-                                  .map((x) => x.trim())
-                                  .filter((x) => x.length > 0),
-                              })
-                            }
-                            rows={6}
-                            placeholder={"Understand X\nApply Y\nComplete Z"}
-                            className="w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm leading-relaxed outline-none focus:border-violet-500/40"
-                          />
-                        </label>
-                        <div className="grid gap-3 rounded-lg border border-white/10 bg-black/30 p-3 md:grid-cols-2">
-                          <label className="block">
-                            <span className="mb-1 block text-[11px] text-gray-500">Notes (text)</span>
-                            <textarea
-                              value={getLessonFromModules(modules, selectedLesson)!.notes ?? ""}
-                              onChange={(e) => updateRow(selectedLesson, { notes: e.target.value })}
-                              rows={3}
-                              placeholder="Lesson notes for learners"
-                              className="w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="mb-1 block text-[11px] text-gray-500">Captions</span>
-                            <input
-                              value={getLessonFromModules(modules, selectedLesson)!.captions ?? ""}
-                              onChange={(e) => updateRow(selectedLesson, { captions: e.target.value })}
-                              placeholder="Caption text or URL"
-                              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="mb-1 block text-[11px] text-gray-500">PDF URL</span>
-                            <input
-                              value={getLessonFromModules(modules, selectedLesson)!.pdfUrl ?? ""}
-                              onChange={(e) => updateRow(selectedLesson, { pdfUrl: e.target.value })}
-                              placeholder="https://...pdf"
-                              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="mb-1 block text-[11px] text-gray-500">Podcast URL</span>
-                            <input
-                              value={getLessonFromModules(modules, selectedLesson)!.podcastUrl ?? ""}
-                              onChange={(e) => updateRow(selectedLesson, { podcastUrl: e.target.value })}
-                              placeholder="https://...audio"
-                              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="mb-1 block text-[11px] text-gray-500">Resources URL</span>
-                            <input
-                              value={getLessonFromModules(modules, selectedLesson)!.resourceUrl ?? ""}
-                              onChange={(e) => updateRow(selectedLesson, { resourceUrl: e.target.value })}
-                              placeholder="https://...resources"
-                              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="mb-1 block text-[11px] text-gray-500">Download URL</span>
-                            <input
-                              value={getLessonFromModules(modules, selectedLesson)!.downloadUrl ?? ""}
-                              onChange={(e) => updateRow(selectedLesson, { downloadUrl: e.target.value })}
-                              placeholder="https://...download"
-                              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                            />
-                          </label>
-                        </div>
-                        {getLessonFromModules(modules, selectedLesson)!.kind === "exam" ? (
-                          <div className="space-y-3 rounded-lg border border-amber-500/25 bg-amber-500/10 p-3">
-                            <p className="text-[11px] font-medium text-amber-100">Quiz / examination</p>
-                            <label className="flex cursor-pointer items-center justify-between gap-3 text-xs text-gray-200">
-                              <span>Timed exam</span>
-                              <input
-                                type="checkbox"
-                                checked={!!getLessonFromModules(modules, selectedLesson)!.timedExam}
-                                onChange={(e) =>
-                                  updateRow(selectedLesson, {
-                                    timedExam: e.target.checked,
-                                    ...(e.target.checked
-                                      ? {}
-                                      : { examDurationMinutes: undefined }),
-                                  })
-                                }
-                                className="accent-amber-500"
-                              />
-                            </label>
-                            <label className="block">
-                              <span className="mb-1 block text-[11px] text-gray-500">
-                                Duration (minutes)
-                                {!getLessonFromModules(modules, selectedLesson)!.timedExam ? (
-                                  <span className="text-gray-600"> — optional when not timed</span>
-                                ) : null}
-                              </span>
-                              <input
-                                type="number"
-                                min={1}
-                                step={1}
-                                disabled={!getLessonFromModules(modules, selectedLesson)!.timedExam}
-                                value={
-                                  getLessonFromModules(modules, selectedLesson)!.examDurationMinutes ?? ""
-                                }
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  updateRow(selectedLesson, {
-                                    examDurationMinutes: v === "" ? undefined : Math.max(1, Number(v) || 1),
-                                  });
-                                }}
-                                placeholder="e.g. 30"
-                                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none disabled:opacity-40"
-                              />
-                            </label>
-                            <label className="block">
-                              <span className="mb-1 block text-[11px] text-gray-500">
-                                Passing score (% correct to pass)
-                              </span>
-                              <input
-                                type="number"
-                                min={0}
-                                max={100}
-                                step={1}
-                                value={
-                                  getLessonFromModules(modules, selectedLesson)!.examPassingScorePercent ?? ""
-                                }
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  updateRow(selectedLesson, {
-                                    examPassingScorePercent:
-                                      v === "" ? undefined : Math.min(100, Math.max(0, Math.round(Number(v) || 0))),
-                                  });
-                                }}
-                                placeholder="e.g. 70"
-                                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none"
-                              />
-                            </label>
-                            <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                              <p className="mb-2 text-[11px] font-medium text-gray-400">Exam paper / attachment</p>
-                              <p className="mb-2 text-[10px] text-gray-500">
-                                PDF, Word, or CSV — same upload API as other admin files.
-                              </p>
-                              {getLessonFromModules(modules, selectedLesson)!.examUploadUrl ? (
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <a
-                                    href={getLessonFromModules(modules, selectedLesson)!.examUploadUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="truncate text-xs text-violet-300 underline"
-                                  >
-                                    {getLessonFromModules(modules, selectedLesson)!.examUploadUrl}
-                                  </a>
-                                  <button
-                                    type="button"
-                                    onClick={() => updateRow(selectedLesson, { examUploadUrl: undefined })}
-                                    className="text-[10px] text-rose-300 hover:text-rose-200"
-                                  >
-                                    Clear
-                                  </button>
-                                </div>
-                              ) : (
-                                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/15 py-2 text-xs text-amber-100 hover:bg-amber-500/25">
-                                  <Upload className="h-3.5 w-3.5" />
-                                  {uploadingExam ? "Uploading…" : "Upload exam file (PDF / Word / CSV)"}
-                                  <input
-                                    type="file"
-                                    accept={EXAM_FILE_ACCEPT}
-                                    className="hidden"
-                                    disabled={uploadingExam}
-                                    onChange={(e) => {
-                                      const f = e.target.files?.[0];
-                                      if (f) void uploadExamAsset(selectedLesson, f);
-                                      e.target.value = "";
-                                    }}
-                                  />
-                                </label>
-                              )}
-                            </div>
-                          </div>
-                        ) : null}
-                        <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                          <p className="mb-2 text-[11px] font-medium text-gray-400">Video Source</p>
-                          <div className="flex flex-wrap gap-4 text-xs">
-                            <label className="inline-flex cursor-pointer items-center gap-2">
-                              <input
-                                type="radio"
-                                name="vsrc"
-                                checked={videoSource === "upload"}
-                                onChange={() => setVideoSource("upload")}
-                                className="accent-violet-500"
-                              />
-                              Upload Video
-                            </label>
-                            <label className="inline-flex cursor-pointer items-center gap-2 text-gray-300">
-                              <input
-                                type="radio"
-                                name="vsrc"
-                                checked={videoSource === "url"}
-                                onChange={() => setVideoSource("url")}
-                                className="accent-violet-500"
-                              />
-                              Video URL
-                            </label>
-                          </div>
-                          <div className="mt-3 space-y-2 rounded-lg border border-white/10 bg-[#0a1120] p-3">
-                            {videoSource === "upload" ? (
-                              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-violet-500/35 bg-violet-500/15 py-2 text-xs text-violet-100 hover:bg-violet-500/25">
-                                <Upload className="h-3.5 w-3.5" />
-                                {uploadingVideo ? "Uploading…" : "Upload lesson video"}
-                                <input
-                                  type="file"
-                                  accept={VIDEO_FILE_ACCEPT}
-                                  className="hidden"
-                                  disabled={uploadingVideo || !selectedLesson}
-                                  onChange={(e) => {
-                                    const f = e.target.files?.[0];
-                                    if (f && selectedLesson) void uploadLessonVideo(selectedLesson, f);
-                                    e.target.value = "";
-                                  }}
-                                />
-                              </label>
-                            ) : (
-                              <input
-                                value={getLessonFromModules(modules, selectedLesson)!.videoUrl ?? ""}
-                                onChange={(e) => updateRow(selectedLesson, { videoUrl: e.target.value })}
-                                placeholder="https://.../lesson-video.mp4"
-                                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                              />
-                            )}
-                            {getLessonFromModules(modules, selectedLesson)!.videoUrl ? (
-                              <div className="flex flex-wrap items-center gap-2">
-                                <a
-                                  href={getLessonFromModules(modules, selectedLesson)!.videoUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="truncate text-xs text-violet-300 underline"
-                                >
-                                  {getLessonFromModules(modules, selectedLesson)!.videoUrl}
-                                </a>
-                                <button
-                                  type="button"
-                                  onClick={() => updateRow(selectedLesson, { videoUrl: undefined })}
-                                  className="text-[10px] text-rose-300 hover:text-rose-200"
-                                >
-                                  Clear
-                                </button>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <label className="block">
-                            <span className="mb-1 block text-[11px] text-gray-500">Duration (HH:MM:SS)</span>
-                            <input
-                              defaultValue="00:15:30"
-                              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm outline-none"
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="mb-1 block text-[11px] text-gray-500">Preview (minutes)</span>
-                            <input
-                              defaultValue="3"
-                              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none"
-                            />
-                          </label>
-                        </div>
-                        <div className="space-y-2 border-t border-white/10 pt-3">
-                          {(
-                            [
-                              ["Make this lesson previewable", lessonPreviewable, setLessonPreviewable],
-                              ["Free Content", lessonFree, setLessonFree],
-                              ["Download Allowed", lessonDownload, setLessonDownload],
-                            ] as const
-                          ).map(([label, on, setOn]) => (
-                            <div key={label} className="flex cursor-pointer items-center justify-between gap-3 text-xs">
-                              <span className="text-gray-300">{label}</span>
-                              <button
-                                type="button"
-                                role="switch"
-                                aria-checked={on}
-                                onClick={() => setOn(!on)}
-                                className={`relative h-6 w-11 shrink-0 rounded-full transition ${on ? "bg-emerald-600" : "bg-gray-700"}`}
-                              >
-                                <span
-                                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition ${on ? "translate-x-5" : ""}`}
-                                />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="flex justify-end gap-2 border-t border-white/10 pt-4">
-                          <button
-                            type="button"
-                            className="rounded-lg border border-white/15 px-4 py-2 text-xs font-medium text-gray-300 hover:bg-white/5"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void saveCurriculumOnly()}
-                            disabled={savingCurriculum}
-                            className="rounded-lg bg-[#6f55ff] px-4 py-2 text-xs font-semibold text-white hover:bg-[#7d63ff] disabled:opacity-50"
-                          >
-                            Update Lesson
-                          </button>
-                        </div>
-                      </div>
-                    </>
+                    <AdminLessonEditor
+                      lesson={getLessonFromModules(modules, selectedLesson)!}
+                      lessonIndexLabel={lessonIndexLabel(selectedLesson)}
+                      onPatch={(patch) => updateRow(selectedLesson, patch)}
+                      onSave={() => void saveCurriculumOnly()}
+                      saving={savingCurriculum}
+                    />
                   ) : (
                     <div className="flex min-h-[280px] flex-col items-center justify-center text-center text-sm text-gray-500">
                       Select a lesson from the structure panel, add a module, or use{" "}
@@ -2687,134 +2108,6 @@ export default function AdminCoursesWorkspace() {
                   ))}
                 </div>
               </section>
-                </div>
-              </section>
-
-              <section
-                className="mt-6 rounded-2xl border border-amber-500/35 bg-[#0c1018] p-4 shadow-[inset_0_1px_0_rgba(251,191,36,0.07)] md:p-5"
-                aria-labelledby="final-exam-heading"
-              >
-                <header className="flex flex-wrap gap-3 border-b border-amber-500/25 pb-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/30">
-                    <Award className="h-5 w-5" aria-hidden />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3
-                      id="final-exam-heading"
-                      className="text-base font-semibold tracking-tight text-white md:text-lg"
-                    >
-                      Final certification exam
-                    </h3>
-                    <p className="mt-1 max-w-3xl text-xs leading-relaxed text-gray-500">
-                      <strong className="font-medium text-amber-200/90">Course-wide</strong> capstone — not part of the module
-                      list above. Learners open it with{" "}
-                      <span className="rounded bg-black/40 px-1 font-mono text-[11px] text-gray-300">?final=1</span> on the
-                      exam URL. Saved with the same Publish / Save actions as the curriculum.
-                    </p>
-                  </div>
-                </header>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <label className="block md:col-span-2">
-                    <span className="text-[11px] text-gray-500">Title shown on exam screen</span>
-                    <input
-                      value={finalExamDraft.title ?? ""}
-                      onChange={(e) => setFinalExamDraft((d) => ({ ...d, title: e.target.value }))}
-                      placeholder={`Final examination — ${selectedCourse!.title.slice(0, 48)}`}
-                      className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
-                    />
-                  </label>
-                  <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-xs text-gray-200">
-                    <span>Timed final exam</span>
-                    <input
-                      type="checkbox"
-                      checked={!!finalExamDraft.timedExam}
-                      onChange={(e) =>
-                        setFinalExamDraft((d) => ({
-                          ...d,
-                          timedExam: e.target.checked,
-                          ...(e.target.checked ? {} : { examDurationMinutes: undefined }),
-                        }))
-                      }
-                      className="accent-amber-500"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-[11px] text-gray-500">Duration (minutes)</span>
-                    <input
-                      type="number"
-                      min={1}
-                      step={1}
-                      disabled={!finalExamDraft.timedExam}
-                      value={finalExamDraft.examDurationMinutes ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setFinalExamDraft((d) => ({
-                          ...d,
-                          examDurationMinutes: v === "" ? undefined : Math.max(1, Number(v) || 1),
-                        }));
-                      }}
-                      className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none disabled:opacity-40"
-                    />
-                  </label>
-                  <label className="block md:col-span-2">
-                    <span className="text-[11px] text-gray-500">Passing score (% minimum correct)</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={1}
-                      value={finalExamDraft.passingScorePercent ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setFinalExamDraft((d) => ({
-                          ...d,
-                          passingScorePercent:
-                            v === "" ? undefined : Math.min(100, Math.max(0, Math.round(Number(v) || 0))),
-                        }));
-                      }}
-                      placeholder="e.g. 70"
-                      className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none"
-                    />
-                  </label>
-                  <div className="md:col-span-2 rounded-lg border border-amber-500/20 bg-black/30 p-3">
-                    <p className="mb-2 text-[11px] font-medium text-amber-100/90">Final exam paper / attachment</p>
-                    {finalExamDraft.examUploadUrl ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <a
-                          href={finalExamDraft.examUploadUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="truncate text-xs text-violet-300 underline"
-                        >
-                          {finalExamDraft.examUploadUrl}
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => setFinalExamDraft((d) => ({ ...d, examUploadUrl: undefined }))}
-                          className="text-[10px] text-rose-300 hover:text-rose-200"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 py-2 text-xs text-amber-100 hover:bg-amber-500/20">
-                        <Upload className="h-3.5 w-3.5" />
-                        {uploadingExam ? "Uploading…" : "Upload final exam file (PDF / Word / CSV)"}
-                        <input
-                          type="file"
-                          accept={EXAM_FILE_ACCEPT}
-                          className="hidden"
-                          disabled={uploadingExam}
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) void uploadFinalExamAsset(f);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
                 </div>
               </section>
             </>
