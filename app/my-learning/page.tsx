@@ -125,6 +125,18 @@ const toCourseSlug = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+type LearningCourseRow = {
+  slug?: string;
+  title: string;
+  modules: number;
+  duration: string;
+  completed: number;
+  status: string;
+  action: string;
+  tone: string;
+  deliveryKind?: "managed" | "tutor-led";
+};
+
 export default function MyLearningPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -190,41 +202,29 @@ export default function MyLearningPage() {
   useEffect(() => {
     setActiveTab(searchParams.get("tab") ?? "overview");
   }, [searchParams, pathname]);
-  const [purchasedCourses, setPurchasedCourses] = useState<
-    Array<{
-      slug?: string;
-      title: string;
-      modules: number;
-      duration: string;
-      completed: number;
-      status: string;
-      action: string;
-      tone: string;
-      deliveryKind?: "managed" | "tutor-led";
-    }>
-  >([]);
+  const [purchasedCourses, setPurchasedCourses] = useState<LearningCourseRow[]>([]);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem("sft_purchased_courses");
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Array<{
-        slug?: string;
-        title: string;
-        modules: number;
-        duration: string;
-        completed: number;
-        status: string;
-        action: string;
-        tone: string;
-        deliveryKind?: "managed" | "tutor-led";
-      }>;
-      if (Array.isArray(parsed)) {
-        setPurchasedCourses(parsed);
+    const loadPurchasedCourses = () => {
+      try {
+        const raw = window.localStorage.getItem("sft_purchased_courses");
+        if (!raw) {
+          setPurchasedCourses([]);
+          return;
+        }
+        const parsed = JSON.parse(raw) as LearningCourseRow[];
+        setPurchasedCourses(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setPurchasedCourses([]);
       }
-    } catch {
-      setPurchasedCourses([]);
-    }
+    };
+    loadPurchasedCourses();
+    window.addEventListener("storage", loadPurchasedCourses);
+    window.addEventListener("sft_purchases_updated", loadPurchasedCourses);
+    return () => {
+      window.removeEventListener("storage", loadPurchasedCourses);
+      window.removeEventListener("sft_purchases_updated", loadPurchasedCourses);
+    };
   }, []);
 
   const [examCatalog, setExamCatalog] = useState<ManagedCourse[] | undefined>(undefined);
@@ -262,6 +262,19 @@ export default function MyLearningPage() {
 
   const coursesForLearning = [...purchasedCourses, ...baseLearningCourses].filter(
     (course, index, all) => all.findIndex((item) => courseRowKey(item) === courseRowKey(course)) === index,
+  );
+  const totalEnrolledCourses = coursesForLearning.length;
+  const totalCompletedCourses = coursesForLearning.filter(
+    (course) =>
+      course.status.toLowerCase() === "completed" ||
+      (Number.isFinite(course.modules) && course.modules > 0 && course.completed >= course.modules),
+  ).length;
+  const totalNotStartedCourses = coursesForLearning.filter((course) =>
+    course.status.toLowerCase().includes("not started"),
+  ).length;
+  const totalInProgressCourses = Math.max(
+    0,
+    totalEnrolledCourses - totalCompletedCourses - totalNotStartedCourses,
   );
 
   const purchasedTutorLedRows = useMemo(
@@ -345,8 +358,8 @@ export default function MyLearningPage() {
                 <button className="text-xs text-amber-200">View All Courses</button>
               </div>
               <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-                {coursesForLearning.slice(0, 5).map((course) => (
-                  <article key={course.title} className="rounded-lg border border-white/10 bg-black/25 p-3">
+                {coursesForLearning.slice(0, 7).map((course) => (
+                  <article key={courseRowKey(course)} className="rounded-lg border border-white/10 bg-black/25 p-3">
                     <div className="h-20 rounded-md border border-dashed border-white/20 bg-black/30 text-center text-[10px] leading-[80px] text-gray-500">
                       Course Poster
                     </div>
@@ -373,9 +386,13 @@ export default function MyLearningPage() {
                 </div>
                 <div className="space-y-2">
                   {coursesForLearning.slice(0, 3).map((course) => {
-                    const percentage = Math.round((course.completed / course.modules) * 100);
+                    const safeModules = Math.max(1, course.modules);
+                    const percentage = Math.round((course.completed / safeModules) * 100);
                     return (
-                      <div key={`recommended-${course.title}`} className="rounded-lg border border-white/10 bg-black/20 p-3">
+                      <div
+                        key={`recommended-${courseRowKey(course)}`}
+                        className="rounded-lg border border-white/10 bg-black/20 p-3"
+                      >
                         <div className="flex items-start justify-between gap-3">
                           <p className="text-sm font-semibold">{course.title}</p>
                           <span className="text-xs text-gray-400">{course.duration}</span>
@@ -1041,10 +1058,10 @@ export default function MyLearningPage() {
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 {[
-                  [BookOpen, "6", "Enrolled Courses", "violet"],
-                  [CheckCircle2, "2", "Completed", "green"],
-                  [Clock3, "3", "In Progress", "amber"],
-                  [CircleDot, "1", "Not Started", "rose"],
+                  [BookOpen, String(totalEnrolledCourses), "Enrolled Courses", "violet"],
+                  [CheckCircle2, String(totalCompletedCourses), "Completed", "green"],
+                  [Clock3, String(totalInProgressCourses), "In Progress", "amber"],
+                  [CircleDot, String(totalNotStartedCourses), "Not Started", "rose"],
                 ].map(([Icon, value, label, tone]) => (
                   <article key={label as string} className="rounded-xl border border-white/10 bg-black/30 p-3">
                     <p className="inline-flex items-center gap-2 text-sm">
@@ -1094,7 +1111,7 @@ export default function MyLearningPage() {
                   const percentage = Math.round((course.completed / course.modules) * 100);
                   return (
                     <article
-                      key={course.title}
+                      key={courseRowKey(course)}
                       className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-3 xl:grid-cols-[320px_1fr_150px]"
                     >
                       <div className="flex gap-3">

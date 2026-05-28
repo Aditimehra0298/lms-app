@@ -193,6 +193,7 @@ export default function CheckoutPage() {
       );
       window.localStorage.setItem("sft_purchased_courses", JSON.stringify(merged));
       window.localStorage.setItem("sft_cart", JSON.stringify([]));
+      window.dispatchEvent(new Event("sft_purchases_updated"));
       window.dispatchEvent(new Event("sft_cart_updated"));
     } catch {
       // Keep UI flow even if local storage is unavailable.
