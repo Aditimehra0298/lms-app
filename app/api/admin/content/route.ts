@@ -50,6 +50,10 @@ export async function PUT(request: Request) {
         Array.isArray(body.tutorLedPrograms) && body.tutorLedPrograms.length > 0
           ? body.tutorLedPrograms
           : existing.tutorLedPrograms ?? defaultAdminContent.tutorLedPrograms,
+      globalCertificateAssets:
+        body.globalCertificateAssets !== undefined
+          ? body.globalCertificateAssets
+          : existing.globalCertificateAssets,
     };
 
     await writeAdminContent(nextContent);

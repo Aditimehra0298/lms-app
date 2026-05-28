@@ -82,6 +82,10 @@ export async function readAdminContent(): Promise<AdminContent> {
         Array.isArray(parsed.tutorLedPrograms) && parsed.tutorLedPrograms.length > 0
           ? parsed.tutorLedPrograms
           : defaultAdminContent.tutorLedPrograms,
+      globalCertificateAssets:
+        parsed.globalCertificateAssets && typeof parsed.globalCertificateAssets === "object"
+          ? parsed.globalCertificateAssets
+          : undefined,
     };
   } catch {
     return defaultAdminContent;

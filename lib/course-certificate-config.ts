@@ -9,14 +9,14 @@ export function sanitizeCertificateConfig(
         .filter((d) => d && typeof d === "object" && d.title?.trim() && d.url?.trim())
         .map((d) => ({ title: d.title.trim(), url: d.url.trim() }))
     : [];
-  const provider = raw.provider === "builtin" || raw.provider === "n8n" ? raw.provider : undefined;
+  /** One global n8n workflow (env URL) — admin never configures provider per course. */
+  const provider: ManagedCourseCertificateConfig["provider"] = "n8n";
   const out: ManagedCourseCertificateConfig = {
     enabled: raw.enabled !== false,
     provider,
-    n8nWebhookUrl: raw.n8nWebhookUrl?.trim(),
     showInLearnerDashboard: raw.showInLearnerDashboard !== false,
-    autoVisibleWhenReady: raw.autoVisibleWhenReady !== false,
-    requireAdminApproval: raw.requireAdminApproval === true,
+    autoVisibleWhenReady: raw.autoVisibleWhenReady === true,
+    requireAdminApproval: raw.requireAdminApproval !== false,
     title: raw.title?.trim(),
     templateImage: raw.templateImage?.trim(),
     badgeImage: raw.badgeImage?.trim(),

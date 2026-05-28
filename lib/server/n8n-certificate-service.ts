@@ -1,5 +1,9 @@
 import type { ManagedCourse } from "@/lib/content-schema";
+import { buildCertificateVerifyUrl } from "@/lib/certificate-verify-url";
+import { allocateDelegateNumber } from "@/lib/server/delegate-number-issue";
+import { resolveCertificateAssetsForCourse } from "@/lib/global-certificate-assets";
 import { readAdminContent } from "@/lib/server/content-store";
+import { allocateSftCertificateNumber } from "@/lib/server/certificate-number-issue";
 import {
   resolveCertificatePermissions,
   shouldShowOnLearnerDashboard,
@@ -8,7 +12,11 @@ import { ensureCourseInMysql, getCourseBySlug } from "@/lib/server/course-mysql-
 import { lookupRegistrationByEmail } from "@/lib/server/registration-lookup";
 import type { CertificateRowDto } from "@/lib/certificate-types";
 import { issueCourseCertificate } from "@/lib/server/certificate-service";
-import { prisma } from "@/lib/prisma";
+import {
+  formatGrade,
+  formatIssueDate,
+  formatLearningMode,
+} from "@/lib/certificate-payload-fields";
 
 export type { CertificateRowDto };
 
@@ -23,6 +31,8 @@ function appBaseUrl(): string {
 function toDto(row: {
   id: string;
   certificateNumber: string;
+  delegateNumber: string | null;
+  verifyNumber: number | null;
   identificationNumber: number;
   holderType: string;
   organizationId: string | null;
@@ -44,9 +54,16 @@ function toDto(row: {
   if (Array.isArray(row.supplementaryDocs)) {
     supplementaryDocs = row.supplementaryDocs as { title: string; url: string }[];
   }
+  const verifyUrl = buildCertificateVerifyUrl(appBaseUrl(), {
+    delegateNumber: row.delegateNumber,
+    certificateNumber: row.certificateNumber,
+  });
   return {
     id: row.id,
     certificateNumber: row.certificateNumber,
+    delegateNumber: row.delegateNumber,
+    verifyNumber: row.verifyNumber,
+    verifyUrl,
     identificationNumber: row.identificationNumber,
     holderType: row.holderType === "organisation" ? "organisation" : "individual",
     organizationId: row.organizationId,
@@ -146,7 +163,7 @@ export async function requestCourseCertificate(input: {
   if (!perms.n8nWebhookUrl) {
     return {
       ok: false,
-      message: "n8n webhook URL not configured. Set N8N_CERTIFICATE_WEBHOOK_URL in .env.local or Admin → Certificates.",
+      message: "Certificate workflow is not configured. Contact your technical team.",
     };
   }
 
@@ -155,9 +172,34 @@ export async function requestCourseCertificate(input: {
     return { ok: false, message: "User must be registered in MySQL before requesting a certificate." };
   }
 
+  const content = await readAdminContent();
+  const assets = resolveCertificateAssetsForCourse(content, course);
+  if (!assets.templateImage || !assets.badgeImage || !assets.transcriptFile) {
+    return {
+      ok: false,
+      message: "Certificate templates are not uploaded yet. Admin → Certificates → upload all 3 files.",
+    };
+  }
+
   const displayName =
     registration.companyName ?? input.learnerName?.trim() ?? email.split("@")[0];
-  const tempNumber = `TEMP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const holderType =
+    registration.accountType === "organisation" ? "organisation" : "individual";
+  const issuedAt = new Date();
+  const certificateNumber = await allocateSftCertificateNumber({
+    courseIdentificationNumber: courseRow.courseIdentificationNumber,
+    userIdentificationNumber: registration.identificationNumber,
+    holderType,
+    issuedAt,
+  });
+  const { delegateNumber, verifyNumber } = await allocateDelegateNumber({
+    userIdentificationNumber: registration.identificationNumber,
+    holderType,
+    issuedAt,
+  });
+  const verifyUrl = buildCertificateVerifyUrl(appBaseUrl(), { delegateNumber });
+  const issueDate = formatIssueDate(issuedAt);
+  const grade = formatGrade(input.scorePercent);
 
   const row = await prisma.lmsCertificate.create({
     data: {
@@ -166,13 +208,19 @@ export async function requestCourseCertificate(input: {
       courseSlug: slug,
       courseId: courseRow.id,
       courseTitle: course.title,
-      certificateNumber: tempNumber,
+      certificateNumber,
+      delegateNumber,
+      verifyNumber,
       identificationNumber: registration.identificationNumber,
-      holderType: registration.accountType === "organisation" ? "organisation" : "individual",
+      holderType,
       scorePercent: input.scorePercent ?? null,
+      templateImage: assets.templateImage,
+      badgeImage: assets.badgeImage,
+      supplementaryDocs: assets.supplementaryDocs.length > 0 ? assets.supplementaryDocs : undefined,
       status: "pending",
       visibleToLearner: false,
       issuedVia: "n8n",
+      issuedAt,
     },
   });
 
@@ -187,18 +235,50 @@ export async function requestCourseCertificate(input: {
       ? {
           ...registration,
           displayName,
+          delegateNumber,
         }
-      : { email, displayName },
+      : { email, displayName, delegateNumber },
     courseSlug: slug,
     courseTitle: course.title,
     course: courseRow,
     courseCategory: course.category,
     courseLevel: course.level,
+    courseDuration: course.duration,
+    courseMode: formatLearningMode(course.learningFormat),
     scorePercent: input.scorePercent ?? null,
-    completedAt: new Date().toISOString(),
+    completedAt: issuedAt.toISOString(),
     registration,
     requireAdminApproval: perms.requireAdminApproval,
     autoVisibleWhenReady: perms.autoVisibleWhenReady,
+    assets: {
+      certificateTemplate: assets.templateImage,
+      badge: assets.badgeImage,
+      transcriptTemplate: assets.transcriptFile,
+    },
+    certificateFields: {
+      candidateName: displayName,
+      courseName: course.title,
+      duration: course.duration,
+      mode: formatLearningMode(course.learningFormat),
+      issueDate,
+      certificateNumber,
+      delegateNumber,
+      verifyUrl,
+    },
+    transcriptFields: {
+      candidateName: displayName,
+      trainingProgram: course.title,
+      grade,
+      certificateNumber,
+      issueDate,
+      delegateNumber,
+    },
+    tracker: {
+      delegateNumber,
+      verifyNumber,
+      verifyUrl,
+      qrCodeData: verifyUrl,
+    },
   };
 
   try {

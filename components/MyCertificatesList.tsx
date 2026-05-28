@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Award, Download, ExternalLink, Loader2, Search } from "lucide-react";
+import { Award, Copy, Download, ExternalLink, Linkedin, Loader2, Search } from "lucide-react";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import type { CertificateRowDto } from "@/lib/certificate-types";
+import { buildLinkedInShareUrl } from "@/lib/certificate-verify-url";
 
 function statusLabel(c: CertificateRowDto): string {
   if (c.status === "pending") return "Generating your certificate…";
@@ -94,6 +95,11 @@ export default function MyCertificatesList() {
               {!c.certificateNumber.startsWith("TEMP-") ? (
                 <p className="mt-2 font-mono text-xs text-violet-200">{c.certificateNumber}</p>
               ) : null}
+              {c.delegateNumber ? (
+                <p className="mt-1 font-mono text-[10px] text-amber-200/90">
+                  Delegate {c.delegateNumber}
+                </p>
+              ) : null}
               <p className="mt-1 text-[11px] text-gray-500">
                 ID {c.identificationNumber}
                 {c.status === "ready" ? ` · ${new Date(c.issuedAt).toLocaleDateString()}` : ""}
@@ -116,6 +122,28 @@ export default function MyCertificatesList() {
                       <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                       Open PDF
                     </a>
+                  ) : null}
+                  {c.verifyUrl ? (
+                    <>
+                      <a
+                        href={buildLinkedInShareUrl(c.verifyUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#0a66c2] px-3 py-2 text-xs font-semibold text-white hover:bg-[#004182]"
+                      >
+                        <Linkedin className="h-3.5 w-3.5" aria-hidden />
+                        LinkedIn
+                      </a>
+                      <a
+                        href={c.verifyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/10"
+                      >
+                        <Copy className="h-3.5 w-3.5" aria-hidden />
+                        Verify
+                      </a>
+                    </>
                   ) : null}
                   <Link
                     href={`/my-learning/certificates/${c.id}`}

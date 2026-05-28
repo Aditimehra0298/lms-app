@@ -15,8 +15,11 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { CourseCurriculumItem, CourseCurriculumModule, CourseFinalExam } from "@/lib/content-schema";
-import { getLearnerEmail } from "@/lib/learner-session-client";
-import { requestCourseCertificateClient } from "@/lib/request-course-certificate-client";
+import {
+  DEFAULT_MODULE_EXAM_PASS_PERCENT,
+  recordModuleExamAttempt,
+} from "@/lib/learner-exam-scores";
+import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
 
 export const dynamic = "force-dynamic";
 
@@ -26,17 +29,6 @@ type CourseExamPayload = {
   curriculum: CourseCurriculumModule[] | null;
   finalExam: CourseFinalExam | null;
 };
-
-function getFirstExamRowInModule(mod: CourseCurriculumModule | undefined): CourseCurriculumItem | undefined {
-  if (!mod) return undefined;
-  const top = mod.items.find((i) => i.kind === "exam");
-  if (top) return top;
-  for (const sm of mod.subModules ?? []) {
-    const row = sm.items.find((i) => i.kind === "exam");
-    if (row) return row;
-  }
-  return undefined;
-}
 
 const quizQuestions = [
   {
@@ -111,7 +103,6 @@ function CourseExamPageInner() {
     () => Array.from({ length: quizQuestions.length }, () => null),
   );
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [certMessage, setCertMessage] = useState("");
   const [timeRemainingSec, setTimeRemainingSec] = useState<number | null>(null);
   const currentQuestion = quizQuestions[currentQuestionIndex];
   const answeredQuestions = useMemo(
@@ -164,7 +155,10 @@ function CourseExamPageInner() {
     }
     const mod = courseMeta.curriculum?.[moduleIdx];
     const row = getFirstExamRowInModule(mod);
-    const passing = typeof row?.examPassingScorePercent === "number" ? row.examPassingScorePercent : 60;
+    const passing =
+      typeof row?.examPassingScorePercent === "number"
+        ? row.examPassingScorePercent
+        : DEFAULT_MODULE_EXAM_PASS_PERCENT;
     const timed = !!row?.timedExam;
     const durationSec = Math.max(60, (row?.examDurationMinutes ?? 90) * 60);
     const title = row?.label?.trim() || `Module ${moduleNumber} examination — ${courseMeta.title}`;
@@ -221,49 +215,22 @@ function CourseExamPageInner() {
     }
   };
 
-  const saveModuleScorePercent = (percent: number) => {
-    if (isFinalExam) return;
-    const key = `sft_module_exam_scores_${slug}`;
-    try {
-      const raw = window.localStorage.getItem(key);
-      const prev = raw ? (JSON.parse(raw) as Record<string, number>) : {};
-      const prevScore =
-        prev && typeof prev === "object" && typeof prev[String(moduleNumber)] === "number"
-          ? prev[String(moduleNumber)]
-          : 0;
-      // Keep best attempt so retries can only improve certification status.
-      const next = {
-        ...(prev && typeof prev === "object" ? prev : {}),
-        [String(moduleNumber)]: Math.max(prevScore, percent),
-      };
-      window.localStorage.setItem(key, JSON.stringify(next));
-    } catch {
-      // keep UI working even if local storage fails
-    }
-  };
-
   useEffect(() => {
-    if (!isSubmitted || !examRuntime) return;
-    const percentage = Math.round((score / quizQuestions.length) * 100);
-    saveModuleScorePercent(percentage);
-    if (percentage >= examRuntime.passingScorePercent) {
+    if (!isSubmitted || !examRuntime || isFinalExam) return;
+    const total = quizQuestions.length;
+    const correct = score;
+    const percentage = Math.round((correct / total) * 100);
+    const entry = recordModuleExamAttempt({
+      courseSlug: slug,
+      moduleNumber,
+      correct,
+      total,
+      passingPercent: examRuntime.passingScorePercent,
+    });
+    if (entry.passed) {
       markModuleCompleted();
-      const email = getLearnerEmail();
-      if (email && courseMeta?.slug) {
-        void requestCourseCertificateClient({
-          learnerEmail: email,
-          courseSlug: courseMeta.slug,
-          scorePercent: percentage,
-        }).then((r) => {
-          setCertMessage(
-            r.ok
-              ? "Your certificate is being generated. Check My Learning → Certificates after admin approval."
-              : r.message ?? "Certificate could not be started.",
-          );
-        });
-      }
     }
-  }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug, courseMeta?.slug]);
+  }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug]);
 
   if (courseMeta === undefined) {
     return (
@@ -299,7 +266,8 @@ function CourseExamPageInner() {
         <main className="mx-auto max-w-[700px] px-4 py-16 text-center">
           <p className="text-2xl font-bold">Final exam is not required</p>
           <p className="mt-2 text-sm text-gray-300">
-            Certification is based on overall module exam performance. Score at least 60% across module exams.
+            Certification is based on all module exams. Pass each exam at 70%+ (unlimited retakes). Your
+            certificate grade is the combined percentage from all exam marks.
           </p>
           <Link href={`/my-learning/course/${slug}`} className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold">
             Back to My Learning
@@ -325,15 +293,15 @@ function CourseExamPageInner() {
             </p>
             <div className="mt-4 grid gap-3 md:grid-cols-4">
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-xs text-gray-400">Total Questions</p>
+                <p className="text-xs text-gray-400">Marks available</p>
                 <p className="text-2xl font-bold">{quizQuestions.length}</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-xs text-gray-400">Correct</p>
+                <p className="text-xs text-gray-400">Marks obtained</p>
                 <p className="text-2xl font-bold">{score}</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-xs text-gray-400">Score</p>
+                <p className="text-xs text-gray-400">This exam %</p>
                 <p className="text-2xl font-bold">{percentage}%</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
@@ -343,20 +311,18 @@ function CourseExamPageInner() {
                 </p>
               </div>
             </div>
-            {passed && certMessage ? (
+            {passed ? (
               <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                {certMessage}
+                You passed this exam ({score} / {quizQuestions.length} marks = {percentage}%). When you have
+                passed every module exam, your combined percentage is used for your certificate grade.
               </p>
-            ) : null}
+            ) : (
+              <p className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                You need {examRuntime.passingScorePercent}% to pass ({score} / {quizQuestions.length} marks ={" "}
+                {percentage}%). You can retake this exam as many times as you need.
+              </p>
+            )}
             <div className="mt-5 flex flex-wrap gap-2">
-              {passed ? (
-                <Link
-                  href="/my-learning?tab=certificates"
-                  className="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-black"
-                >
-                  My Certificates
-                </Link>
-              ) : null}
               <Link href={`/my-learning/course/${slug}`} className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold">
                 Back to My Learning
               </Link>
@@ -370,7 +336,7 @@ function CourseExamPageInner() {
                 }}
                 className="rounded-md border border-white/15 bg-black/25 px-4 py-2 text-sm"
               >
-                Retake Exam
+                {passed ? "Retake exam (optional)" : "Retake exam"}
               </button>
             </div>
           </section>

@@ -1,10 +1,9 @@
 import type { ManagedCourse, ManagedCourseCertificateConfig } from "@/lib/content-schema";
-import {
-  formatCertificateNumber,
-  formatMonthYear,
-  formatOrganizationCertificateNumber,
-} from "@/lib/certificate-ids";
 import { readAdminContent } from "@/lib/server/content-store";
+import { resolveCertificateAssetsForCourse } from "@/lib/global-certificate-assets";
+import { allocateSftCertificateNumber } from "@/lib/server/certificate-number-issue";
+import { allocateDelegateNumber } from "@/lib/server/delegate-number-issue";
+import { buildCertificateVerifyUrl } from "@/lib/certificate-verify-url";
 import { prisma } from "@/lib/prisma";
 import {
   ensureOrganizationProfile,
@@ -18,7 +17,10 @@ export type { IssuedCertificateDto, SupplementaryDoc };
 
 const DEFAULT_TEMPLATE = "/certificates/haccp-certificate-template.jpg";
 
-export function resolveCertificateConfig(course: ManagedCourse): Required<
+export function resolveCertificateConfig(
+  course: ManagedCourse,
+  content?: Awaited<ReturnType<typeof readAdminContent>>,
+): Required<
   Pick<
     ManagedCourseCertificateConfig,
     "templateImage" | "badgeImage" | "title" | "nameTopPercent" | "numberTopPercent" | "dateTopPercent"
@@ -26,44 +28,27 @@ export function resolveCertificateConfig(course: ManagedCourse): Required<
 > & { supplementaryDocs: SupplementaryDoc[]; enabled: boolean } {
   const cfg = course.certificateConfig ?? {};
   const hero = course.hero ?? {};
+  const globalAssets = content
+    ? resolveCertificateAssetsForCourse(content, course)
+    : null;
   return {
     enabled: cfg.enabled !== false && (hero.certificate ?? "").trim().toLowerCase() !== "no",
     templateImage:
+      globalAssets?.templateImage ||
       cfg.templateImage?.trim() ||
       hero.certificatePreviewImage?.trim() ||
       DEFAULT_TEMPLATE,
-    badgeImage: cfg.badgeImage?.trim() || "",
+    badgeImage: globalAssets?.badgeImage || cfg.badgeImage?.trim() || "",
     title: cfg.title?.trim() || hero.certificatePreviewLabel?.trim() || "Certificate of Attainment",
     nameTopPercent: cfg.nameTopPercent ?? 42,
     numberTopPercent: cfg.numberTopPercent ?? 52,
     dateTopPercent: cfg.dateTopPercent ?? 62,
-    supplementaryDocs: Array.isArray(cfg.supplementaryDocs)
-      ? cfg.supplementaryDocs.filter((d) => d?.title?.trim() && d?.url?.trim())
-      : [],
+    supplementaryDocs: globalAssets?.supplementaryDocs.length
+      ? globalAssets.supplementaryDocs
+      : Array.isArray(cfg.supplementaryDocs)
+        ? cfg.supplementaryDocs.filter((d) => d?.title?.trim() && d?.url?.trim())
+        : [],
   };
-}
-
-async function nextIssueSequence(
-  identificationNumber: number,
-  issuedAt: Date,
-  holderType: "individual" | "organisation",
-): Promise<number> {
-  const monthYear = formatMonthYear(issuedAt);
-  const prefix =
-    holderType === "organisation"
-      ? `${identificationNumber}-org/${monthYear}/`
-      : `${identificationNumber}/${monthYear}/`;
-  const existing = await prisma.lmsCertificate.findMany({
-    where: { certificateNumber: { startsWith: prefix } },
-    select: { certificateNumber: true },
-  });
-  let max = 0;
-  for (const row of existing) {
-    const parts = row.certificateNumber.split("/");
-    const seq = parseInt(parts[parts.length - 1] ?? "0", 10);
-    if (seq > max) max = seq;
-  }
-  return max + 1;
 }
 
 export async function issueCourseCertificate(input: {
@@ -82,8 +67,13 @@ export async function issueCourseCertificate(input: {
   const course = content.managedCourses?.find((c) => c.slug === slug);
   if (!course) return { ok: false, message: "Course not found in catalog." };
 
-  const cfg = resolveCertificateConfig(course);
+  const cfg = resolveCertificateConfig(course, content);
   if (!cfg.enabled) return { ok: false, message: "Certificates are not enabled for this course." };
+
+  const courseRow = await prisma.lmsCourse.findUnique({ where: { slug } });
+  if (!courseRow) {
+    return { ok: false, message: "Course must be synced to MySQL before issuing a certificate." };
+  }
 
   const existing = await prisma.lmsCertificate.findFirst({
     where: { learnerEmail: email, courseSlug: slug },
@@ -148,11 +138,18 @@ export async function issueCourseCertificate(input: {
   }
 
   const issuedAt = new Date();
-  const sequence = await nextIssueSequence(identificationNumber, issuedAt, holderType);
-  const certificateNumber =
-    holderType === "organisation"
-      ? formatOrganizationCertificateNumber(identificationNumber, issuedAt, sequence)
-      : formatCertificateNumber(identificationNumber, issuedAt, sequence);
+  const certificateNumber = await allocateSftCertificateNumber({
+    courseIdentificationNumber: courseRow.courseIdentificationNumber,
+    userIdentificationNumber: identificationNumber,
+    holderType,
+    issuedAt,
+  });
+
+  const { delegateNumber, verifyNumber } = await allocateDelegateNumber({
+    userIdentificationNumber: identificationNumber,
+    holderType,
+    issuedAt,
+  });
 
   const row = await prisma.lmsCertificate.create({
     data: {
@@ -164,7 +161,10 @@ export async function issueCourseCertificate(input: {
       courseSlug: slug,
       courseTitle: course.title,
       certificateNumber,
+      delegateNumber,
+      verifyNumber,
       identificationNumber,
+      issuedAt,
       scorePercent: input.scorePercent ?? null,
       templateImage: cfg.templateImage,
       badgeImage: cfg.badgeImage || null,
@@ -175,10 +175,20 @@ export async function issueCourseCertificate(input: {
   return { ok: true, certificate: await enrichCertificate(serializeCertificate(row, companyName)) };
 }
 
+function appBaseUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel}`;
+  return "http://localhost:3000";
+}
+
 function serializeCertificate(
   row: {
     id: string;
     certificateNumber: string;
+    delegateNumber?: string | null;
+    verifyNumber?: number | null;
     identificationNumber: number;
     holderType?: string;
     organizationId?: string | null;
@@ -202,6 +212,12 @@ function serializeCertificate(
   return {
     id: row.id,
     certificateNumber: row.certificateNumber,
+    delegateNumber: row.delegateNumber ?? null,
+    verifyNumber: row.verifyNumber ?? null,
+    verifyUrl: buildCertificateVerifyUrl(appBaseUrl(), {
+      delegateNumber: row.delegateNumber,
+      certificateNumber: row.certificateNumber,
+    }),
     identificationNumber: row.identificationNumber,
     holderType,
     organizationId: row.organizationId ?? null,
@@ -264,5 +280,30 @@ export async function verifyCertificateNumber(
   const row = await prisma.lmsCertificate.findUnique({
     where: { certificateNumber: certificateNumber.trim() },
   });
-  return row ? enrichCertificate(serializeCertificate(row)) : null;
+  if (!row || row.status !== "ready") return null;
+  return enrichCertificate(serializeCertificate(row));
+}
+
+export async function verifyCertificateByDelegate(
+  delegateNumber: string,
+): Promise<IssuedCertificateDto | null> {
+  const row = await prisma.lmsCertificate.findUnique({
+    where: { delegateNumber: delegateNumber.trim() },
+  });
+  if (!row || row.status !== "ready") return null;
+  return enrichCertificate(serializeCertificate(row));
+}
+
+export async function verifyCertificateLookup(input: {
+  number?: string;
+  delegate?: string;
+}): Promise<IssuedCertificateDto | null> {
+  const delegate = input.delegate?.trim();
+  if (delegate) {
+    const byDelegate = await verifyCertificateByDelegate(delegate);
+    if (byDelegate) return byDelegate;
+  }
+  const number = input.number?.trim();
+  if (number) return verifyCertificateNumber(number);
+  return null;
 }

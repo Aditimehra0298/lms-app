@@ -1313,70 +1313,128 @@
           ]
         },
         {
-          "title": "Module 2 — Core foundations (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "title": "Module 2 - Food Fraud Vulnerability Assessment (FFVA)",
           "items": [
             {
-              "label": "Video — Key principles and terminology",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Reference readings and frameworks",
-              "kind": "reading"
+              "label": "Module 2 - Food Fraud Vulnerability Assessment (FFVA)",
+              "kind": "video",
+              "description": "This module provides a practical understanding of Food Fraud Vulnerability Assessment (FFVA) under FSSC 22000 Version 6, Section 2.5.4.1. It explains how organizations identify, assess, and prioritize food fraud vulnerabilities across raw materials, ingredients, products, processes, suppliers, and supply chains.\n\nThe module focuses on applying a defined methodology, involving a trained multidisciplinary team, evaluating vulnerability factors, identifying significant vulnerabilities, and linking assessment results to an effective food fraud mitigation plan. It helps learners understand FFVA as a formal, documented, site-specific, and auditable process rather than a generic checklist exercise.",
+              "about": "This lesson explains the purpose and practical application of Food Fraud Vulnerability Assessment under FSSC 22000 Version 6. It helps learners understand how vulnerabilities are identified, evaluated, documented, and linked to mitigation planning using a structured and evidence-based approach.",
+              "learningOutcomes": [
+                "Explain the purpose of FFVA within the FSSC 22000 food fraud mitigation framework.",
+                "Understand why FFVA must be formal, documented, and auditable.",
+                "Apply a defined methodology for food fraud vulnerability assessment.",
+                "Identify vulnerabilities across materials, products, processes, suppliers, and supply chains.",
+                "Evaluate factors such as economic attractiveness, detectability, fraud history, and sourcing complexity.",
+                "Distinguish between generic assessments and site-specific risk-based FFVA.",
+                "Assess whether significant vulnerabilities are supported by logic and evidence.",
+                "Understand the role of a trained multidisciplinary FFVA team.",
+                "Follow the FFVA sequence from scope definition to significance decision.",
+                "Recognize common weaknesses in food fraud vulnerability assessments.",
+                "Link significant vulnerabilities to a documented mitigation plan.",
+                "Apply FFVA thinking during audits and technical reviews."
+              ],
+              "videoUrl": "/api/media/serve/1779891083683-fq5v5tyt-1775807622module_2__720p_caption_1_.mp4"
             },
             {
               "label": "Module examination (10 MCQs)",
-              "kind": "exam"
+              "kind": "exam",
+              "description": "",
+              "examUploadUrl": "/api/media/serve/1779891228411-f20v77h7-Untitled_spreadsheet_-_Sheet10.csv"
             }
           ]
         },
         {
-          "title": "Module 3 — Applied practices (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "title": "Module 3 - Determining Significant Vulnerabilities",
           "items": [
             {
-              "label": "Video — Scenario-based lesson",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Worksheets, templates, and examples",
-              "kind": "reading"
+              "label": "Module 3 - Determining Significant Vulnerabilities",
+              "kind": "video",
+              "description": "This module explains how to determine significant food fraud vulnerabilities after completing a Food Fraud Vulnerability Assessment under FSSC 22000 Version 6, Section 2.5.4.1. It helps learners understand which vulnerabilities require formal mitigation and how significance decisions should be made using structured, evidence-based logic.\n\nThe module covers practical decision factors such as economic attractiveness, fraud history, detectability, supply-chain complexity, current controls, and supplier-related risks. It also explains how to document decisions clearly, avoid assumption-based judgments, and link significant vulnerabilities directly to the food fraud mitigation plan.",
+              "videoUrl": "/api/media/serve/1779891934838-pn98wzg4-1775808148Untitled_design.mp4",
+              "learningOutcomes": [
+                "Explain the meaning of significant food fraud vulnerability.",
+                "Distinguish between general vulnerabilities and vulnerabilities requiring formal mitigation.",
+                "Apply a structured method to determine significance.",
+                "Use factors such as economic attractiveness, fraud history, detectability, supply-chain complexity, and existing controls.",
+                "Understand how a risk matrix or similar methodology supports significance decisions.",
+                "Recognize when material grouping is acceptable and when item-level analysis is needed.",
+                "Document significance decisions in a clear, consistent, and traceable manner.",
+                "Identify common weaknesses in significance evaluation.",
+                "Evaluate food fraud cases using evidence-based logic.",
+                "Link significant vulnerabilities to suitable mitigation measures.",
+                "Strengthen audit readiness through credible and defensible significance decisions."
+              ],
+              "about": "This lesson explains how organizations move from identifying food fraud vulnerabilities to deciding which ones are significant and need formal mitigation. It focuses on structured decision-making, documented logic, audit evidence, and the connection between significance evaluation and mitigation planning."
             },
             {
               "label": "Module examination (10 MCQs)",
-              "kind": "exam"
+              "kind": "exam",
+              "description": "",
+              "examUploadUrl": "/api/media/serve/1779892596683-2mbrf4vx-Untitled_spreadsheet_-_Sheet11.csv"
             }
           ]
         },
         {
-          "title": "Module 4 — Standards & compliance (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "title": "Module 4 - Food Fraud Mitigation Measures and Mitigation Planning",
           "items": [
             {
-              "label": "Video — Regulatory and policy context",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Checklists and guidance notes",
-              "kind": "reading"
+              "label": "Module 4 - Food Fraud Mitigation Measures and Mitigation Planning",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1779892699556-h616ruqy-1775808366module_4_720p_caption_1_.mp4",
+              "description": "This module explains how to convert the results of a Food Fraud Vulnerability Assessment (FFVA) into a documented and auditable food fraud mitigation plan under FSSC 22000 Version 6, Section 2.5.4.2. It helps learners understand how mitigation measures should be selected, documented, verified, reviewed, and linked to significant food fraud vulnerabilities.\n\nThe module covers the key elements of a strong mitigation plan, including mitigation actions, responsibilities, verification procedures, records, review triggers, and FSMS support. It also explains how organizations can keep the plan updated when suppliers, market conditions, legislation, or fraud intelligence change. Special focus is given to supplier assurance expectations for FII organizations.",
+              "learningOutcomes": [
+                "Explain the purpose of a documented food fraud mitigation plan.",
+                "Understand FSSC 22000 Version 6, Section 2.5.4.2 requirements.",
+                "Convert FFVA outputs into a practical mitigation plan.",
+                "Link mitigation measures to significant food fraud vulnerabilities.",
+                "Distinguish between a generic control list and a vulnerability-based mitigation plan.",
+                "Evaluate whether mitigation measures are suitable and proportionate.",
+                "Understand verification procedures for checking mitigation effectiveness.",
+                "Identify key mitigation plan elements such as responsibilities, records, and review triggers.",
+                "Integrate the mitigation plan into the FSMS through training, audits, review, and corrective action.",
+                "Keep the mitigation plan updated when suppliers, market conditions, or fraud intelligence change.",
+                "Understand supplier assurance expectations for FII organizations.",
+                "Recognize common audit weaknesses in food fraud mitigation plans."
+              ],
+              "about": "This lesson explains how to develop a documented food fraud mitigation plan after completing the Food Fraud Vulnerability Assessment. It helps learners understand how significant vulnerabilities should be converted into practical mitigation measures under FSSC 22000 Version 6, Section 2.5.4.2.\n\nLearners will understand what a strong mitigation plan should include, such as responsibilities, verification procedures, records, review triggers, and FSMS support. The lesson also explains how to keep the plan updated when suppliers, market conditions, legislation, or fraud intelligence changes."
             },
             {
               "label": "Module examination (10 MCQs)",
-              "kind": "exam"
+              "kind": "exam",
+              "examUploadUrl": "/api/media/serve/1779892821923-hyu3yj1k-Untitled_spreadsheet_-_Sheet12.csv"
             }
           ]
         },
         {
-          "title": "Module 5 — Risk assessment & controls (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "title": "Module 5 -  FSMS Integration, Team Competence, and Training",
           "items": [
             {
-              "label": "Video — Identification and mitigation walkthrough",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Case studies and exercises",
-              "kind": "reading"
+              "label": "Module 5 -  FSMS Integration, Team Competence, and Training",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1779893027334-kxpao9s6-1775811672module_5_720p_caption_1_.mp4",
+              "description": "This module explains how food fraud mitigation should be integrated into the Food Safety Management System (FSMS) rather than treated as a separate activity. It focuses on the support required under FSSC 22000 Version 6, Section 2.5.4.2(b), including training, internal audits, management review, verification, records, corrective action, and continual improvement.\n\nThe module helps learners understand the role of a multidisciplinary food fraud team, the importance of competence and awareness, and the need for clear communication, ownership, and escalation pathways. It also explains how weak FSMS integration can reduce the effectiveness of even a well-prepared food fraud mitigation plan.",
+              "about": "This lesson explains how food fraud mitigation is supported through the wider FSMS. Learners will understand how training, competence, internal audits, management review, records, communication, and corrective actions help ensure that food fraud controls are actually implemented and maintained.\n\nThe lesson also highlights why food fraud responsibilities should not depend on one person only. It shows how different functions such as procurement, QA, receiving, operations, technical teams, and management contribute to effective food fraud control.",
+              "learningOutcomes": [
+                "Explain how the food fraud mitigation plan is supported by the FSMS.",
+                "Identify FSMS elements that support food fraud mitigation.",
+                "Understand the role of training, records, audits, review, and corrective action.",
+                "Recognize the importance of a multidisciplinary food fraud team.",
+                "Distinguish between HACCP team competence and food fraud team competence.",
+                "Evaluate whether food fraud team training is adequate and audit-ready.",
+                "Understand the need for wider awareness across procurement, QA, receiving, operations, and management.",
+                "Explain the importance of ownership, communication, review, and escalation pathways.",
+                "Recognize how food fraud should be included in internal audits and management review.",
+                "Identify records needed to demonstrate implementation and effectiveness.",
+                "Detect common weaknesses such as one-person ownership, missing training evidence, and poor audit coverage.",
+                "Judge whether weak competence or poor FSMS integration can affect the mitigation plan."
+              ]
             },
             {
               "label": "Module examination (10 MCQs)",
-              "kind": "exam"
+              "kind": "exam",
+              "description": "",
+              "examUploadUrl": "/api/media/serve/1779893206302-tdijl4w7-Untitled_spreadsheet_-_Sheet13.csv"
             }
           ]
         },
@@ -1385,49 +1443,29 @@
           "items": [
             {
               "label": "Video — Operational best practices on the job",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — SOP excerpts and job aids",
-              "kind": "reading"
-            },
-            {
-              "label": "Module examination (10 MCQs)",
-              "kind": "exam"
-            }
-          ]
-        },
-        {
-          "title": "Module 7 — Review & assessment prep (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
-          "items": [
-            {
-              "label": "Video — Summary and practice session",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Revision materials and sample questions",
-              "kind": "reading"
+              "kind": "video",
+              "description": "This module prepares learners to audit food fraud mitigation under FSSC 22000 Version 6 using a practical, evidence-based approach. It explains how auditors should review the Food Fraud Vulnerability Assessment (FFVA), evaluate significance decisions, assess mitigation measures, and verify whether the system is properly implemented and supported by the FSMS.\n\nThe module focuses on practical audit judgement through document review, interviews, records sampling, supplier evidence, internal audits, management review, performance evaluation, and emergency preparedness. It helps learners move beyond basic paperwork review and develop clear, technically sound audit conclusions.",
+              "about": "This lesson explains how to audit food fraud mitigation systems under FSSC 22000 Version 6. Learners will understand how to review FFVA, check the logic behind significant vulnerabilities, verify mitigation measures, and assess whether food fraud controls are supported by the wider FSMS.\n\nThe lesson also helps learners understand how to collect audit evidence through documents, records, interviews, supplier information, internal audits, and management review outputs.",
+              "learningOutcomes": [
+                "Interpret FSSC 22000 food fraud requirements in audit contexts.",
+                "Verify whether the FFVA is documented, scoped, and methodology-based.",
+                "Evaluate the logic used to identify significant vulnerabilities.",
+                "Assess whether mitigation measures are risk-based and proportionate.",
+                "Review mitigation plans for controls, verification procedures, and implementation logic.",
+                "Collect objective audit evidence through documents, records, interviews, and supplier information.",
+                "Assess team competence, training records, and ownership responsibilities.",
+                "Verify FSMS support through internal audits, management review, corrective action, and performance evaluation.",
+                "Identify common weaknesses and possible nonconformities.",
+                "Write clear, evidence-based audit conclusions linked to FSSC requirements.",
+                "Apply structured audit review points with confidence and consistency."
+              ],
+              "videoUrl": "/api/media/serve/1779893355984-efd4ief0-1775811887module_6_720p_caption.mp4"
             },
             {
               "label": "Module examination (10 MCQs)",
-              "kind": "exam"
-            }
-          ]
-        },
-        {
-          "title": "Module 8 — Capstone & certification path (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
-          "items": [
-            {
-              "label": "Video — Final wrap-up and next steps",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Completion requirements overview",
-              "kind": "reading"
-            },
-            {
-              "label": "Module examination (10 MCQs)",
-              "kind": "exam"
+              "kind": "exam",
+              "examPassingScorePercent": 70,
+              "examUploadUrl": "/api/media/serve/1779894568790-gre507oe-Untitled_spreadsheet_-_Sheet14.csv"
             }
           ]
         }
@@ -2664,5 +2702,10 @@
       "curriculumMode": "auto",
       "zoomLinkMode": "manual"
     }
-  ]
+  ],
+  "globalCertificateAssets": {
+    "templateImage": "/api/media/serve/1779901022545-gvx9lroc-advanced_food_fraud.pdf_1_-1.png",
+    "badgeImage": "/api/media/serve/1779901040858-07mxz27u-Copy_of_badge_-_iso_45001_lv.png",
+    "transcriptFile": "/api/media/serve/1779901026429-h89dhjll-advanced_food_fraud.pdf_1_-2.png"
+  }
 }

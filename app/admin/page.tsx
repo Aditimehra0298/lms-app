@@ -31,7 +31,9 @@ import {
   Trash2,
   Users,
   Video,
+  Award,
 } from "lucide-react";
+import AdminGlobalCertificatesPanel from "@/components/admin/AdminGlobalCertificatesPanel";
 import AdminCoursesWorkspace from "@/components/admin/AdminCoursesWorkspace";
 import AdminCoursesPageEditor from "@/components/admin/AdminCoursesPageEditor";
 import AdminHomePageEditor from "@/components/admin/AdminHomePageEditor";
@@ -60,6 +62,7 @@ const menuSections = [
     items: [
       "Categories",
       "Self-paced courses",
+      "Certificates",
       "Course Q&A",
       "Lessons",
       "Tutor Led",
@@ -108,6 +111,7 @@ const menuIcons: Record<string, typeof Home> = {
   "Courses Page": BookOpen,
   Categories: Layers,
   "Self-paced courses": BookOpen,
+  Certificates: Award,
   "Course Q&A": MessageSquare,
   Lessons: Video,
   "Tutor Led": Video,
@@ -293,6 +297,7 @@ export default function AdminPage() {
   const showAboutPageEditor = activeMenu === "About Page";
   const showTutorLedWorkspace = activeMenu === "Tutor Led";
   const showSupportTickets = activeMenu === "Support Tickets";
+  const showGlobalCertificates = activeMenu === "Certificates";
   const hasMainPanel =
     activeMenu === "Dashboard" ||
     showCoursesWorkspace ||
@@ -302,6 +307,7 @@ export default function AdminPage() {
     showAboutPageEditor ||
     showTutorLedWorkspace ||
     showSupportTickets ||
+    showGlobalCertificates ||
     activeMenu === "Categories";
 
   const persistCategories = async (rows: string[][]) => {
@@ -417,16 +423,16 @@ export default function AdminPage() {
           </div>
         </aside>
 
-        <section className="p-4 md:p-5">
+        <section className="min-w-0 overflow-x-hidden p-4 md:p-5">
           <header className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#0b1224] px-3 py-2">
             <div className="flex items-center gap-2">
               <button className="rounded-md p-1.5 text-gray-300 hover:bg-white/5">
                 <Menu size={16} />
               </button>
-              <div className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs">
+              <div className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs">
                 <Search size={13} className="text-gray-500" />
                 <input
-                  className="w-56 bg-transparent text-sm outline-none placeholder:text-gray-500 md:w-72 lg:w-96"
+                  className="w-32 bg-transparent text-sm outline-none placeholder:text-gray-500 sm:w-56 md:w-72 lg:w-96"
                   placeholder={
                     showCoursesWorkspace
                       ? "Search for courses, modules, users…"
@@ -437,14 +443,14 @@ export default function AdminPage() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <button className="rounded-lg border border-white/10 bg-[#0a1120] p-2">
                 <Bell size={14} />
               </button>
               <button className="rounded-lg border border-white/10 bg-[#0a1120] p-2">
                 <Moon size={14} />
               </button>
-              <div className="rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs">
+              <div className="hidden rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs sm:block">
                 Apr 21 - Apr 27, 2026
               </div>
               <div className="rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs">Admin</div>
@@ -735,6 +741,8 @@ export default function AdminPage() {
           {showCourseQAModeration && <AdminCourseQAModeration />}
 
           {showTutorLedWorkspace && <AdminTutorLedWorkspace />}
+
+          {showGlobalCertificates && <AdminGlobalCertificatesPanel />}
 
           {showCoursesPageEditor && <AdminCoursesPageEditor />}
 

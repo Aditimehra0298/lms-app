@@ -35,6 +35,10 @@ import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/defau
 import { getCurriculumForCourse } from "@/lib/course-detail-template";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import { requestCourseCertificateClient } from "@/lib/request-course-certificate-client";
+import {
+  computeCombinedExamGrade,
+  DEFAULT_MODULE_EXAM_PASS_PERCENT,
+} from "@/lib/learner-exam-scores";
 import { openTutorLedProgram } from "@/lib/push-checkout-or-login";
 
 const toTitle = (slug: string) =>
@@ -47,8 +51,11 @@ type CourseCurriculumItem = {
   label?: string;
   kind?: "video" | "reading" | "exam";
   videoUrl?: string;
+  lessonVideoSizeMb?: number;
+  previewLimitMinutes?: number;
   examUploadUrl?: string;
   description?: string;
+  lessonDurationMinutes?: number;
   about?: string;
   learningOutcomes?: string[];
   notes?: string;
@@ -79,7 +86,10 @@ export default function CourseLearningPlayerPage() {
   const [completedModules, setCompletedModules] = useState<number[]>([]);
   const [isPurchased, setIsPurchased] = useState(false);
   const [purchaseHydrated, setPurchaseHydrated] = useState(false);
-  const [overallExamPercent, setOverallExamPercent] = useState<number | null>(null);
+  const [combinedExamPercent, setCombinedExamPercent] = useState<number | null>(null);
+  const [allExamsPassed, setAllExamsPassed] = useState(false);
+  const [examMarksSummary, setExamMarksSummary] = useState<{ correct: number; total: number } | null>(null);
+  const [watchedSecondsByModule, setWatchedSecondsByModule] = useState<Record<number, number>>({});
   const [learningCopy, setLearningCopy] = useState<ResolvedLearningSection>(() =>
     resolveLearningSection({
       slug,
@@ -163,32 +173,60 @@ export default function CourseLearningPlayerPage() {
     return () => window.removeEventListener("storage", load);
   }, [slug]);
 
+  const refreshExamGrades = useMemo(
+    () => () => {
+      const summary = computeCombinedExamGrade(
+        slug,
+        curriculum as Parameters<typeof computeCombinedExamGrade>[1],
+      );
+      setCombinedExamPercent(summary.combinedPercent);
+      setAllExamsPassed(summary.allExamsPassed);
+      if (summary.totalQuestions > 0) {
+        setExamMarksSummary({ correct: summary.totalCorrect, total: summary.totalQuestions });
+      } else {
+        setExamMarksSummary(null);
+      }
+    },
+    [slug, curriculum],
+  );
+
   useEffect(() => {
+    refreshExamGrades();
+    const onUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<{ courseSlug?: string }>).detail;
+      if (!detail?.courseSlug || detail.courseSlug === slug) refreshExamGrades();
+    };
+    window.addEventListener("sft-exam-scores-updated", onUpdate);
+    window.addEventListener("storage", refreshExamGrades);
+    return () => {
+      window.removeEventListener("sft-exam-scores-updated", onUpdate);
+      window.removeEventListener("storage", refreshExamGrades);
+    };
+  }, [slug, refreshExamGrades, completedModules]);
+
+  useEffect(() => {
+    const key = `sft_module_watched_seconds_${slug}`;
     try {
-      const key = `sft_module_exam_scores_${slug}`;
       const raw = window.localStorage.getItem(key);
-      if (!raw) {
-        setOverallExamPercent(null);
-        return;
+      const parsed = raw ? (JSON.parse(raw) as Record<string, number>) : {};
+      const normalized: Record<number, number> = {};
+      for (const [k, v] of Object.entries(parsed ?? {})) {
+        const idx = Number.parseInt(k, 10);
+        if (!Number.isFinite(idx) || idx < 1) continue;
+        const sec = Number(v);
+        if (!Number.isFinite(sec) || sec < 0) continue;
+        normalized[idx] = sec;
       }
-      const parsed = JSON.parse(raw) as Record<string, number>;
-      const vals = Object.values(parsed ?? {}).filter((v) => typeof v === "number");
-      if (!vals.length) {
-        setOverallExamPercent(null);
-        return;
-      }
-      const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-      setOverallExamPercent(avg);
+      setWatchedSecondsByModule(normalized);
     } catch {
-      setOverallExamPercent(null);
+      setWatchedSecondsByModule({});
     }
-  }, [slug, completedModules]);
+  }, [slug]);
 
   useEffect(() => {
     if (!curriculum.length || !slug) return;
     const allDone = curriculum.every((_, idx) => completedModules.includes(idx + 1));
-    const examOk = overallExamPercent != null && overallExamPercent >= 60;
-    if (!allDone || !examOk) return;
+    if (!allDone || !allExamsPassed || combinedExamPercent == null) return;
 
     const flagKey = `sft_cert_requested_${slug}`;
     if (window.localStorage.getItem(flagKey) === "1") return;
@@ -199,11 +237,11 @@ export default function CourseLearningPlayerPage() {
     void requestCourseCertificateClient({
       learnerEmail: email,
       courseSlug: slug,
-      scorePercent: overallExamPercent ?? undefined,
+      scorePercent: combinedExamPercent,
     }).then((r) => {
       if (r.ok) window.localStorage.setItem(flagKey, "1");
     });
-  }, [slug, curriculum.length, completedModules, overallExamPercent]);
+  }, [slug, curriculum.length, completedModules, allExamsPassed, combinedExamPercent]);
 
   useEffect(() => {
     setPurchaseHydrated(false);
@@ -285,6 +323,25 @@ export default function CourseLearningPlayerPage() {
 
   const activeModule = curriculum[selectedModuleIdx];
   const activeItem = activeModule?.items?.[selectedEntryIdx];
+  const selectedModuleNumber = selectedModuleIdx + 1;
+
+  const requiredSecondsByModule = useMemo(() => {
+    const out: Record<number, number> = {};
+    curriculum.forEach((module, idx) => {
+      const mins = (module.items ?? [])
+        .filter((row) => row.kind === "video")
+        .reduce((sum, row) => sum + Math.max(0, Number(row.previewLimitMinutes) || 0), 0);
+      out[idx + 1] = Math.round(mins * 60);
+    });
+    return out;
+  }, [curriculum]);
+
+  const moduleWatchProgress = (moduleNumber: number): { watched: number; required: number; unlocked: boolean } => {
+    const watched = Math.max(0, watchedSecondsByModule[moduleNumber] ?? 0);
+    const required = Math.max(0, requiredSecondsByModule[moduleNumber] ?? 0);
+    if (required === 0) return { watched, required, unlocked: true };
+    return { watched, required, unlocked: watched >= required };
+  };
 
   useEffect(() => {
     const itemVideo = activeItem?.kind === "video" ? activeItem.videoUrl?.trim() : "";
@@ -417,6 +474,24 @@ export default function CourseLearningPlayerPage() {
                     disablePictureInPicture
                     playsInline
                     preload="metadata"
+                    onTimeUpdate={(e) => {
+                      const current = e.currentTarget.currentTime;
+                      if (!Number.isFinite(current) || current < 0) return;
+                      setWatchedSecondsByModule((prev) => {
+                        const existing = prev[selectedModuleNumber] ?? 0;
+                        if (current <= existing) return prev;
+                        const next = { ...prev, [selectedModuleNumber]: current };
+                        try {
+                          window.localStorage.setItem(
+                            `sft_module_watched_seconds_${slug}`,
+                            JSON.stringify(next),
+                          );
+                        } catch {
+                          // Ignore storage write failures.
+                        }
+                        return next;
+                      });
+                    }}
                     className="h-[320px] w-full bg-black object-contain md:h-[460px] xl:h-[560px]"
                   />
                 ) : (
@@ -455,6 +530,29 @@ export default function CourseLearningPlayerPage() {
                   />
                 </div>
               </div>
+              {activeItem?.kind === "video" ? (
+                <div className="flex flex-wrap items-center gap-2 border-t border-white/10 bg-black/25 px-3 py-2 text-[11px]">
+                  {activeItem.lessonDurationMinutes ? (
+                    <span className="rounded border border-violet-300/35 bg-violet-500/15 px-2 py-1 text-violet-100">
+                      Duration: {Math.ceil(activeItem.lessonDurationMinutes)} min
+                    </span>
+                  ) : null}
+                  {(activeItem.previewLimitMinutes ?? 0) > 0 ? (
+                    <span className="rounded border border-cyan-300/35 bg-cyan-500/15 px-2 py-1 text-cyan-100">
+                      Preview: {Math.ceil(activeItem.previewLimitMinutes ?? 0)} min
+                    </span>
+                  ) : (
+                    <span className="rounded border border-emerald-300/35 bg-emerald-500/15 px-2 py-1 text-emerald-100">
+                      Full lesson access
+                    </span>
+                  )}
+                  {typeof activeItem.lessonVideoSizeMb === "number" ? (
+                    <span className="rounded border border-amber-300/35 bg-amber-500/15 px-2 py-1 text-amber-100">
+                      Size: {activeItem.lessonVideoSizeMb.toFixed(1)} MB
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </article>
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-4">
@@ -684,7 +782,16 @@ export default function CourseLearningPlayerPage() {
                             Completed
                           </span>
                         )}
-                        <span className="text-xs text-gray-400">--:--</span>
+                        <span className="text-xs text-gray-400">
+                          {(() => {
+                            const seconds = requiredSecondsByModule[idx + 1] ?? 0;
+                            const m = Math.floor(seconds / 60);
+                            const h = Math.floor(m / 60);
+                            const rem = m % 60;
+                            if (!seconds) return "--:--";
+                            return h > 0 ? `${h}h ${rem}m` : `${m}m`;
+                          })()}
+                        </span>
                         {idx === selectedModuleIdx ? <ChevronUp size={13} className="text-gray-400" /> : <ChevronDown size={13} className="text-gray-400" />}
                       </div>
                     </div>
@@ -706,24 +813,48 @@ export default function CourseLearningPlayerPage() {
                             icon: typeof StickyNote;
                           }>;
                           return entry.kind === "exam" ? (
-                            <Link
-                              key={entryKey}
-                              href={`/my-learning/course/${slug}/exam?module=${idx + 1}`}
-                              className="flex items-center justify-between rounded bg-emerald-500/15 px-1.5 py-1 text-[11px] text-emerald-200 hover:bg-emerald-500/25"
-                            >
-                              <span className="inline-flex items-center gap-1.5">
-                                <Circle size={10} className="text-emerald-300" />
-                                {entry.label?.trim() || `Module ${idx + 1} exam`}
-                              </span>
-                              <span className="inline-flex items-center gap-2 text-[10px] text-emerald-200">
-                                {entry.examUploadUrl?.trim() ? (
-                                  <span className="inline-flex items-center gap-1 rounded border border-emerald-200/30 bg-emerald-500/20 px-1.5 py-0.5">
-                                    <FileText size={9} /> File
+                            (() => {
+                              const progress = moduleWatchProgress(idx + 1);
+                              const examLabel = entry.label?.trim() || `Module ${idx + 1} exam`;
+                              if (!progress.unlocked) {
+                                const watchedMin = Math.floor(progress.watched / 60);
+                                const requiredMin = Math.max(1, Math.ceil(progress.required / 60));
+                                return (
+                                  <div
+                                    key={entryKey}
+                                    className="flex items-center justify-between rounded border border-amber-300/25 bg-amber-500/10 px-1.5 py-1 text-[11px] text-amber-100"
+                                  >
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <Circle size={10} className="text-amber-300" />
+                                      {examLabel}
+                                    </span>
+                                    <span className="text-[10px] text-amber-200/90">
+                                      Watch {requiredMin - Math.min(requiredMin, watchedMin)} more min to unlock
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return (
+                                <Link
+                                  key={entryKey}
+                                  href={`/my-learning/course/${slug}/exam?module=${idx + 1}`}
+                                  className="flex items-center justify-between rounded bg-emerald-500/15 px-1.5 py-1 text-[11px] text-emerald-200 hover:bg-emerald-500/25"
+                                >
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <Circle size={10} className="text-emerald-300" />
+                                    {examLabel}
                                   </span>
-                                ) : null}
-                                Open Exam
-                              </span>
-                            </Link>
+                                  <span className="inline-flex items-center gap-2 text-[10px] text-emerald-200">
+                                    {entry.examUploadUrl?.trim() ? (
+                                      <span className="inline-flex items-center gap-1 rounded border border-emerald-200/30 bg-emerald-500/20 px-1.5 py-0.5">
+                                        <FileText size={9} /> File
+                                      </span>
+                                    ) : null}
+                                    Exam Live
+                                  </span>
+                                </Link>
+                              );
+                            })()
                           ) : (
                             <button
                               key={entryKey}
@@ -748,6 +879,16 @@ export default function CourseLearningPlayerPage() {
                               </span>
                               <span className="inline-flex items-center gap-1">
                                 <span className="text-[10px] text-gray-400">{entry.kind === "video" ? "Video" : "Reading"}</span>
+                                {entry.kind === "video" && (entry.previewLimitMinutes ?? 0) > 0 ? (
+                                  <span className="rounded border border-cyan-300/35 bg-cyan-500/15 px-1 py-0.5 text-[9px] text-cyan-100">
+                                    Preview {Math.ceil(entry.previewLimitMinutes ?? 0)}m
+                                  </span>
+                                ) : null}
+                                {entry.kind === "video" && typeof entry.lessonVideoSizeMb === "number" ? (
+                                  <span className="rounded border border-violet-300/30 bg-violet-500/15 px-1 py-0.5 text-[9px] text-violet-100">
+                                    {entry.lessonVideoSizeMb.toFixed(1)}MB
+                                  </span>
+                                ) : null}
                                 {lessonTools.length > 0 ? (
                                   <span className="inline-flex items-center gap-1">
                                     {lessonTools.slice(0, 3).map((tool) => {
@@ -780,11 +921,17 @@ export default function CourseLearningPlayerPage() {
               </div>
               <div className="mt-3 rounded-md border border-amber-300/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
                 {learningCopy.certificationRuleText}
-                {overallExamPercent !== null ? (
+                {combinedExamPercent !== null && examMarksSummary ? (
                   <span className="ml-2 inline-flex rounded bg-black/25 px-2 py-0.5 text-xs">
-                    Current overall: {overallExamPercent}% {overallExamPercent >= 60 ? "✓ Eligible" : "✗ Not eligible"}
+                    Combined grade: {examMarksSummary.correct}/{examMarksSummary.total} marks = {combinedExamPercent}%
+                    {allExamsPassed ? " ✓ All exams passed" : ` ✗ Pass each exam at ${DEFAULT_MODULE_EXAM_PASS_PERCENT}%+`}
                   </span>
-                ) : null}
+                ) : (
+                  <span className="ml-2 inline-flex rounded bg-black/25 px-2 py-0.5 text-xs">
+                    Pass each module exam at {DEFAULT_MODULE_EXAM_PASS_PERCENT}%+ (unlimited retakes). Certificate grade =
+                    total marks obtained ÷ total marks.
+                  </span>
+                )}
               </div>
             </article>
 
@@ -821,7 +968,7 @@ export default function CourseLearningPlayerPage() {
                 <CalendarDays size={12} /> Next live Q&A on Friday
               </div>
               <div className="mt-2 inline-flex items-center gap-2 text-xs text-emerald-300">
-                <CheckCircle2 size={12} /> Certificate unlocks at 60%+ overall module exam score
+                <CheckCircle2 size={12} /> Pass every exam at {DEFAULT_MODULE_EXAM_PASS_PERCENT}%+ — combined marks = certificate %
               </div>
             </article>
           </aside>

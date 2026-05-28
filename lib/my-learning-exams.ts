@@ -1,6 +1,6 @@
 import type { CourseCurriculumItem, CourseCurriculumModule, ManagedCourse } from "@/lib/content-schema";
 
-function getFirstExamRowInModule(mod: CourseCurriculumModule | undefined): CourseCurriculumItem | undefined {
+export function getFirstExamRowInModule(mod: CourseCurriculumModule | undefined): CourseCurriculumItem | undefined {
   if (!mod) return undefined;
   const top = mod.items?.find((i) => i.kind === "exam");
   if (top) return top;

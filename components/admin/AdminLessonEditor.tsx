@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   ClipboardList,
+  Clock3,
   FileText,
   FolderOpen,
   Headphones,
@@ -23,11 +24,15 @@ const VIDEO_FILE_ACCEPT =
   ".mp4,.webm,.mov,.m4v,video/mp4,video/webm,video/quicktime,video/x-m4v";
 const DOC_FILE_ACCEPT =
   ".pdf,.doc,.docx,.ppt,.pptx,.txt,.vtt,.srt,audio/mpeg,audio/mp3,audio/wav,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation";
+const MAX_VIDEO_UPLOAD_MB = 5 * 1024;
 
 export type LessonRowPatch = Partial<{
   label: string;
   kind: CourseCurriculumKind;
   description: string;
+  lessonDurationMinutes: number;
+  lessonVideoSizeMb: number;
+  previewLimitMinutes: number;
   about: string;
   learningOutcomes: string[];
   notes: string;
@@ -53,6 +58,16 @@ type LearningToolKey =
   | "podcast"
   | "documents"
   | "webhook";
+
+const TOOL_ACCEPT_LABEL: Record<LearningToolKey, string> = {
+  notes: "Text notes only",
+  captions: ".vtt, .srt, .txt",
+  pdf: ".pdf, .doc, .docx",
+  ppt: ".ppt, .pptx",
+  podcast: ".mp3, .wav",
+  documents: ".pdf, .doc, .docx, .ppt, .pptx, .txt",
+  webhook: "URL only",
+};
 
 const LEARNING_TOOLS: {
   key: LearningToolKey;
@@ -123,9 +138,12 @@ export default function AdminLessonEditor({
   const [uploadingExam, setUploadingExam] = useState(false);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [uploadingTool, setUploadingTool] = useState<LearningToolKey | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectedVideoMeta, setSelectedVideoMeta] = useState<{ sizeMb: number } | null>(null);
 
   useEffect(() => {
     setActiveTool(null);
+    setUploadError(null);
     if (lesson.videoUrl?.trim()) setVideoSource("url");
     else setVideoSource("upload");
     const docUrl = lesson.downloadUrl?.trim() || lesson.videoUrl?.trim();
@@ -230,9 +248,35 @@ export default function AdminLessonEditor({
             </label>
           </div>
           <div className="mt-3 space-y-2 rounded-lg border border-white/10 bg-[#0a1120] p-3">
+            <div className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2">
+              <p className="text-[11px] font-semibold text-cyan-100">Preview settings</p>
+              <p className="mt-0.5 text-[10px] text-cyan-200/80">
+                Set how many minutes learners must watch before exam tab becomes live.
+              </p>
+            </div>
+            <label className="block">
+              <span className="mb-1 block text-[10px] text-gray-400">Preview limit for users (minutes)</span>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={lesson.previewLimitMinutes ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  onPatch({
+                    previewLimitMinutes: raw === "" ? undefined : Math.max(0, Math.round(Number(raw) || 0)),
+                  });
+                }}
+                placeholder="e.g. 5"
+                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
+              />
+              <p className="mt-1 text-[10px] text-gray-500">
+                Rounded minutes are shown to learners. Set <b>0</b> for no preview limit.
+              </p>
+            </label>
             {videoSource === "upload" ? (
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-violet-500/35 bg-violet-500/15 py-2 text-xs text-violet-100 hover:bg-violet-500/25">
-                <Upload className="h-3.5 w-3.5" />
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-violet-400/55 bg-gradient-to-r from-violet-600/30 via-fuchsia-500/20 to-indigo-500/30 py-2 text-xs text-violet-50 shadow-[0_0_18px_rgba(168,85,247,0.28)] hover:from-violet-500/40 hover:to-indigo-500/40">
+                <Upload className="h-3.5 w-3.5 text-amber-200" />
                 {uploadingVideo ? "Uploading…" : "Upload lesson video"}
                 <input
                   type="file"
@@ -242,11 +286,22 @@ export default function AdminLessonEditor({
                   onChange={async (e) => {
                     const f = e.target.files?.[0];
                     if (!f) return;
+                    setUploadError(null);
+                    setSelectedVideoMeta({
+                      sizeMb: Number((f.size / (1024 * 1024)).toFixed(1)),
+                    });
                     setUploadingVideo(true);
                     try {
                       const url = await uploadAdminFile(f);
-                      onPatch({ videoUrl: url });
+                      onPatch({
+                        videoUrl: url,
+                        lessonVideoSizeMb: Number((f.size / (1024 * 1024)).toFixed(1)),
+                      });
                       setVideoSource("upload");
+                    } catch (err) {
+                      const message =
+                        err instanceof Error ? err.message : "Upload failed. Please try again.";
+                      setUploadError(message);
                     } finally {
                       setUploadingVideo(false);
                       e.target.value = "";
@@ -265,6 +320,17 @@ export default function AdminLessonEditor({
             {lesson.videoUrl ? (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-[10px] text-gray-400">Video set</span>
+                {lesson.lessonDurationMinutes ? (
+                  <span className="inline-flex items-center gap-1 rounded border border-violet-300/35 bg-violet-500/15 px-1.5 py-0.5 text-[10px] text-violet-100">
+                    <Clock3 className="h-3 w-3" />
+                    {lesson.lessonDurationMinutes} min
+                  </span>
+                ) : null}
+                {typeof lesson.lessonVideoSizeMb === "number" ? (
+                  <span className="inline-flex items-center gap-1 rounded border border-cyan-300/35 bg-cyan-500/15 px-1.5 py-0.5 text-[10px] text-cyan-100">
+                    {lesson.lessonVideoSizeMb.toFixed(1)} MB
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => onPatch({ videoUrl: undefined })}
@@ -274,6 +340,38 @@ export default function AdminLessonEditor({
                 </button>
               </div>
             ) : null}
+            <p className="text-[10px] text-gray-500">
+              Max upload size: {MAX_VIDEO_UPLOAD_MB}MB (default). You can raise it with <b>ADMIN_UPLOAD_MAX_VIDEO_MB</b>.
+            </p>
+            {selectedVideoMeta ? (
+              <p className="text-[10px] text-cyan-200/90">
+                Selected file: {selectedVideoMeta.sizeMb}MB
+              </p>
+            ) : null}
+            <label className="block">
+              <span className="mb-1 block text-[10px] text-gray-400">
+                Video duration (minutes, manual)
+              </span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={lesson.lessonDurationMinutes ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  onPatch({
+                    lessonDurationMinutes: raw === "" ? undefined : Math.max(1, Math.round(Number(raw) || 1)),
+                  });
+                }}
+                placeholder="Enter manually, e.g. 12"
+                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
+              />
+            </label>
+            <p className="text-[10px] text-gray-500">
+              Learner exam unlock uses watched preview minutes for this module. Set preview timing to control when
+              the exam tab becomes live.
+            </p>
+            {uploadError ? <p className="text-[10px] text-rose-300">{uploadError}</p> : null}
           </div>
         </div>
       ) : null}
@@ -308,8 +406,8 @@ export default function AdminLessonEditor({
           </div>
           <div className="mt-3 space-y-2 rounded-lg border border-white/10 bg-[#0a1120] p-3">
             {documentSource === "upload" ? (
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-emerald-500/35 bg-emerald-500/15 py-2 text-xs text-emerald-100 hover:bg-emerald-500/25">
-                <Upload className="h-3.5 w-3.5" />
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-emerald-400/55 bg-gradient-to-r from-emerald-600/30 via-teal-500/20 to-cyan-500/25 py-2 text-xs text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.25)] hover:from-emerald-500/40 hover:to-cyan-500/40">
+                <Upload className="h-3.5 w-3.5 text-lime-200" />
                 {uploadingDocument ? "Uploading…" : "Upload PDF / Word / PPT"}
                 <input
                   type="file"
@@ -437,8 +535,8 @@ export default function AdminLessonEditor({
             </div>
             <div className="mt-2 space-y-2">
               {examSource === "upload" ? (
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/15 py-2 text-xs text-amber-100 hover:bg-amber-500/25">
-                  <Upload className="h-3.5 w-3.5" />
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-amber-400/55 bg-gradient-to-r from-amber-600/30 via-orange-500/20 to-yellow-500/25 py-2 text-xs text-amber-50 shadow-[0_0_18px_rgba(245,158,11,0.28)] hover:from-amber-500/40 hover:to-yellow-500/40">
+                  <Upload className="h-3.5 w-3.5 text-amber-100" />
                   {uploadingExam ? "Uploading…" : "Upload exam file (PDF / Word / CSV)"}
                   <input
                     type="file"
@@ -537,14 +635,14 @@ export default function AdminLessonEditor({
               <button
                 key={tool.key}
                 type="button"
-                title={tool.label}
+                title={`${tool.label} (${TOOL_ACCEPT_LABEL[tool.key]})`}
                 onClick={() => setActiveTool(active === tool.key ? null : tool.key)}
                 className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
                   active
-                    ? "border-amber-400/60 bg-amber-500/20 text-amber-100 ring-2 ring-amber-400/40"
+                    ? "border-amber-300/80 bg-gradient-to-br from-amber-400/40 via-orange-400/25 to-violet-500/30 text-amber-50 ring-2 ring-amber-300/45 shadow-[0_0_18px_rgba(251,191,36,0.35)]"
                     : filled
-                      ? "border-violet-400/40 bg-violet-500/15 text-violet-100"
-                      : "border-white/10 bg-[#0b1222] text-gray-400 hover:border-violet-500/30 hover:text-violet-200"
+                      ? "border-violet-300/45 bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 text-violet-100 shadow-[0_0_14px_rgba(168,85,247,0.22)]"
+                      : "border-cyan-400/25 bg-gradient-to-br from-slate-900 to-[#1a2340] text-cyan-200/75 hover:border-cyan-300/55 hover:text-cyan-100"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -555,6 +653,9 @@ export default function AdminLessonEditor({
 
         {activeToolDef ? (
           <div className="mt-3 border-t border-white/10 pt-3">
+            <p className="mb-2 text-[10px] text-gray-500">
+              Format: <span className="text-gray-300">{TOOL_ACCEPT_LABEL[activeToolDef.key]}</span>
+            </p>
             <AdminAssetUrlField
               label={activeToolDef.label}
               value={(lesson[activeToolDef.field] as string | undefined) ?? ""}

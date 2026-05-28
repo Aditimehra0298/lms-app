@@ -3,6 +3,11 @@ export type SupplementaryDoc = { title: string; url: string };
 export type IssuedCertificateDto = {
   id: string;
   certificateNumber: string;
+  /** Public tracker ID: YYYY-verifyNumber-userId (QR on certificate). */
+  delegateNumber?: string | null;
+  verifyNumber?: number | null;
+  /** Full URL for QR + social share. */
+  verifyUrl?: string | null;
   identificationNumber: number;
   holderType: "individual" | "organisation";
   organizationId: string | null;

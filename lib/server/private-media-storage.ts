@@ -1,7 +1,9 @@
-import { createReadStream } from "node:fs";
+import { createReadStream, createWriteStream } from "node:fs";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ReadStream } from "node:fs";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
 /** Files are NOT under public/ — only reachable via /api/media/serve with a signed token. */
 export const PRIVATE_MEDIA_DIR = path.join(process.cwd(), "storage", "private", "admin");
@@ -86,6 +88,14 @@ export async function savePrivateMediaFile(fileName: string, data: Buffer): Prom
   if (!safe || safe !== fileName) throw new Error("Invalid file name");
   await mkdir(PRIVATE_MEDIA_DIR, { recursive: true });
   await writeFile(path.join(PRIVATE_MEDIA_DIR, safe), data);
+}
+
+export async function savePrivateMediaBlob(fileName: string, blob: Blob): Promise<void> {
+  const safe = path.basename(fileName);
+  if (!safe || safe !== fileName) throw new Error("Invalid file name");
+  await mkdir(PRIVATE_MEDIA_DIR, { recursive: true });
+  const outPath = path.join(PRIVATE_MEDIA_DIR, safe);
+  await pipeline(Readable.fromWeb(blob.stream() as globalThis.ReadableStream), createWriteStream(outPath));
 }
 
 export function openMediaReadStream(filePath: string): ReadStream {

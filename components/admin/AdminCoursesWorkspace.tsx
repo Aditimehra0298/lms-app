@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   BookOpen,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Coins,
   Search,
@@ -52,6 +53,7 @@ import AdminCourseCertificatesPanel from "@/components/admin/AdminCourseCertific
 import AdminImageUrlUpload from "@/components/admin/AdminImageUrlUpload";
 import AdminCoursePublishPanel from "@/components/admin/AdminCoursePublishPanel";
 import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
+import AdminCourseSubscriptionPanel from "@/components/admin/AdminCourseSubscriptionPanel";
 import AdminLessonEditor from "@/components/admin/AdminLessonEditor";
 import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
 import { describeCertificateIdFormat } from "@/lib/certificate-ids";
@@ -80,8 +82,16 @@ const spFieldSm =
   "w-full rounded-lg border border-white/[0.07] bg-[#060b14]/90 px-2.5 py-2 text-xs text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition placeholder:text-gray-600 focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20";
 
 /** Primary flow: pick course → edit details → add content → price → publish */
-const PRIMARY_WORKSPACE_TABS = ["Catalog", "Course", "Content", "Pricing", "Publish"] as const;
-const MORE_WORKSPACE_TABS = ["Settings", "SEO", "Students", "Certificates"] as const;
+const PRIMARY_WORKSPACE_TABS = [
+  "Catalog",
+  "Course",
+  "Content",
+  "Pricing",
+  "Students",
+  "Certificates",
+  "Publish",
+] as const;
+const MORE_WORKSPACE_TABS = ["Settings", "SEO", "Subscription"] as const;
 type PrimaryWorkspaceTab = (typeof PRIMARY_WORKSPACE_TABS)[number];
 type MoreWorkspaceTab = (typeof MORE_WORKSPACE_TABS)[number];
 type CourseWorkspaceTab = PrimaryWorkspaceTab | MoreWorkspaceTab;
@@ -645,6 +655,29 @@ export default function AdminCoursesWorkspace() {
     });
   };
 
+  const moveModule = (idx: number, direction: -1 | 1) => {
+    const target = idx + direction;
+    if (target < 0 || target >= modules.length) return;
+    setModules((prev) => {
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(idx, 1);
+      next.splice(target, 0, moved);
+      return next;
+    });
+    setExpandedModuleIdx((prev) => {
+      if (prev === idx) return target;
+      if (prev === target) return idx;
+      return prev;
+    });
+    setSelectedLesson((prev) => {
+      if (!prev) return prev;
+      if (prev.mi === idx) return { ...prev, mi: target };
+      if (prev.mi === target) return { ...prev, mi: idx };
+      return prev;
+    });
+  };
+
   const updateModuleTitle = (idx: number, title: string) => {
     setModules((prev) => prev.map((m, i) => (i === idx ? { ...m, title } : m)));
   };
@@ -766,6 +799,43 @@ export default function AdminCoursesWorkspace() {
     });
   };
 
+  const moveRow = (sel: LessonSelection, direction: -1 | 1) => {
+    const target = sel.ri + direction;
+    if (target < 0) return;
+    setModules((prev) =>
+      prev.map((m, mi) => {
+        if (mi !== sel.mi) return m;
+        if (sel.scope === "module") {
+          if (target >= m.items.length) return m;
+          const items = [...m.items];
+          const [moved] = items.splice(sel.ri, 1);
+          items.splice(target, 0, moved);
+          return { ...m, items };
+        }
+        const subMods = [...(m.subModules ?? [])];
+        const sm = subMods[sel.si];
+        if (!sm || target >= sm.items.length) return m;
+        const items = [...sm.items];
+        const [moved] = items.splice(sel.ri, 1);
+        items.splice(target, 0, moved);
+        subMods[sel.si] = { ...sm, items };
+        return { ...m, subModules: subMods };
+      }),
+    );
+    setSelectedLesson((prev) => {
+      if (!prev || prev.mi !== sel.mi || prev.scope !== sel.scope) return prev;
+      if (sel.scope === "module" && prev.scope === "module") {
+        if (prev.ri === sel.ri) return { ...prev, ri: target };
+        if (prev.ri === target) return { ...prev, ri: sel.ri };
+      }
+      if (sel.scope === "sub" && prev.scope === "sub" && prev.si === sel.si) {
+        if (prev.ri === sel.ri) return { ...prev, ri: target };
+        if (prev.ri === target) return { ...prev, ri: sel.ri };
+      }
+      return prev;
+    });
+  };
+
   const addSubModule = (mi: number) => {
     let nextSel: LessonSelection | null = null;
     setModules((prev) =>
@@ -804,6 +874,27 @@ export default function AdminCoursesWorkspace() {
         if (prev.si === si) return null;
         if (prev.si > si) return { ...prev, si: prev.si - 1 };
       }
+      return prev;
+    });
+  };
+
+  const moveSubModule = (mi: number, si: number, direction: -1 | 1) => {
+    const target = si + direction;
+    if (target < 0) return;
+    setModules((prev) =>
+      prev.map((m, i) => {
+        if (i !== mi) return m;
+        const subMods = [...(m.subModules ?? [])];
+        if (target >= subMods.length) return m;
+        const [moved] = subMods.splice(si, 1);
+        subMods.splice(target, 0, moved);
+        return { ...m, subModules: subMods };
+      }),
+    );
+    setSelectedLesson((prev) => {
+      if (!prev || prev.mi !== mi || prev.scope !== "sub") return prev;
+      if (prev.si === si) return { ...prev, si: target };
+      if (prev.si === target) return { ...prev, si };
       return prev;
     });
   };
@@ -866,10 +957,15 @@ export default function AdminCoursesWorkspace() {
     let lessons = 0;
     let quizzes = 0;
     let readings = 0;
+    let explicitMinutes = 0;
+    let estimatedMinutes = 0;
     const countItem = (it: CourseCurriculumItem) => {
       lessons += 1;
       if (it.kind === "exam") quizzes++;
       else if (it.kind === "reading") readings++;
+      const minutes = typeof it.lessonDurationMinutes === "number" ? Math.max(0, Math.round(it.lessonDurationMinutes)) : 0;
+      if (minutes > 0) explicitMinutes += minutes;
+      else if (it.kind === "video") estimatedMinutes += 15;
     };
     for (const m of modules) {
       for (const it of m.items) countItem(it);
@@ -877,7 +973,7 @@ export default function AdminCoursesWorkspace() {
         for (const it of sm.items) countItem(it);
       }
     }
-    const estMinutes = Math.max(lessons * 15, lessons > 0 ? 15 : 0);
+    const estMinutes = Math.max(explicitMinutes + estimatedMinutes, lessons > 0 ? 15 : 0);
     const h = Math.floor(estMinutes / 60);
     const min = estMinutes % 60;
     const durationLabel = lessons === 0 ? "—" : h > 0 ? `${h}h ${min}m` : `${min}m`;
@@ -900,6 +996,7 @@ export default function AdminCoursesWorkspace() {
   }, [editingSlug, selectedSlug, isCreating, draft.slug, draft.title]);
   const canEditCurriculum = !!selectedSlug && !isCreating && !!selectedCourse;
   const canEditPricing = isCreating || !!selectedCourse;
+  const hidePreviewForWorkspaceTab = workspaceTab === "Students";
 
   const enrollmentsForCourse = useMemo(
     () => enrollmentRows.filter((e) => e.courseSlug === workspaceCourseSlug),
@@ -971,7 +1068,7 @@ export default function AdminCoursesWorkspace() {
         ) : null}
 
         <div className="px-2 pb-2 pt-3 sm:px-3">
-          <div className="flex flex-wrap items-center gap-1 rounded-xl bg-black/35 p-1 ring-1 ring-white/[0.04]">
+          <div className="flex flex-nowrap items-center gap-1 overflow-x-auto rounded-xl bg-black/35 p-1 ring-1 ring-white/[0.04]">
             {PRIMARY_WORKSPACE_TABS.map((tab) => (
               <button
                 key={tab}
@@ -1852,23 +1949,43 @@ export default function AdminCoursesWorkspace() {
                       const open = expandedModuleIdx === mi;
                       return (
                         <div key={`mod-${mi}`} className="rounded-lg border border-white/8 bg-black/25">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedModuleIdx(mi)}
-                            className="flex w-full items-center gap-2 px-2 py-2 text-left text-xs"
-                          >
-                            <GripVertical className="h-3.5 w-3.5 shrink-0 text-gray-600" />
-                            {open ? (
-                              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-gray-500" />
-                            ) : (
-                              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-500" />
-                            )}
-                            <FolderOpen className="h-3.5 w-3.5 shrink-0 text-amber-400/90" />
-                            <span className="min-w-0 flex-1 truncate font-medium text-gray-200">{mod.title}</span>
-                            <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-gray-400">
-                              {moduleStepCount(mod)}
+                          <div className="flex w-full items-center gap-2 px-2 py-2 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedModuleIdx(mi)}
+                              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                            >
+                              <GripVertical className="h-3.5 w-3.5 shrink-0 text-gray-600" />
+                              {open ? (
+                                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                              ) : (
+                                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                              )}
+                              <FolderOpen className="h-3.5 w-3.5 shrink-0 text-amber-400/90" />
+                              <span className="min-w-0 flex-1 truncate font-medium text-gray-200">{mod.title}</span>
+                              <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-gray-400">
+                                {moduleStepCount(mod)}
+                              </span>
+                            </button>
+                            <span className="flex shrink-0 items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => moveModule(mi, -1)}
+                                title="Move module up"
+                                className="rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-200"
+                              >
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveModule(mi, 1)}
+                                title="Move module down"
+                                className="rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-200"
+                              >
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </button>
                             </span>
-                          </button>
+                          </div>
                           {open ? (
                             <div className="border-t border-white/8 px-2 py-2 space-y-2">
                               <label className="block text-[10px] text-gray-500">
@@ -1916,6 +2033,22 @@ export default function AdminCoursesWorkspace() {
                                           </button>
                                           <button
                                             type="button"
+                                            onClick={() => moveRow(rowSel, -1)}
+                                            className="shrink-0 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-200"
+                                            title="Move lesson up"
+                                          >
+                                            <ChevronUp className="h-3.5 w-3.5" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => moveRow(rowSel, 1)}
+                                            className="shrink-0 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-200"
+                                            title="Move lesson down"
+                                          >
+                                            <ChevronDown className="h-3.5 w-3.5" />
+                                          </button>
+                                          <button
+                                            type="button"
                                             onClick={() => removeRow(rowSel)}
                                             className="shrink-0 rounded p-1 text-gray-500 hover:bg-rose-500/15 hover:text-rose-300"
                                             title="Delete lesson"
@@ -1941,6 +2074,24 @@ export default function AdminCoursesWorkspace() {
                                       className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-[11px] text-white outline-none"
                                     />
                                   </label>
+                                  <div className="mt-1 flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => moveSubModule(mi, si, -1)}
+                                      title="Move sub-module up"
+                                      className="rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-200"
+                                    >
+                                      <ChevronUp className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => moveSubModule(mi, si, 1)}
+                                      title="Move sub-module down"
+                                      className="rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-200"
+                                    >
+                                      <ChevronDown className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
                                   <ul className="mt-2 space-y-0.5 border-t border-white/10 pt-2">
                                     {sm.items.map((les, ri) => {
                                       const Icon = rowIcon(les.kind);
@@ -1972,6 +2123,22 @@ export default function AdminCoursesWorkspace() {
                                                 {lessonIndexLabel(rowSel)}
                                               </span>
                                               <span className="min-w-0 flex-1 truncate">{les.label}</span>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => moveRow(rowSel, -1)}
+                                              className="shrink-0 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-200"
+                                              title="Move lesson up"
+                                            >
+                                              <ChevronUp className="h-3.5 w-3.5" />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => moveRow(rowSel, 1)}
+                                              className="shrink-0 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-200"
+                                              title="Move lesson down"
+                                            >
+                                              <ChevronDown className="h-3.5 w-3.5" />
                                             </button>
                                             <button
                                               type="button"
@@ -2216,6 +2383,14 @@ export default function AdminCoursesWorkspace() {
         />
       ) : null}
 
+      {workspaceTab === "Subscription" ? (
+        <AdminCourseSubscriptionPanel
+          draft={draft}
+          canEdit={canEditPricing}
+          onGoCourseInfo={() => setWorkspaceTab("Course")}
+        />
+      ) : null}
+
       {workspaceTab === "Publish" ? (
         <AdminCoursePublishPanel
           draft={draft}
@@ -2229,11 +2404,14 @@ export default function AdminCoursesWorkspace() {
       ) : null}
 
         </div>
-        {previewSlug ? (
-          <AdminCourseLivePreview
-            slug={previewSlug}
-            title={draft.title?.trim() || selectedCourse?.title}
-          />
+        {previewSlug && !hidePreviewForWorkspaceTab ? (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-violet-200">Course Preview</h3>
+            <AdminCourseLivePreview
+              slug={previewSlug}
+              title={draft.title?.trim() || selectedCourse?.title}
+            />
+          </div>
         ) : null}
       </div>
     </div>

@@ -29,6 +29,12 @@ export type CourseCurriculumItem = {
   kind: CourseCurriculumKind;
   /** Optional lesson notes shown in admin lesson editor; omitted in legacy rows. */
   description?: string;
+  /** Optional runtime in minutes (helps module duration and exam unlock gating). */
+  lessonDurationMinutes?: number;
+  /** Auto-detected uploaded video size in MB (rounded to 1 decimal). */
+  lessonVideoSizeMb?: number;
+  /** Admin-defined preview watch limit for learners in minutes. */
+  previewLimitMinutes?: number;
   /** Lesson-specific "About this lesson/module" text shown under video in learner UI. */
   about?: string;
   /** Per-lesson outcomes (shown as bullets/chips in learner UI). */
@@ -871,10 +877,19 @@ export const defaultAboutPageConfig: AboutPageConfig = {
   },
 };
 
+/** Shared certificate / badge / transcript templates — one workflow for all courses (Admin → Certificates). */
+export type GlobalCertificateAssets = {
+  templateImage?: string;
+  badgeImage?: string;
+  transcriptFile?: string;
+};
+
 export type AdminContent = {
   dashboard: DashboardContent;
   learningCourses: LearningCourseItem[];
   managedCourses: ManagedCourse[];
+  /** Upload once — used for every course certificate + transcript generation. */
+  globalCertificateAssets?: GlobalCertificateAssets;
   /** Live Zoom-style programs for `/tutor-led/[slug]` — edited under Admin → Tutor Led. */
   tutorLedPrograms: TutorLedProgramStored[];
   categories: ManagedCategory[];

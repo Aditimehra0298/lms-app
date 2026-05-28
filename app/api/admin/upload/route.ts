@@ -6,7 +6,7 @@ import {
 } from "@/lib/server/media-asset-mysql";
 import {
   protectedMediaServePath,
-  savePrivateMediaFile,
+  savePrivateMediaBlob,
 } from "@/lib/server/private-media-storage";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -25,7 +25,14 @@ const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime", "vide
 
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 const MAX_DOC_BYTES = 15 * 1024 * 1024;
-const MAX_VIDEO_BYTES = 300 * 1024 * 1024;
+const DEFAULT_MAX_VIDEO_MB = 5 * 1024;
+
+function videoLimitBytes(): number {
+  const raw = process.env.ADMIN_UPLOAD_MAX_VIDEO_MB?.trim();
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  const mb = Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_VIDEO_MB;
+  return mb * 1024 * 1024;
+}
 
 function extForType(type: string): string {
   switch (type) {
@@ -121,9 +128,8 @@ export async function POST(request: Request) {
     if (!isImage && !isDoc && !isVideo) {
       return NextResponse.json({ ok: false, error: "Unsupported file type" }, { status: 400 });
     }
-    const maxBytes = isImage ? MAX_IMAGE_BYTES : isVideo ? MAX_VIDEO_BYTES : MAX_DOC_BYTES;
-    const buf = Buffer.from(await file.arrayBuffer());
-    if (buf.length > maxBytes) {
+    const maxBytes = isImage ? MAX_IMAGE_BYTES : isVideo ? videoLimitBytes() : MAX_DOC_BYTES;
+    if (file.size > maxBytes) {
       const mb = Math.round(maxBytes / (1024 * 1024));
       return NextResponse.json({ ok: false, error: `File too large (max ${mb}MB)` }, { status: 400 });
     }
@@ -134,7 +140,7 @@ export async function POST(request: Request) {
         : extFromOriginalName(originalName) ?? extForType(type);
     const safeBase = originalName.includes(".") ? originalName.slice(0, originalName.lastIndexOf(".")) : originalName;
     const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${safeBase.slice(0, 40)}${ext}`;
-    await savePrivateMediaFile(name, buf);
+    await savePrivateMediaBlob(name, file);
     const url = protectedMediaServePath(name);
 
     const courseSlug =
@@ -147,7 +153,7 @@ export async function POST(request: Request) {
         url,
         originalName,
         mimeType: type || undefined,
-        sizeBytes: buf.length,
+        sizeBytes: file.size,
         kind: mediaKindFromMime(type, originalName),
         courseSlug,
         uploadedBy,
