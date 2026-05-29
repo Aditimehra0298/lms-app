@@ -341,3 +341,101 @@ body {
     qmarkGlowPulse 6.2s ease-in-out infinite;
   will-change: transform, filter;
 }
+
+/* My Learning dashboard tab — golden rays highlight after login */
+@keyframes my-learning-rays-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes my-learning-rays-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+    filter: blur(6px) brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: blur(8px) brightness(1.15);
+  }
+}
+
+.my-learning-dashboard-tab {
+  background: linear-gradient(
+    180deg,
+    rgba(249, 177, 77, 0.22) 0%,
+    rgba(235, 148, 34, 0.12) 55%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 24px rgba(249, 177, 77, 0.45),
+    0 0 48px rgba(235, 148, 34, 0.25),
+    inset 0 1px 0 rgba(253, 230, 138, 0.35);
+}
+
+.my-learning-dashboard-rays {
+  inset: -6px -14px -4px;
+  border-radius: 10px 10px 4px 4px;
+  overflow: hidden;
+}
+
+.my-learning-dashboard-rays::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 140%;
+  height: 180%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(253, 230, 138, 0.55) 18deg,
+    transparent 36deg,
+    rgba(249, 177, 77, 0.5) 54deg,
+    transparent 72deg,
+    rgba(251, 191, 36, 0.55) 90deg,
+    transparent 108deg,
+    rgba(249, 177, 77, 0.5) 126deg,
+    transparent 144deg,
+    rgba(253, 230, 138, 0.55) 162deg,
+    transparent 180deg,
+    rgba(249, 177, 77, 0.5) 198deg,
+    transparent 216deg,
+    rgba(251, 191, 36, 0.55) 234deg,
+    transparent 252deg,
+    rgba(249, 177, 77, 0.5) 270deg,
+    transparent 288deg,
+    rgba(253, 230, 138, 0.55) 306deg,
+    transparent 324deg,
+    rgba(249, 177, 77, 0.45) 342deg,
+    transparent 360deg
+  );
+  animation: my-learning-rays-spin 12s linear infinite;
+}
+
+.my-learning-dashboard-rays::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 120% at 50% 100%,
+    rgba(249, 177, 77, 0.5) 0%,
+    rgba(235, 148, 34, 0.2) 45%,
+    transparent 70%
+  );
+  animation: my-learning-rays-pulse 3s ease-in-out infinite;
+}
+
+.my-learning-dashboard-glow {
+  inset: -2px -8px 0;
+  border-radius: 8px 8px 0 0;
+  box-shadow:
+    0 -4px 28px rgba(249, 177, 77, 0.35),
+    0 0 40px rgba(251, 191, 36, 0.2);
+  animation: my-learning-rays-pulse 3s ease-in-out infinite;
+}

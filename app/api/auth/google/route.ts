@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import type { AccountTypeId } from "@/lib/auth-profile";
 import { pricingRegionForCountry } from "@/lib/country-pricing";
-import { getMainAdminEmail, isMainAdminEmail, roleForEmail } from "@/lib/server/admin-emails";
+import {
+  getMainAdminEmail,
+  isAdminEmail,
+  isMainAdminEmail,
+  roleForEmail,
+} from "@/lib/server/admin-emails";
 import { verifyAdminVerifyToken } from "@/lib/server/admin-verify-token";
 import { fetchGoogleUserInfo } from "@/lib/server/google-userinfo";
 import {
@@ -11,7 +16,10 @@ import {
 import { resolveLearnerCountry } from "@/lib/server/resolve-learner-country";
 import { fetchLmsUserProfile } from "@/lib/server/lms-user-profile";
 import { prisma } from "@/lib/prisma";
+import { registrationPeriodFromDate } from "@/lib/registration-ids";
 import { getClientIps } from "@/lib/request-ip";
+import { ensureUserIdentificationNumber } from "@/lib/server/user-identification";
+import { queueWelcomeEmail } from "@/lib/welcome-email-service";
 
 export const dynamic = "force-dynamic";
 
@@ -155,6 +163,21 @@ export async function POST(request: Request) {
       },
     });
     dbSaved = true;
+
+    if (action === "register" && !existing && !isAdminGoogleStep) {
+      const period = registrationPeriodFromDate();
+      await prisma.lmsUser.updateMany({
+        where: { email, registrationMonthYear: null },
+        data: {
+          registrationMonth: period.registrationMonth,
+          registrationYear: period.registrationYear,
+          registrationMonthYear: period.registrationMonthYear,
+        },
+      });
+      if (accountType !== "organisation") {
+        await ensureUserIdentificationNumber(email);
+      }
+    }
   } catch (err) {
     dbSaved = false;
     dbError = err instanceof Error ? err.message : "Database save failed";
@@ -162,6 +185,21 @@ export async function POST(request: Request) {
   }
 
   const profile = dbSaved ? await fetchLmsUserProfile(email) : null;
+
+  if (
+    action === "register" &&
+    dbSaved &&
+    !existing &&
+    !isAdminGoogleStep &&
+    !isAdminEmail(email)
+  ) {
+    queueWelcomeEmail({
+      email,
+      learnerName: profile?.name ?? name,
+      method: "google",
+      accountType: profile?.accountType ?? accountType,
+    });
+  }
 
   return NextResponse.json({
     ok: true,

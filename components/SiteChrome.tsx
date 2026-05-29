@@ -6,7 +6,6 @@ import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { PricingProvider } from "@/components/PricingProvider";
 import CourseChatbot from "@/components/CourseChatbot";
-
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   if (pathname.startsWith("/admin")) {

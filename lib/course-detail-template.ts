@@ -16,7 +16,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — How to use this course & navigation", kind: "video" },
       { label: "Reading — Policies, attempts & certificate rules", kind: "reading" },
-      { label: "Knowledge check (5 questions)", kind: "exam" },
+      { label: "Knowledge check", kind: "exam" },
     ],
   },
   {
@@ -24,7 +24,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — Introduction to food safety concepts", kind: "video" },
       { label: "Reading — Key terms & reference material", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
   {
@@ -32,7 +32,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — HACCP principles walkthrough", kind: "video" },
       { label: "Reading — Uploaded workbook / slides", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
   {
@@ -40,7 +40,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — Building a positive food safety culture", kind: "video" },
       { label: "Reading — Case study PDF", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
   {
@@ -48,7 +48,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — Hygiene in practice", kind: "video" },
       { label: "Reading — Checklists & SOP excerpts", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
   {
@@ -56,7 +56,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — Consumer health linkages", kind: "video" },
       { label: "Reading — Regulatory overview notes", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
   {
@@ -64,7 +64,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — Legal & reputational risk", kind: "video" },
       { label: "Reading — Compliance reading pack", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
   {
@@ -72,7 +72,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — Hazard analysis introduction", kind: "video" },
       { label: "Reading — Management system outline", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
   {
@@ -80,7 +80,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — Foodborne illness pathways", kind: "video" },
       { label: "Reading — Pathogen fact sheet", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
   {
@@ -88,7 +88,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — Biological contamination controls", kind: "video" },
       { label: "Reading — Lab summary notes", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
   {
@@ -96,7 +96,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — Chemical hazards in operations", kind: "video" },
       { label: "Reading — SDS reference reading", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
   {
@@ -104,7 +104,7 @@ export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
     items: [
       { label: "Video — Physical hazard prevention", kind: "video" },
       { label: "Reading — Inspection guidelines", kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   },
 ];
@@ -135,7 +135,7 @@ export function buildGenericCurriculum(courseTitle: string): CurriculumModule[] 
     items: [
       { label: "Video — How to use this course & navigation", kind: "video" },
       { label: "Reading — Policies, attempts & certificate rules", kind: "reading" },
-      { label: "Knowledge check (5 questions)", kind: "exam" },
+      { label: "Knowledge check", kind: "exam" },
     ],
   };
   const rest: CurriculumModule[] = GENERIC_MODULE_BLUEPRINT.map(([modTitle, videoDesc, readingDesc], i) => ({
@@ -143,7 +143,7 @@ export function buildGenericCurriculum(courseTitle: string): CurriculumModule[] 
     items: [
       { label: `Video — ${videoDesc}`, kind: "video" },
       { label: `Reading — ${readingDesc}`, kind: "reading" },
-      { label: "Module examination (10 MCQs)", kind: "exam" },
+      { label: "Module examination", kind: "exam" },
     ],
   }));
   return [header, ...rest];
@@ -151,17 +151,19 @@ export function buildGenericCurriculum(courseTitle: string): CurriculumModule[] 
 
 /** Food Safety Diploma manual keeps its uploaded curriculum; everything else mirrors the same UI pattern. */
 /** Ensures persisted JSON always has `items` arrays and optional `subModules` shapes. */
+/** Flatten sub-module lessons into each module's `items` list for learner UI. */
 export function normalizeCurriculumModules(modules: CourseCurriculumModule[]): CourseCurriculumModule[] {
-  return modules.map((m) => ({
-    ...m,
-    items: Array.isArray(m.items) ? m.items : [],
-    subModules: m.subModules?.length
-      ? m.subModules.map((sm) => ({
-          ...sm,
-          items: Array.isArray(sm.items) ? sm.items : [],
-        }))
-      : undefined,
-  }));
+  return modules.map((m) => {
+    const top = Array.isArray(m.items) ? m.items : [];
+    const nested = (m.subModules ?? []).flatMap((sm) =>
+      Array.isArray(sm.items) ? sm.items : [],
+    );
+    return {
+      ...m,
+      items: nested.length > 0 ? [...top, ...nested] : top,
+      subModules: undefined,
+    };
+  });
 }
 
 export function getCurriculumForCourse(

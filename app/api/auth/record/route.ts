@@ -16,6 +16,7 @@ import { registrationPeriodFromDate } from "@/lib/registration-ids";
 import { ensureOrganizationProfile } from "@/lib/server/organization-identification";
 import { ensureUserIdentificationNumber } from "@/lib/server/user-identification";
 import { getClientIps } from "@/lib/request-ip";
+import { queueWelcomeEmail } from "@/lib/welcome-email-service";
 
 export const dynamic = "force-dynamic";
 
@@ -234,6 +235,15 @@ export async function POST(request: Request) {
   }
 
   const userProfile = dbSaved ? await fetchLmsUserProfile(email) : null;
+
+  if (action === "register" && dbSaved && !existing && !isAdminEmail(email)) {
+    queueWelcomeEmail({
+      email,
+      learnerName: userProfile?.name ?? userFields.name,
+      method: "email",
+      accountType: userProfile?.accountType ?? accountType ?? null,
+    });
+  }
 
   return NextResponse.json({
     ok: true,

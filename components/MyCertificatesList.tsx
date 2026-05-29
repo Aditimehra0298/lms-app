@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Award, Copy, Download, ExternalLink, Linkedin, Loader2, Search } from "lucide-react";
+import { Award, Copy, Download, ExternalLink, Loader2, Search, Share2 } from "lucide-react";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import type { CertificateRowDto } from "@/lib/certificate-types";
 import { buildLinkedInShareUrl } from "@/lib/certificate-verify-url";
+import { certificatePdfDownloadHref } from "@/lib/certificate-pdf-client";
+import { ShareCredentialButtons } from "@/components/ShareCredentialButtons";
+import { downloadUrlAsFile } from "@/lib/share-credentials";
+import { readJsonResponse } from "@/lib/safe-json";
 
 function statusLabel(c: CertificateRowDto): string {
   if (c.status === "pending") return "Generating your certificate…";
@@ -26,12 +30,22 @@ export default function MyCertificatesList() {
       setLoading(false);
       return;
     }
-    void fetch(`/api/certificates?email=${encodeURIComponent(email)}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((data: { ok?: boolean; certificates?: CertificateRowDto[] }) => {
+    void (async () => {
+      try {
+        const res = await fetch(`/api/certificates?email=${encodeURIComponent(email)}`, {
+          cache: "no-store",
+        });
+        const data = await readJsonResponse(res, {} as {
+          ok?: boolean;
+          certificates?: CertificateRowDto[];
+        });
         if (data.ok && data.certificates) setCertificates(data.certificates);
-      })
-      .finally(() => setLoading(false));
+      } catch {
+        /* ignore */
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [email]);
 
   const filtered = certificates.filter(
@@ -44,13 +58,15 @@ export default function MyCertificatesList() {
   const canDownload = (c: CertificateRowDto) =>
     c.status === "ready" && c.visibleToLearner && (c.pdfUrl || c.id);
 
+  const pdfHref = (c: CertificateRowDto) => certificatePdfDownloadHref(c.pdfUrl, email);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold md:text-4xl">My Certificates</h1>
         <p className="mt-2 max-w-2xl text-sm text-gray-400">
-          Certificates appear here when your course enables them and you pass the exam. PDFs are generated
-          automatically; some courses require admin approval before download.
+          Certificates appear after you complete every module and pass all module exams at the required
+          score. PDFs are generated automatically; some courses require admin approval before download.
         </p>
       </div>
 
@@ -112,16 +128,29 @@ export default function MyCertificatesList() {
               ) : null}
               {canDownload(c) ? (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {c.pdfUrl ? (
-                    <a
-                      href={c.pdfUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-black hover:bg-amber-400"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                      Open PDF
-                    </a>
+                  {pdfHref(c) ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const href = pdfHref(c);
+                          if (href) downloadUrlAsFile(href, `${c.courseSlug}-certificate-and-transcript.pdf`);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-black hover:bg-amber-400"
+                      >
+                        <Download className="h-3.5 w-3.5" aria-hidden />
+                        Certificate + transcript (PDF)
+                      </button>
+                      <a
+                        href={pdfHref(c) ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg bg-amber-500/80 px-3 py-2 text-xs font-bold text-black hover:bg-amber-400"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                        Open PDF
+                      </a>
+                    </>
                   ) : null}
                   {c.verifyUrl ? (
                     <>
@@ -131,7 +160,7 @@ export default function MyCertificatesList() {
                         rel="noreferrer"
                         className="inline-flex items-center gap-2 rounded-lg bg-[#0a66c2] px-3 py-2 text-xs font-semibold text-white hover:bg-[#004182]"
                       >
-                        <Linkedin className="h-3.5 w-3.5" aria-hidden />
+                        <Share2 className="h-3.5 w-3.5" aria-hidden />
                         LinkedIn
                       </a>
                       <a
@@ -152,6 +181,14 @@ export default function MyCertificatesList() {
                     <Download className="h-3.5 w-3.5" aria-hidden />
                     View in LMS
                   </Link>
+                  {c.verifyUrl ? (
+                    <ShareCredentialButtons
+                      compact
+                      url={c.verifyUrl}
+                      title={c.courseTitle}
+                      text={`I earned my certificate in ${c.courseTitle} from SF Trainings!`}
+                    />
+                  ) : null}
                 </div>
               ) : c.status === "ready" && !c.visibleToLearner ? (
                 <p className="mt-3 text-xs text-gray-500">Waiting for admin to publish your certificate.</p>

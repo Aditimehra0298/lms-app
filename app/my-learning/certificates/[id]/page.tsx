@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import CertificatePrintView from "@/components/CertificatePrintView";
 import type { IssuedCertificateDto } from "@/lib/server/certificate-service";
+import { readJsonResponse } from "@/lib/safe-json";
 
 export default function MyCertificateViewPage() {
   const params = useParams();
@@ -15,8 +16,14 @@ export default function MyCertificateViewPage() {
   useEffect(() => {
     if (!id) return;
     void fetch(`/api/certificates/${encodeURIComponent(id)}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((data: { ok?: boolean; certificate?: IssuedCertificateDto; message?: string }) => {
+      .then(async (r) =>
+        readJsonResponse(r, {} as {
+          ok?: boolean;
+          certificate?: IssuedCertificateDto;
+          message?: string;
+        }),
+      )
+      .then((data) => {
         if (data.ok && data.certificate) {
           setCertificate(data.certificate);
         } else {

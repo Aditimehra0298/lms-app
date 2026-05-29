@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
+import { ExamSessionClock } from "@/components/ExamSessionClock";
 import {
-  AlarmClock,
   BookOpen,
   ChevronRight,
   CircleHelp,
   FileText,
   Flag,
   Headset,
+  Lock,
   ListChecks,
   ShieldCheck,
 } from "lucide-react";
@@ -19,7 +20,17 @@ import {
   DEFAULT_MODULE_EXAM_PASS_PERCENT,
   recordModuleExamAttempt,
 } from "@/lib/learner-exam-scores";
+import { markModuleCompleted } from "@/lib/learner-course-progress";
 import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
+import {
+  formatPreviewWatchProgress,
+  healModuleWatchRecord,
+  modulePreviewProgress,
+  PREVIEW_WATCH_UPDATED_EVENT,
+  readModuleWatchedSeconds,
+  writeModuleWatchedSeconds,
+} from "@/lib/learner-preview-gate";
+import type { ParsedExamQuestion } from "@/lib/exam-csv-parse";
 
 export const dynamic = "force-dynamic";
 
@@ -30,64 +41,6 @@ type CourseExamPayload = {
   finalExam: CourseFinalExam | null;
 };
 
-const quizQuestions = [
-  {
-    question: "What is monitoring in HACCP?",
-    options: ["Ignoring hazards", "Checking CCPs regularly", "Hiring workers", "Reducing cost"],
-    correctIndex: 1,
-  },
-  {
-    question: "Which hazard type includes pesticides?",
-    options: ["Biological", "Chemical", "Physical", "Radiological"],
-    correctIndex: 1,
-  },
-  {
-    question: "What does HACCP stand for?",
-    options: [
-      "Hazard Analysis Critical Control Point",
-      "Hazard Assessment Critical Control Process",
-      "Health Analysis Critical Control Point",
-      "Hazard Analysis Control Check Process",
-    ],
-    correctIndex: 0,
-  },
-  {
-    question: "Which record is important in HACCP?",
-    options: ["Employee salary record", "HACCP documentation", "Sales report", "Marketing plan"],
-    correctIndex: 1,
-  },
-  {
-    question: "What should be done if a CCP is out of control?",
-    options: ["Ignore it", "Take corrective action", "Stop production permanently", "Change supplier"],
-    correctIndex: 1,
-  },
-  {
-    question: "Which type of system is HACCP?",
-    options: ["Reactive system", "Preventive system", "Financial system", "Marketing system"],
-    correctIndex: 1,
-  },
-  {
-    question: "What is a Critical Control Point (CCP)?",
-    options: ["A place to store food", "A step where hazard can be controlled", "A cleaning area", "A packaging method"],
-    correctIndex: 1,
-  },
-  {
-    question: "What is the first principle of HACCP?",
-    options: ["Identify hazards", "Establish monitoring procedures", "Set corrective actions", "Record keeping"],
-    correctIndex: 0,
-  },
-  {
-    question: "What is the main purpose of HACCP?",
-    options: ["Increase production speed", "Ensure food safety", "Reduce labor cost", "Improve packaging"],
-    correctIndex: 1,
-  },
-  {
-    question: "Which of the following is a biological hazard?",
-    options: ["Glass pieces", "Bacteria", "Cleaning chemicals", "Metal fragments"],
-    correctIndex: 1,
-  },
-];
-
 function CourseExamPageInner() {
   const params = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
@@ -97,27 +50,30 @@ function CourseExamPageInner() {
   const moduleIdx = moduleNumber - 1;
 
   const [courseMeta, setCourseMeta] = useState<CourseExamPayload | null | undefined>(undefined);
+  const [questions, setQuestions] = useState<ParsedExamQuestion[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
+  const [loadedModuleNumber, setLoadedModuleNumber] = useState<number | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [reviewedQuestions, setReviewedQuestions] = useState<number[]>([]);
-  const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>(
-    () => Array.from({ length: quizQuestions.length }, () => null),
-  );
+  const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [timeRemainingSec, setTimeRemainingSec] = useState<number | null>(null);
-  const currentQuestion = quizQuestions[currentQuestionIndex];
+  const [examStartedAtMs, setExamStartedAtMs] = useState<number | null>(null);
+  const [watchedSecondsByModule, setWatchedSecondsByModule] = useState<Record<number, number>>({});
+  const currentQuestion = questions[currentQuestionIndex];
   const answeredQuestions = useMemo(
     () => selectedAnswers.map((answer, idx) => (answer !== null ? idx : -1)).filter((idx) => idx >= 0),
     [selectedAnswers],
   );
   const markedQuestions = reviewedQuestions.length;
-  const notAnswered = quizQuestions.length - answeredQuestions.length;
   const score = useMemo(
     () =>
       selectedAnswers.reduce<number>((sum, answer, idx) => {
         if (answer === null) return sum;
-        return sum + (answer === quizQuestions[idx].correctIndex ? 1 : 0);
+        return sum + (answer === questions[idx]?.correctIndex ? 1 : 0);
       }, 0),
-    [selectedAnswers],
+    [selectedAnswers, questions],
   );
 
   useEffect(() => {
@@ -127,13 +83,48 @@ function CourseExamPageInner() {
         const res = await fetch(`/api/courses/${encodeURIComponent(slug)}`, { cache: "no-store" });
         if (!res.ok) throw new Error("load");
         const data = (await res.json()) as CourseExamPayload;
-        if (!cancelled) setCourseMeta(data);
+        if (cancelled) return;
+        setCourseMeta(data);
+        if (data.curriculum?.length) {
+          const priorWatch = readModuleWatchedSeconds(slug);
+          let healed = priorWatch;
+          let watchChanged = false;
+          data.curriculum.forEach((mod, idx) => {
+            const moduleNumber = idx + 1;
+            const nextVal = healModuleWatchRecord(mod, priorWatch[moduleNumber] ?? 0);
+            if (nextVal !== (priorWatch[moduleNumber] ?? 0)) {
+              healed = { ...healed, [moduleNumber]: nextVal };
+              watchChanged = true;
+            }
+          });
+          if (watchChanged) {
+            writeModuleWatchedSeconds(slug, healed);
+            setWatchedSecondsByModule(healed);
+          }
+        }
       } catch {
         if (!cancelled) setCourseMeta(null);
       }
     })();
     return () => {
       cancelled = true;
+    };
+  }, [slug]);
+
+  useEffect(() => {
+    const loadWatched = () => setWatchedSecondsByModule(readModuleWatchedSeconds(slug));
+    loadWatched();
+    const onWatch = (e: Event) => {
+      const detail = (e as CustomEvent<{ courseSlug?: string }>).detail;
+      if (!detail?.courseSlug || detail.courseSlug === slug) loadWatched();
+    };
+    window.addEventListener(PREVIEW_WATCH_UPDATED_EVENT, onWatch);
+    window.addEventListener("storage", loadWatched);
+    window.addEventListener("focus", loadWatched);
+    return () => {
+      window.removeEventListener(PREVIEW_WATCH_UPDATED_EVENT, onWatch);
+      window.removeEventListener("storage", loadWatched);
+      window.removeEventListener("focus", loadWatched);
     };
   }, [slug]);
 
@@ -172,6 +163,75 @@ function CourseExamPageInner() {
   }, [courseMeta, isFinalExam, moduleIdx, moduleNumber]);
 
   useEffect(() => {
+    if (!courseMeta || isFinalExam) return;
+
+    let cancelled = false;
+    setQuestionsLoading(true);
+    setQuestionsError(null);
+    setQuestions([]);
+    setSelectedAnswers([]);
+    setIsSubmitted(false);
+    setCurrentQuestionIndex(0);
+    setReviewedQuestions([]);
+    setExamStartedAtMs(null);
+
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/courses/${encodeURIComponent(slug)}/exam-questions?module=${moduleNumber}`,
+          { cache: "no-store" },
+        );
+        const data = (await res.json()) as {
+          ok?: boolean;
+          questions?: ParsedExamQuestion[];
+          message?: string;
+          moduleTitle?: string;
+        };
+        if (cancelled) return;
+        if (!res.ok || !data.ok || !data.questions?.length) {
+          setQuestions([]);
+          setSelectedAnswers([]);
+          setQuestionsError(
+            data.message ??
+              "No exam questions for this module. Upload a CSV on the Module Exam row in Admin.",
+          );
+          setLoadedModuleNumber(moduleNumber);
+          return;
+        }
+        setQuestions(data.questions);
+        setSelectedAnswers(Array.from({ length: data.questions.length }, () => null));
+        setLoadedModuleNumber(moduleNumber);
+        setQuestionsError(null);
+      } catch {
+        if (cancelled) return;
+        setQuestions([]);
+        setSelectedAnswers([]);
+        setQuestionsError("Could not load exam questions. Refresh the page and try again.");
+        setLoadedModuleNumber(moduleNumber);
+      } finally {
+        if (!cancelled) setQuestionsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, moduleNumber, isFinalExam, courseMeta]);
+
+  const previewGate = useMemo(() => {
+    if (!courseMeta || isFinalExam) {
+      return { requiredSec: 0, watchedSec: 0, unlocked: true };
+    }
+    const mod = courseMeta.curriculum?.[moduleIdx];
+    const progress = modulePreviewProgress(mod, watchedSecondsByModule[moduleNumber] ?? 0);
+    return {
+      requiredSec: progress.required,
+      watchedSec: progress.watched,
+      unlocked: progress.unlocked,
+    };
+  }, [courseMeta, isFinalExam, moduleIdx, moduleNumber, watchedSecondsByModule]);
+
+  useEffect(() => {
     if (!examRuntime) return;
     if (!examRuntime.timed) {
       setTimeRemainingSec(null);
@@ -198,26 +258,22 @@ function CourseExamPageInner() {
     }
   }, [examRuntime?.timed, timeRemainingSec, isSubmitted]);
 
-  const mm =
-    timeRemainingSec === null ? "—" : String(Math.floor(timeRemainingSec / 60)).padStart(2, "0");
-  const ss = timeRemainingSec === null ? "—" : String(timeRemainingSec % 60).padStart(2, "0");
+  useEffect(() => {
+    if (!previewGate.unlocked || !examRuntime || isSubmitted || examStartedAtMs !== null) return;
+    setExamStartedAtMs(Date.now());
+  }, [previewGate.unlocked, examRuntime, isSubmitted, examStartedAtMs]);
 
-  const markModuleCompleted = () => {
-    if (isFinalExam) return;
-    const key = `sft_completed_modules_${slug}`;
-    try {
-      const raw = window.localStorage.getItem(key);
-      const existing = raw ? (JSON.parse(raw) as number[]) : [];
-      const merged = Array.from(new Set([...(Array.isArray(existing) ? existing : []), moduleNumber]));
-      window.localStorage.setItem(key, JSON.stringify(merged));
-    } catch {
-      // keep UI working even if local storage fails
-    }
+  const markModuleCompletedLocal = () => {
+    if (isFinalExam || !courseMeta) return;
+    markModuleCompleted(slug, moduleNumber, courseMeta.curriculum?.length, {
+      courseTitle: courseMeta.title,
+      moduleTitle: `Module ${moduleNumber}`,
+    });
   };
 
   useEffect(() => {
     if (!isSubmitted || !examRuntime || isFinalExam) return;
-    const total = quizQuestions.length;
+    const total = questions.length;
     const correct = score;
     const percentage = Math.round((correct / total) * 100);
     const entry = recordModuleExamAttempt({
@@ -228,9 +284,9 @@ function CourseExamPageInner() {
       passingPercent: examRuntime.passingScorePercent,
     });
     if (entry.passed) {
-      markModuleCompleted();
+      markModuleCompletedLocal();
     }
-  }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug]);
+  }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug, questions.length]);
 
   if (courseMeta === undefined) {
     return (
@@ -278,8 +334,66 @@ function CourseExamPageInner() {
     );
   }
 
+  if (questionsLoading || loadedModuleNumber !== moduleNumber) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto flex max-w-[600px] flex-col items-center justify-center px-4 py-24 text-center">
+          <p className="text-sm text-gray-400">
+            Loading exam for module {moduleNumber}…
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  if (!questions.length && questionsError) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto max-w-[600px] px-4 py-16 text-center">
+          <p className="text-lg font-semibold text-amber-200">Exam not available</p>
+          <p className="mt-2 text-sm text-gray-300">{questionsError}</p>
+          <Link
+            href={`/my-learning/course/${slug}`}
+            className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold"
+          >
+            Back to course
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
+  if (!isFinalExam && !previewGate.unlocked) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto max-w-[760px] px-4 py-16 text-center">
+          <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-6">
+            <p className="inline-flex items-center gap-2 text-amber-200">
+              <Lock size={18} /> Assessment locked
+            </p>
+            <h1 className="mt-3 text-2xl font-bold">Complete preview watch time first</h1>
+            <p className="mt-2 text-sm text-amber-100/90">
+              Module {moduleNumber} assessment unlocks after you watch the required lesson preview time. Finish the
+              module video (or watch the full lesson if it is shorter than the preview limit).
+            </p>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-amber-300/35 bg-amber-500/15 px-3 py-2 text-sm text-amber-100">
+              <Lock size={14} />
+              {formatPreviewWatchProgress(previewGate.watchedSec, previewGate.requiredSec)} watched
+            </div>
+            <Link
+              href={`/my-learning/course/${slug}`}
+              className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold"
+            >
+              Back to module lessons
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (isSubmitted) {
-    const percentage = Math.round((score / quizQuestions.length) * 100);
+    const percentage = questions.length ? Math.round((score / questions.length) * 100) : 0;
     const passed = percentage >= examRuntime.passingScorePercent;
     return (
       <div className="min-h-screen bg-[#060b17] text-white">
@@ -291,17 +405,9 @@ function CourseExamPageInner() {
             <p className="mt-0.5 text-xs text-gray-500">
               Passing score: {examRuntime.passingScorePercent}% correct required
             </p>
-            <div className="mt-4 grid gap-3 md:grid-cols-4">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-xs text-gray-400">Marks available</p>
-                <p className="text-2xl font-bold">{quizQuestions.length}</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-xs text-gray-400">Marks obtained</p>
-                <p className="text-2xl font-bold">{score}</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-xs text-gray-400">This exam %</p>
+                <p className="text-xs text-gray-400">Your score</p>
                 <p className="text-2xl font-bold">{percentage}%</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
@@ -313,26 +419,35 @@ function CourseExamPageInner() {
             </div>
             {passed ? (
               <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                You passed this exam ({score} / {quizQuestions.length} marks = {percentage}%). When you have
-                passed every module exam, your combined percentage is used for your certificate grade.
+                You passed this exam ({percentage}%). When you have passed every module exam, your combined
+                percentage is used for your certificate grade.
               </p>
             ) : (
               <p className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-                You need {examRuntime.passingScorePercent}% to pass ({score} / {quizQuestions.length} marks ={" "}
-                {percentage}%). You can retake this exam as many times as you need.
+                You need {examRuntime.passingScorePercent}% to pass (your score: {percentage}%). You can retake
+                this exam as many times as you need.
               </p>
             )}
             <div className="mt-5 flex flex-wrap gap-2">
               <Link href={`/my-learning/course/${slug}`} className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold">
-                Back to My Learning
+                Back to course
               </Link>
+              {passed ? (
+                <Link
+                  href={`/my-learning/course/${slug}#credentials`}
+                  className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold"
+                >
+                  View certificate & badges
+                </Link>
+              ) : null}
               <button
                 onClick={() => {
                   setIsSubmitted(false);
                   setCurrentQuestionIndex(0);
-                  setSelectedAnswers(Array.from({ length: quizQuestions.length }, () => null));
+                  setSelectedAnswers(Array.from({ length: questions.length }, () => null));
                   setReviewedQuestions([]);
                   setTimeRemainingSec(examRuntime.timed ? examRuntime.durationSec : null);
+                  setExamStartedAtMs(Date.now());
                 }}
                 className="rounded-md border border-white/15 bg-black/25 px-4 py-2 text-sm"
               >
@@ -394,10 +509,12 @@ function CourseExamPageInner() {
           <div className="space-y-3">
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
               <h1 className="text-2xl font-bold md:text-3xl">{examRuntime.title}</h1>
+              {questionsError ? (
+                <p className="mt-2 rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                  {questionsError}
+                </p>
+              ) : null}
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1">
-                  Total questions: {quizQuestions.length}
-                </span>
                 <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1">
                   Passing score: {examRuntime.passingScorePercent}%
                 </span>
@@ -430,9 +547,7 @@ function CourseExamPageInner() {
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-4">
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-violet-300">
-                  Question {currentQuestionIndex + 1} / {quizQuestions.length}
-                </p>
+                <p className="text-violet-300">Question {currentQuestionIndex + 1}</p>
                 <button
                   onClick={() =>
                     setReviewedQuestions((prev) =>
@@ -454,10 +569,10 @@ function CourseExamPageInner() {
                   {reviewedQuestions.includes(currentQuestionIndex) ? "Marked for Review" : "Mark for Review"}
                 </button>
               </div>
-              <h2 className="text-3xl font-bold">{currentQuestion.question}</h2>
+              <h2 className="text-3xl font-bold">{currentQuestion?.question ?? "No questions loaded"}</h2>
 
               <div className="mt-4 space-y-2">
-                {currentQuestion.options.map((option, idx) => (
+                {(currentQuestion?.options ?? []).map((option, idx) => (
                   <button
                     key={option}
                     onClick={() =>
@@ -498,7 +613,7 @@ function CourseExamPageInner() {
                   Clear Response
                 </button>
                 <button
-                  onClick={() => setCurrentQuestionIndex((prev) => Math.min(quizQuestions.length - 1, prev + 1))}
+                  onClick={() => setCurrentQuestionIndex((prev) => Math.min(questions.length - 1, prev + 1))}
                   className="rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold"
                 >
                   Next Question
@@ -514,42 +629,32 @@ function CourseExamPageInner() {
           </div>
 
           <aside className="space-y-3">
-            <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
-              <p className="text-xs text-gray-400">Time Remaining</p>
-              <p className="mt-1 inline-flex items-center gap-2 text-3xl font-bold">
-                <AlarmClock size={20} className="text-amber-300" />{" "}
-                {examRuntime.timed ? `${mm}:${ss}` : "—"}
-              </p>
-              {!examRuntime.timed ? (
-                <p className="mt-1 text-[11px] text-gray-500">This attempt is not timed.</p>
-              ) : null}
-              <button
-                onClick={() => setIsSubmitted(true)}
-                className="mt-3 w-full rounded-md border border-red-300/35 bg-red-500/10 py-2 text-sm text-red-200"
-              >
-                End Exam
-              </button>
-            </article>
+            <ExamSessionClock
+              timed={examRuntime.timed}
+              timeRemainingSec={timeRemainingSec}
+              startedAtMs={examStartedAtMs ?? Date.now()}
+              onEndExam={() => setIsSubmitted(true)}
+            />
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
-              <div className="flex items-center justify-between text-sm">
-                <span>Your Progress</span>
-                <span>
-                  {answeredQuestions.length} / {quizQuestions.length} Answered
-                </span>
-              </div>
+              <p className="text-sm">Your progress</p>
               <div className="mt-2 h-2 rounded-full bg-white/10">
                 <div
-                  className="h-2 rounded-full bg-violet-500"
-                  style={{ width: `${Math.round((answeredQuestions.length / quizQuestions.length) * 100)}%` }}
+                  className="h-2 rounded-full bg-violet-500 transition-all"
+                  style={{
+                    width: `${
+                      questions.length
+                        ? Math.round((answeredQuestions.length / questions.length) * 100)
+                        : 0
+                    }%`,
+                  }}
                 />
               </div>
-              <div className="mt-2 grid grid-cols-4 gap-1 text-[10px]">
-                <span className="rounded border border-white/10 bg-black/25 px-1 py-0.5 text-center">Answered: {answeredQuestions.length}</span>
-                <span className="rounded border border-white/10 bg-black/25 px-1 py-0.5 text-center">Not Answered: {notAnswered}</span>
-                <span className="rounded border border-white/10 bg-black/25 px-1 py-0.5 text-center">Marked: {markedQuestions}</span>
-                <span className="rounded border border-white/10 bg-black/25 px-1 py-0.5 text-center">Left: {notAnswered}</span>
-              </div>
+              {markedQuestions > 0 ? (
+                <p className="mt-2 text-[11px] text-rose-200/90">
+                  {markedQuestions} marked for review
+                </p>
+              ) : null}
             </article>
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
@@ -572,7 +677,7 @@ function CourseExamPageInner() {
                 </span>
               </div>
               <div className="grid grid-cols-5 gap-2">
-                {Array.from({ length: quizQuestions.length }).map((_, idx) => (
+                {Array.from({ length: questions.length }).map((_, idx) => (
                   <button
                     key={idx}
                     onClick={() => setCurrentQuestionIndex(idx)}

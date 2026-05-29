@@ -14,7 +14,6 @@ const LEGACY_PUBLIC_DIR = path.join(process.cwd(), "public", "uploads", "admin")
 export function storageFileNameFromUrl(url: string): string | null {
   const trimmed = url.trim();
   if (!trimmed) return null;
-  if (trimmed.startsWith("/api/media/serve")) return null;
 
   let pathname = trimmed;
   try {

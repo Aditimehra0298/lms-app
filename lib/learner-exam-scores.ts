@@ -152,3 +152,20 @@ export function computeCombinedExamGrade(
     scores,
   };
 }
+
+/** Certificate + transcript unlock: all modules done, and every module exam passed when exams exist. */
+export function learnerCredentialsEligible(
+  curriculum: CourseCurriculumModule[],
+  completedModules: number[],
+  allExamsPassed: boolean,
+): {
+  allModulesDone: boolean;
+  examsRequired: boolean;
+  eligible: boolean;
+} {
+  const allModulesDone =
+    curriculum.length > 0 && curriculum.every((_, idx) => completedModules.includes(idx + 1));
+  const examsRequired = examModuleNumbers(curriculum).length > 0;
+  const eligible = allModulesDone && (!examsRequired || allExamsPassed);
+  return { allModulesDone, examsRequired, eligible };
+}

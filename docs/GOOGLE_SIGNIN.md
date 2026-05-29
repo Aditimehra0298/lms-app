@@ -8,8 +8,9 @@ The **Continue with Google** button on `/account` uses Google Identity Services.
 2. Create or select a project.
 3. **APIs & Services → OAuth consent screen** — configure app name and add your Google account as a test user (while in *Testing* mode).
 4. **Credentials → Create credentials → OAuth client ID → Web application**.
-5. **Authorized JavaScript origins** (required):
-   - `http://localhost:3000` (local dev)
+5. **Authorized JavaScript origins** (required — must match the address bar **exactly**):
+   - `http://localhost:3000` (this PC only)
+   - `http://192.168.1.77:3000` (other PCs on same Wi‑Fi — use **your** PC’s IP from `ipconfig`)
    - Your production URL, e.g. `https://your-domain.com`
 6. Copy the **Client ID** (ends with `.apps.googleusercontent.com`).
 
@@ -46,6 +47,7 @@ Google sign-in skips email OTP (Google already verified the email) and saves the
 | Issue | Fix |
 |--------|-----|
 | “Google sign-in is not configured” | Add both env vars and restart `npm run dev`. |
-| `origin_mismatch` / popup error | Add exact origin (scheme + host + port) under **Authorized JavaScript origins**. |
+| `origin_mismatch` / popup error | Add the **exact** URL from the browser bar (e.g. `http://192.168.1.77:3000`) under **Authorized JavaScript origins**. Wi‑Fi sharing fails if only `localhost` is listed. |
+| Login works on host PC but not on another PC on Wi‑Fi | Other PC uses your LAN IP, not `localhost`. Add `http://YOUR_IP:3000` in Google Cloud (see above). |
 | `access_denied` in Testing mode | Add your Gmail under OAuth consent screen → Test users. |
 | DB not saved | Start MySQL and run `npm run db:push`. |

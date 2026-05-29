@@ -1,59 +1,10 @@
 {
   "dashboard": {
-    "nextClassTitle": "Cyber Security Fundamentals",
-    "nextClassTime": "10:00 AM - 11:30 AM",
-    "streakDays": 12
+    "nextClassTitle": "",
+    "nextClassTime": "",
+    "streakDays": 0
   },
-  "learningCourses": [
-    {
-      "title": "Advanced Cyber Security Professional",
-      "modules": 12,
-      "duration": "40h 30m",
-      "completed": 8,
-      "status": "In Progress",
-      "action": "Continue"
-    },
-    {
-      "title": "ESG Fundamentals",
-      "modules": 10,
-      "duration": "20h 15m",
-      "completed": 10,
-      "status": "Completed",
-      "action": "View Certificate"
-    },
-    {
-      "title": "Network Security Essentials",
-      "modules": 9,
-      "duration": "18h 45m",
-      "completed": 5,
-      "status": "In Progress",
-      "action": "Continue"
-    },
-    {
-      "title": "Ethical Hacking with Tools",
-      "modules": 8,
-      "duration": "16h 30m",
-      "completed": 2,
-      "status": "In Progress",
-      "action": "Continue"
-    },
-    {
-      "title": "Python for Data Science",
-      "modules": 10,
-      "duration": "22h 10m",
-      "completed": 0,
-      "status": "Not Started",
-      "action": "Start Course"
-    },
-    {
-      "title": "Workplace Compliance",
-      "modules": 6,
-      "duration": "10h 20m",
-      "completed": 6,
-      "status": "Completed",
-      "action": "View Certificate"
-    }
-  ],
+  "learningCourses": [],
   "managedCourses": [
     {
       "slug": "esg-reporting-fundamentals",
@@ -72,7 +23,14 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "information-security-governance",
@@ -91,7 +49,14 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "medical-device-quality-regulatory",
@@ -110,7 +75,14 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "workplace-compliance-practical",
@@ -129,7 +101,14 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "skill-development-framework-implementation",
@@ -148,7 +127,14 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "hvac-refrigeration-core-operations",
@@ -167,7 +153,14 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "cyber-security-essentials",
@@ -187,7 +180,14 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "advanced-cyber-security-professional",
@@ -268,7 +268,14 @@
       ],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "cybersecurity",
@@ -397,7 +404,14 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "food-safety-masterclass",
@@ -587,7 +601,14 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "cousers-esg-esg-management-development-training-program",
@@ -1018,7 +1039,14 @@
             }
           ]
         }
-      ]
+      ],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     },
     {
       "slug": "fssc-22000-v6-food-fraud-mitigation-auditing",
@@ -1097,7 +1125,7 @@
         "moneyBackGuarantee": "7 days money-back gurantee",
         "enrollButtonLabel": "Enroll Now",
         "wishlistButtonLabel": "Add to Wishlist",
-        "certificatePreviewImage": "/api/media/serve/1779876278897-noxduahi-ChatGPT_Image_May_27_2026_03_34_30_PM.png",
+        "certificatePreviewImage": "/api/media/serve/1780039189907-4bcypvwo-advanced_food_fraud.pdf_1_-1.png",
         "certificatePreviewLabel": "Certificate of Attainment",
         "aboutText": "This course provides advanced knowledge of food fraud mitigation and auditing within the FSSC 22000 Version 6 framework. It helps learners understand how food fraud risks can affect food safety, product integrity, brand reputation, and certification compliance.\n\nThe course covers food fraud vulnerability assessment, mitigation strategies, audit evidence, documentation requirements, and practical control measures. It is designed for food safety professionals, auditors, quality managers, consultants, and technical teams who want to build stronger, audit-ready food fraud prevention systems.",
         "courseIncludes": [
@@ -1237,7 +1265,7 @@
       "learningSection": {
         "brandLogoUrl": "/SF-WHITE-LOGO.png",
         "accreditedBadgeLabel": "Accredited label",
-        "accreditedDescription": "This course is developed by the SFT Expert Team and aligned with the learning needs of food safety, quality, compliance, and auditing professionals. It supports learners in understanding food fraud mitigation, vulnerability assessment, documentation, and audit readiness under FSSC 22000 Version 6.\n\nUpon successful completion, learners will receive a course completion certificate from Sustainable Futures Training (SFT).",
+        "accreditedDescription": "Upon successful completion, learners will receive a course completion certificate from Sustainable Futures Training (SFT).",
         "certificationRuleText": "Certification is awarded after the learner successfully completes all required course modules and passes the final assessment as per the course completion criteria.",
         "noVideoMessage": "Preview loading",
         "learningToolsTitle": "Learning tools",
@@ -1274,7 +1302,9 @@
                 "Understand documentation and records required for audit readiness.",
                 "Apply the lesson concept within an FSSC 22000 Version 6 food safety system."
               ],
-              "about": "This lesson explains the selected topic in a simple and practical way, helping learners understand how it connects with food fraud mitigation, FSSC 22000 Version 6 requirements, and audit readiness. It focuses on key concepts, real-world food safety risks, required controls, and the type of evidence or documentation that may be reviewed during audits."
+              "about": "This lesson explains the selected topic in a simple and practical way, helping learners understand how it connects with food fraud mitigation, FSSC 22000 Version 6 requirements, and audit readiness. It focuses on key concepts, real-world food safety risks, required controls, and the type of evidence or documentation that may be reviewed during audits.",
+              "previewLimitMinutes": 11,
+              "lessonDurationMinutes": 8
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1302,7 +1332,9 @@
                 "Apply the lesson learning in a practical FSMS context.",
                 "Understand what audit evidence may be reviewed for this topic."
               ],
-              "videoUrl": "/api/media/serve/1779881493500-bg6vnp9v-1775807283module_1_720p_caption.mp4"
+              "videoUrl": "/api/media/serve/1779881493500-bg6vnp9v-1775807283module_1_720p_caption.mp4",
+              "previewLimitMinutes": 22,
+              "lessonDurationMinutes": 23
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1334,7 +1366,9 @@
                 "Link significant vulnerabilities to a documented mitigation plan.",
                 "Apply FFVA thinking during audits and technical reviews."
               ],
-              "videoUrl": "/api/media/serve/1779891083683-fq5v5tyt-1775807622module_2__720p_caption_1_.mp4"
+              "videoUrl": "/api/media/serve/1779891083683-fq5v5tyt-1775807622module_2__720p_caption_1_.mp4",
+              "previewLimitMinutes": 24,
+              "lessonDurationMinutes": 25
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1365,7 +1399,9 @@
                 "Link significant vulnerabilities to suitable mitigation measures.",
                 "Strengthen audit readiness through credible and defensible significance decisions."
               ],
-              "about": "This lesson explains how organizations move from identifying food fraud vulnerabilities to deciding which ones are significant and need formal mitigation. It focuses on structured decision-making, documented logic, audit evidence, and the connection between significance evaluation and mitigation planning."
+              "about": "This lesson explains how organizations move from identifying food fraud vulnerabilities to deciding which ones are significant and need formal mitigation. It focuses on structured decision-making, documented logic, audit evidence, and the connection between significance evaluation and mitigation planning.",
+              "previewLimitMinutes": 24,
+              "lessonDurationMinutes": 25
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1397,7 +1433,9 @@
                 "Understand supplier assurance expectations for FII organizations.",
                 "Recognize common audit weaknesses in food fraud mitigation plans."
               ],
-              "about": "This lesson explains how to develop a documented food fraud mitigation plan after completing the Food Fraud Vulnerability Assessment. It helps learners understand how significant vulnerabilities should be converted into practical mitigation measures under FSSC 22000 Version 6, Section 2.5.4.2.\n\nLearners will understand what a strong mitigation plan should include, such as responsibilities, verification procedures, records, review triggers, and FSMS support. The lesson also explains how to keep the plan updated when suppliers, market conditions, legislation, or fraud intelligence changes."
+              "about": "This lesson explains how to develop a documented food fraud mitigation plan after completing the Food Fraud Vulnerability Assessment. It helps learners understand how significant vulnerabilities should be converted into practical mitigation measures under FSSC 22000 Version 6, Section 2.5.4.2.\n\nLearners will understand what a strong mitigation plan should include, such as responsibilities, verification procedures, records, review triggers, and FSMS support. The lesson also explains how to keep the plan updated when suppliers, market conditions, legislation, or fraud intelligence changes.",
+              "previewLimitMinutes": 29,
+              "lessonDurationMinutes": 30
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1428,7 +1466,9 @@
                 "Identify records needed to demonstrate implementation and effectiveness.",
                 "Detect common weaknesses such as one-person ownership, missing training evidence, and poor audit coverage.",
                 "Judge whether weak competence or poor FSMS integration can affect the mitigation plan."
-              ]
+              ],
+              "previewLimitMinutes": 25,
+              "lessonDurationMinutes": 24
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1459,7 +1499,9 @@
                 "Write clear, evidence-based audit conclusions linked to FSSC requirements.",
                 "Apply structured audit review points with confidence and consistency."
               ],
-              "videoUrl": "/api/media/serve/1779893355984-efd4ief0-1775811887module_6_720p_caption.mp4"
+              "videoUrl": "/api/media/serve/1779893355984-efd4ief0-1775811887module_6_720p_caption.mp4",
+              "previewLimitMinutes": 28,
+              "lessonDurationMinutes": 29
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1469,7 +1511,14 @@
             }
           ]
         }
-      ]
+      ],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      }
     }
   ],
   "categories": [
@@ -1562,93 +1611,7 @@
       "tone": "violet"
     }
   ],
-  "categoryPages": {
-    "esg": {
-      "heroImage": "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=1600&q=80",
-      "heroSubtitle": "",
-      "hiddenCourseSlugs": [],
-      "instructors": [
-        {
-          "name": "Priya Nair",
-          "role": "Lead Auditor",
-          "years": "14+ Years Exp",
-          "photo": "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=240&h=240&q=80"
-        },
-        {
-          "name": "Daniel Brooks",
-          "role": "Quality Consultant",
-          "years": "12+ Years Exp",
-          "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&h=240&q=80"
-        },
-        {
-          "name": "Ananya Rao",
-          "role": "Compliance Lead",
-          "years": "10+ Years Exp",
-          "photo": "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=240&h=240&q=80"
-        }
-      ],
-      "levelFilters": [
-        {
-          "value": "",
-          "label": "All levels"
-        },
-        {
-          "value": "student",
-          "label": "Student level"
-        },
-        {
-          "value": "orator",
-          "label": "Orator level"
-        },
-        {
-          "value": "industry",
-          "label": "Industry level"
-        },
-        {
-          "value": "consultant",
-          "label": "Consultant level"
-        },
-        {
-          "value": "officer",
-          "label": "Officer level"
-        },
-        {
-          "value": "vacant",
-          "label": "Vacant"
-        }
-      ],
-      "whyLearn": [
-        {
-          "label": "Recognized Programs",
-          "desc": "Credentials employers and auditors respect.",
-          "tone": "amber",
-          "icon": "ScrollText",
-          "quote": ""
-        },
-        {
-          "label": "Practical Skills",
-          "desc": "Apply concepts immediately at work.",
-          "tone": "emerald",
-          "icon": "Award",
-          "quote": ""
-        },
-        {
-          "label": "Career Growth",
-          "desc": "Stand out in hiring and promotions.",
-          "tone": "blue",
-          "icon": "Users",
-          "quote": ""
-        },
-        {
-          "label": "Expert-Led",
-          "desc": "Learn from practitioners in the field.",
-          "tone": "violet",
-          "icon": "BookOpen",
-          "quote": ""
-        }
-      ]
-    }
-  },
+  "categoryPages": {},
   "coursesPage": {
     "hero": {
       "badgeText": "NEW PROGRAM",
@@ -2444,7 +2407,7 @@
         },
         {
           "q": "Will I get a certificate?",
-          "a": "Yes. Upon successful completion of all live sessions and assessments, you receive a personalized, IEB-accredited Certificate of Attainment with a unique certificate number and QR code for online verification."
+          "a": "Yes, upon successful completion you receive an industry-recognized Certificate of Attainment."
         },
         {
           "q": "Is this course beginner-friendly?",
@@ -2464,243 +2427,7 @@
       "learnerHeroSrc": "/h2.png",
       "learnerHeroAlt": "Your live cohort dashboard",
       "priceAfterPayment": 12999,
-      "learningMaterials": [
-        {
-          "id": "demo-pad-1",
-          "kind": "pad-notes",
-          "title": "Live session scratchpad",
-          "downloadUrl": "/uploads/demo/session-notes.pdf"
-        },
-        {
-          "id": "demo-ppt-1",
-          "kind": "ppt",
-          "title": "Week 1 — Introduction slides",
-          "downloadUrl": "/uploads/demo/week-1-slides.pptx"
-        },
-        {
-          "id": "demo-web-1",
-          "kind": "webbook",
-          "title": "Course workbook (PDF)",
-          "downloadUrl": "/uploads/demo/course-workbook.pdf"
-        }
-      ]
-    },
-    {
-      "slug": "new-live-1779168065766",
-      "published": false,
-      "title": "New live program",
-      "subtitle": "Join live interactive sessions with industry experts on Zoom and master in-demand cybersecurity skills through hands-on learning.",
-      "breadcrumb": [
-        "Home",
-        "Live Trainings",
-        "Tutor Led Training"
-      ],
-      "badge": "TUTOR LED TRAINING",
-      "price": 12999,
-      "originalPrice": 18999,
-      "discount": "31% OFF",
-      "batchLabel": "Upcoming Live Batch",
-      "seatsFilling": true,
-      "seatsLeft": 18,
-      "trainer": {
-        "name": "Mr. Arvind Rao",
-        "role": "Cyber Security Expert & Trainer",
-        "experience": "12+ Years of Experience",
-        "bio": "12+ years of experience in cybersecurity, ethical hacking, and information security. Worked with top MNCs and trained more than 15,000+ professionals worldwide.",
-        "certifications": [
-          "CEH Certified",
-          "CISSP Certified",
-          "OSCP Certified"
-        ],
-        "workedWith": [
-          "IBM",
-          "Deloitte",
-          "Infosys",
-          "KPMG",
-          "WIPRO"
-        ],
-        "avatar": "/trainer-avatar.png"
-      },
-      "nextBatchDate": "15 June 2024",
-      "schedule": "Tue, Thu, Sat (7:00 PM - 9:00 PM IST)",
-      "language": "English",
-      "countdown": {
-        "days": 5,
-        "hours": 12,
-        "mins": 45,
-        "secs": 30
-      },
-      "liveJoinUrl": "",
-      "zoomMeetingId": "",
-      "zoomPasscode": "",
-      "batchDetails": [
-        {
-          "icon": "Clock",
-          "label": "Duration",
-          "value": "12 Weeks"
-        },
-        {
-          "icon": "Calendar",
-          "label": "Live Sessions",
-          "value": "Tue, Thu, Sat (7:00 PM - 9:00 PM IST)"
-        },
-        {
-          "icon": "Monitor",
-          "label": "Platform",
-          "value": "Zoom (Live Interactive)"
-        },
-        {
-          "icon": "Video",
-          "label": "Recording Access",
-          "value": "Lifetime access to recordings"
-        },
-        {
-          "icon": "Award",
-          "label": "Certification",
-          "value": "IEB-Accredited Certificate of Attainment"
-        }
-      ],
-      "features": [
-        {
-          "icon": "Mic",
-          "title": "Live Expert Training",
-          "desc": "Learn directly from industry experts"
-        },
-        {
-          "icon": "MessageCircle",
-          "title": "Public Discussion",
-          "desc": "Clarify doubts and share knowledge"
-        },
-        {
-          "icon": "Users",
-          "title": "Peer Interaction",
-          "desc": "Engage with fellow learners"
-        },
-        {
-          "icon": "Handshake",
-          "title": "Peer Learning",
-          "desc": "Collaborate and grow together"
-        },
-        {
-          "icon": "Video",
-          "title": "Session Recordings",
-          "desc": "Watch anytime, revise at your convenience"
-        },
-        {
-          "icon": "Shield",
-          "title": "Certificates",
-          "desc": "IEB-accredited Certificate of Attainment with QR verification"
-        }
-      ],
-      "highlights": [
-        "Live interactive sessions on Zoom",
-        "Real-time doubt solving",
-        "Hands-on labs & practical demos",
-        "Industry-based case studies",
-        "IEB-accredited Certificate of Attainment",
-        "Career guidance & support"
-      ],
-      "curriculum": [
-        {
-          "week": 1,
-          "label": "Module 1",
-          "topic": "Introduction to Cybersecurity",
-          "keyLearning": "Security fundamentals, threats & attack vectors",
-          "sessionType": "Live Lecture"
-        },
-        {
-          "week": 2,
-          "label": "Module 2",
-          "topic": "Network Security",
-          "keyLearning": "Firewalls, IDS/IPS, VPN, network monitoring",
-          "sessionType": "Live + Hands-on"
-        },
-        {
-          "week": 3,
-          "label": "Module 3",
-          "topic": "Practical Tools",
-          "keyLearning": "Industry tools for scanning & enumeration",
-          "sessionType": "Live + Lab"
-        },
-        {
-          "week": 4,
-          "label": "Module 4",
-          "topic": "Web Application Security",
-          "keyLearning": "OWASP Top 10, SQL injection, XSS",
-          "sessionType": "Live + Hands-on"
-        },
-        {
-          "week": 5,
-          "label": "Module 5",
-          "topic": "Incident Response",
-          "keyLearning": "Detection, containment & recovery",
-          "sessionType": "Live Workshop"
-        },
-        {
-          "week": 6,
-          "label": "Final Project",
-          "topic": "Capstone Project & Presentation",
-          "keyLearning": "Real-world project, review & feedback session",
-          "sessionType": "Live + Review"
-        }
-      ],
-      "whyChoose": [
-        {
-          "icon": "Rocket",
-          "title": "Live Learning Experience",
-          "desc": "Engage in real-time with expert trainers and peers"
-        },
-        {
-          "icon": "Brain",
-          "title": "Practical Cybersecurity Skills",
-          "desc": "Hands-on labs and real-world security scenarios"
-        },
-        {
-          "icon": "UserRound",
-          "title": "Real Trainer Support",
-          "desc": "Get doubts cleared directly by industry experts"
-        },
-        {
-          "icon": "TrendingUp",
-          "title": "Career Improvement",
-          "desc": "Build in-demand skills and boost your career"
-        },
-        {
-          "icon": "Users",
-          "title": "Interactive Community",
-          "desc": "Learn and grow with fellow cybersecurity professionals"
-        }
-      ],
-      "faqs": [
-        {
-          "q": "Who is this course for?",
-          "a": "IT professionals, security analysts, network admins, and anyone looking to start or advance in cybersecurity."
-        },
-        {
-          "q": "Will I get a certificate?",
-          "a": "Yes. Upon successful completion of all live sessions and assessments, you receive a personalized, IEB-accredited Certificate of Attainment with a unique certificate number and QR code for online verification."
-        },
-        {
-          "q": "Is this course beginner-friendly?",
-          "a": "Yes. We start from fundamentals and build up to advanced topics with live trainer support."
-        },
-        {
-          "q": "Will recordings be provided?",
-          "a": "Yes. All live sessions are recorded and available for lifetime access in My Learning."
-        },
-        {
-          "q": "How will the live classes be conducted?",
-          "a": "Classes run on Zoom with screen share, live Q&A, polls, and breakout activities."
-        }
-      ],
-      "heroSrc": "/h1.png",
-      "heroAlt": "Live interactive sessions with expert trainer",
-      "learnerHeroSrc": "/h2.png",
-      "learnerHeroAlt": "Your live cohort dashboard",
-      "priceAfterPayment": 12999,
-      "learningMaterials": [],
-      "curriculumMode": "auto",
-      "zoomLinkMode": "manual"
+      "learningMaterials": []
     }
   ],
   "globalCertificateAssets": {

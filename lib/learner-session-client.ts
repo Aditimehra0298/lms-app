@@ -8,6 +8,8 @@ import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
 import { pricingRegionForCountry, type PricingRegion } from "@/lib/country-pricing";
 import { countryDisplayName } from "@/lib/iso-country-list";
 import { setPricingRevealed } from "@/lib/pricing-reveal";
+import { syncEnrollmentsToServer } from "@/lib/enrollment-sync-client";
+import { readJsonResponse, safeJsonParse } from "@/lib/safe-json";
 
 export const AUTH_KEYS = {
   loggedIn: "sft_logged_in",
@@ -45,12 +47,7 @@ export function registerRedirectHref(redirectPath?: string): string {
 export function getCachedPricingRegion(): PricingRegion | null {
   if (typeof window === "undefined") return null;
   const raw = window.localStorage.getItem(AUTH_KEYS.pricingRegion);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as PricingRegion;
-  } catch {
-    return null;
-  }
+  return safeJsonParse<PricingRegion | null>(raw, null);
 }
 
 export const PRICING_REGION_EVENT = "sft_pricing_region_updated";
@@ -80,7 +77,7 @@ export async function fetchGuestPricingRegion(): Promise<PricingRegion | null> {
   try {
     const res = await fetch("/api/geo/country", { cache: "no-store" });
     if (!res.ok) return getCachedPricingRegion();
-    const data = (await res.json()) as { region?: PricingRegion; countryCode?: string };
+    const data = await readJsonResponse(res, {} as { region?: PricingRegion; countryCode?: string });
     if (data.region) {
       cachePricingRegion(data.region);
       return data.region;
@@ -118,6 +115,9 @@ export function applyDbProfileToSession(profile: LmsUserProfilePayload): Learner
     setPricingRevealed(true);
   }
   window.dispatchEvent(new Event("sft_auth_updated"));
+  if (profile.role !== "admin") {
+    void syncEnrollmentsToServer(profile.email);
+  }
   return learner;
 }
 
@@ -128,7 +128,7 @@ export async function syncLearnerProfileFromServer(email: string): Promise<Learn
     const res = await fetch(`/api/auth/me?email=${encodeURIComponent(email.trim().toLowerCase())}`, {
       cache: "no-store",
     });
-    const data = (await res.json()) as { ok?: boolean; profile?: LmsUserProfilePayload };
+    const data = await readJsonResponse(res, {} as { ok?: boolean; profile?: LmsUserProfilePayload });
     if (!res.ok || !data.ok || !data.profile) return null;
     return applyDbProfileToSession(data.profile);
   } catch {
@@ -170,7 +170,7 @@ export async function recordLearnerAuth(
       countryName: country?.countryName,
     }),
   });
-  const data = (await res.json()) as AuthRecordResult;
+  const data = await readJsonResponse(res, { ok: false } as AuthRecordResult);
   if (!res.ok) {
     data.ok = false;
   }
@@ -198,7 +198,7 @@ export async function refreshPricingRegion(): Promise<PricingRegion | null> {
       cache: "no-store",
     });
     if (!res.ok) return getCachedPricingRegion();
-    const data = (await res.json()) as { region?: PricingRegion };
+    const data = await readJsonResponse(res, {} as { region?: PricingRegion });
     if (data.region) {
       cachePricingRegion(data.region, { notify: false });
       return data.region;

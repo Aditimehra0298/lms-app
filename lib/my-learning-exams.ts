@@ -1,5 +1,17 @@
 import type { CourseCurriculumItem, CourseCurriculumModule, ManagedCourse } from "@/lib/content-schema";
 
+/** Learner-facing exam title — no fixed question counts in labels. */
+export function learnerExamDisplayLabel(label: string | undefined, fallback: string): string {
+  const raw = (label?.trim() || fallback).trim();
+  return (
+    raw
+      .replace(/\s*\(\s*\d+\s*MCQs?\s*\)/gi, "")
+      .replace(/\s*[-–—]\s*\d+\s*MCQs?/gi, "")
+      .replace(/\s*\(\s*\d+\s*questions?\s*\)/gi, "")
+      .trim() || fallback
+  );
+}
+
 export function getFirstExamRowInModule(mod: CourseCurriculumModule | undefined): CourseCurriculumItem | undefined {
   if (!mod) return undefined;
   const top = mod.items?.find((i) => i.kind === "exam");
@@ -37,7 +49,7 @@ export function examLinksFromManagedCourse(course: ManagedCourse): ManagedCourse
       if (!row) return;
       out.push({
         href: `/my-learning/course/${course.slug}/exam?module=${idx + 1}`,
-        label: row.label?.trim() || `${mod.title} — Exam`,
+        label: learnerExamDisplayLabel(row.label, `${mod.title} — Exam`),
         slot: `Module ${idx + 1}`,
       });
     });

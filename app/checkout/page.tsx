@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CreditCard, Landmark, ShieldCheck, Smartphone } from "lucide-react";
 import { appendEnrollmentsFromCheckout } from "@/lib/enrollment-storage";
+import { syncEnrollmentsToServer } from "@/lib/enrollment-sync-client";
 import {
   applyTutorLedShopMeta,
   fetchTutorLedProgramsClient,
@@ -14,6 +15,12 @@ import {
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
 import { hasViewedCourseLanding, prePaymentLandingHref } from "@/lib/course-landing";
 import { SignInToViewPrices } from "@/components/SignInToViewPrices";
+import type { ManagedCourse } from "@/lib/content-schema";
+import {
+  countCurriculumModules,
+  deriveCourseProgress,
+  findCatalogCourse,
+} from "@/lib/learner-course-progress";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +34,7 @@ type PurchasedLearningCourse = {
   action: string;
   tone: string;
   deliveryKind?: "managed" | "tutor-led";
+  image?: string;
 };
 
 const fallbackCourseBySlug: Record<string, Omit<ShopCartItem, "qty">> = {
@@ -172,18 +180,40 @@ export default function CheckoutPage() {
   const gst = (subtotal - discount) * 0.18;
   const total = subtotal - discount + gst;
 
-  const completePurchase = () => {
-    const purchasedCourses: PurchasedLearningCourse[] = items.map((item) => ({
-      slug: item.slug,
-      title: item.title,
-      modules: item.learningModules ?? 11,
-      duration: item.learningDuration ?? "4h 30m",
-      completed: 0,
-      status: item.deliveryKind === "tutor-led" ? "In Progress" : "Not Started",
-      action: item.learningAction ?? "Start Course",
-      tone: item.learningTone ?? "violet",
-      deliveryKind: item.deliveryKind,
-    }));
+  const completePurchase = async () => {
+    let catalog: ManagedCourse[] = [];
+    try {
+      const res = await fetch("/api/courses", { cache: "no-store" });
+      if (res.ok) {
+        const data = (await res.json()) as { courses?: ManagedCourse[] };
+        catalog = Array.isArray(data.courses) ? data.courses : [];
+      }
+    } catch {
+      catalog = [];
+    }
+
+    const purchasedCourses: PurchasedLearningCourse[] = items.map((item) => {
+      const managed = findCatalogCourse(item, catalog);
+      const modulesFromCatalog = managed ? countCurriculumModules(managed.curriculum) : 0;
+      const modules = item.learningModules ?? (modulesFromCatalog > 0 ? modulesFromCatalog : 1);
+      const duration = item.learningDuration ?? managed?.duration?.trim() ?? "—";
+      const { status, action } = deriveCourseProgress(
+        0,
+        modules,
+      );
+      return {
+        slug: item.slug,
+        title: managed?.title?.trim() || item.title,
+        modules,
+        duration,
+        completed: 0,
+        status: item.deliveryKind === "tutor-led" ? "In Progress" : status,
+        action: item.learningAction ?? action,
+        tone: item.learningTone ?? "violet",
+        deliveryKind: item.deliveryKind,
+        image: item.image ?? managed?.image?.trim(),
+      };
+    });
 
     try {
       const raw = window.localStorage.getItem("sft_purchased_courses");
@@ -204,6 +234,8 @@ export default function CheckoutPage() {
     } catch {
       // Enrollment log is best-effort only.
     }
+
+    await syncEnrollmentsToServer();
 
     setIsSuccess(true);
   };
@@ -400,7 +432,7 @@ export default function CheckoutPage() {
                     openPricingPanel();
                     return;
                   }
-                  completePurchase();
+                  void completePurchase();
                 }}
                 className="mt-4 w-full rounded-lg bg-amber-400 py-2.5 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
               >

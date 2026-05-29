@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
 import {
   Award,
   Building2,
@@ -72,12 +72,12 @@ export default function SelfPacedInstructorSection({ course }: Props) {
           </div>
           <div className="relative mx-auto w-full max-w-md lg:max-w-none">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-violet-500/25 bg-[#0a0d18]">
-              <Image
-                src={data.teamImage}
+              <CatalogMediaImage
+                storedSrc={data.teamImage}
+                courseSlug={course.slug}
                 alt={data.teamLabel}
                 fill
                 className="object-contain object-center p-2"
-                unoptimized
                 sizes="(max-width: 1024px) 400px, 420px"
                 priority
               />
@@ -170,12 +170,12 @@ export default function SelfPacedInstructorSection({ course }: Props) {
 
         <div className="mt-4 overflow-hidden rounded-xl border border-violet-500/20 bg-[#0a0d18]">
           <div className="relative aspect-[4/3] w-full">
-            <Image
-              src={data.teamImage}
+            <CatalogMediaImage
+              storedSrc={data.teamImage}
+              courseSlug={course.slug}
               alt=""
               fill
               className="object-contain p-2 opacity-90"
-              unoptimized
               sizes="300px"
             />
           </div>

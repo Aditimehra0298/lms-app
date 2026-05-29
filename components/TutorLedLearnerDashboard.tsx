@@ -9,16 +9,7 @@ import { resolveZoomJoinUrl } from "@/lib/zoom-meeting";
 import { TutorLedZoomJoinCard } from "@/components/TutorLedZoomJoinCard";
 import { tutorLedEnrolledPrice, tutorLedLearnerBannerSrc } from "@/lib/tutor-led-program-map";
 import { TutorLedCurriculumExplorer } from "@/components/TutorLedCurriculumExplorer";
-import {
-  Calendar,
-  Clock,
-  Download,
-  FileText,
-  HelpCircle,
-  Megaphone,
-  Play,
-  Video,
-} from "lucide-react";
+import { Calendar, Clock, HelpCircle, Megaphone, Play, Video } from "lucide-react";
 
 type Props = { program: TutorLedProgramStored };
 
@@ -58,19 +49,6 @@ function formatRecordingDuration(minutes?: number): string {
   if (h > 0) return `${h}:${String(m).padStart(2, "0")}:00`;
   return `${m} min`;
 }
-
-const DEMO_RESOURCES = [
-  { name: "Course Guide.pdf", size: "2.4 MB" },
-  { name: "Lab Manual.pdf", size: "3.1 MB" },
-  { name: "Cheat Sheet.pdf", size: "1.8 MB" },
-  { name: "Tools List.pdf", size: "1.2 MB" },
-];
-
-const DEMO_ANNOUNCEMENTS = [
-  { text: "Live session on 28 May at 7 PM IST — join 10 minutes early.", ago: "2h ago" },
-  { text: "Please complete pre-reading for Week 2 before Saturday.", ago: "1d ago" },
-  { text: "Lab access updated for Week 1 participants.", ago: "3d ago" },
-];
 
 export default function TutorLedLearnerDashboard({ program }: Props) {
   const cd = useCountdown({
@@ -331,27 +309,9 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
 
             <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4">
               <h3 className="text-sm font-bold text-zinc-200">Course Resources</h3>
-              <ul className="mt-3 space-y-2">
-                {DEMO_RESOURCES.map((r) => (
-                  <li
-                    key={r.name}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-white/[0.06] bg-black/25 px-3 py-2"
-                  >
-                    <span className="inline-flex min-w-0 items-center gap-2 text-xs text-zinc-300">
-                      <FileText className="h-3.5 w-3.5 shrink-0 text-amber-400" aria-hidden />
-                      <span className="truncate">{r.name}</span>
-                    </span>
-                    <span className="shrink-0 text-[10px] text-zinc-500">{r.size}</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/10 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/5"
-              >
-                <Download className="h-3.5 w-3.5" aria-hidden />
-                View All Resources
-              </button>
+              <p className="mt-3 text-xs text-zinc-500">
+                Course resources will appear here when your instructor publishes them.
+              </p>
             </article>
 
             <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4">
@@ -359,14 +319,7 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
                 <Megaphone className="h-4 w-4 text-amber-400" aria-hidden />
                 Recent Announcements
               </h3>
-              <ul className="mt-3 space-y-3">
-                {DEMO_ANNOUNCEMENTS.map((a) => (
-                  <li key={a.text} className="border-b border-white/5 pb-3 last:border-0 last:pb-0">
-                    <p className="text-xs leading-relaxed text-zinc-400">{a.text}</p>
-                    <p className="mt-1 text-[10px] text-zinc-600">{a.ago}</p>
-                  </li>
-                ))}
-              </ul>
+              <p className="mt-3 text-xs text-zinc-500">No announcements yet.</p>
             </article>
 
             <article className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4">

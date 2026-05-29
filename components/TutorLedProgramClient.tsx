@@ -75,7 +75,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
 
   const breadcrumbs = enrolledLearning
     ? [
-        { label: "My Learning", href: "/my-learning?tab=overview" },
+        { label: "My Learning", href: "/my-learning?tab=dashboard" },
         { label: "Tutor Led", href: "/my-learning?tab=live" },
         { label: program.title, href: `/my-learning/course/${program.slug}` },
       ]

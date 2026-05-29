@@ -68,11 +68,6 @@ import {
   getCurriculumForCourse,
   totalCurriculumSteps,
 } from "@/lib/course-detail-template";
-import {
-  ENROLLMENTS_UPDATED_EVENT,
-  readEnrollments,
-  type StoredCourseEnrollment,
-} from "@/lib/enrollment-storage";
 
 /** Shared field chrome for the self-paced course editor */
 const spField =
@@ -304,7 +299,6 @@ export default function AdminCoursesWorkspace() {
   const [expandedModuleIdx, setExpandedModuleIdx] = useState(0);
   const [selectedLesson, setSelectedLesson] = useState<LessonSelection | null>(null);
   const [finalExamDraft] = useState<CourseFinalExam>({});
-  const [enrollmentRows, setEnrollmentRows] = useState<StoredCourseEnrollment[]>([]);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -355,17 +349,6 @@ export default function AdminCoursesWorkspace() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  useEffect(() => {
-    const sync = () => setEnrollmentRows(readEnrollments());
-    sync();
-    window.addEventListener("storage", sync);
-    window.addEventListener(ENROLLMENTS_UPDATED_EVENT, sync);
-    return () => {
-      window.removeEventListener("storage", sync);
-      window.removeEventListener(ENROLLMENTS_UPDATED_EVENT, sync);
-    };
-  }, []);
 
   const categories: ManagedCategory[] = useMemo(
     () => (content?.categories?.length ? content.categories : []),
@@ -635,7 +618,7 @@ export default function AdminCoursesWorkspace() {
         items: [
           { label: "Video — Lesson overview", kind: "video" },
           { label: "Reading — Supporting material", kind: "reading" },
-          { label: "Module examination (10 MCQs)", kind: "exam" },
+          { label: "Module examination", kind: "exam" },
         ],
       },
     ]);
@@ -708,7 +691,7 @@ export default function AdminCoursesWorkspace() {
         const items = [
           ...m.items,
           {
-            label: "Module examination (10 MCQs)",
+            label: "Module examination",
             kind: "exam" as const,
             description: "",
           },
@@ -734,7 +717,7 @@ export default function AdminCoursesWorkspace() {
         const items = [
           ...sm.items,
           {
-            label: "Sub-module examination (10 MCQs)",
+            label: "Sub-module examination",
             kind: "exam" as const,
             description: "",
           },
@@ -997,24 +980,6 @@ export default function AdminCoursesWorkspace() {
   const canEditCurriculum = !!selectedSlug && !isCreating && !!selectedCourse;
   const canEditPricing = isCreating || !!selectedCourse;
   const hidePreviewForWorkspaceTab = workspaceTab === "Students";
-
-  const enrollmentsForCourse = useMemo(
-    () => enrollmentRows.filter((e) => e.courseSlug === workspaceCourseSlug),
-    [enrollmentRows, workspaceCourseSlug],
-  );
-
-  const enrollmentsDisplay = useMemo(() => {
-    const byEmail = new Map<string, StoredCourseEnrollment>();
-    for (const r of enrollmentsForCourse) {
-      const prev = byEmail.get(r.learnerEmail);
-      if (!prev || new Date(r.enrolledAt) > new Date(prev.enrolledAt)) {
-        byEmail.set(r.learnerEmail, r);
-      }
-    }
-    return [...byEmail.values()].sort(
-      (a, b) => new Date(b.enrolledAt).getTime() - new Date(a.enrolledAt).getTime(),
-    );
-  }, [enrollmentsForCourse]);
 
   if (!content && !loadError) {
     return (
@@ -2363,7 +2328,6 @@ export default function AdminCoursesWorkspace() {
         <AdminCourseStudentsPanel
           courseTitle={selectedCourse?.title?.trim() || draft.title?.trim() || ""}
           workspaceCourseSlug={workspaceCourseSlug}
-          enrollments={enrollmentsDisplay}
           canEdit={canEditPricing}
           onGoCourseInfo={() => setWorkspaceTab("Course")}
         />

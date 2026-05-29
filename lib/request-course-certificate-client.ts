@@ -1,3 +1,5 @@
+import { readJsonResponse } from "@/lib/safe-json";
+
 /** Call LMS API to start n8n certificate generation after course completion. */
 export async function requestCourseCertificateClient(input: {
   learnerEmail: string;
@@ -10,6 +12,6 @@ export async function requestCourseCertificateClient(input: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
-  const data = (await res.json()) as { ok?: boolean; message?: string };
+  const data = await readJsonResponse(res, {} as { ok?: boolean; message?: string });
   return { ok: Boolean(data.ok), message: data.message };
 }

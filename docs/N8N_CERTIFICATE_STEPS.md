@@ -234,10 +234,13 @@ Add **HTTP Request** node at the end:
 {
   "certificateId": "{{ $('Webhook').item.json.body.certificateId }}",
   "certificateNumber": "101/05-2026/001",
-  "pdfUrl": "https://drive.google.com/...",
+  "pdfUrl": "https://temporary-n8n-or-drive-url/...",
+  "pdfBase64": "optional — send instead of pdfUrl if easier",
   "status": "ready"
 }
 ```
+
+The LMS **downloads the PDF immediately** from `pdfUrl` (or decodes `pdfBase64`) and saves it permanently under `storage/private/certificates/`. The temporary n8n URL is not shown to learners — they get `/api/certificates/{id}/pdf?email=...`.
 
 Learner sees the certificate on **My Learning → Certificates** when:
 
@@ -252,7 +255,7 @@ Learner sees the certificate on **My Learning → Certificates** when:
 
 | Step | Who | Action |
 |------|-----|--------|
-| 1 | n8n | Creates PDF, calls callback with `pdfUrl` + `certificateNumber` |
+| 1 | n8n | Creates PDF, calls callback with `pdfUrl` or `pdfBase64` + `certificateNumber`; LMS archives PDF on disk |
 | 2 | Admin | Open **Preview PDF**, check name/ID/design |
 | 3 | Admin | If wrong: fix in n8n and re-run, or **paste PDF URL** manually |
 | 4 | Admin | Click **Allow download** → learner can open PDF on dashboard |

@@ -203,25 +203,6 @@ export const defaultTutorLedPrograms: TutorLedProgramStored[] = [
     learnerHeroSrc: "/h2.png",
     learnerHeroAlt: "Your live cohort dashboard",
     priceAfterPayment: 12999,
-    learningMaterials: [
-      {
-        id: "demo-pad-1",
-        kind: "pad-notes",
-        title: "Live session scratchpad",
-        downloadUrl: "/uploads/demo/session-notes.pdf",
-      },
-      {
-        id: "demo-ppt-1",
-        kind: "ppt",
-        title: "Week 1 — Introduction slides",
-        downloadUrl: "/uploads/demo/week-1-slides.pptx",
-      },
-      {
-        id: "demo-web-1",
-        kind: "webbook",
-        title: "Course workbook (PDF)",
-        downloadUrl: "/uploads/demo/course-workbook.pdf",
-      },
-    ],
+    learningMaterials: [],
   },
 ];

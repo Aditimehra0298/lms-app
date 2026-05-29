@@ -2,13 +2,12 @@
 
 import { Users } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { StoredCourseEnrollment } from "@/lib/enrollment-storage";
+import { readEnrollments } from "@/lib/enrollment-storage";
 import AdminCourseTabShell, { AdminCourseSelectPrompt } from "@/components/admin/AdminCourseTabShell";
 
 type Props = {
   courseTitle: string;
   workspaceCourseSlug: string | null;
-  enrollments: StoredCourseEnrollment[];
   canEdit: boolean;
   onGoCourseInfo: () => void;
 };
@@ -35,7 +34,6 @@ type MysqlStudentRow = {
 export default function AdminCourseStudentsPanel({
   courseTitle,
   workspaceCourseSlug,
-  enrollments,
   canEdit,
   onGoCourseInfo,
 }: Props) {
@@ -44,6 +42,9 @@ export default function AdminCourseStudentsPanel({
   const [dbError, setDbError] = useState<string | null>(null);
   const [rowBusyKey, setRowBusyKey] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [manualEmail, setManualEmail] = useState("");
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [cleanupBusy, setCleanupBusy] = useState(false);
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   const loadStudents = useMemo(
@@ -76,29 +77,59 @@ export default function AdminCourseStudentsPanel({
   useEffect(() => {
     if (!tableScrollRef.current) return;
     tableScrollRef.current.scrollLeft = 0;
-  }, [workspaceCourseSlug, dbRows.length, enrollments.length]);
+  }, [workspaceCourseSlug, dbRows.length]);
 
-  const displayRows = useMemo(() => {
-    if (dbRows.length > 0) return dbRows;
-    return enrollments.map((row) => ({
-      registrationId: null,
-      learnerName: row.learnerName?.trim() || null,
-      learnerEmail: row.learnerEmail,
-      phone: null,
-      occupation: null,
-      userRole: "learner",
-      userType: null,
-      enrollmentModel: "individual" as const,
-      companyName: null,
-      paymentPath: "direct-payment" as const,
-      enrolledAt: row.enrolledAt,
-      completed: false,
-      certificateStatus: "none" as const,
-      certificateMode: "auto" as const,
-      certificateVisible: false,
-      amountPaidLabel: "—",
-    }));
-  }, [dbRows, enrollments]);
+  const displayRows = useMemo(() => dbRows, [dbRows]);
+
+  const cleanupDuplicates = async () => {
+    if (!workspaceCourseSlug) return;
+    setCleanupBusy(true);
+    setActionMsg(null);
+    try {
+      const res = await fetch(
+        `/api/admin/courses/${encodeURIComponent(workspaceCourseSlug)}/students/cleanup`,
+        { method: "POST" },
+      );
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      setActionMsg(data.message ?? (data.ok ? "Roster cleaned" : "Cleanup failed"));
+      if (data.ok) await loadStudents();
+    } catch {
+      setActionMsg("Cleanup failed");
+    } finally {
+      setCleanupBusy(false);
+    }
+  };
+
+  const syncBrowserEnrollmentsToDb = async () => {
+    setSyncBusy(true);
+    setActionMsg(null);
+    try {
+      const localRows = readEnrollments();
+      const res = await fetch("/api/admin/enrollments/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enrollments: localRows }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        recorded?: number;
+        skipped?: number;
+        message?: string;
+      };
+      if (!data.ok) {
+        setActionMsg(data.message ?? "Could not sync enrollments to database");
+      } else {
+        setActionMsg(
+          `Saved ${data.recorded ?? 0} new enrollment(s) to MySQL (${data.skipped ?? 0} already existed).`,
+        );
+        await loadStudents();
+      }
+    } catch {
+      setActionMsg("Sync to database failed");
+    } finally {
+      setSyncBusy(false);
+    }
+  };
 
   const runAction = async (
     row: MysqlStudentRow,
@@ -158,7 +189,7 @@ export default function AdminCourseStudentsPanel({
     <AdminCourseTabShell
       courseTitle={courseTitle}
       tabTitle="Enrolled students"
-      description="Learners who bought this course while signed in. Emails come from checkout — use the same slug as on the Course tab."
+      description="All enrollments are stored in MySQL when learners checkout or sign in. Course slug must match the Course tab. Use Sync or Add learner for older enrollments."
       icon={<Users className="h-6 w-6 text-violet-300" aria-hidden />}
     >
       <div className="min-w-0 space-y-4">
@@ -168,11 +199,81 @@ export default function AdminCourseStudentsPanel({
       </div>
       {loadingDb ? <p className="text-xs text-gray-500">Loading MySQL student data…</p> : null}
       {dbError ? (
-        <p className="text-xs text-amber-300">
-          Showing local enrollments only. MySQL data unavailable: {dbError}
+        <p className="text-xs text-rose-300">
+          MySQL unavailable — start the database and run migrations. {dbError}
         </p>
       ) : null}
       {actionMsg ? <p className="text-xs text-emerald-300">{actionMsg}</p> : null}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={syncBusy || loadingDb}
+          onClick={() => void syncBrowserEnrollmentsToDb()}
+          className="rounded-lg border border-cyan-300/35 bg-cyan-500/15 px-4 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50"
+        >
+          {syncBusy ? "Saving…" : "Save all browser enrollments to database"}
+        </button>
+        <button
+          type="button"
+          disabled={cleanupBusy || loadingDb}
+          onClick={() => void cleanupDuplicates()}
+          className="rounded-lg border border-amber-300/35 bg-amber-500/15 px-4 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-500/25 disabled:opacity-50"
+        >
+          {cleanupBusy ? "Cleaning…" : "Remove duplicates & fix Primary IDs"}
+        </button>
+        <button
+          type="button"
+          disabled={loadingDb}
+          onClick={() => void loadStudents()}
+          className="rounded-lg border border-white/15 bg-black/30 px-4 py-2 text-xs font-semibold text-gray-200 hover:bg-white/5 disabled:opacity-50"
+        >
+          Refresh from MySQL
+        </button>
+      </div>
+      <div className="flex flex-wrap items-end gap-2 rounded-xl border border-violet-400/25 bg-violet-500/10 px-4 py-3">
+        <label className="min-w-[220px] flex-1 text-xs text-violet-100">
+          Add learner to this course
+          <input
+            type="email"
+            value={manualEmail}
+            onChange={(e) => setManualEmail(e.target.value)}
+            placeholder="aditimehera0298@gmail.com"
+            className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-violet-400/50"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={!manualEmail.trim() || rowBusyKey === "manual-enroll"}
+          onClick={() => {
+            const email = manualEmail.trim();
+            if (!email || !workspaceCourseSlug) return;
+            void runAction(
+              {
+                learnerEmail: email,
+                learnerName: email.split("@")[0] || null,
+                registrationId: null,
+                phone: null,
+                occupation: null,
+                userRole: "learner",
+                userType: null,
+                enrollmentModel: "individual",
+                companyName: null,
+                paymentPath: "direct-payment",
+                enrolledAt: new Date().toISOString(),
+                completed: false,
+                certificateStatus: "none",
+                certificateMode: "auto",
+                certificateVisible: false,
+                amountPaidLabel: "—",
+              },
+              "bypass-access",
+            ).then(() => setManualEmail(""));
+          }}
+          className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-50"
+        >
+          Add to roster
+        </button>
+      </div>
       <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3">
         <p className="text-sm font-semibold text-cyan-100">Student table columns (auto-filled)</p>
         <p className="mt-1 text-xs text-cyan-200/85">
@@ -237,8 +338,10 @@ export default function AdminCourseStudentsPanel({
               {displayRows.length === 0 ? (
                 <tr>
                   <td className="px-4 py-8 text-sm text-gray-500" colSpan={18}>
-                    No entries yet for <span className="font-mono text-gray-400">{workspaceCourseSlug}</span>. Add
-                    enrollments and this table will auto-fill.
+                    No learners in MySQL for{" "}
+                    <span className="font-mono text-gray-400">{workspaceCourseSlug}</span> yet. After checkout or
+                    sign-in they appear here automatically; use Add learner or Save all browser enrollments for
+                    older data.
                   </td>
                 </tr>
               ) : (

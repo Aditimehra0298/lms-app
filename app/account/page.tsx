@@ -11,9 +11,16 @@ import PasswordConfirmFields from "@/components/PasswordConfirmFields";
 import PasswordField from "@/components/PasswordField";
 import PhoneWithCountryCode from "@/components/PhoneWithCountryCode";
 import { validateLearnerPassword } from "@/lib/password-policy";
+import { normalizeLearnerEmail } from "@/lib/learner-email";
 import type { AccountTypeId, LearnerAuthProfile } from "@/lib/auth-profile";
 import { cacheLearnerProfile } from "@/lib/auth-profile";
 import { GOOGLE_GSI_SCRIPT, getGoogleClientId, requestGoogleAccessToken } from "@/lib/google-sign-in-client";
+import {
+  getBrowserOrigin,
+  googleOriginMismatchHint,
+  googleOriginSetupHint,
+  isLanOrNonLocalhostOrigin,
+} from "@/lib/google-sign-in-origin";
 import { countryDisplayName } from "@/lib/iso-country-list";
 import { applyGoogleSession, signInWithGoogleAccessToken } from "@/lib/learner-google-auth";
 import {
@@ -186,6 +193,7 @@ export default function AccountPage() {
   const [authError, setAuthError] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleScriptReady, setGoogleScriptReady] = useState(false);
+  const [browserOrigin, setBrowserOrigin] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [emailOtpVerified, setEmailOtpVerified] = useState(false);
   const [registerCountryCode, setRegisterCountryCode] = useState("");
@@ -206,6 +214,10 @@ export default function AccountPage() {
       setAuthView("login");
       setShowAuthStep(true);
     }
+  }, []);
+
+  useEffect(() => {
+    setBrowserOrigin(getBrowserOrigin());
   }, []);
 
   useEffect(() => {
@@ -246,9 +258,9 @@ export default function AccountPage() {
               "Set GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local, then restart.",
             );
           } else {
-            const origin = data.appUrl ?? "http://localhost:3000";
+            const origin = getBrowserOrigin() || data.appUrl || "http://localhost:3000";
             setAdminSetupHint(
-              `Google must use only ${data.mainAdminEmail ?? "(MAIN_ADMIN_EMAIL)"}. Add ${origin} in Google Cloud → Authorized JavaScript origins.`,
+              `Google must use only ${data.mainAdminEmail ?? "(MAIN_ADMIN_EMAIL)"}. ${googleOriginSetupHint(origin)}`,
             );
           }
         },
@@ -334,10 +346,11 @@ export default function AccountPage() {
     const passwordConfirm = String(formData.get("password_confirm") ?? "").trim();
 
     const formEmail = emailFromForm(formData, selectedAccountType, authView, selfEmail);
-    const normalizedEmail =
+    const normalizedEmail = normalizeLearnerEmail(
       authView === "register" && selectedAccountType !== "self"
         ? registerEmail.trim().toLowerCase() || formEmail
-        : formEmail;
+        : formEmail,
+    );
     const passwordValue = (selfPassword.trim() || formPassword).trim();
     const profile = profileFromForm(formData, selectedAccountType, authView);
     if (authView === "register" && registerPhone.trim()) {
@@ -601,11 +614,7 @@ export default function AccountPage() {
       },
       (message) => {
         adminGoogleTriggered.current = false;
-        const originHint =
-          message.includes("origin") || message.includes("blocked")
-            ? " Add http://localhost:3000 under Authorized JavaScript origins in Google Cloud Console."
-            : "";
-        setAuthError(`${message}${originHint}`);
+        setAuthError(googleOriginMismatchHint(message, getBrowserOrigin()));
       },
       { loginHint: adminGoogleEmail, prompt: "" },
     );
@@ -638,7 +647,7 @@ export default function AccountPage() {
       (token) => {
         void finishGoogleSignIn(token);
       },
-      (message) => setAuthError(message),
+      (message) => setAuthError(googleOriginMismatchHint(message, getBrowserOrigin())),
       undefined,
     );
   };
@@ -654,7 +663,7 @@ export default function AccountPage() {
           onLoad={() => setGoogleScriptReady(true)}
           onError={() => {
             setAuthError(
-              "Could not load Google sign-in. Check your internet connection and that http://localhost:3000 is allowed in Google Cloud Console.",
+              `Could not load Google sign-in. Check your internet connection. ${googleOriginSetupHint(getBrowserOrigin())}`,
             );
           }}
         />
@@ -755,6 +764,23 @@ export default function AccountPage() {
                 Back
               </button>
             </div>
+
+            {browserOrigin && isLanOrNonLocalhostOrigin(browserOrigin) && googleConfigured ? (
+              <p className="mb-4 rounded-xl border border-sky-400/35 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+                <strong className="text-sky-200">Wi‑Fi login:</strong> Google must allow this exact address — add{" "}
+                <code className="rounded bg-black/40 px-1.5 py-0.5 text-xs text-sky-50">{browserOrigin}</code> in{" "}
+                <a
+                  href="https://console.cloud.google.com/apis/credentials"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline text-sky-200"
+                >
+                  Google Cloud → Credentials
+                </a>{" "}
+                → your OAuth client → <strong>Authorized JavaScript origins</strong> (keep{" "}
+                <code className="text-xs">http://localhost:3000</code> too). Save, wait ~1 minute, refresh this page.
+              </p>
+            ) : null}
 
             <div className="mb-6 flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
               {!isSelf && (
@@ -1002,7 +1028,10 @@ export default function AccountPage() {
                       <code className="text-xs">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> to{" "}
                       <code className="text-xs">.env.local</code>, then restart{" "}
                       <code className="text-xs">npm run dev</code>. Also add{" "}
-                      <code className="text-xs">http://localhost:3000</code> in Google Cloud → Authorized
+                      <code className="text-xs">
+                        {browserOrigin || "http://localhost:3000"}
+                      </code>{" "}
+                      and <code className="text-xs">http://localhost:3000</code> in Google Cloud → Authorized
                       JavaScript origins.
                     </p>
                   )}

@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ManagedCourse } from "@/lib/content-schema";
@@ -137,9 +137,11 @@ function SocialShareRow({ courseTitle }: { courseTitle: string }) {
 function CertificatePreviewCard({
   hero,
   courseTitle,
+  courseSlug,
 }: {
   hero: ResolvedCourseHero;
   courseTitle: string;
+  courseSlug: string;
 }) {
   return (
     <div className={cardClass}>
@@ -147,12 +149,12 @@ function CertificatePreviewCard({
       {hero.certificatePreviewImage ? (
         <div className="relative mt-3 overflow-hidden rounded-lg border border-white/10 bg-white">
           <div className="relative aspect-[1/1.35] w-full">
-            <Image
-              src={hero.certificatePreviewImage}
+            <CatalogMediaImage
+              storedSrc={hero.certificatePreviewImage}
+              courseSlug={courseSlug}
               alt={hero.certificatePreviewLabel}
               fill
               className="object-contain p-1"
-              unoptimized
               sizes="360px"
             />
           </div>
@@ -208,12 +210,12 @@ function PurchaseCard({
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-[#141414] shadow-[0_20px_60px_rgba(0,0,0,0.65)]">
       <div className="relative aspect-video bg-zinc-900">
-        <Image
-          src={hero.previewImage}
+        <CatalogMediaImage
+          storedSrc={hero.previewImage}
+          courseSlug={course.slug}
           alt=""
           fill
           className="object-cover"
-          unoptimized
         />
         <div className="absolute inset-0 flex items-center justify-center bg-black/35">
           <span className="grid h-14 w-14 place-items-center rounded-full bg-white/95 text-black shadow-lg">
@@ -306,7 +308,7 @@ function CourseSidebar({
         </Link>
       </div>
 
-      <CertificatePreviewCard hero={hero} courseTitle={course.title} />
+      <CertificatePreviewCard hero={hero} courseTitle={course.title} courseSlug={course.slug} />
     </aside>
   );
 }
@@ -454,13 +456,13 @@ export default function SelfPacedCourseLanding({ course }: Props) {
       {/* Hero — two-column info + enroll card + integrated stats bar */}
       <section className="relative overflow-hidden border-b border-white/10 bg-[#0a0a0a]">
         <div className="absolute inset-0">
-          <Image
-            src={heroResolved.backgroundImage}
+          <CatalogMediaImage
+            storedSrc={heroResolved.backgroundImage}
+            courseSlug={course.slug}
             alt=""
             fill
             className="object-cover object-[72%_center] opacity-55"
             priority
-            unoptimized
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/88 to-[#0a0a0a]/35" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_75%_45%,rgba(34,211,238,0.14),transparent_55%)]" />

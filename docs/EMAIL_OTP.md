@@ -13,6 +13,20 @@ Registration on `/account` requires email verification before submit.
 
 Login does **not** require OTP.
 
+## Welcome email (after registration)
+
+When a **new** learner completes registration (email + OTP **or** Google on the Register tab), the app sends a branded **welcome email** to their inbox using the same SMTP settings as OTP.
+
+- Template: `lib/email-templates/welcome.ts`
+- Trigger: `POST /api/auth/record` (`action: register`) and `POST /api/auth/google` (`action: register`, new user only)
+- Google **login** for an existing account does **not** send welcome again.
+- Disable: `WELCOME_EMAIL_ENABLED=false` in `.env.local`
+- Brand name in subject/body: `MAIL_APP_NAME=SF Trainings` (optional)
+
+**Via n8n (recommended for production):** set `N8N_WELCOME_WEBHOOK_URL` in `.env.local`. The LMS POSTs the full HTML template to n8n; your workflow sends Gmail/Outlook. See **`docs/N8N_WELCOME_EMAIL.md`**.
+
+If n8n is not set, welcome uses **SMTP** (same settings as OTP). If n8n fails, SMTP is used when `WELCOME_EMAIL_SMTP_FALLBACK=true` (default).
+
 ## Send real email (Gmail)
 
 In `.env.local`:

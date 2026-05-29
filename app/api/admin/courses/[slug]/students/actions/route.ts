@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
+import { normalizeLearnerEmail } from "@/lib/learner-email";
 import { prisma } from "@/lib/prisma";
 import { issueCourseCertificate } from "@/lib/server/certificate-service";
+import {
+  findExistingEnrollment,
+  reconcileEnrollmentIdentity,
+} from "@/lib/server/enrollment-lookup";
+import { recordPurchasesForLearner } from "@/lib/server/record-purchase";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +32,7 @@ export async function POST(
     return NextResponse.json({ ok: false, message: "Invalid JSON" }, { status: 400 });
   }
 
-  const learnerEmail = body.learnerEmail?.trim().toLowerCase();
+  const learnerEmail = normalizeLearnerEmail(body.learnerEmail ?? "");
   if (!learnerEmail) {
     return NextResponse.json({ ok: false, message: "learnerEmail required" }, { status: 400 });
   }
@@ -36,30 +42,31 @@ export async function POST(
 
   try {
     if (body.action === "bypass-access") {
-      const existing = await prisma.lmsPurchase.findFirst({
-        where: { learnerEmail, courseSlug },
-        select: { id: true },
-      });
-      if (!existing) {
-        const course = await prisma.lmsCourse.findUnique({
-          where: { slug: courseSlug },
-          select: { id: true, title: true },
-        });
+      const existing = await findExistingEnrollment({ learnerEmail, courseSlug });
+      if (existing) {
         const user = await prisma.lmsUser.findUnique({
           where: { email: learnerEmail },
           select: { id: true },
         });
-        await prisma.lmsPurchase.create({
-          data: {
-            learnerEmail,
-            courseSlug,
-            title: course?.title ?? courseSlug,
-            courseId: course?.id ?? null,
-            userId: user?.id ?? null,
-          },
+        await reconcileEnrollmentIdentity(existing, learnerEmail, user?.id ?? null);
+        return NextResponse.json({
+          ok: true,
+          message: "Learner is already enrolled for this course.",
         });
       }
-      return NextResponse.json({ ok: true, message: "Bypass granted. Learner can access dashboard." });
+
+      const course = await prisma.lmsCourse.findUnique({
+        where: { slug: courseSlug },
+        select: { title: true },
+      });
+      const result = await recordPurchasesForLearner({
+        learnerEmail,
+        courses: [{ slug: courseSlug, title: course?.title ?? courseSlug }],
+      });
+      if (!result.ok) {
+        return NextResponse.json({ ok: false, message: result.message }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, message: "Learner added to this course." });
     }
 
     // manual-certificate-pass

@@ -161,8 +161,10 @@ model LmsPurchase {
   user   LmsUser?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   course LmsCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
+  @@unique([learnerEmail, courseSlug], map: "lms_purchase_learner_course_unique")
   @@index([learnerEmail])
   @@index([courseSlug])
+  @@index([userId, courseSlug])
   @@map("lms_purchase")
 }
 /// Issued completion certificate — unique number per holder per course.

@@ -1,6 +1,7 @@
 "use client";
 
 import { getLearnerEmail } from "@/lib/learner-session-client";
+import { readJsonResponse } from "@/lib/safe-json";
 
 /** Turn a stored media path into a short-lived URL the browser can load (video/img/link). */
 export async function resolveProtectedMediaUrl(
@@ -29,7 +30,7 @@ export async function resolveProtectedMediaUrl(
         scope: options?.scope,
       }),
     });
-    const data = (await res.json()) as { ok?: boolean; playUrl?: string };
+    const data = await readJsonResponse(res, {} as { ok?: boolean; playUrl?: string });
     if (res.ok && data.ok && data.playUrl) return data.playUrl;
   } catch {
     /* fall through */

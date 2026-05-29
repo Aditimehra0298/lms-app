@@ -2,9 +2,10 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { Copy, Linkedin, ShieldCheck, ShieldX } from "lucide-react";
+import { Copy, Download, Share2, ShieldCheck, ShieldX } from "lucide-react";
 import type { IssuedCertificateDto } from "@/lib/certificate-types";
 import { buildLinkedInShareUrl } from "@/lib/certificate-verify-url";
+import { readJsonResponse } from "@/lib/safe-json";
 
 type VerifyResponse = {
   ok?: boolean;
@@ -35,7 +36,7 @@ function VerifyContent() {
       : `/api/certificates/verify?number=${encodeURIComponent(q)}`;
     try {
       const res = await fetch(path, { cache: "no-store" });
-      const data = (await res.json()) as VerifyResponse;
+      const data = await readJsonResponse(res, {} as VerifyResponse);
       if (data.ok && data.certificate) {
         setCertificate(data.certificate);
         setStatus("ok");
@@ -59,6 +60,12 @@ function VerifyContent() {
       : certificate?.delegateNumber
         ? `${typeof window !== "undefined" ? window.location.origin : ""}/certificates/verify?delegate=${encodeURIComponent(certificate.delegateNumber)}`
         : "";
+  const certificateDownloadUrl =
+    certificate?.id && certificate?.learnerEmail
+      ? `/api/certificates/${encodeURIComponent(certificate.id)}/pdf?email=${encodeURIComponent(
+          certificate.learnerEmail,
+        )}`
+      : "";
 
   const copyLink = async () => {
     if (!verifyPageUrl) return;
@@ -130,6 +137,17 @@ function VerifyContent() {
             </dl>
             {verifyPageUrl ? (
               <div className="mt-6 flex flex-wrap justify-center gap-2">
+                {certificateDownloadUrl ? (
+                  <a
+                    href={certificateDownloadUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+                  >
+                    <Download className="h-3.5 w-3.5" aria-hidden />
+                    Download certificate + transcript
+                  </a>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => void copyLink()}
@@ -144,7 +162,7 @@ function VerifyContent() {
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[#0a66c2] px-3 py-2 text-xs font-semibold text-white hover:bg-[#004182]"
                 >
-                  <Linkedin className="h-3.5 w-3.5" aria-hidden />
+                  <Share2 className="h-3.5 w-3.5" aria-hidden />
                   Share on LinkedIn
                 </a>
               </div>

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
 import type { CertificateRowDto } from "@/lib/certificate-types";
+import { getLearnerEmail } from "@/lib/learner-session-client";
+import { certificatePdfDownloadHref } from "@/lib/certificate-pdf-client";
 
 type Props = {
   courseSlug: string;
@@ -100,7 +102,7 @@ export default function AdminCourseCertificateApprovals({ courseSlug }: Props) {
                 </div>
                 {c.pdfUrl ? (
                   <a
-                    href={c.pdfUrl}
+                    href={certificatePdfDownloadHref(c.pdfUrl, getLearnerEmail() ?? c.learnerEmail) ?? c.pdfUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="rounded-lg bg-violet-600/20 px-2.5 py-1.5 text-[10px] font-semibold text-violet-200 hover:bg-violet-600/30"

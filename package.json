@@ -10,6 +10,8 @@
     "build": "node --use-system-ca ./node_modules/prisma/build/index.js generate && next build --webpack",
     "build:turbo": "next build",
     "start": "next start",
+    "start:server": "next start -H 0.0.0.0 -p 3000",
+    "studio:server": "prisma studio --hostname 127.0.0.1 --port 5555 --browser none",
     "lint": "eslint",
     "postinstall": "node scripts/postinstall.mjs",
     "clean:node_modules": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean-node-modules.ps1",

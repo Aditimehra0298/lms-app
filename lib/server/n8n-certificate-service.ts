@@ -17,6 +17,12 @@ import {
   formatIssueDate,
   formatLearningMode,
 } from "@/lib/certificate-payload-fields";
+import { prisma } from "@/lib/prisma";
+import {
+  certificatePdfServePath,
+  persistCertificatePdf,
+  resolveStoredCertificatePdfUrl,
+} from "@/lib/server/certificate-pdf-store";
 
 export type { CertificateRowDto };
 
@@ -28,7 +34,7 @@ function appBaseUrl(): string {
   return "http://localhost:3000";
 }
 
-function toDto(row: {
+async function toDto(row: {
   id: string;
   certificateNumber: string;
   delegateNumber: string | null;
@@ -49,7 +55,7 @@ function toDto(row: {
   visibleToLearner: boolean;
   pdfUrl: string | null;
   issuedVia: string;
-}): CertificateRowDto {
+}): Promise<CertificateRowDto> {
   let supplementaryDocs: { title: string; url: string }[] = [];
   if (Array.isArray(row.supplementaryDocs)) {
     supplementaryDocs = row.supplementaryDocs as { title: string; url: string }[];
@@ -58,6 +64,7 @@ function toDto(row: {
     delegateNumber: row.delegateNumber,
     certificateNumber: row.certificateNumber,
   });
+  const pdfUrl = await resolveStoredCertificatePdfUrl(row.id, row.pdfUrl);
   return {
     id: row.id,
     certificateNumber: row.certificateNumber,
@@ -79,7 +86,7 @@ function toDto(row: {
     supplementaryDocs,
     status: row.status,
     visibleToLearner: row.visibleToLearner,
-    pdfUrl: row.pdfUrl,
+    pdfUrl,
     issuedVia: row.issuedVia,
   };
 }
@@ -131,12 +138,12 @@ export async function requestCourseCertificate(input: {
     if (existing.status === "pending") {
       return {
         ok: true,
-        certificate: toDto(existing),
+        certificate: await toDto(existing),
         message: "Certificate is already being generated.",
       };
     }
     if (existing.status === "ready") {
-      return { ok: true, certificate: toDto(existing) };
+      return { ok: true, certificate: await toDto(existing) };
     }
   }
 
@@ -157,7 +164,7 @@ export async function requestCourseCertificate(input: {
       },
     });
     const row = await prisma.lmsCertificate.findUnique({ where: { id: built.certificate.id } });
-    return { ok: true, certificate: toDto(row!) };
+    return { ok: true, certificate: await toDto(row!) };
   }
 
   if (!perms.n8nWebhookUrl) {
@@ -310,18 +317,19 @@ export async function requestCourseCertificate(input: {
 
   return {
     ok: true,
-    certificate: toDto(row),
+    certificate: await toDto(row),
     message: "Certificate generation started in n8n.",
   };
 }
 
-/** n8n calls this when PDF is ready. */
+/** n8n calls this when PDF is ready — archives PDF permanently on LMS disk + MySQL. */
 export async function completeN8nCertificateCallback(input: {
   certificateId: string;
   certificateNumber?: string;
   pdfUrl?: string;
+  pdfBase64?: string;
   status?: "ready" | "failed";
-}): Promise<{ ok: true } | { ok: false; message: string }> {
+}): Promise<{ ok: true; storedPdfUrl?: string } | { ok: false; message: string }> {
   const id = input.certificateId.trim();
   if (!id) return { ok: false, message: "certificateId required" };
 
@@ -336,18 +344,33 @@ export async function completeN8nCertificateCallback(input: {
       ? perms.autoVisibleWhenReady && !perms.requireAdminApproval
       : false;
 
+  let storedPdfUrl: string | null = null;
+  if (status === "ready" && (input.pdfUrl?.trim() || input.pdfBase64?.trim())) {
+    const persisted = await persistCertificatePdf({
+      certificateId: id,
+      remoteUrl: input.pdfUrl,
+      pdfBase64: input.pdfBase64,
+    });
+    if (persisted.ok) {
+      storedPdfUrl = persisted.storedUrl;
+    } else {
+      console.error("[certificate-pdf]", persisted.message);
+      storedPdfUrl = input.pdfUrl?.trim() || certificatePdfServePath(id);
+    }
+  }
+
   await prisma.lmsCertificate.update({
     where: { id },
     data: {
       status,
       certificateNumber: input.certificateNumber?.trim() || row.certificateNumber,
-      pdfUrl: input.pdfUrl?.trim() || null,
+      pdfUrl: storedPdfUrl ?? input.pdfUrl?.trim() ?? null,
       visibleToLearner: visible,
       issuedAt: status === "ready" ? new Date() : row.issuedAt,
     },
   });
 
-  return { ok: true };
+  return { ok: true, storedPdfUrl: storedPdfUrl ?? undefined };
 }
 
 export async function listLearnerCertificates(email: string): Promise<CertificateRowDto[]> {
@@ -365,7 +388,7 @@ export async function listLearnerCertificates(email: string): Promise<Certificat
     if (!course) continue;
     const perms = resolveCertificatePermissions(course);
     if (!shouldShowOnLearnerDashboard(perms, row)) continue;
-    out.push(toDto(row));
+    out.push(await toDto(row));
   }
 
   return out;
@@ -378,7 +401,7 @@ export async function listAdminCertificatesForCourse(
     where: { courseSlug: courseSlug.trim() },
     orderBy: { issuedAt: "desc" },
   });
-  return rows.map(toDto);
+  return Promise.all(rows.map((row) => toDto(row)));
 }
 
 export async function setCertificateVisibility(
@@ -394,7 +417,7 @@ export async function setCertificateVisibility(
     where: { id: certificateId },
     data: { visibleToLearner },
   });
-  return { ok: true, certificate: toDto(updated) };
+  return { ok: true, certificate: await toDto(updated) };
 }
 
 /** Admin manually marks certificate ready (upload PDF in Drive, paste URL here). */
@@ -409,10 +432,21 @@ export async function adminUpdateCertificateManual(input: {
   if (!row) return { ok: false, message: "Not found" };
 
   const status = input.status ?? row.status;
+  let storedPdfUrl: string | undefined;
+  if (input.pdfUrl?.trim() && status === "ready") {
+    const persisted = await persistCertificatePdf({
+      certificateId: input.certificateId,
+      remoteUrl: input.pdfUrl,
+    });
+    storedPdfUrl = persisted.ok ? persisted.storedUrl : input.pdfUrl.trim();
+  }
+
   const updated = await prisma.lmsCertificate.update({
     where: { id: input.certificateId },
     data: {
-      ...(input.pdfUrl !== undefined ? { pdfUrl: input.pdfUrl.trim() || null } : {}),
+      ...(input.pdfUrl !== undefined
+        ? { pdfUrl: (storedPdfUrl ?? input.pdfUrl.trim()) || null }
+        : {}),
       ...(input.certificateNumber?.trim() &&
       !input.certificateNumber.trim().startsWith("TEMP-")
         ? { certificateNumber: input.certificateNumber.trim() }
@@ -425,7 +459,7 @@ export async function adminUpdateCertificateManual(input: {
       issuedVia: "manual",
     },
   });
-  return { ok: true, certificate: toDto(updated) };
+  return { ok: true, certificate: await toDto(updated) };
 }
 
 /** Admin manually starts n8n for a learner (re-issue / first issue). */

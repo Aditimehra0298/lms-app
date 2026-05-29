@@ -901,60 +901,11 @@ export type AdminContent = {
 
 export const defaultAdminContent: AdminContent = {
   dashboard: {
-    nextClassTitle: "Cyber Security Fundamentals",
-    nextClassTime: "10:00 AM - 11:30 AM",
-    streakDays: 12,
+    nextClassTitle: "",
+    nextClassTime: "",
+    streakDays: 0,
   },
-  learningCourses: [
-    {
-      title: "Advanced Cyber Security Professional",
-      modules: 12,
-      duration: "40h 30m",
-      completed: 8,
-      status: "In Progress",
-      action: "Continue",
-    },
-    {
-      title: "ESG Fundamentals",
-      modules: 10,
-      duration: "20h 15m",
-      completed: 10,
-      status: "Completed",
-      action: "View Certificate",
-    },
-    {
-      title: "Network Security Essentials",
-      modules: 9,
-      duration: "18h 45m",
-      completed: 5,
-      status: "In Progress",
-      action: "Continue",
-    },
-    {
-      title: "Ethical Hacking with Tools",
-      modules: 8,
-      duration: "16h 30m",
-      completed: 2,
-      status: "In Progress",
-      action: "Continue",
-    },
-    {
-      title: "Python for Data Science",
-      modules: 10,
-      duration: "22h 10m",
-      completed: 0,
-      status: "Not Started",
-      action: "Start Course",
-    },
-    {
-      title: "Workplace Compliance",
-      modules: 6,
-      duration: "10h 20m",
-      completed: 6,
-      status: "Completed",
-      action: "View Certificate",
-    },
-  ],
+  learningCourses: [],
   managedCourses: [
     {
       slug: "food-safety-masterclass",

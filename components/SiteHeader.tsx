@@ -14,6 +14,7 @@ import {
   type LearnerAuthProfile,
 } from "@/lib/auth-profile";
 import { getLearnerEmail, syncLearnerProfileFromServer } from "@/lib/learner-session-client";
+import MyLearningHeaderLink from "@/components/MyLearningHeaderLink";
 
 export default function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -29,9 +30,10 @@ export default function SiteHeader() {
   const goldText = theme === "light" ? "text-[#8a6412]" : "text-[#fde68a]";
   const languages = ["English", "Hindi", "Spanish", "French", "German", "Arabic"];
   const myLearningMenu = [
-    { label: "🏠 Dashboard", href: "/my-learning?tab=dashboard" },
-    { label: "🎓 My Learning", href: "/my-learning?tab=learning" },
-    { label: "🎥 Tutor Led", href: "/tutor-led" },
+    { label: "🎓 My Learning", href: "/my-learning?tab=dashboard" },
+    { label: "📚 Courses", href: "/courses" },
+    { label: "📖 My Courses", href: "/my-learning?tab=learning" },
+    { label: "🎥 Tutor Led", href: "/my-learning?tab=live" },
     { label: "📅 Calendar", href: "/my-learning/calendar" },
     { label: "📝 Assignments", href: "/my-learning?tab=assignments" },
     { label: "💬 Community", href: "/my-learning?tab=community" },
@@ -47,6 +49,10 @@ export default function SiteHeader() {
   ] as const;
   const audienceTabs = ["For Associators", "For Industry Professionals", "For University"];
   const pathname = usePathname();
+  const isMyLearningArea = pathname.startsWith("/my-learning");
+  const useLearnerDashboardChrome = isLoggedIn && isMyLearningArea;
+  /** After login, home highlights My Learning (not Home). */
+  const highlightMyLearningNav = isLoggedIn && (pathname === "/" || isMyLearningArea);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("sft_theme");
@@ -179,7 +185,7 @@ export default function SiteHeader() {
             ))}
           </div>
         </div>
-        <div className="mx-auto flex h-18 w-full max-w-[1760px] items-center justify-between gap-4 px-4 xl:px-6">
+        <div className="mx-auto flex h-18 w-full max-w-[1760px] flex-nowrap items-center justify-between gap-3 px-4 xl:px-6">
           <Link href="/" className="group flex shrink-0 cursor-pointer items-center gap-3">
             <Image
               src={isLight ? sfLightLogo : sfWhiteLogo}
@@ -218,11 +224,11 @@ export default function SiteHeader() {
             </button>
           </div>
 
-          <div className="flex items-center text-[14px] font-bold">
+          <div className="flex shrink-0 flex-nowrap items-center gap-2 text-[14px] font-bold">
             <button
               type="button"
               onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-              className={`mr-2 hidden items-center gap-2 rounded-full border px-2 py-1 transition-colors md:inline-flex ${
+              className={`hidden shrink-0 items-center gap-2 rounded-full border px-2 py-1 transition-colors md:inline-flex ${
                 isLight
                   ? "border-[#b4965a]/45 bg-[#f6efe3] text-slate-700 hover:bg-[#ecdfcb]"
                   : "border-white/15 bg-white/5 text-amber-100 hover:border-amber-400/60 hover:text-amber-200"
@@ -244,7 +250,7 @@ export default function SiteHeader() {
               </span>
               <Moon size={14} className={isLight ? "text-slate-500" : "text-amber-300"} />
             </button>
-            <div className="relative hidden md:block">
+            <div className="relative hidden shrink-0 md:block">
               <button
                 type="button"
                 onClick={() => setIsLanguageOpen((prev) => !prev)}
@@ -291,10 +297,10 @@ export default function SiteHeader() {
             </div>
 
             {isLoggedIn ? (
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 flex-nowrap items-center gap-2">
                 <Link
                   href="/my-learning?tab=dashboard"
-                  className={`relative rounded-full border p-2 transition-colors ${
+                  className={`relative shrink-0 rounded-full border p-2 transition-colors ${
                     isLight
                       ? "border-[#b4965a]/45 bg-[#f6efe3] text-slate-700 hover:border-[#9a7222] hover:text-[#7a5610]"
                       : "border-white/15 bg-white/5 text-gray-200 hover:border-amber-400/60 hover:text-amber-200"
@@ -306,7 +312,7 @@ export default function SiteHeader() {
                 </Link>
                 <Link
                   href="/cart"
-                  className={`relative rounded-full border p-2 transition-colors ${
+                  className={`relative shrink-0 rounded-full border p-2 transition-colors ${
                     isLight
                       ? "border-[#b4965a]/45 bg-[#f6efe3] text-slate-700 hover:border-[#9a7222] hover:text-[#7a5610]"
                       : "border-white/15 bg-white/5 text-gray-200 hover:border-amber-400/60 hover:text-amber-200"
@@ -320,11 +326,11 @@ export default function SiteHeader() {
                     </span>
                   )}
                 </Link>
-                <div className="relative">
+                <div className="relative shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsProfileOpen((prev) => !prev)}
-                    className="ml-1 h-9 w-9 overflow-hidden rounded-full border border-amber-300/60 bg-linear-to-br from-[#f9b14d] to-[#eb9422] p-px shadow-[0_0_18px_rgba(249,177,77,0.35)]"
+                    className="h-9 w-9 overflow-hidden rounded-full border border-amber-300/60 bg-linear-to-br from-[#f9b14d] to-[#eb9422] p-px shadow-[0_0_18px_rgba(249,177,77,0.35)]"
                     aria-label="Open profile menu"
                   >
                     {profileAvatar ? (
@@ -421,62 +427,41 @@ export default function SiteHeader() {
           </div>
         </div>
 
-        <div className={`hidden border-t md:block ${isLight ? "border-[#b4965a]/35" : "border-white/5"}`}>
-          <div
-            className={`mx-auto flex h-10 w-full max-w-[1760px] items-center gap-8 px-4 text-[13px] font-bold xl:px-6 ${
-              isLight ? "text-slate-700" : "text-gray-400"
-            }`}
-          >
-            {navLinks.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`border-b-2 py-2 transition-colors ${
-                  pathname === item.href
-                    ? isLight
-                      ? "border-[#b8860b] text-[#7a5610]"
-                      : "border-amber-400 text-amber-200"
-                    : isLight
-                      ? "border-transparent hover:text-[#8a6412]"
-                      : "border-transparent hover:text-amber-400"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-            {isLoggedIn && (
-              <Link
-                href="/my-learning?tab=dashboard"
-                className={`py-2 transition-colors ${isLight ? "hover:text-[#8a6412]" : "hover:text-amber-400"}`}
-              >
-                My Learning
-              </Link>
-            )}
-          </div>
-        </div>
-        {isLoggedIn && (
+        {!useLearnerDashboardChrome ? (
           <div className={`hidden border-t md:block ${isLight ? "border-[#b4965a]/35" : "border-white/5"}`}>
             <div
-              className={`mx-auto flex w-full max-w-[1760px] items-center gap-3 overflow-x-auto px-4 py-2 text-xs font-semibold xl:px-6 ${
-                isLight ? "text-slate-700" : "text-gray-300"
+              className={`mx-auto flex h-10 w-full max-w-[1760px] items-center gap-8 px-4 text-[13px] font-bold xl:px-6 ${
+                isLight ? "text-slate-700" : "text-gray-400"
               }`}
             >
-              {myLearningMenu.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`whitespace-nowrap rounded-full border px-3 py-1.5 transition-colors ${
-                    isLight
-                      ? "border-[#b4965a]/35 bg-[#f6efe3] hover:border-[#9a7222] hover:text-[#7a5610]"
-                      : "border-white/10 bg-white/5 hover:border-amber-400/40 hover:text-amber-200"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {navLinks.map((item) => {
+                const isActive =
+                  pathname === item.href &&
+                  !(highlightMyLearningNav && pathname === "/" && item.href === "/");
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`border-b-2 py-2 transition-colors ${
+                      isActive
+                        ? isLight
+                          ? "border-[#b8860b] text-[#7a5610]"
+                          : "border-amber-400 text-amber-200"
+                        : isLight
+                          ? "border-transparent hover:text-[#8a6412]"
+                          : "border-transparent hover:text-amber-400"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+              {isLoggedIn ? (
+                <MyLearningHeaderLink active={highlightMyLearningNav && !isMyLearningArea} />
+              ) : null}
             </div>
           </div>
-        )}
+        ) : null}
       </header>
 
       {isMenuOpen && (
@@ -502,41 +487,45 @@ export default function SiteHeader() {
               />
             </div>
             <nav className="flex flex-col gap-6 text-lg font-medium text-gray-300">
-              {navLinks.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setIsMenuOpen(false)}
-                  className="hover:text-amber-400"
-                >
-                  {item.label}
-                </Link>
-              ))}
-              {isLoggedIn && (
-                <Link href="/my-learning?tab=dashboard" onClick={() => setIsMenuOpen(false)} className="hover:text-amber-400">
-                  My Learning
-                </Link>
-              )}
-            </nav>
-            {isLoggedIn && (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-300">
-                  My Learning Menu
-                </p>
-                <div className="grid gap-2">
-                  {myLearningMenu.map((item) => (
+              {useLearnerDashboardChrome ? (
+                myLearningMenu.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="hover:text-amber-400"
+                  >
+                    {item.label}
+                  </Link>
+                ))
+              ) : (
+                <>
+                  {navLinks.map((item) => (
                     <Link
                       key={item.label}
                       href={item.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-gray-200 hover:border-amber-400/40 hover:text-amber-200"
+                      className="hover:text-amber-400"
                     >
                       {item.label}
                     </Link>
                   ))}
-                </div>
-              </div>
-            )}
+                  {isLoggedIn && (
+                    <Link
+                      href="/my-learning?tab=dashboard"
+                      onClick={() => setIsMenuOpen(false)}
+                      className={
+                        highlightMyLearningNav
+                          ? "rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-2 text-amber-100"
+                          : "hover:text-amber-400"
+                      }
+                    >
+                      My Learning
+                    </Link>
+                  )}
+                </>
+              )}
+            </nav>
             <div className="flex flex-col gap-4 pt-6">
               <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                 <div className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-200">
