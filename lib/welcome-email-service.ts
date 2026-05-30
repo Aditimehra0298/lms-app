@@ -74,6 +74,9 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> 
 
 /** Fire-and-forget after auth API saved user to MySQL. */
 export function queueWelcomeEmail(input: WelcomeEmailInput): void {
+  if (process.env.OTP_DEV_LOG === "true") {
+    console.log(`[welcome-email] queued for ${input.email} (${input.method})`);
+  }
   void sendWelcomeEmail(input).catch((err) => {
     const detail = err instanceof Error ? err.message : String(err);
     console.error(`[welcome-email] failed for ${input.email}:`, detail);

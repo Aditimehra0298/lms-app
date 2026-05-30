@@ -186,13 +186,11 @@ export async function POST(request: Request) {
 
   const profile = dbSaved ? await fetchLmsUserProfile(email) : null;
 
-  if (
-    action === "register" &&
-    dbSaved &&
-    !existing &&
-    !isAdminGoogleStep &&
-    !isAdminEmail(email)
-  ) {
+  const isNewLearner =
+    dbSaved && !existing && !isAdminGoogleStep && !isAdminEmail(email);
+
+  // New Google users may use the Login tab — still send welcome email + n8n webhook.
+  if (isNewLearner) {
     queueWelcomeEmail({
       email,
       learnerName: profile?.name ?? name,
