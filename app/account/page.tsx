@@ -14,7 +14,13 @@ import { validateLearnerPassword } from "@/lib/password-policy";
 import { normalizeLearnerEmail } from "@/lib/learner-email";
 import type { AccountTypeId, LearnerAuthProfile } from "@/lib/auth-profile";
 import { cacheLearnerProfile } from "@/lib/auth-profile";
-import { GOOGLE_GSI_SCRIPT, getGoogleClientId, requestGoogleAccessToken } from "@/lib/google-sign-in-client";
+import {
+  GOOGLE_GSI_SCRIPT,
+  getGoogleClientId,
+  isGoogleOAuthReady,
+  requestGoogleAccessToken,
+  waitForGoogleOAuth2,
+} from "@/lib/google-sign-in-client";
 import {
   getBrowserOrigin,
   googleOriginMismatchHint,
@@ -522,19 +528,40 @@ export default function AccountPage() {
     router.push(learnerDestination);
   };
 
+  const resolveCountryForGoogle = async (): Promise<string | null> => {
+    if (registerCountryCode.trim()) return registerCountryCode.trim();
+    try {
+      const res = await fetch("/api/geo/country", { cache: "no-store" });
+      const data = (await res.json()) as { countryCode?: string };
+      if (data.countryCode?.trim()) {
+        setRegisterCountryCode(data.countryCode.trim().toUpperCase());
+        return data.countryCode.trim().toUpperCase();
+      }
+    } catch {
+      /* ignore */
+    }
+    return null;
+  };
+
   const finishGoogleSignIn = async (accessToken: string, adminTokenOverride?: string | null) => {
     setGoogleLoading(true);
     setAuthError("");
     const verifyTokenForAdmin = adminTokenOverride ?? adminVerifyToken;
     try {
-      if (authView === "register" && selectedAccountType !== "self" && !registerCountryCode) {
-        setAuthError("Choose your country code in the mobile number field before Google sign-in.");
-        setGoogleLoading(false);
-        return;
+      let countryCodeForRegister: string | null = null;
+      if (authView === "register" && selectedAccountType !== "self") {
+        countryCodeForRegister = await resolveCountryForGoogle();
+        if (!countryCodeForRegister) {
+          setAuthError(
+            "Choose your country code in the mobile field, or allow location detection, before Google sign-in.",
+          );
+          setGoogleLoading(false);
+          return;
+        }
       }
       const country =
-        authView === "register" && selectedAccountType !== "self"
-          ? authCountryInput(registerCountryCode)
+        authView === "register" && selectedAccountType !== "self" && countryCodeForRegister
+          ? authCountryInput(countryCodeForRegister)
           : undefined;
       const result = await signInWithGoogleAccessToken(
         accessToken,
@@ -595,10 +622,11 @@ export default function AccountPage() {
       );
       return;
     }
-    if (!googleScriptReady && !window.google?.accounts?.oauth2) {
+    if (!isGoogleOAuthReady()) {
       setAuthError("Google sign-in is still loading. Wait a moment and try again.");
       return;
     }
+    setGoogleScriptReady(true);
     if (!verifyToken) {
       setAuthError("Enter your admin email and password first.");
       return;
@@ -621,35 +649,44 @@ export default function AccountPage() {
   };
 
   const handleGoogleSignIn = () => {
-    if (selectedAccountType === "self") {
-      if (!adminVerifyToken) {
-        setAuthError("Enter admin email and password first.");
+    void (async () => {
+      if (selectedAccountType === "self") {
+        if (!adminVerifyToken) {
+          setAuthError("Enter admin email and password first.");
+          return;
+        }
+        runAdminGoogleVerification();
         return;
       }
-      runAdminGoogleVerification();
-      return;
-    }
-    if (authView === "register" && !registerCountryCode) {
-      setAuthError("Choose your country code in the mobile number field before Google sign-in.");
-      return;
-    }
-    if (!googleConfigured) {
-      setAuthError(
-        "Google sign-in is not configured. Add GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_CLIENT_ID to .env.local, then restart the dev server. See docs/GOOGLE_SIGNIN.md.",
+      if (!googleConfigured) {
+        setAuthError(
+          "Google sign-in is not configured. Add GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_CLIENT_ID to .env.local, then restart the dev server. See docs/GOOGLE_SIGNIN.md.",
+        );
+        return;
+      }
+      setGoogleLoading(true);
+      setAuthError("");
+      const sdkReady =
+        googleScriptReady || isGoogleOAuthReady() || (await waitForGoogleOAuth2());
+      if (sdkReady) setGoogleScriptReady(true);
+      if (!sdkReady) {
+        setGoogleLoading(false);
+        setAuthError(
+          `Google sign-in is still loading. Check your connection, disable ad blockers for this page, then try again. ${googleOriginSetupHint(getBrowserOrigin())}`,
+        );
+        return;
+      }
+      requestGoogleAccessToken(
+        (token) => {
+          void finishGoogleSignIn(token);
+        },
+        (message) => {
+          setGoogleLoading(false);
+          setAuthError(googleOriginMismatchHint(message, getBrowserOrigin()));
+        },
+        undefined,
       );
-      return;
-    }
-    if (!googleScriptReady) {
-      setAuthError("Google sign-in is still loading. Wait a moment and try again.");
-      return;
-    }
-    requestGoogleAccessToken(
-      (token) => {
-        void finishGoogleSignIn(token);
-      },
-      (message) => setAuthError(googleOriginMismatchHint(message, getBrowserOrigin())),
-      undefined,
-    );
+    })();
   };
 
   const goldGradient = "bg-gradient-to-b from-[#f9b14d] to-[#eb9422]";
@@ -660,7 +697,12 @@ export default function AccountPage() {
         <Script
           src={GOOGLE_GSI_SCRIPT}
           strategy="afterInteractive"
-          onLoad={() => setGoogleScriptReady(true)}
+          onLoad={() => {
+            setGoogleScriptReady(true);
+            void waitForGoogleOAuth2(5000).then((ok) => {
+              if (ok) setGoogleScriptReady(true);
+            });
+          }}
           onError={() => {
             setAuthError(
               `Could not load Google sign-in. Check your internet connection. ${googleOriginSetupHint(getBrowserOrigin())}`,
@@ -844,12 +886,16 @@ export default function AccountPage() {
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
-                  disabled={googleLoading}
+                  disabled={googleLoading || !googleScriptReady}
                   className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-sm hover:border-amber-500/40 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4"
                 >
                   <GoogleMark />
                   <span className="whitespace-nowrap">
-                    {googleLoading ? "Signing in…" : "Continue with Google"}
+                    {googleLoading
+                      ? "Signing in…"
+                      : !googleScriptReady
+                        ? "Loading Google…"
+                        : "Continue with Google"}
                   </span>
                 </button>
               )}

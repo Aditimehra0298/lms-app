@@ -1,3 +1,5 @@
+import { buildN8nWebhookHeaders } from "@/lib/server/n8n-webhook-auth";
+
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
 function chatWebhookUrl(): string | null {
@@ -62,12 +64,7 @@ export async function sendChatToN8n(input: {
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(process.env.N8N_WEBHOOK_SECRET
-          ? { "X-Webhook-Secret": process.env.N8N_WEBHOOK_SECRET }
-          : {}),
-      },
+      headers: buildN8nWebhookHeaders(),
       body: JSON.stringify(payload),
     });
 

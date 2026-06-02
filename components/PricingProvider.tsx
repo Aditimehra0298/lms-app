@@ -15,7 +15,7 @@ import {
   localizePriceString,
   type PricingRegion,
 } from "@/lib/country-pricing";
-import { countryFlagDisplays } from "@/lib/country-flag-image";
+import { CountryFlagImg } from "@/components/CountryFlagImg";
 import { listCountryOptions } from "@/lib/iso-country-list";
 import {
   cachePricingRegionFromCountryCode,
@@ -24,8 +24,9 @@ import {
   isLearnerLoggedIn,
   PRICING_REGION_EVENT,
   refreshPricingRegion,
+  saveLearnerPricingCountry,
 } from "@/lib/learner-session-client";
-import { isPricingRevealed, setPricingRevealed } from "@/lib/pricing-reveal";
+import { setPricingRevealed } from "@/lib/pricing-reveal";
 
 type PricingContextValue = {
   ready: boolean;
@@ -56,7 +57,7 @@ export function usePricingContext(): PricingContextValue {
 
 export function PricingProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
-  const [revealed, setRevealed] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
   const [region, setRegion] = useState<PricingRegion | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelCountryCode, setPanelCountryCode] = useState("IN");
@@ -68,31 +69,36 @@ export function PricingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const sync = useCallback(async () => {
-    const loggedIn = isLearnerLoggedIn();
+    const signedIn = isLearnerLoggedIn();
+    setLoggedIn(signedIn);
     const cached = getCachedPricingRegion();
-    const wasRevealed = isPricingRevealed();
-
     if (cached) applyRegion(cached);
-    setRevealed(wasRevealed);
 
-    if (loggedIn) {
-      const fresh = await refreshPricingRegion();
-      if (fresh) {
-        applyRegion(fresh);
+    if (signedIn) {
+      let next =
+        (await refreshPricingRegion()) ??
+        getCachedPricingRegion() ??
+        (await fetchGuestPricingRegion());
+      if (!next) {
+        next = cachePricingRegionFromCountryCode("IN");
+      }
+      if (next) {
+        applyRegion(next);
         setPricingRevealed(true);
-        setRevealed(true);
       }
       setReady(true);
       return;
     }
 
+    applyRegion(null);
+    setPricingRevealed(false);
     setReady(true);
   }, [applyRegion]);
 
   useLayoutEffect(() => {
     void sync();
     const onUpdate = () => {
-      setRevealed(isPricingRevealed());
+      setLoggedIn(isLearnerLoggedIn());
       applyRegion(getCachedPricingRegion());
     };
     window.addEventListener("sft_auth_updated", () => void sync());
@@ -108,6 +114,14 @@ export function PricingProvider({ children }: { children: ReactNode }) {
   }, [sync, applyRegion]);
 
   const openPricingPanel = useCallback(() => {
+    if (!isLearnerLoggedIn()) {
+      const redirect =
+        typeof window !== "undefined"
+          ? window.location.pathname + window.location.search
+          : "/";
+      window.location.href = `/account?mode=login&redirect=${encodeURIComponent(redirect)}`;
+      return;
+    }
     const cached = getCachedPricingRegion();
     if (cached) setPanelCountryCode(cached.countryCode);
     setPanelOpen(true);
@@ -116,12 +130,20 @@ export function PricingProvider({ children }: { children: ReactNode }) {
   const closePricingPanel = useCallback(() => setPanelOpen(false), []);
 
   const confirmPricingRegion = useCallback(() => {
-    const next = cachePricingRegionFromCountryCode(panelCountryCode);
-    if (next) applyRegion(next);
-    setPricingRevealed(true);
-    setRevealed(true);
-    setPanelOpen(false);
-  }, [panelCountryCode, applyRegion]);
+    if (!isLearnerLoggedIn()) {
+      setPanelOpen(false);
+      openPricingPanel();
+      return;
+    }
+    void (async () => {
+      const next =
+        (await saveLearnerPricingCountry(panelCountryCode)) ??
+        cachePricingRegionFromCountryCode(panelCountryCode);
+      if (next) applyRegion(next);
+      setPricingRevealed(true);
+      setPanelOpen(false);
+    })();
+  }, [panelCountryCode, applyRegion, openPricingPanel]);
 
   const detectLocationForPanel = useCallback(async () => {
     setDetectingLocation(true);
@@ -149,7 +171,8 @@ export function PricingProvider({ children }: { children: ReactNode }) {
     [region],
   );
 
-  const showPrices = revealed && region !== null;
+  /** Prices only after sign-in; region from MySQL (IP / Google / registration country at login). */
+  const showPrices = loggedIn && region !== null;
 
   const value = useMemo(
     () => ({
@@ -185,7 +208,6 @@ export function PricingProvider({ children }: { children: ReactNode }) {
   );
 
   const countryOptions = useMemo(() => listCountryOptions(), []);
-  const panelFlag = countryFlagDisplays(panelCountryCode, 32);
 
   return (
     <PricingContext.Provider value={value}>
@@ -206,9 +228,11 @@ export function PricingProvider({ children }: { children: ReactNode }) {
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <p id="pricing-panel-title" className="text-lg font-bold text-white">
-                  Know the price
+                  Your pricing region
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-400">Choose your location to see localized pricing</p>
+                <p className="mt-0.5 text-xs text-zinc-400">
+                  Course prices use your country — currency and admin regional rows when set
+                </p>
               </div>
               <button
                 type="button"
@@ -239,12 +263,7 @@ export function PricingProvider({ children }: { children: ReactNode }) {
                 Country / region
               </label>
               <div className="mb-3 flex items-center gap-2 rounded-xl border border-[#FFB800]/25 bg-[#FFB800]/5 px-3 py-2">
-                {panelFlag[0]?.kind === "image" ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={panelFlag[0].url} alt="" className="h-5 w-7 rounded object-cover" />
-                ) : (
-                  <span className="text-lg">{panelFlag[0]?.text ?? "🏳️"}</span>
-                )}
+                <CountryFlagImg code={panelCountryCode} width={32} className="h-5 w-7 rounded object-cover" />
                 <span className="text-sm font-medium text-white">
                   {countryOptions.find((c) => c.code === panelCountryCode)?.name ?? panelCountryCode}
                 </span>
@@ -261,8 +280,8 @@ export function PricingProvider({ children }: { children: ReactNode }) {
                 ))}
               </select>
               <p className="mt-3 text-xs leading-relaxed text-zinc-500">
-                Course descriptions stay visible without pricing. Prices appear on this page after you confirm your
-                region — before you enroll or add to cart.
+                Sign in first. We use your account country (from registration, Google, or IP) to show localized prices
+                on courses, cart, and checkout.
               </p>
             </div>
 
@@ -272,7 +291,7 @@ export function PricingProvider({ children }: { children: ReactNode }) {
                 onClick={confirmPricingRegion}
                 className="w-full rounded-xl bg-[#FFB800] py-3 text-sm font-extrabold text-black transition hover:bg-[#e5a500]"
               >
-                Show prices for my region
+                Apply country &amp; refresh prices
               </button>
             </div>
           </aside>

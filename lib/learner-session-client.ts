@@ -30,18 +30,19 @@ export function getLearnerEmail(): string | null {
   return window.localStorage.getItem(AUTH_KEYS.email);
 }
 
-export function loginRedirectHref(redirectPath?: string): string {
-  const redirect =
-    redirectPath ??
-    (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/");
-  return `/account?mode=login&redirect=${encodeURIComponent(redirect)}`;
+/** Pass `redirectPath` from `usePathname()` in render to avoid hydration mismatch. */
+export function loginRedirectHref(redirectPath: string = "/"): string {
+  return `/account?mode=login&redirect=${encodeURIComponent(redirectPath)}`;
 }
 
-export function registerRedirectHref(redirectPath?: string): string {
-  const redirect =
-    redirectPath ??
-    (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/");
-  return `/account?mode=register&redirect=${encodeURIComponent(redirect)}`;
+export function registerRedirectHref(redirectPath: string = "/"): string {
+  return `/account?mode=register&redirect=${encodeURIComponent(redirectPath)}`;
+}
+
+/** Use in click handlers only (client has window). */
+export function loginRedirectHrefForCurrentPage(): string {
+  if (typeof window === "undefined") return loginRedirectHref("/");
+  return loginRedirectHref(window.location.pathname + window.location.search);
 }
 
 export function getCachedPricingRegion(): PricingRegion | null {
@@ -187,6 +188,33 @@ export async function recordLearnerAuth(
     window.dispatchEvent(new Event("sft_auth_updated"));
   }
   return data;
+}
+
+/** Persist country choice to MySQL and refresh cached pricing region. */
+export async function saveLearnerPricingCountry(countryCode: string): Promise<PricingRegion | null> {
+  const email = getLearnerEmail();
+  const code = countryCode.trim().toUpperCase();
+  if (!email || !code) {
+    return cachePricingRegionFromCountryCode(countryCode);
+  }
+
+  try {
+    const res = await fetch("/api/pricing/region", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, countryCode: code }),
+    });
+    const data = await readJsonResponse(res, {} as { ok?: boolean; region?: PricingRegion });
+    if (res.ok && data.region) {
+      cachePricingRegion(data.region);
+      window.dispatchEvent(new Event(PRICING_REGION_EVENT));
+      return data.region;
+    }
+  } catch {
+    /* fall through */
+  }
+
+  return cachePricingRegionFromCountryCode(code);
 }
 
 export async function refreshPricingRegion(): Promise<PricingRegion | null> {

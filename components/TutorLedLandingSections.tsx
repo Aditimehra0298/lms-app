@@ -11,8 +11,11 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  MessageCircle,
   MonitorPlay,
   Send,
+  Shield,
+  Users,
   Video,
 } from "lucide-react";
 import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
@@ -180,6 +183,13 @@ export default function TutorLedLandingSections({
 }: Props) {
   const router = useRouter();
   const syllabus = course.curriculum.length > 0 ? course.curriculum.slice(0, 5) : null;
+  const previewSyllabusRows =
+    syllabus?.map((w) => ({
+      module: w.week,
+      topic: w.topic,
+      keyLearning: w.keyLearning,
+      duration: "Live Session",
+    })) ?? syllabusRows;
 
   const enroll = () => {
     if (checkoutSlug && !enrolledLearning) registerTutorLedFromTemplate(router, checkoutSlug);
@@ -187,284 +197,274 @@ export default function TutorLedLandingSections({
 
   return (
     <>
-      {/* Everything included */}
-      <section className="border-b border-white/10 bg-zinc-950">
-        <div className={`${shell} py-12 md:py-14`}>
-          <h2 className={`${sectionTitle} text-center`}>Everything Included in Your Enrollment</h2>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {includedItems.map((f) => (
-              <div
-                key={f.title}
-                className="flex flex-col items-center rounded-xl border border-zinc-800 bg-black/50 px-5 py-6 text-center"
-              >
-                <div className="mb-4 grid h-14 w-14 place-items-center rounded-lg border border-[#FFB800]/30 bg-[#FFB800]/10">
-                  <f.icon className="h-7 w-7 text-[#FFB800]" aria-hidden />
+      {/* Hero-follow section matching live-course mockup */}
+      <section className="border-b border-white/10 bg-black">
+        <div className={`${shell} py-7 md:py-8`}>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+            <article className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950/55">
+              <div className="border-b border-white/10 px-4 py-3">
+                <h3 className="text-base font-bold text-white">Live Training Schedule (Detailed Curriculum)</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[620px] text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-black/30 text-[10px] uppercase tracking-wide text-zinc-500">
+                      <th className="px-3 py-2.5">Module</th>
+                      <th className="px-3 py-2.5">Topic</th>
+                      <th className="px-3 py-2.5">Key Learning</th>
+                      <th className="px-3 py-2.5 text-right">Session Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewSyllabusRows.map((row) => (
+                      <tr key={row.module} className="border-b border-white/5 last:border-0">
+                        <td className="px-3 py-2.5 font-semibold text-[#FFB800]">Module {row.module}</td>
+                        <td className="px-3 py-2.5 text-zinc-200">{row.topic}</td>
+                        <td className="px-3 py-2.5 text-zinc-500">{row.keyLearning}</td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className="rounded-full border border-[#FFB800]/30 bg-[#FFB800]/10 px-2 py-0.5 text-[10px] font-semibold text-[#FFB800]">
+                            {row.duration}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950/55">
+              <div className="border-b border-white/10 px-4 py-3">
+                <h3 className="text-base font-bold text-white">Inside Live Classrooms</h3>
+              </div>
+              <div className="p-3">
+                <div className="overflow-hidden rounded-lg border border-white/10">
+                  <Image
+                    src={classroomImageSrc}
+                    alt="Live classroom session"
+                    width={640}
+                    height={360}
+                    className="h-auto w-full object-cover"
+                  />
                 </div>
-                <p className="text-sm font-bold text-white">{f.title}</p>
-                <p className="mt-2 text-[12px] leading-relaxed text-zinc-500">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Certificate */}
-      <section className="border-b border-white/10 bg-black" id="certificate">
-        <div className={`${shell} py-12 md:py-16`}>
-          <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,280px)_1fr_minmax(0,220px)] lg:gap-6 xl:grid-cols-[minmax(0,300px)_1fr_minmax(0,240px)] xl:gap-10">
-            <div className="flex justify-center">
-              <div className="w-full max-w-[240px] sm:max-w-[260px] lg:max-w-[280px]">
-                <TutorLedCertificatePreview
-                  programTitle={certificate.programTitle}
-                  trainerName={certificate.trainerName}
-                  layout="full"
-                  hideTitle
-                />
-              </div>
-            </div>
-            <div className="min-w-0 text-center lg:text-left">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#FFB800]">
-                Included with enrollment
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-white md:text-3xl">
-                Certificate of <span className="text-[#FFB800]">Attainment</span>
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-zinc-400 md:text-[15px]">
-                On successful completion of all live sessions and assessments, you receive a personalized
-                Certificate of Attainment — accredited by the International Education Board (IEB), London (UK),
-                and verifiable worldwide via QR code.
-              </p>
-              <ul className="mt-6 space-y-3">
-                {[
-                  "Personalized with your name, program title, and unique certificate number",
-                  "IEB-accredited credential recognized by employers and regulators",
-                  "Scan-to-verify QR code — instant authenticity check online",
-                  "Signed by the Program Director with issue date and training mode",
-                  "Downloadable PDF for portfolios, audits, and compliance records",
-                  "Share directly on LinkedIn and other professional networks",
-                ].map((item) => (
-                  <li key={item} className="flex items-start justify-center gap-2.5 text-sm text-zinc-300 lg:justify-start">
-                    <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
-                    <span className="text-left">{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <CertificateBadgeImage className="mt-8 lg:hidden" />
-              {!enrolledLearning && checkoutSlug ? (
-                <button type="button" onClick={enroll} className={`${goldBtn} mx-auto mt-8 max-w-sm lg:mx-0`}>
-                  Enroll Now to Earn Your Certificate
-                </button>
-              ) : null}
-            </div>
-            <div className="hidden justify-center lg:flex">
-              <CertificateBadgeImage />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Live Training Syllabus */}
-      <section className="border-b border-white/10 bg-black" id="syllabus">
-        <div className={`${shell} py-12 md:py-14`}>
-          <h2 className={sectionTitle}>Live Training Syllabus</h2>
-          <div className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/50">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-zinc-800 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                  <th className="px-5 py-3.5 font-semibold">Module</th>
-                  <th className="px-5 py-3.5 font-semibold">Topic</th>
-                  <th className="px-5 py-3.5 font-semibold">Key Learning Areas</th>
-                  <th className="px-5 py-3.5 font-semibold">Duration</th>
-                  <th className="px-5 py-3.5 text-right font-semibold">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(syllabus
-                  ? syllabus.map((w) => ({
-                      module: w.week,
-                      topic: w.topic,
-                      keyLearning: w.keyLearning,
-                      duration: "2 Hours",
-                    }))
-                  : syllabusRows
-                ).map((row) => (
-                  <tr key={row.module} className="border-b border-zinc-800/80 last:border-0">
-                    <td className="px-5 py-4 font-semibold text-[#FFB800]">Module {row.module}</td>
-                    <td className="px-5 py-4 text-zinc-200">{row.topic}</td>
-                    <td className="px-5 py-4 text-zinc-500">{row.keyLearning}</td>
-                    <td className="px-5 py-4 text-zinc-400">{row.duration}</td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 rounded-md border border-[#FFB800] bg-transparent px-3 py-1.5 text-[11px] font-semibold text-[#FFB800] transition hover:bg-[#FFB800]/10"
-                      >
-                        View Details
-                        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Upcoming Live Batch Schedule */}
-      <section className="border-b border-white/10 bg-zinc-950" id="schedule">
-        <div className={`${shell} py-12 md:py-14`}>
-          <h2 className={sectionTitle}>Upcoming Live Batch Schedule</h2>
-          <div className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-black/40">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-zinc-800 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                  <th className="px-5 py-3.5 font-semibold">Batch</th>
-                  <th className="px-5 py-3.5 font-semibold">Start Date</th>
-                  <th className="px-5 py-3.5 font-semibold">Session Days</th>
-                  <th className="px-5 py-3.5 font-semibold">Time (IST)</th>
-                  <th className="px-5 py-3.5 font-semibold">Duration</th>
-                  <th className="px-5 py-3.5 font-semibold">Mode</th>
-                  <th className="px-5 py-3.5 font-semibold">Platform</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="px-5 py-4 font-semibold text-[#FFB800]">{batch.batchId}</td>
-                  <td className="px-5 py-4 text-zinc-200">{batch.startDate}</td>
-                  <td className="px-5 py-4 text-zinc-200">{batch.sessionDays}</td>
-                  <td className="px-5 py-4 text-zinc-200">{batch.timeIst}</td>
-                  <td className="px-5 py-4 text-zinc-200">{batch.duration}</td>
-                  <td className="px-5 py-4 text-zinc-200">{batch.mode}</td>
-                  <td className="px-5 py-4">
-                    <span className="inline-flex items-center gap-2 text-zinc-200">
-                      <span className="grid h-6 w-6 place-items-center rounded-md bg-[#2D8CFF] text-[10px] font-bold text-white">
-                        Z
-                      </span>
-                      Zoom
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Inside the Live Classroom */}
-      <section className="border-b border-white/10 bg-black" id="classroom">
-        <div className={`${shell} py-12 md:py-14`}>
-          <h2 className={`${sectionTitle} mb-8`}>Inside the Live Classroom</h2>
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-            <div className="overflow-hidden rounded-xl border border-zinc-800">
-              <Image
-                src={classroomImageSrc}
-                alt="Live Zoom classroom"
-                width={900}
-                height={520}
-                className="h-auto w-full object-cover"
-              />
-            </div>
-            <div className="flex flex-col">
-              <ul className="space-y-3.5">
-                {classroomFeatures.map((text) => (
-                  <li key={text} className="flex items-start gap-2.5 text-sm text-zinc-300">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#FFB800]" aria-hidden />
-                    {text}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8 flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/80 px-4 py-3">
-                <span className="min-w-0 flex-1 text-sm text-zinc-500">Type your question here…</span>
-                <button
-                  type="button"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#FFB800] text-black"
-                  aria-label="Send message"
-                >
-                  <Send className="h-4 w-4" aria-hidden />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Why Choose This Live Training? */}
-      <section className="border-b border-white/10 bg-zinc-950">
-        <div className={`${shell} py-12 md:py-14`}>
-          <h2 className={`${sectionTitle} mb-8 text-center`}>Why Choose This Live Training?</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {course.whyChoose.map((item) => (
-              <div
-                key={item.title}
-                className="flex flex-col items-center rounded-xl border border-zinc-800 bg-black/40 px-4 py-6 text-center"
-              >
-                <div className="mb-4 grid h-12 w-12 place-items-center rounded-lg border border-[#FFB800]/25 bg-[#FFB800]/10">
-                  <item.icon className="h-6 w-6 text-[#FFB800]" aria-hidden />
-                </div>
-                <p className="text-sm font-bold text-white">{item.title}</p>
-                <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ + CTA — matches mockup: FAQ left, bordered CTA box with cert on right */}
-      <section className="bg-black">
-        <div className={`${shell} grid gap-8 py-12 md:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] md:gap-10 md:py-14`}>
-          <div>
-            <h2 className={`${sectionTitle} mb-6`}>Frequently Asked Questions</h2>
-            <div className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-950/30">
-              {course.faqs.map((faq, i) => (
-                <div key={faq.q}>
-                  <button
-                    type="button"
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm text-zinc-200"
-                  >
-                    <span>{faq.q}</span>
-                    <ChevronDown
-                      size={18}
-                      className={`shrink-0 text-zinc-500 transition-transform ${openFaq === i ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {openFaq === i ? (
-                    <div className="border-t border-zinc-800 px-5 pb-4 text-sm leading-relaxed text-zinc-400">{faq.a}</div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <aside>
-            <div className="overflow-hidden rounded-xl border-2 border-[#FFB800]/60 bg-zinc-950 p-5">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-lg font-bold leading-snug text-white">Secure Your Seat in the Next Batch</h3>
-                  <p className="mt-2 text-sm text-zinc-400">
-                    Limited seats available for the upcoming live training batch.
+                <div className="mt-3 space-y-2 text-[11px] text-zinc-400">
+                  <p className="inline-flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-[#FFB800]" /> Group interaction and real-time Q&amp;A
                   </p>
-                  {!enrolledLearning && checkoutSlug ? (
-                    <button type="button" onClick={enroll} className={`${goldBtn} mt-5`}>
-                      Reserve Your Seat
-                    </button>
+                  <p className="inline-flex items-center gap-1.5">
+                    <MessageCircle className="h-3.5 w-3.5 text-[#FFB800]" /> Mentor support during every live session
+                  </p>
+                </div>
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-[11px] text-zinc-500">
+                  <span className="min-w-0 flex-1 truncate">Type a message...</span>
+                  <Send className="h-3.5 w-3.5 shrink-0 text-[#FFB800]" aria-hidden />
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* Combined lower layout: schedule + classroom + certificate + FAQ */}
+      <section className="border-b border-white/10 bg-black">
+        <div className={`${shell} py-8`}>
+          <div className="mb-4 grid gap-4 lg:grid-cols-2">
+            <article className="rounded-xl border border-white/10 bg-zinc-950/50 p-4">
+              <h3 className="text-base font-bold text-white">Meet Your Trainer</h3>
+              <div className="mt-3 flex gap-3">
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-[#FFB800]/40 bg-zinc-900">
+                  {course.trainer.avatar?.trim() ? (
+                    <Image src={course.trainer.avatar} alt={course.trainer.name} fill className="object-cover" unoptimized />
                   ) : (
-                    <Link href="/my-learning?tab=live" className={`${goldBtn} mt-5`}>
-                      Open My Learning
-                    </Link>
+                    <span className="flex h-full w-full items-center justify-center text-lg font-bold text-[#FFB800]">
+                      {course.trainer.name.replace(/^Mr\.?\s*/i, "").charAt(0)}
+                    </span>
                   )}
                 </div>
-                <div className="mx-auto w-[100px] shrink-0 sm:mx-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white">{course.trainer.name}</p>
+                  <p className="text-xs text-zinc-400">{course.trainer.role}</p>
+                  <p className="mt-1 line-clamp-3 text-[11px] leading-relaxed text-zinc-500">{course.trainer.bio}</p>
+                </div>
+              </div>
+              {course.trainer.workedWith.length > 0 ? (
+                <div className="mt-3 border-t border-white/10 pt-2.5">
+                  <p className="mb-1.5 text-[10px] uppercase tracking-wide text-zinc-500">Worked with</p>
+                  <div className="flex flex-wrap gap-3 text-xs font-semibold text-zinc-400">
+                    {course.trainer.workedWith.slice(0, 5).map((w) => (
+                      <span key={w}>{w}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </article>
+
+            <article className="rounded-xl border border-white/10 bg-zinc-950/50 p-4">
+              <h3 className="text-base font-bold text-white">Live Training Highlights</h3>
+              <div className="mt-3 grid grid-cols-[minmax(0,1fr)_96px] gap-3">
+                <ul className="space-y-2">
+                  {course.highlights.slice(0, 6).map((h) => (
+                    <li key={h} className="flex items-start gap-2 text-xs text-zinc-300">
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#FFB800]" aria-hidden />
+                      <span className="leading-snug">{h}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center justify-center rounded-lg border border-[#FFB800]/25 bg-[#FFB800]/5">
+                  <Shield className="h-10 w-10 text-[#FFB800]" aria-hidden />
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+            <div className="space-y-4">
+              <article className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950/50">
+                <div className="border-b border-white/10 px-4 py-3">
+                  <h2 className="text-base font-bold text-white">Live Training Schedule (Detailed Curriculum)</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[680px] text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-white/10 bg-black/30 text-[10px] uppercase tracking-wide text-zinc-500">
+                        <th className="px-3 py-2.5">Week</th>
+                        <th className="px-3 py-2.5">Topic</th>
+                        <th className="px-3 py-2.5">Key Learning</th>
+                        <th className="px-3 py-2.5 text-right">Session Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewSyllabusRows.map((row) => (
+                        <tr key={row.module} className="border-b border-white/5 last:border-0">
+                          <td className="px-3 py-2.5 font-semibold text-[#FFB800]">Week {row.module}</td>
+                          <td className="px-3 py-2.5 text-zinc-200">{row.topic}</td>
+                          <td className="px-3 py-2.5 text-zinc-500">{row.keyLearning}</td>
+                          <td className="px-3 py-2.5 text-right">
+                            <span className="rounded-full border border-[#FFB800]/30 bg-[#FFB800]/10 px-2 py-0.5 text-[10px] font-semibold text-[#FFB800]">
+                              {row.duration}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article className="rounded-xl border border-white/10 bg-zinc-950/50 p-4">
+                <h3 className="text-base font-bold text-white">Why Choose Tutor Led Training?</h3>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                  {course.whyChoose.slice(0, 5).map((item) => (
+                    <div key={item.title} className="rounded-lg border border-white/10 bg-black/30 px-2 py-3 text-center">
+                      <div className="mx-auto mb-2 grid h-8 w-8 place-items-center rounded-md border border-[#FFB800]/25 bg-[#FFB800]/10">
+                        <item.icon className="h-4 w-4 text-[#FFB800]" aria-hidden />
+                      </div>
+                      <p className="text-[11px] font-semibold text-white">{item.title}</p>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="rounded-xl border border-white/10 bg-zinc-950/50 p-4">
+                <h3 className="mb-3 text-base font-bold text-white">Frequently Asked Questions</h3>
+                <div className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-black/25">
+                  {course.faqs.map((faq, i) => (
+                    <div key={faq.q}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                        className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left text-xs text-zinc-200"
+                      >
+                        <span>{faq.q}</span>
+                        <ChevronDown
+                          size={16}
+                          className={`shrink-0 text-zinc-500 transition-transform ${openFaq === i ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {openFaq === i ? (
+                        <div className="border-t border-zinc-800 px-4 pb-3 text-xs leading-relaxed text-zinc-400">{faq.a}</div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </article>
+            </div>
+
+            <div className="space-y-4">
+              <article className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950/50">
+                <div className="border-b border-white/10 px-4 py-3">
+                  <h3 className="text-base font-bold text-white">Inside Live Classrooms</h3>
+                </div>
+                <div className="p-3">
+                  <div className="overflow-hidden rounded-lg border border-white/10">
+                    <Image
+                      src={classroomImageSrc}
+                      alt="Live classroom session"
+                      width={640}
+                      height={360}
+                      className="h-auto w-full object-cover"
+                    />
+                  </div>
+                  <div className="mt-3 space-y-2 text-[11px] text-zinc-400">
+                    {classroomFeatures.slice(0, 3).map((text) => (
+                      <p key={text} className="inline-flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-[#FFB800]" aria-hidden />
+                        {text}
+                      </p>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-[11px] text-zinc-500">
+                    <span className="min-w-0 flex-1 truncate">Type a message...</span>
+                    <Send className="h-3.5 w-3.5 shrink-0 text-[#FFB800]" aria-hidden />
+                  </div>
+                </div>
+              </article>
+
+              <article className="rounded-xl border border-white/10 bg-zinc-950/50 p-4">
+                <h3 className="text-base font-bold text-white">Certificate of Completion</h3>
+                <p className="mt-1 text-xs text-zinc-500">Earn an industry-recognized certificate after course success.</p>
+                <ul className="mt-3 space-y-2 text-[11px] text-zinc-300">
+                  {certificateBenefits.slice(0, 4).map((item) => (
+                    <li key={item} className="inline-flex items-start gap-2">
+                      <BadgeCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 overflow-hidden rounded-lg border border-[#FFB800]/35 bg-black/30 p-2">
                   <TutorLedCertificatePreview
                     programTitle={certificate.programTitle}
                     trainerName={certificate.trainerName}
-                    layout="compact"
+                    layout="full"
                     hideTitle
                   />
                 </div>
-              </div>
+              </article>
             </div>
-          </aside>
+          </div>
+        </div>
+      </section>
+
+      {/* Bottom CTA bar */}
+      <section className="bg-black">
+        <div className={`${shell} py-4`}>
+          <div className="flex flex-col items-center justify-between gap-3 rounded-xl border border-[#FFB800]/40 bg-zinc-950/70 px-4 py-3 sm:flex-row">
+            <div className="text-center sm:text-left">
+              <h3 className="text-base font-bold text-white">Secure Your Spot in the Next Batch!</h3>
+              <p className="text-xs text-zinc-500">Limited seats available for personalized learning experience.</p>
+            </div>
+            {!enrolledLearning && checkoutSlug ? (
+              <button type="button" onClick={enroll} className="inline-flex min-w-[220px] items-center justify-center gap-2 rounded-lg bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-black transition hover:bg-[#e5a600]">
+                Reserve Your Seat Now
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </button>
+            ) : (
+              <Link href="/my-learning?tab=live" className="inline-flex min-w-[220px] items-center justify-center gap-2 rounded-lg bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-black transition hover:bg-[#e5a600]">
+                Open My Learning
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </Link>
+            )}
+          </div>
         </div>
       </section>
     </>

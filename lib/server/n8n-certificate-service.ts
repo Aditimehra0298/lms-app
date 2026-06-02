@@ -18,6 +18,7 @@ import {
   formatLearningMode,
 } from "@/lib/certificate-payload-fields";
 import { prisma } from "@/lib/prisma";
+import { buildN8nWebhookHeaders } from "@/lib/server/n8n-webhook-auth";
 import {
   certificatePdfServePath,
   persistCertificatePdf,
@@ -291,12 +292,7 @@ export async function requestCourseCertificate(input: {
   try {
     const res = await fetch(perms.n8nWebhookUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(process.env.N8N_WEBHOOK_SECRET
-          ? { "X-Webhook-Secret": process.env.N8N_WEBHOOK_SECRET }
-          : {}),
-      },
+      headers: buildN8nWebhookHeaders(),
       body: JSON.stringify(payload),
     });
     if (!res.ok) {

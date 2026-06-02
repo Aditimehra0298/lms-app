@@ -27,6 +27,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { AdminContent, defaultAdminContent, type ManagedCourse } from "@/lib/content-schema";
+import { MyLearningDiscussionsHub } from "@/components/MyLearningDiscussionsHub";
 import { MyLearningLiveHub } from "@/components/MyLearningLiveHub";
 import MyCertificatesList from "@/components/MyCertificatesList";
 import { examLinksFromManagedCourse, resolveLearningCourseSlug } from "@/lib/my-learning-exams";
@@ -274,6 +275,25 @@ export default function MyLearningPage() {
     () => purchasedCourses.filter((c) => c.deliveryKind === "tutor-led" && c.slug?.trim()),
     [purchasedCourses],
   );
+
+  const enrolledCourseSlugs = useMemo(
+    () =>
+      coursesForLearning
+        .map((c) => c.slug?.trim())
+        .filter((s): s is string => Boolean(s)),
+    [coursesForLearning],
+  );
+
+  const enrolledCourseTitles = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of coursesForLearning) {
+      const slug = c.slug?.trim();
+      if (slug) map[slug] = c.title;
+    }
+    return map;
+  }, [coursesForLearning]);
+
+  const communityFocusCourse = searchParams.get("course")?.trim() || null;
 
   const enrolledExamSlugs = useMemo(() => {
     if (!courseCatalog?.length) return new Set<string>();
@@ -586,20 +606,16 @@ export default function MyLearningPage() {
           </section>
         ) : isCommunity ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
-            <h1 className="text-4xl font-bold">Community</h1>
+            <h1 className="text-4xl font-bold">Q&amp;A &amp; feedback</h1>
             <p className="mt-1 text-sm text-gray-300">
-              Discussions and cohort activity from your courses will appear here.
+              See questions from your courses, answer other learners, and open full threads on each course
+              page.
             </p>
-            <p className="mt-6 rounded-xl border border-dashed border-white/15 bg-black/20 p-8 text-center text-sm text-gray-400">
-              No community posts yet. Check back after you join tutor-led sessions or when your
-              instructor shares updates.
-            </p>
-            <Link
-              href="/my-learning?tab=live"
-              className="mt-4 inline-flex rounded-md border border-white/15 px-4 py-2 text-sm text-amber-200 hover:bg-white/5"
-            >
-              View tutor-led programs
-            </Link>
+            <MyLearningDiscussionsHub
+              enrolledSlugs={enrolledCourseSlugs}
+              courseTitles={enrolledCourseTitles}
+              focusCourseSlug={communityFocusCourse}
+            />
           </section>
         ) : isAssignments ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">

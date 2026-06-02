@@ -4,15 +4,22 @@ export function getBrowserOrigin(): string {
   return window.location.origin;
 }
 
+const LOCAL_DEV_ORIGINS = new Set([
+  "http://localhost:3000",
+  "https://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://127.0.0.1:3000",
+]);
+
 export function isLanOrNonLocalhostOrigin(origin: string): boolean {
   const o = origin.trim().toLowerCase();
   if (!o) return false;
-  return o !== "http://localhost:3000" && o !== "https://localhost:3000";
+  return !LOCAL_DEV_ORIGINS.has(o);
 }
 
 export function googleOriginSetupHint(origin?: string): string {
   const o = (origin ?? getBrowserOrigin()).trim() || "http://localhost:3000";
-  return `Add ${o} under Google Cloud Console → Credentials → your OAuth client → Authorized JavaScript origins (keep http://localhost:3000 too).`;
+  return `Add ${o} (and http://localhost:3000, http://127.0.0.1:3000 if needed) under Google Cloud Console → Credentials → OAuth client → Authorized JavaScript origins.`;
 }
 
 export function googleOriginMismatchHint(message: string, origin?: string): string {

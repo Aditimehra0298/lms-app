@@ -7,6 +7,7 @@ import {
 } from "@/lib/email-brand-config";
 import { buildWelcomeEmail, type WelcomeEmailMethod } from "@/lib/email-templates/welcome";
 import type { RegistrationLookupResult } from "@/lib/server/registration-lookup";
+import { buildN8nWebhookHeaders } from "@/lib/server/n8n-webhook-auth";
 
 export type N8nWelcomeEmailInput = {
   email: string;
@@ -23,13 +24,6 @@ function welcomeWebhookUrl(): string | null {
 
 export function isWelcomeEmailViaN8n(): boolean {
   return Boolean(welcomeWebhookUrl());
-}
-
-function webhookHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const secret = process.env.N8N_WEBHOOK_SECRET?.trim();
-  if (secret) headers["X-Webhook-Secret"] = secret;
-  return headers;
 }
 
 /** POST learner data from MySQL to n8n → Gmail sends welcome + dashboard + courses links. */
@@ -99,7 +93,7 @@ export async function sendWelcomeEmailViaN8n(
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: webhookHeaders(),
+      headers: buildN8nWebhookHeaders(),
       body: JSON.stringify(payload),
     });
 

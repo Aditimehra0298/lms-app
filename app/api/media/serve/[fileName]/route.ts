@@ -35,7 +35,22 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
   }
 
-  const requestEmail = new URL(request.url).searchParams.get("email")?.trim().toLowerCase();
+  const fetchDest = request.headers.get("sec-fetch-dest")?.trim().toLowerCase();
+  // Learner media should be consumed by media requests, not opened as a top-level page/tab.
+  if (payload.scope === "learner" && fetchDest === "document") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const requestEmail =
+    new URL(request.url).searchParams.get("email")?.trim().toLowerCase() ||
+    request.headers.get("x-learner-email")?.trim().toLowerCase();
+  // Tie token to the same user identity to reduce shared-link abuse.
+  if (payload.email && !requestEmail) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (payload.email && requestEmail && payload.email !== requestEmail) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const allowed = await mediaAccessAllowed(payload, requestEmail);
   if (!allowed) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -57,6 +72,9 @@ export async function GET(request: Request, { params }: Params) {
       "Content-Length": String(info.size),
       "Cache-Control": "private, no-store, max-age=0",
       "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+      "X-Robots-Tag": "noindex, noarchive, nosnippet",
+      "Cross-Origin-Resource-Policy": "same-site",
       // Prevents “download as attachment” prompts; user may still capture the stream via devtools.
       "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     },

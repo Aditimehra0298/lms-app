@@ -14,7 +14,11 @@ NEXT_PUBLIC_APP_URL=https://your-lms-domain.com
 # n8n welcome webhook (production URL when workflow is active)
 N8N_WELCOME_WEBHOOK_URL=https://your-instance.app.n8n.cloud/webhook/welcome
 
-# Same secret as certificate/chat webhooks (optional)
+# Webhook Basic Auth (same as n8n Webhook node → Authentication → Basic Auth)
+N8N_WEBHOOK_USER=your_username
+N8N_WEBHOOK_PASSWORD=your_password
+
+# Optional header check in n8n (same as certificate/chat webhooks)
 N8N_WEBHOOK_SECRET=your-long-random-string
 
 # Optional branding
@@ -165,10 +169,31 @@ Manual test JSON (paste in n8n test):
 
 ---
 
-## 8. Troubleshooting
+## 8. n8n webhook authentication
+
+If your **Webhook** node uses **Authentication → Basic Auth**:
+
+1. In n8n: set **Username** and **Password** on the Webhook node.
+2. In LMS `.env.local`, set the **same** values:
+
+```env
+N8N_WEBHOOK_USER=your_username
+N8N_WEBHOOK_PASSWORD=your_password
+```
+
+3. Restart the dev server (`npm run dev`).
+
+The LMS sends `Authorization: Basic …` on every POST to welcome, certificate, and chat webhooks.
+
+Optional: `N8N_WEBHOOK_SECRET` adds header `X-Webhook-Secret` for an extra check in n8n.
+
+---
+
+## 9. Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
+| Webhook returns **401** | `N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASSWORD` must match n8n Basic Auth exactly |
 | No execution in n8n | Workflow not active; wrong URL (`-test` vs production) |
 | LMS logs `n8n failed` | Check n8n execution error; enable `WELCOME_EMAIL_SMTP_FALLBACK=true` |
 | n8n Cloud cannot reach localhost LMS | Deploy LMS or use ngrok for callbacks (welcome is LMS → n8n only, so n8n Cloud is fine) |

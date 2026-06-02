@@ -72,6 +72,11 @@ export function applyGoogleSession(
 
   window.localStorage.setItem(AUTH_KEYS.loggedIn, "true");
 
+  if (data.region) {
+    cachePricingRegion(data.region);
+    setPricingRevealed(true);
+  }
+
   const profile: LearnerAuthProfile = data.profile
     ? learnerProfileFromDb(data.profile)
     : {

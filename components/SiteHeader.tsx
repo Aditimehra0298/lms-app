@@ -15,6 +15,7 @@ import {
 } from "@/lib/auth-profile";
 import { getLearnerEmail, syncLearnerProfileFromServer } from "@/lib/learner-session-client";
 import MyLearningHeaderLink from "@/components/MyLearningHeaderLink";
+import { PricingRegionBadge } from "@/components/PricingRegionBadge";
 
 export default function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -298,6 +299,7 @@ export default function SiteHeader() {
 
             {isLoggedIn ? (
               <div className="flex shrink-0 flex-nowrap items-center gap-2">
+                <PricingRegionBadge className="hidden md:inline-flex" />
                 <Link
                   href="/my-learning?tab=dashboard"
                   className={`relative shrink-0 rounded-full border p-2 transition-colors ${
@@ -527,6 +529,7 @@ export default function SiteHeader() {
               )}
             </nav>
             <div className="flex flex-col gap-4 pt-6">
+              {isLoggedIn ? <PricingRegionBadge compact className="md:hidden" /> : null}
               <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                 <div className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-200">
                   <Globe size={16} />

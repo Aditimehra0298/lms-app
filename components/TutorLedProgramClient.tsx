@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { mapTutorLedProgramToPageCourse } from "@/lib/tutor-led-program-map";
+import TutorLedAfterHeroSection from "@/components/TutorLedAfterHeroSection";
 import TutorLedCourseHero from "@/components/TutorLedCourseHero";
 import TutorLedLearnerDashboard from "@/components/TutorLedLearnerDashboard";
 import CourseLandingVisit from "@/components/CourseLandingVisit";
-import TutorLedPostHeroSections from "@/components/TutorLedPostHeroSections";
 import { tutorLedLandingHref } from "@/lib/course-landing";
 
 type Props = { program: TutorLedProgramStored; enrolledLearning?: boolean };
@@ -47,7 +47,6 @@ function useCountdown(initial: { days: number; hours: number; mins: number; secs
 export default function TutorLedProgramClient({ program, enrolledLearning = false }: Props) {
   const course = mapTutorLedProgramToPageCourse(program);
   const cd = useCountdown(program.countdown);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const crumbs = program.breadcrumb;
   const heroCourse = {
@@ -102,38 +101,19 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
       />
 
       <div id="course-details">
-      <TutorLedPostHeroSections
-        course={{
-          trainer: { ...course.trainer, avatar: program.trainer.avatar },
-          highlights: course.highlights,
-          curriculum: course.curriculum,
-          whyChoose: course.whyChoose,
-          faqs: course.faqs,
-          features: course.features,
-        }}
-        openFaq={openFaq}
-        setOpenFaq={setOpenFaq}
-        tutorLedCheckoutSlug={program.slug}
-        tutorLedSchedule={{
-          curriculum: program.curriculum,
-          curriculumMode: program.curriculumMode,
-        }}
-        tutorLedCertificate={{
-          programTitle: program.title,
-          trainerName: program.trainer.name,
-        }}
-        tutorLedBatch={{
-          batchId: "Batch 18",
-          startDate: course.nextBatchDate,
-          sessionDays: "Tue, Thu, Sat",
-          timeIst: "7:00 PM - 9:00 PM",
-          duration: "12 Weeks",
-          mode: "Online Live",
-        }}
-      />
+        <TutorLedAfterHeroSection
+          trainer={{ ...course.trainer, avatar: program.trainer.avatar }}
+          highlights={course.highlights}
+          curriculum={course.curriculum}
+          whyChoose={course.whyChoose}
+          faqs={course.faqs}
+          certificate={{
+            programTitle: program.title,
+            trainerName: program.trainer.name,
+          }}
+          checkoutSlug={program.slug}
+        />
       </div>
-
-      <div className="h-8" />
     </div>
   );
 }

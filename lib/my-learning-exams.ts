@@ -8,6 +8,10 @@ export function learnerExamDisplayLabel(label: string | undefined, fallback: str
       .replace(/\s*\(\s*\d+\s*MCQs?\s*\)/gi, "")
       .replace(/\s*[-–—]\s*\d+\s*MCQs?/gi, "")
       .replace(/\s*\(\s*\d+\s*questions?\s*\)/gi, "")
+      .replace(/\s*\(\s*\d+\s*q(?:uestions?)?\s*\)/gi, "")
+      .replace(/\s*[-–—]\s*\d+\s*questions?/gi, "")
+      .replace(/\s*[-–—]\s*\d+\s*q\b/gi, "")
+      .replace(/\s*•\s*\d+\s*questions?/gi, "")
       .trim() || fallback
   );
 }

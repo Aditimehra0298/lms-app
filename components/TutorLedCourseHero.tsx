@@ -105,6 +105,7 @@ type Props = {
 export default function TutorLedCourseHero({
   breadcrumbs,
   course,
+  countdown,
   heroSrc = "/h1.png",
   heroAlt = "Live tutor-led session preview",
   primaryCta,
@@ -134,8 +135,8 @@ export default function TutorLedCourseHero({
   return (
     <>
       <section className="relative overflow-hidden border-b border-white/10 bg-black">
-        <div className="relative mx-auto w-full max-w-[1760px] px-4 pb-6 pt-4 sm:px-6 md:px-8 xl:px-10">
-          <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500">
+        <div className="relative mx-auto w-full max-w-[1760px] px-4 pb-4 pt-3 sm:px-6 md:px-8 xl:px-10">
+          <nav className="mb-3 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500">
             {breadcrumbs.map((crumb, i) => (
               <span key={`${crumb.label}-${i}`} className="inline-flex items-center gap-1.5">
                 {i > 0 && <ChevronRight size={11} className="text-zinc-600" aria-hidden />}
@@ -148,16 +149,42 @@ export default function TutorLedCourseHero({
             <span className="font-medium text-[#FFB800]">{course.title}</span>
           </nav>
 
-          <div className="flex flex-col gap-6 md:gap-8 lg:flex-row lg:items-stretch">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
             {/* Left — title, trainer, pills */}
             <div className="flex h-full w-full min-w-0 flex-1 flex-col lg:w-1/3">
               <div className="flex h-full min-h-0 flex-1 flex-col">
                 <div className="flex-1">
-                  <h1 className="mb-6 text-[1.75rem] font-extrabold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-[2.35rem] lg:leading-[1.12]">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-[#FFB800]/45 bg-[#FFB800]/12 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFB800]">
+                      Tutor Led Training
+                    </span>
+                    <span className="rounded-full border border-rose-500/40 bg-rose-500/12 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-300">
+                      Live
+                    </span>
+                  </div>
+                  <h1 className="mb-3 text-[1.7rem] font-extrabold leading-[1.1] tracking-tight text-white sm:text-[2.05rem] lg:text-[2.2rem]">
                     <HeroTitle title={course.title} />
                   </h1>
+                  <p className="mb-4 max-w-xl text-xs leading-relaxed text-zinc-400 sm:text-sm">
+                    {course.subtitle}
+                  </p>
 
-                  <div className="mb-6 flex w-full items-center justify-between gap-3">
+                  <div className="mb-4 grid grid-cols-3 gap-2">
+                    <div className="rounded-lg border border-white/10 bg-zinc-950/70 px-2 py-2">
+                      <p className="text-[9px] uppercase tracking-wide text-zinc-500">Next Batch</p>
+                      <p className="mt-0.5 text-[11px] font-semibold text-amber-200">{course.nextBatchDate}</p>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-zinc-950/70 px-2 py-2">
+                      <p className="text-[9px] uppercase tracking-wide text-zinc-500">Time</p>
+                      <p className="mt-0.5 text-[11px] font-semibold text-zinc-200">{timeIst}</p>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-zinc-950/70 px-2 py-2">
+                      <p className="text-[9px] uppercase tracking-wide text-zinc-500">Language</p>
+                      <p className="mt-0.5 text-[11px] font-semibold text-zinc-200">{course.language}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 flex w-full items-center justify-between gap-3">
                 <div className="flex min-w-0 flex-1 items-center gap-3">
                   <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-[#FFB800]/40 bg-zinc-900 sm:h-14 sm:w-14">
                     {course.trainer.avatar?.trim() ? (
@@ -188,7 +215,7 @@ export default function TutorLedCourseHero({
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:mt-auto lg:grid-cols-5">
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:mt-auto lg:grid-cols-5">
                   {heroPills.map((item) => (
                     <div
                       key={item.label}
@@ -201,12 +228,30 @@ export default function TutorLedCourseHero({
                     </div>
                   ))}
                 </div>
+                {countdown ? (
+                  <div className="mt-4 rounded-xl border border-[#FFB800]/30 bg-[#FFB800]/8 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#FFB800]">Upcoming live batch</p>
+                    <div className="mt-2 grid grid-cols-4 gap-2 text-center">
+                      {[
+                        { label: "Days", value: countdown.days },
+                        { label: "Hours", value: countdown.hours },
+                        { label: "Mins", value: countdown.mins },
+                        { label: "Sec", value: countdown.secs },
+                      ].map((slot) => (
+                        <div key={slot.label} className="rounded-lg border border-white/10 bg-black/35 px-1.5 py-2">
+                          <p className="text-base font-extrabold text-white">{String(slot.value).padStart(2, "0")}</p>
+                          <p className="text-[9px] uppercase tracking-wide text-zinc-500">{slot.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
 
             {/* Center — Zoom preview */}
             <div className="flex w-full min-w-0 flex-1 flex-col lg:w-1/3">
-              <div className="relative h-full min-h-[280px] flex-1 overflow-hidden rounded-xl border border-zinc-800/80 bg-gradient-to-br from-[#0c1e3a] via-zinc-950 to-black shadow-[0_20px_50px_rgba(0,0,0,0.5)] lg:min-h-0">
+              <div className="relative h-full min-h-[250px] flex-1 overflow-hidden rounded-xl border border-zinc-800/80 bg-gradient-to-br from-[#0c1e3a] via-zinc-950 to-black shadow-[0_20px_50px_rgba(0,0,0,0.5)] lg:min-h-0">
                 <div
                   className="pointer-events-none absolute inset-0 opacity-40"
                   style={{
@@ -236,7 +281,7 @@ export default function TutorLedCourseHero({
                     >
                       <Play size={26} fill="currentColor" className="ml-0.5" />
                     </button>
-                    <p className="max-w-[260px] text-center text-xs font-semibold text-white drop-shadow-md sm:text-sm">
+                    <p className="max-w-[260px] text-center text-[11px] font-semibold text-white drop-shadow-md sm:text-sm">
                       Live Interactive Sessions with Expert Trainer
                     </p>
                   </div>
@@ -246,12 +291,12 @@ export default function TutorLedCourseHero({
 
             {/* Right — pricing card */}
             <aside id="course-enroll" className="flex w-full min-w-0 flex-1 scroll-mt-24 flex-col lg:w-1/3">
-              <div className="flex h-full min-h-[280px] flex-col overflow-hidden rounded-xl border border-[#FFB800]/30 bg-zinc-950 lg:min-h-0">
+              <div className="flex h-full min-h-[250px] flex-col overflow-hidden rounded-xl border border-[#FFB800]/30 bg-zinc-950 lg:min-h-0">
                 <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3.5 sm:px-5">
-                  <span className="text-sm font-bold text-white">{course.batchLabel}</span>
+                  <span className="text-sm font-bold text-white">Upcoming Live Batch</span>
                   {course.seatsFilling ? (
                     <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
-                      Limited Seats
+                      {course.batchLabel}
                     </span>
                   ) : null}
                 </div>

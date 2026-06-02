@@ -43,6 +43,32 @@ export function getGoogleClientId(): string | null {
   return id || null;
 }
 
+export function isGoogleOAuthReady(): boolean {
+  return Boolean(typeof window !== "undefined" && window.google?.accounts?.oauth2);
+}
+
+/** Wait for GSI script after Next.js <Script onLoad> (oauth2 can appear slightly later). */
+export function waitForGoogleOAuth2(maxMs = 15_000): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  if (isGoogleOAuthReady()) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const tick = () => {
+      if (isGoogleOAuthReady()) {
+        resolve(true);
+        return;
+      }
+      if (Date.now() - started >= maxMs) {
+        resolve(false);
+        return;
+      }
+      window.setTimeout(tick, 200);
+    };
+    tick();
+  });
+}
+
 export function requestGoogleAccessToken(
   onToken: (accessToken: string) => void,
   onError: (message: string) => void,
@@ -84,7 +110,12 @@ export function requestGoogleAccessToken(
       onToken(token);
     },
     error_callback: (err) => {
-      if (err.type === "popup_closed") return;
+      if (err.type === "popup_closed" || err.type === "popup_failed_to_open") {
+        onError(
+          "Google sign-in popup was blocked. Allow popups for this site, then try again.",
+        );
+        return;
+      }
       onError(err.message ?? "Google sign-in failed.");
     },
   });

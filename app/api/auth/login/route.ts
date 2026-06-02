@@ -3,6 +3,7 @@ import { isMainAdminEmail } from "@/lib/server/admin-emails";
 import { verifyPassword } from "@/lib/server/password-hash";
 import { fetchLmsUserProfile } from "@/lib/server/lms-user-profile";
 import { prisma } from "@/lib/prisma";
+import { getClientIps } from "@/lib/request-ip";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +55,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Invalid email or password." }, { status: 401 });
   }
 
+  const ips = getClientIps(request);
   await prisma.lmsUser.update({
     where: { email },
-    data: { lastLoginAt: new Date() },
+    data: {
+      lastLoginAt: new Date(),
+      ipv4: ips.ipv4 ?? undefined,
+      ipv6: ips.ipv6 ?? undefined,
+    },
   });
 
   const profile = await fetchLmsUserProfile(email);

@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { countryFlagDisplays, type FlagDisplay } from "@/lib/country-flag-image";
+import { CountryFlagImg } from "@/components/CountryFlagImg";
 import {
   dialCodeForCountry,
   formatStoredPhone,
@@ -15,49 +15,6 @@ type Props = {
   onPhoneChange?: (fullPhone: string) => void;
   className?: string;
 };
-
-function CountryFlagImg({ code, className = "h-4 w-6" }: { code: string; className?: string }) {
-  const sources = useMemo(() => countryFlagDisplays(code), [code]);
-  const [sourceIndex, setSourceIndex] = useState(0);
-
-  useEffect(() => {
-    setSourceIndex(0);
-  }, [code]);
-
-  const current: FlagDisplay | undefined = sources[sourceIndex];
-
-  if (!code || !current) {
-    return (
-      <span
-        className={`inline-flex shrink-0 items-center justify-center rounded-sm bg-zinc-700 text-[10px] font-bold text-zinc-300 ${className}`}
-      >
-        {code || "?"}
-      </span>
-    );
-  }
-
-  if (current.kind === "emoji") {
-    return (
-      <span className={`inline-flex shrink-0 items-center justify-center text-lg leading-none ${className}`}>
-        {current.text}
-      </span>
-    );
-  }
-
-  return (
-    <img
-      src={current.url}
-      alt=""
-      width={24}
-      height={16}
-      loading="lazy"
-      decoding="async"
-      referrerPolicy="no-referrer"
-      className={`shrink-0 rounded-sm object-cover ${className}`}
-      onError={() => setSourceIndex((i) => Math.min(i + 1, sources.length - 1))}
-    />
-  );
-}
 
 export default function PhoneWithCountryCode({
   countryCode,

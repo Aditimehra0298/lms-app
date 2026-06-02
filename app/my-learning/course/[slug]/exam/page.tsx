@@ -23,7 +23,6 @@ import {
 import { markModuleCompleted } from "@/lib/learner-course-progress";
 import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
 import {
-  formatPreviewWatchProgress,
   healModuleWatchRecord,
   modulePreviewProgress,
   PREVIEW_WATCH_UPDATED_EVENT,
@@ -371,15 +370,11 @@ function CourseExamPageInner() {
             <p className="inline-flex items-center gap-2 text-amber-200">
               <Lock size={18} /> Assessment locked
             </p>
-            <h1 className="mt-3 text-2xl font-bold">Complete preview watch time first</h1>
+            <h1 className="mt-3 text-2xl font-bold">Complete the module lessons first</h1>
             <p className="mt-2 text-sm text-amber-100/90">
-              Module {moduleNumber} assessment unlocks after you watch the required lesson preview time. Finish the
-              module video (or watch the full lesson if it is shorter than the preview limit).
+              Module {moduleNumber} assessment unlocks after you finish the lessons in this module. Return to the
+              course and continue watching.
             </p>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-amber-300/35 bg-amber-500/15 px-3 py-2 text-sm text-amber-100">
-              <Lock size={14} />
-              {formatPreviewWatchProgress(previewGate.watchedSec, previewGate.requiredSec)} watched
-            </div>
             <Link
               href={`/my-learning/course/${slug}`}
               className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold"
@@ -547,7 +542,7 @@ function CourseExamPageInner() {
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-4">
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-violet-300">Question {currentQuestionIndex + 1}</p>
+                <p className="text-violet-300">Current question</p>
                 <button
                   onClick={() =>
                     setReviewedQuestions((prev) =>
@@ -657,45 +652,6 @@ function CourseExamPageInner() {
               ) : null}
             </article>
 
-            <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="font-semibold">Question Navigator</p>
-                <button className="text-xs text-violet-200">Collapse</button>
-              </div>
-              <div className="mb-2 grid grid-cols-2 gap-1 text-[10px]">
-                <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/25 px-1.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" /> Answered
-                </span>
-                <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/25 px-1.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-gray-500" /> Not Answered
-                </span>
-                <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/25 px-1.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-rose-400" /> Marked
-                </span>
-                <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/25 px-1.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-violet-400" /> Current
-                </span>
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                {Array.from({ length: questions.length }).map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentQuestionIndex(idx)}
-                    className={`h-8 w-8 rounded-full border text-xs ${
-                      idx === currentQuestionIndex
-                        ? "border-violet-300/40 bg-violet-500/20 text-violet-100"
-                        : reviewedQuestions.includes(idx)
-                          ? "border-rose-300/35 bg-rose-500/15 text-rose-200"
-                          : answeredQuestions.includes(idx)
-                            ? "border-emerald-300/30 bg-emerald-500/15 text-emerald-200"
-                            : "border-white/10 bg-black/25 text-gray-300"
-                    }`}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
-              </div>
-            </article>
           </aside>
         </section>
       </main>
