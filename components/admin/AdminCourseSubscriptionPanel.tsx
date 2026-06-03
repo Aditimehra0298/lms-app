@@ -38,8 +38,8 @@ export default function AdminCourseSubscriptionPanel({ draft, canEdit, onGoCours
 
       <AdminPanelSection title="Certificate tracker hook">
         <p className="text-xs text-gray-400">
-          Use your certificate generator callback here later. Current certificate generation remains under the{" "}
-          <strong className="text-gray-300">Certificates</strong> tab.
+          Use your certificate generator callback here later. Templates and approvals:{" "}
+          <strong className="text-gray-300">Users &amp; Access → Certificates</strong>.
         </p>
         <div className="mt-3 rounded-lg border border-violet-400/30 bg-violet-500/10 p-3 text-xs text-violet-100">
           Suggested payload keys: <code>registrationId</code>, <code>courseSlug</code>, <code>badgeTier</code>,{" "}

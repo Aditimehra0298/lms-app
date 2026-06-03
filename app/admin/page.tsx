@@ -15,9 +15,11 @@ import {
   FileText,
   Filter,
   Home,
+  Inbox,
   LayoutGrid,
   Layers,
   Leaf,
+  Images,
   LogOut,
   Menu,
   MessageSquare,
@@ -32,15 +34,20 @@ import {
   Users,
   Video,
   Award,
+  HelpCircle,
 } from "lucide-react";
-import AdminGlobalCertificatesPanel from "@/components/admin/AdminGlobalCertificatesPanel";
 import AdminCoursesWorkspace from "@/components/admin/AdminCoursesWorkspace";
+import AdminCertificatesWorkspace from "@/components/admin/AdminCertificatesWorkspace";
 import AdminCoursesPageEditor from "@/components/admin/AdminCoursesPageEditor";
 import AdminHomePageEditor from "@/components/admin/AdminHomePageEditor";
 import AdminAboutPageEditor from "@/components/admin/AdminAboutPageEditor";
 import AdminTutorLedWorkspace from "@/components/admin/AdminTutorLedWorkspace";
 import AdminCourseQAModeration from "@/components/admin/AdminCourseQAModeration";
 import AdminSupportTickets from "@/components/admin/AdminSupportTickets";
+import AdminFormSubmissions from "@/components/admin/AdminFormSubmissions";
+import AdminWebsiteImageGuide from "@/components/admin/AdminWebsiteImageGuide";
+import AdminFaqPageEditor from "@/components/admin/AdminFaqPageEditor";
+import AdminTestimonialsPageEditor from "@/components/admin/AdminTestimonialsPageEditor";
 import CategoryPageEditorModal from "@/components/admin/CategoryPageEditorModal";
 import CategoryPreviewIframe from "@/components/admin/CategoryPreviewIframe";
 import type { AdminContent, ManagedCategory } from "@/lib/content-schema";
@@ -55,14 +62,21 @@ const menuSections = [
   },
   {
     title: "Website Management",
-    items: ["Home Page", "About Page", "Courses Page", "Contact Page", "FAQ Page", "Testimonials"],
+    items: [
+      "Home Page",
+      "About Page",
+      "Courses Page",
+      "Website Form Data",
+      "Image Upload Guide",
+      "FAQ Page",
+      "Testimonials",
+    ],
   },
   {
     title: "Course Management",
     items: [
       "Categories",
       "Self-paced courses",
-      "Certificates",
       "Course Q&A",
       "Lessons",
       "Tutor Led",
@@ -72,7 +86,7 @@ const menuSections = [
   },
   {
     title: "Users & Access",
-    items: ["Users", "Roles & Permissions"],
+    items: ["Users", "Certificates", "Roles & Permissions"],
   },
   {
     title: "Orders & Payments",
@@ -84,7 +98,7 @@ const menuSections = [
   },
   {
     title: "Other",
-    items: ["Settings", "Newsletter", "Analytics", "Reports"],
+    items: ["Settings", "Analytics", "Reports"],
   },
 ];
 
@@ -106,20 +120,24 @@ const quickActions = [
 
 const menuIcons: Record<string, typeof Home> = {
   Dashboard: Home,
+  "Website Form Data": Inbox,
+  "Image Upload Guide": Images,
   "Home Page": LayoutGrid,
   "About Page": FileText,
   "Courses Page": BookOpen,
   Categories: Layers,
   "Self-paced courses": BookOpen,
-  Certificates: Award,
   "Course Q&A": MessageSquare,
   Lessons: Video,
   "Tutor Led": Video,
   Workshops: Calendar,
   Batches: Users,
   Users: Users,
+  Certificates: Award,
   Settings: Settings,
   "Support Tickets": TicketCheck,
+  "FAQ Page": HelpCircle,
+  Testimonials: Star,
 };
 
 type AdminAccessState = {
@@ -156,7 +174,12 @@ export default function AdminPage() {
       setActiveMenu(item);
       if (item === "Tutor Led") {
         router.replace("/admin?panel=tutor-led", { scroll: false });
-      } else if (searchParams.get("panel") === "tutor-led") {
+      } else if (item === "Certificates") {
+        router.replace("/admin?panel=certificates", { scroll: false });
+      } else if (
+        searchParams.get("panel") === "tutor-led" ||
+        searchParams.get("panel") === "certificates"
+      ) {
         router.replace("/admin", { scroll: false });
       }
     },
@@ -166,6 +189,7 @@ export default function AdminPage() {
   useEffect(() => {
     const panel = searchParams.get("panel");
     if (panel === "tutor-led") setActiveMenu("Tutor Led");
+    if (panel === "certificates") setActiveMenu("Certificates");
   }, [searchParams]);
 
   useEffect(() => {
@@ -297,7 +321,11 @@ export default function AdminPage() {
   const showAboutPageEditor = activeMenu === "About Page";
   const showTutorLedWorkspace = activeMenu === "Tutor Led";
   const showSupportTickets = activeMenu === "Support Tickets";
-  const showGlobalCertificates = activeMenu === "Certificates";
+  const showFormSubmissions = activeMenu === "Website Form Data";
+  const showImageUploadGuide = activeMenu === "Image Upload Guide";
+  const showFaqPageEditor = activeMenu === "FAQ Page";
+  const showTestimonialsEditor = activeMenu === "Testimonials";
+  const showCertificatesWorkspace = activeMenu === "Certificates";
   const hasMainPanel =
     activeMenu === "Dashboard" ||
     showCoursesWorkspace ||
@@ -307,7 +335,11 @@ export default function AdminPage() {
     showAboutPageEditor ||
     showTutorLedWorkspace ||
     showSupportTickets ||
-    showGlobalCertificates ||
+    showFormSubmissions ||
+    showImageUploadGuide ||
+    showFaqPageEditor ||
+    showTestimonialsEditor ||
+    showCertificatesWorkspace ||
     activeMenu === "Categories";
 
   const persistCategories = async (rows: string[][]) => {
@@ -742,8 +774,6 @@ export default function AdminPage() {
 
           {showTutorLedWorkspace && <AdminTutorLedWorkspace />}
 
-          {showGlobalCertificates && <AdminGlobalCertificatesPanel />}
-
           {showCoursesPageEditor && <AdminCoursesPageEditor />}
 
           {showHomePageEditor && <AdminHomePageEditor />}
@@ -751,6 +781,14 @@ export default function AdminPage() {
           {showAboutPageEditor && <AdminAboutPageEditor />}
 
           {showSupportTickets && <AdminSupportTickets />}
+
+          {showFormSubmissions && <AdminFormSubmissions />}
+
+          {showCertificatesWorkspace && <AdminCertificatesWorkspace />}
+
+          {showImageUploadGuide && <AdminWebsiteImageGuide />}
+          {showFaqPageEditor && <AdminFaqPageEditor />}
+          {showTestimonialsEditor && <AdminTestimonialsPageEditor />}
 
           {activeMenu === "Categories" && (
             <>

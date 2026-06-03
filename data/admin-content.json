@@ -1293,7 +1293,7 @@
               "label": "Food Fraud Introduction: Course Overview and Learning Outcomes",
               "kind": "video",
               "description": "The self-paced course admin panel should allow the admin to manage all module content from one simple icon-based interface. Each module will include options such as Video, Notes, Captions, PDF, PPT, Podcast, Documents, Webhook, and Module Exam.\n\nWhen the admin clicks on any content icon, the related editor should open. Each editor should provide both Upload File and Add URL/Link options. The course will not have a final exam; instead, assessments will be managed module-wise through the Module Exam option. This structure will make content uploading, editing, and module management easy, flexible, and organized.",
-              "videoUrl": "/api/media/serve/1779881052790-gz0ojvbt-1775807105introduction_video_1080p_capti.mp4",
+              "videoUrl": "/api/media/serve/1780480905061-05p8cxo2-1775807105introduction_video_1080p_capti.mp4",
               "learningOutcomes": [
                 "Understand the key topic covered in this lesson.",
                 "Explain how the topic supports food fraud mitigation.",
@@ -1304,7 +1304,8 @@
               ],
               "about": "This lesson explains the selected topic in a simple and practical way, helping learners understand how it connects with food fraud mitigation, FSSC 22000 Version 6 requirements, and audit readiness. It focuses on key concepts, real-world food safety risks, required controls, and the type of evidence or documentation that may be reviewed during audits.",
               "previewLimitMinutes": 11,
-              "lessonDurationMinutes": 8
+              "lessonDurationMinutes": 8,
+              "lessonVideoSizeMb": 143.2
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1332,9 +1333,10 @@
                 "Apply the lesson learning in a practical FSMS context.",
                 "Understand what audit evidence may be reviewed for this topic."
               ],
-              "videoUrl": "/api/media/serve/1779881493500-bg6vnp9v-1775807283module_1_720p_caption.mp4",
+              "videoUrl": "/api/media/serve/1780480876306-u9l3dyg8-1775807283module_1_720p_caption.mp4",
               "previewLimitMinutes": 22,
-              "lessonDurationMinutes": 23
+              "lessonDurationMinutes": 23,
+              "lessonVideoSizeMb": 264.5
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1366,9 +1368,10 @@
                 "Link significant vulnerabilities to a documented mitigation plan.",
                 "Apply FFVA thinking during audits and technical reviews."
               ],
-              "videoUrl": "/api/media/serve/1779891083683-fq5v5tyt-1775807622module_2__720p_caption_1_.mp4",
+              "videoUrl": "/api/media/serve/1780480840394-ysewud4d-1775807622module_2__720p_caption_1_.mp4",
               "previewLimitMinutes": 24,
-              "lessonDurationMinutes": 25
+              "lessonDurationMinutes": 25,
+              "lessonVideoSizeMb": 259.3
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1385,7 +1388,7 @@
               "label": "Module 3 - Determining Significant Vulnerabilities",
               "kind": "video",
               "description": "This module explains how to determine significant food fraud vulnerabilities after completing a Food Fraud Vulnerability Assessment under FSSC 22000 Version 6, Section 2.5.4.1. It helps learners understand which vulnerabilities require formal mitigation and how significance decisions should be made using structured, evidence-based logic.\n\nThe module covers practical decision factors such as economic attractiveness, fraud history, detectability, supply-chain complexity, current controls, and supplier-related risks. It also explains how to document decisions clearly, avoid assumption-based judgments, and link significant vulnerabilities directly to the food fraud mitigation plan.",
-              "videoUrl": "/api/media/serve/1779891934838-pn98wzg4-1775808148Untitled_design.mp4",
+              "videoUrl": "/api/media/serve/1780480808246-o2ez9shd-1775808148Untitled_design.mp4",
               "learningOutcomes": [
                 "Explain the meaning of significant food fraud vulnerability.",
                 "Distinguish between general vulnerabilities and vulnerabilities requiring formal mitigation.",
@@ -1401,7 +1404,8 @@
               ],
               "about": "This lesson explains how organizations move from identifying food fraud vulnerabilities to deciding which ones are significant and need formal mitigation. It focuses on structured decision-making, documented logic, audit evidence, and the connection between significance evaluation and mitigation planning.",
               "previewLimitMinutes": 24,
-              "lessonDurationMinutes": 25
+              "lessonDurationMinutes": 25,
+              "lessonVideoSizeMb": 418.6
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1417,7 +1421,7 @@
             {
               "label": "Module 4 - Food Fraud Mitigation Measures and Mitigation Planning",
               "kind": "video",
-              "videoUrl": "/api/media/serve/1779892699556-h616ruqy-1775808366module_4_720p_caption_1_.mp4",
+              "videoUrl": "/api/media/serve/1780480780309-lkjs2xsz-1775808366module_4_720p_caption.mp4",
               "description": "This module explains how to convert the results of a Food Fraud Vulnerability Assessment (FFVA) into a documented and auditable food fraud mitigation plan under FSSC 22000 Version 6, Section 2.5.4.2. It helps learners understand how mitigation measures should be selected, documented, verified, reviewed, and linked to significant food fraud vulnerabilities.\n\nThe module covers the key elements of a strong mitigation plan, including mitigation actions, responsibilities, verification procedures, records, review triggers, and FSMS support. It also explains how organizations can keep the plan updated when suppliers, market conditions, legislation, or fraud intelligence change. Special focus is given to supplier assurance expectations for FII organizations.",
               "learningOutcomes": [
                 "Explain the purpose of a documented food fraud mitigation plan.",
@@ -1435,7 +1439,8 @@
               ],
               "about": "This lesson explains how to develop a documented food fraud mitigation plan after completing the Food Fraud Vulnerability Assessment. It helps learners understand how significant vulnerabilities should be converted into practical mitigation measures under FSSC 22000 Version 6, Section 2.5.4.2.\n\nLearners will understand what a strong mitigation plan should include, such as responsibilities, verification procedures, records, review triggers, and FSMS support. The lesson also explains how to keep the plan updated when suppliers, market conditions, legislation, or fraud intelligence changes.",
               "previewLimitMinutes": 29,
-              "lessonDurationMinutes": 30
+              "lessonDurationMinutes": 30,
+              "lessonVideoSizeMb": 267.6
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1450,7 +1455,7 @@
             {
               "label": "Module 5 -  FSMS Integration, Team Competence, and Training",
               "kind": "video",
-              "videoUrl": "/api/media/serve/1779893027334-kxpao9s6-1775811672module_5_720p_caption_1_.mp4",
+              "videoUrl": "/api/media/serve/1780480764843-88y29evr-1775811672module_5_720p_caption_1_.mp4",
               "description": "This module explains how food fraud mitigation should be integrated into the Food Safety Management System (FSMS) rather than treated as a separate activity. It focuses on the support required under FSSC 22000 Version 6, Section 2.5.4.2(b), including training, internal audits, management review, verification, records, corrective action, and continual improvement.\n\nThe module helps learners understand the role of a multidisciplinary food fraud team, the importance of competence and awareness, and the need for clear communication, ownership, and escalation pathways. It also explains how weak FSMS integration can reduce the effectiveness of even a well-prepared food fraud mitigation plan.",
               "about": "This lesson explains how food fraud mitigation is supported through the wider FSMS. Learners will understand how training, competence, internal audits, management review, records, communication, and corrective actions help ensure that food fraud controls are actually implemented and maintained.\n\nThe lesson also highlights why food fraud responsibilities should not depend on one person only. It shows how different functions such as procurement, QA, receiving, operations, technical teams, and management contribute to effective food fraud control.",
               "learningOutcomes": [
@@ -1468,7 +1473,8 @@
                 "Judge whether weak competence or poor FSMS integration can affect the mitigation plan."
               ],
               "previewLimitMinutes": 25,
-              "lessonDurationMinutes": 24
+              "lessonDurationMinutes": 24,
+              "lessonVideoSizeMb": 297.4
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1499,9 +1505,10 @@
                 "Write clear, evidence-based audit conclusions linked to FSSC requirements.",
                 "Apply structured audit review points with confidence and consistency."
               ],
-              "videoUrl": "/api/media/serve/1779893355984-efd4ief0-1775811887module_6_720p_caption.mp4",
+              "videoUrl": "/api/media/serve/1780480744161-95t0a0ix-1775811887module_6_720p_caption.mp4",
               "previewLimitMinutes": 28,
-              "lessonDurationMinutes": 29
+              "lessonDurationMinutes": 29,
+              "lessonVideoSizeMb": 279.9
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1967,7 +1974,17 @@
       "/p7.png",
       "/p8.png"
     ],
-    "faqImage": "https://res.cloudinary.com/dwnnakrrh/image/upload/v1779337638/Untitled_design_1_zdyxfv.png"
+    "faqImage": "https://res.cloudinary.com/dwnnakrrh/image/upload/v1779337638/Untitled_design_1_zdyxfv.png",
+    "faqPage": {
+      "badge": "FAQ",
+      "title": "Frequently Asked Questions",
+      "subtitle": "Find quick answers to common questions about programs, enrollment, and certificates."
+    },
+    "testimonialsPage": {
+      "badge": "What Our Learners Say",
+      "title": "What Our Learners Say",
+      "subtitle": "Real experiences from professionals who have advanced their skills with our training programs."
+    }
   },
   "aboutPage": {
     "hero": {

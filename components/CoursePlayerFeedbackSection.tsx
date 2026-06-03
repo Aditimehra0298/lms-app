@@ -1,10 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { MessageCircle, Star } from "lucide-react";
 import { getLearnerDisplayName, qaApiHeaders } from "@/lib/course-qa-client";
-import { getLearnerEmail, isLearnerLoggedIn } from "@/lib/learner-session-client";
+import {
+  getLearnerEmail,
+  isLearnerLoggedIn,
+  subscribeLearnerAuth,
+} from "@/lib/learner-session-client";
 import { readJsonResponse } from "@/lib/safe-json";
 
 type ReviewRow = {
@@ -32,7 +36,11 @@ export function CoursePlayerFeedbackSection({ courseSlug, courseTitle, activeMod
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const loggedIn = isLearnerLoggedIn();
+  const loggedIn = useSyncExternalStore(
+    subscribeLearnerAuth,
+    () => isLearnerLoggedIn(),
+    () => false,
+  );
   const qaHref = `/courses/${encodeURIComponent(courseSlug)}#qa`;
   const communityHref = `/my-learning?tab=community&course=${encodeURIComponent(courseSlug)}`;
 

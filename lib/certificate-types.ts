@@ -32,3 +32,11 @@ export type CertificateRowDto = IssuedCertificateDto & {
   pdfUrl: string | null;
   issuedVia: string;
 };
+
+/** Admin list row — MySQL user profile + learner download access. */
+export type AdminCertificateRowDto = CertificateRowDto & {
+  phone: string | null;
+  userRole: string;
+  userType: string;
+  learnerAccess: "allowed" | "blocked" | "pending";
+};

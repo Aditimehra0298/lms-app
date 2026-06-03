@@ -43,14 +43,18 @@ export async function PATCH(
       return NextResponse.json(result);
     }
 
-    if (typeof body.visibleToLearner !== "boolean") {
+    const visible =
+      typeof body.allowDownload === "boolean"
+        ? body.allowDownload
+        : body.visibleToLearner;
+    if (typeof visible !== "boolean") {
       return NextResponse.json(
-        { ok: false, message: "Send visibleToLearner or manual fields (pdfUrl, status, …)" },
+        { ok: false, message: "Send allowDownload, visibleToLearner, or manual fields (pdfUrl, status, …)" },
         { status: 400 },
       );
     }
 
-    const result = await setCertificateVisibility(id, body.visibleToLearner);
+    const result = await setCertificateVisibility(id, visible);
     if (!result.ok) {
       return NextResponse.json(result, { status: 400 });
     }

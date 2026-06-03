@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CreditCard, Landmark, ShieldCheck, Smartphone } from "lucide-react";
 import { appendEnrollmentsFromCheckout } from "@/lib/enrollment-storage";
 import { syncEnrollmentsToServer } from "@/lib/enrollment-sync-client";
+import { tutorLedLearnerJoinHref } from "@/lib/tutor-led-routes";
 import {
   applyTutorLedShopMeta,
   fetchTutorLedProgramsClient,
@@ -85,6 +86,30 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const loadItems = async () => {
+      const hydrateFromCart = () => {
+        try {
+          const raw = window.localStorage.getItem("sft_cart");
+          if (!raw) {
+            setItems([]);
+            return;
+          }
+          const parsed = JSON.parse(raw) as ShopCartItem[];
+          setItems(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setItems([]);
+        }
+      };
+
+      if (buyNowSlug) {
+        if (fallbackCourseBySlug[buyNowSlug]) {
+          setItems([{ ...fallbackCourseBySlug[buyNowSlug], qty: 1 }]);
+        } else {
+          hydrateFromCart();
+        }
+      } else {
+        hydrateFromCart();
+      }
+
       const tutorPrograms = await fetchTutorLedProgramsClient();
 
       if (buyNowSlug) {
@@ -135,18 +160,8 @@ export default function CheckoutPage() {
           // Fallback to cart below.
         }
       }
-      try {
-        const raw = window.localStorage.getItem("sft_cart");
-        if (!raw) {
-          setItems([]);
-          return;
-        }
-        const parsed = JSON.parse(raw) as ShopCartItem[];
-        const base = Array.isArray(parsed) ? parsed : [];
-        setItems(base.map((row) => applyTutorLedShopMeta(row, tutorPrograms)));
-      } catch {
-        setItems([]);
-      }
+
+      setItems((prev) => prev.map((row) => applyTutorLedShopMeta(row, tutorPrograms)));
     };
 
     void loadItems();
@@ -182,17 +197,25 @@ export default function CheckoutPage() {
 
   const completePurchase = async () => {
     let catalog: ManagedCourse[] = [];
+    let tutorPrograms: Awaited<ReturnType<typeof fetchTutorLedProgramsClient>> = [];
     try {
-      const res = await fetch("/api/courses", { cache: "no-store" });
-      if (res.ok) {
-        const data = (await res.json()) as { courses?: ManagedCourse[] };
+      const [coursesRes, programs] = await Promise.all([
+        fetch("/api/courses", { cache: "no-store" }),
+        fetchTutorLedProgramsClient(),
+      ]);
+      tutorPrograms = programs;
+      if (coursesRes.ok) {
+        const data = (await coursesRes.json()) as { courses?: ManagedCourse[] };
         catalog = Array.isArray(data.courses) ? data.courses : [];
       }
     } catch {
       catalog = [];
+      tutorPrograms = [];
     }
 
-    const purchasedCourses: PurchasedLearningCourse[] = items.map((item) => {
+    const normalizedItems = items.map((item) => applyTutorLedShopMeta(item, tutorPrograms));
+
+    const purchasedCourses: PurchasedLearningCourse[] = normalizedItems.map((item) => {
       const managed = findCatalogCourse(item, catalog);
       const modulesFromCatalog = managed ? countCurriculumModules(managed.curriculum) : 0;
       const modules = item.learningModules ?? (modulesFromCatalog > 0 ? modulesFromCatalog : 1);
@@ -230,9 +253,18 @@ export default function CheckoutPage() {
     }
 
     try {
-      appendEnrollmentsFromCheckout(items.map((item) => ({ slug: item.slug, title: item.title })));
+      appendEnrollmentsFromCheckout(normalizedItems.map((item) => ({ slug: item.slug, title: item.title })));
     } catch {
       // Enrollment log is best-effort only.
+    }
+
+    const tutorLedItem =
+      normalizedItems.find((i) => i.deliveryKind === "tutor-led") ??
+      normalizedItems.find((i) => tutorLedProgramBySlug(tutorPrograms, i.slug));
+    if (tutorLedItem?.slug) {
+      void syncEnrollmentsToServer();
+      window.location.replace(tutorLedLearnerJoinHref(tutorLedItem.slug));
+      return;
     }
 
     await syncEnrollmentsToServer();

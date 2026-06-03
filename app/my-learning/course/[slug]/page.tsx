@@ -3,10 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { ResolvedLearningSection } from "@/lib/course-learning-resolve";
 import { resolveLearningSection } from "@/lib/course-learning-resolve";
-import { resolveProtectedMediaUrl } from "@/lib/media-client";
+import { SecureCourseVideoPlayer } from "@/components/SecureCourseVideoPlayer";
 import {
   BadgeCheck,
   Bookmark,
@@ -33,6 +33,10 @@ import {
 } from "lucide-react";
 import TutorLedProgramClient from "@/components/TutorLedProgramClient";
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import {
+  isCoursePurchased,
+  subscribeTutorLedPurchases,
+} from "@/lib/tutor-led-enrollment-client";
 import { getCurriculumForCourse, normalizeCurriculumModules } from "@/lib/course-detail-template";
 import type { CourseCurriculumModule as SchemaCurriculumModule } from "@/lib/content-schema";
 import { getLearnerEmail } from "@/lib/learner-session-client";
@@ -101,21 +105,45 @@ type CourseCurriculumModule = {
   subModules?: Array<{ title?: string; items?: CourseCurriculumItem[] }>;
 };
 
+function mergeTutorLedPrograms(apiList: TutorLedProgramStored[]): TutorLedProgramStored[] {
+  const mergedBySlug = new Map<string, TutorLedProgramStored>();
+  for (const p of defaultTutorLedPrograms) mergedBySlug.set(p.slug, p);
+  for (const p of apiList) mergedBySlug.set(p.slug, p);
+  return Array.from(mergedBySlug.values());
+}
+
+function resolveTutorLedHit(
+  programs: TutorLedProgramStored[],
+  slug: string,
+  purchasedThisSlug: boolean,
+  isTutorLedPurchase: boolean,
+): TutorLedProgramStored | null {
+  const slugHit = programs.find((p) => p.slug === slug) ?? null;
+  if (!slugHit) return null;
+  if (purchasedThisSlug || isTutorLedPurchase || (Boolean(slugHit.published) && !purchasedThisSlug)) {
+    return slugHit;
+  }
+  return null;
+}
+
 export default function CourseLearningPlayerPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
   const slug = params?.slug ?? "course";
   const courseTitle = useMemo(() => toTitle(slug), [slug]);
   const [apiCourseTitle, setApiCourseTitle] = useState<string | null>(null);
-  const [videoSrc, setVideoSrc] = useState<string>("");
+  const [activeVideoStoredUrl, setActiveVideoStoredUrl] = useState<string>("");
   const [videoLoadError, setVideoLoadError] = useState<string | null>(null);
   const [curriculum, setCurriculum] = useState<CourseCurriculumModule[]>([]);
   const [selectedModuleIdx, setSelectedModuleIdx] = useState(0);
   const [selectedEntryIdx, setSelectedEntryIdx] = useState(0);
   const [completedModules, setCompletedModules] = useState<number[]>([]);
   const [expandedModules, setExpandedModules] = useState<Set<number>>(() => new Set([0]));
-  const [isPurchased, setIsPurchased] = useState(false);
-  const [purchaseHydrated, setPurchaseHydrated] = useState(false);
+  const isPurchased = useSyncExternalStore(
+    subscribeTutorLedPurchases,
+    () => isCoursePurchased(slug),
+    () => false,
+  );
   const [combinedExamPercent, setCombinedExamPercent] = useState<number | null>(null);
   const [allExamsPassed, setAllExamsPassed] = useState(false);
   const [examMarksSummary, setExamMarksSummary] = useState<{ correct: number; total: number } | null>(null);
@@ -139,7 +167,9 @@ export default function CourseLearningPlayerPage() {
     }),
   );
   const [activeLearningTool, setActiveLearningTool] = useState<string>("Notes");
-  const [tutorLedResolved, setTutorLedResolved] = useState<TutorLedProgramStored | null | "pending">("pending");
+  const [tutorLedResolved, setTutorLedResolved] = useState<TutorLedProgramStored | null>(
+    () => defaultTutorLedPrograms.find((p) => p.slug === slug) ?? null,
+  );
   const [courseDuration, setCourseDuration] = useState("");
   const [certAssets, setCertAssets] = useState({ badge: "", template: "", transcript: "" });
   const [certRequested, setCertRequested] = useState(false);
@@ -218,30 +248,25 @@ export default function CourseLearningPlayerPage() {
       purchasedThisSlug = false;
     }
 
-    (async () => {
+    const applyPrograms = (programs: TutorLedProgramStored[]) => {
+      if (cancelled) return;
+      setTutorLedResolved(resolveTutorLedHit(programs, slug, purchasedThisSlug, isTutorLedPurchase));
+    };
+
+    applyPrograms(mergeTutorLedPrograms([]));
+
+    void (async () => {
       try {
         const res = await fetch("/api/admin/content", { cache: "no-store" });
-        if (!res.ok) {
-          if (!cancelled) setTutorLedResolved(null);
-          return;
-        }
+        if (!res.ok) return;
         const data = await readJsonResponse(res, {} as { tutorLedPrograms?: TutorLedProgramStored[] });
         const apiList = Array.isArray(data.tutorLedPrograms) ? data.tutorLedPrograms : [];
-        const mergedBySlug = new Map<string, TutorLedProgramStored>();
-        for (const p of defaultTutorLedPrograms) mergedBySlug.set(p.slug, p);
-        for (const p of apiList) mergedBySlug.set(p.slug, p);
-        const programs = Array.from(mergedBySlug.values());
-        const slugHit = programs.find((p) => p.slug === slug) ?? null;
-        const hit =
-          slugHit &&
-          (isTutorLedPurchase || (Boolean(slugHit.published) && !purchasedThisSlug))
-            ? slugHit
-            : null;
-        if (!cancelled) setTutorLedResolved(hit);
+        applyPrograms(mergeTutorLedPrograms(apiList));
       } catch {
-        if (!cancelled) setTutorLedResolved(null);
+        // Keep default merge from above.
       }
     })();
+
     return () => {
       cancelled = true;
     };
@@ -338,28 +363,6 @@ export default function CourseLearningPlayerPage() {
   }, [slug, curriculum, completedModules, allExamsPassed, combinedExamPercent]);
 
   useEffect(() => {
-    setPurchaseHydrated(false);
-    try {
-      const raw = window.localStorage.getItem("sft_purchased_courses");
-      if (!raw) {
-        setIsPurchased(false);
-        return;
-      }
-      const parsed = JSON.parse(raw) as Array<{ slug?: string; title?: string }>;
-      if (!Array.isArray(parsed)) {
-        setIsPurchased(false);
-        return;
-      }
-      const bought = parsed.some((course) => (course.slug ?? "").trim() === slug);
-      setIsPurchased(bought);
-    } catch {
-      setIsPurchased(false);
-    } finally {
-      setPurchaseHydrated(true);
-    }
-  }, [slug]);
-
-  useEffect(() => {
     const loadCourse = async () => {
       try {
         const res = await fetch(`/api/courses/${encodeURIComponent(slug)}`, { cache: "no-store" });
@@ -412,19 +415,6 @@ export default function CourseLearningPlayerPage() {
           writeModuleWatchedSeconds(slug, healed);
           setWatchedSecondsByModule(healed);
         }
-
-        for (const mod of resolved) {
-          for (const item of mod.items ?? []) {
-            if (item.kind === "video" && item.videoUrl?.trim()) {
-              void resolveProtectedMediaUrl(item.videoUrl.trim(), {
-                courseSlug: slug,
-                scope: "learner",
-              }).then(setVideoSrc);
-              return;
-            }
-          }
-        }
-        setVideoSrc("");
       } catch {
         const fallback = normalizeCurriculumModules(
           getCurriculumForCourse(slug, undefined, courseTitle, null),
@@ -432,7 +422,7 @@ export default function CourseLearningPlayerPage() {
         setCurriculum(fallback);
         setSelectedModuleIdx(0);
         setSelectedEntryIdx(0);
-        setVideoSrc("");
+        setActiveVideoStoredUrl("");
       }
     };
     void loadCourse();
@@ -501,21 +491,17 @@ export default function CourseLearningPlayerPage() {
   useEffect(() => {
     const itemVideo = activeItem?.kind === "video" ? activeItem.videoUrl?.trim() : "";
     if (itemVideo) {
-      void resolveProtectedMediaUrl(itemVideo, { courseSlug: slug }).then((url) => {
-        setVideoSrc(url);
-        setVideoLoadError(null);
-      });
+      setActiveVideoStoredUrl(itemVideo);
+      setVideoLoadError(null);
       return;
     }
     const moduleVideo = activeModuleItems.find((it) => it.kind === "video" && it.videoUrl?.trim())?.videoUrl?.trim();
     if (moduleVideo) {
-      void resolveProtectedMediaUrl(moduleVideo, { courseSlug: slug }).then((url) => {
-        setVideoSrc(url);
-        setVideoLoadError(null);
-      });
+      setActiveVideoStoredUrl(moduleVideo);
+      setVideoLoadError(null);
       return;
     }
-    setVideoSrc("");
+    setActiveVideoStoredUrl("");
     setVideoLoadError(null);
   }, [activeItem?.kind, activeItem?.videoUrl, activeModuleItems, slug]);
 
@@ -614,22 +600,7 @@ export default function CourseLearningPlayerPage() {
     return "border-violet-400/35 bg-violet-500/12 text-violet-100 hover:border-violet-300/50 hover:bg-violet-500/20 hover:shadow-[0_0_14px_rgba(139,92,246,0.2)]";
   };
 
-  if (tutorLedResolved === "pending") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#060b17] text-white">
-        <p className="text-sm text-gray-400">Loading course…</p>
-      </div>
-    );
-  }
-
   if (tutorLedResolved) {
-    if (!purchaseHydrated) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-[#060b17] text-white">
-          <p className="text-sm text-gray-400">Loading course…</p>
-        </div>
-      );
-    }
     if (!isPurchased) {
       return (
         <div className="min-h-screen bg-[#060b17] text-white">
@@ -672,22 +643,13 @@ export default function CourseLearningPlayerPage() {
           <div className="space-y-3">
             <article className="overflow-hidden rounded-xl border border-white/10 bg-[#0c1324]">
               <div className="relative bg-black">
-                {videoSrc ? (
-                  <video
-                    key={videoSrc}
-                    src={videoSrc}
-                    controls
-                    controlsList="nodownload"
-                    disablePictureInPicture
-                    playsInline
-                    preload="metadata"
-                    onTimeUpdate={(e) => recordVideoWatchProgress(selectedModuleNumber, e.currentTarget)}
+                {activeVideoStoredUrl ? (
+                  <SecureCourseVideoPlayer
+                    storedUrl={activeVideoStoredUrl}
+                    courseSlug={slug}
+                    onTimeUpdate={(video) => recordVideoWatchProgress(selectedModuleNumber, video)}
                     onEnded={() => onVideoEnded(selectedModuleNumber)}
-                    onError={() =>
-                      setVideoLoadError(
-                        `Module ${selectedModuleNumber} video could not load. Please re-upload this module video in Admin > Courses > Content.`,
-                      )
-                    }
+                    onError={(message) => setVideoLoadError(message)}
                     className="h-[320px] w-full bg-black object-contain md:h-[460px] xl:h-[560px]"
                   />
                 ) : (
@@ -702,7 +664,7 @@ export default function CourseLearningPlayerPage() {
                     {learningCopy.noVideoMessage}
                   </div>
                 )}
-                {videoSrc ? (
+                {activeVideoStoredUrl ? (
                   <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
                     <div className="absolute left-[8%] top-[16%] rotate-[-12deg] text-[11px] font-semibold tracking-wide text-white/16">
                       {watermarkUser} · {watermarkTime}
@@ -1112,11 +1074,6 @@ export default function CourseLearningPlayerPage() {
                                 {entry.kind === "video" && (entry.previewLimitMinutes ?? 0) > 0 ? (
                                   <span className="inline-flex items-center rounded border border-cyan-300/35 bg-cyan-500/15 px-1 py-0.5 text-[9px] text-cyan-100">
                                     <Lock size={9} />
-                                  </span>
-                                ) : null}
-                                {entry.kind === "video" && typeof entry.lessonVideoSizeMb === "number" ? (
-                                  <span className="rounded border border-violet-300/30 bg-violet-500/15 px-1 py-0.5 text-[9px] text-violet-100">
-                                    {entry.lessonVideoSizeMb.toFixed(1)}MB
                                   </span>
                                 ) : null}
                                 {lessonTools.length > 0 ? (

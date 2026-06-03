@@ -1,8 +1,10 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
 import {
   AdminContent,
   defaultAdminContent,
+  type ManagedCourse,
   defaultAboutPageConfig,
   defaultCoursesPageConfig,
   defaultHomePageConfig,
@@ -47,6 +49,14 @@ function migrateAboutPage(cfg: ReturnType<typeof Object.assign>) {
   return cfg;
 }
 
+/** Drop per-course certificate template fields — design lives in globalCertificateAssets only. */
+function migrateManagedCourses(courses: ManagedCourse[]): ManagedCourse[] {
+  return courses.map((c) => ({
+    ...c,
+    certificateConfig: sanitizeCertificateConfig(c.certificateConfig),
+  }));
+}
+
 export async function readAdminContent(): Promise<AdminContent> {
   await ensureContentFile();
   const raw = await fs.readFile(contentFilePath, "utf8");
@@ -60,7 +70,7 @@ export async function readAdminContent(): Promise<AdminContent> {
           : defaultAdminContent.learningCourses,
       managedCourses:
         parsed.managedCourses && parsed.managedCourses.length > 0
-          ? parsed.managedCourses
+          ? migrateManagedCourses(parsed.managedCourses)
           : defaultAdminContent.managedCourses,
       categories: Array.isArray(parsed.categories)
         ? parsed.categories

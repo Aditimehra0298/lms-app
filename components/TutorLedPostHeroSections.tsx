@@ -14,7 +14,6 @@ import {
   MonitorPlay,
   PlayCircle,
   Send,
-  Shield,
   ShieldCheck,
   Smartphone,
   Users,
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
 import { TutorLedCertificatePreview } from "@/components/TutorLedCertificatePreview";
+import { TutorLedHighlightsContent } from "@/components/TutorLedHighlightsBadge";
 import { TutorLedCurriculumExplorer } from "@/components/TutorLedCurriculumExplorer";
 import TutorLedLandingSections, { type TutorLedBatchRow } from "@/components/TutorLedLandingSections";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
@@ -211,7 +211,8 @@ export default function TutorLedPostHeroSections({
 
   return (
     <>
-      {/* Meet trainer + highlights */}
+      {/* Meet trainer + highlights (non-marketing tutor-led pages only; marketing uses TutorLedLandingSections) */}
+      {!useMarketingLayout ? (
       <section className="border-b border-white/10 bg-black">
         <div className={`${shell} py-8 md:py-10`}>
           <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch lg:gap-6">
@@ -285,32 +286,29 @@ export default function TutorLedPostHeroSections({
               <h2 className="mb-5 text-lg font-bold tracking-tight text-white md:text-xl">
                 {isSelfPaced ? "What you will get" : "Live Training Highlights"}
               </h2>
-              <div className="flex min-h-0 flex-1 flex-col gap-5 sm:flex-row sm:items-stretch">
-                <ul className="min-w-0 flex-1 space-y-2.5 sm:py-1">
-                  {course.highlights.map((h, i) => (
-                    <li key={i} className="flex gap-2.5 text-sm leading-snug text-zinc-200">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#FFB800]" aria-hidden />
-                      <span>{h}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="relative flex w-full shrink-0 items-center justify-center sm:w-[44%] sm:max-w-[220px]">
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,184,0,0.18),transparent_70%)]" />
-                  <div className="relative aspect-square w-full max-w-[200px]">
-                    <Image
-                      src={highlightsImageSrc}
-                      alt="Cyber security training highlight"
-                      fill
-                      className="object-contain drop-shadow-[0_0_32px_rgba(255,184,0,0.4)]"
-                      sizes="220px"
-                    />
-                  </div>
-                </div>
+              <div className="flex min-h-0 flex-1 flex-col">
+                {!isSelfPaced ? (
+                  <TutorLedHighlightsContent
+                    highlights={course.highlights}
+                    itemClassName="text-sm text-zinc-200"
+                    limit={course.highlights.length}
+                  />
+                ) : (
+                  <ul className="space-y-2.5">
+                    {course.highlights.map((h, i) => (
+                      <li key={i} className="flex gap-2.5 text-sm leading-snug text-zinc-200">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#FFB800]" aria-hidden />
+                        <span>{h}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </div>
         </div>
       </section>
+      ) : null}
 
       {useMarketingLayout && tutorLedCertificate && tutorLedBatch ? (
         <TutorLedLandingSections
@@ -328,13 +326,15 @@ export default function TutorLedPostHeroSections({
       {!useMarketingLayout && !isSelfPaced && tutorLedCertificate ? (
         <section className="border-b border-white/10 bg-black" id="certificate">
           <div className={`${shell} py-8 md:py-12`}>
-            <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
-              <TutorLedCertificatePreview
-                programTitle={tutorLedCertificate.programTitle}
-                trainerName={tutorLedCertificate.trainerName}
-                layout="full"
-              />
-              <div className="space-y-4">
+            <div className="flex flex-col gap-8 lg:gap-10">
+              <div className="flex justify-center rounded-2xl border border-[#FFB800]/25 bg-zinc-950/50 p-6 md:p-8">
+                <TutorLedCertificatePreview
+                  programTitle={tutorLedCertificate.programTitle}
+                  trainerName={tutorLedCertificate.trainerName}
+                  layout="full"
+                />
+              </div>
+              <div className="mx-auto w-full max-w-2xl space-y-4">
                 <div className={`${card} border-[#FFB800]/20 bg-gradient-to-br from-[#FFB800]/8 to-zinc-950/80`}>
                   <h3 className="text-lg font-bold text-white">What you earn after payment</h3>
                   <ul className="mt-3 space-y-2.5 text-sm text-zinc-300">
@@ -569,7 +569,17 @@ export default function TutorLedPostHeroSections({
       {/* FAQ + CTA */}
       {(isSelfPaced || !useMarketingLayout) && (
       <section className="border-b border-white/10 bg-zinc-950">
-        <div className={`${shell} grid gap-6 py-8 md:grid-cols-[minmax(0,1fr)_minmax(280px,380px)] md:gap-8 md:py-10`}>
+        <div className={`${shell} flex flex-col gap-8 py-8 md:py-10`}>
+          {!isSelfPaced && tutorLedCertificate ? (
+            <div className="mx-auto w-full max-w-2xl rounded-2xl border border-[#FFB800]/30 bg-zinc-900/50 p-6 md:p-8">
+              <TutorLedCertificatePreview
+                programTitle={tutorLedCertificate.programTitle}
+                trainerName={tutorLedCertificate.trainerName}
+                layout="full"
+                hideTitle
+              />
+            </div>
+          ) : null}
           <div>
             <h2 className="mb-4 text-xl font-bold text-white md:text-2xl">Frequently Asked Questions</h2>
             <div className="space-y-2">
@@ -595,17 +605,8 @@ export default function TutorLedPostHeroSections({
             </div>
           </div>
 
-          <div className="md:pt-2">
-            <div className="rounded-2xl border border-[#FFB800]/40 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-6 text-center shadow-[0_0_40px_rgba(255,184,0,0.08)] md:sticky md:top-24">
-              {!isSelfPaced && tutorLedCertificate ? (
-                <div className="mb-5 border-b border-white/10 pb-5">
-                  <TutorLedCertificatePreview
-                    programTitle={tutorLedCertificate.programTitle}
-                    trainerName={tutorLedCertificate.trainerName}
-                    layout="compact"
-                  />
-                </div>
-              ) : null}
+          <div className="mx-auto w-full max-w-lg">
+            <div className="rounded-2xl border border-[#FFB800]/40 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-6 text-center shadow-[0_0_40px_rgba(255,184,0,0.08)]">
               <h3 className="text-xl font-extrabold leading-tight text-white md:text-[1.5rem]">
                 {isSelfPaced ? "Start this course today" : "Secure Your Spot in the Next Batch!"}
               </h3>
@@ -644,10 +645,6 @@ export default function TutorLedPostHeroSections({
                   Browse live programs <ChevronRight size={18} strokeWidth={2.5} />
                 </Link>
               )}
-              <p className="mt-4 flex items-center justify-center gap-2 text-xs text-zinc-500">
-                <Shield className="h-4 w-4 text-[#FFB800]" />
-                7 Days Money-back Guarantee
-              </p>
             </div>
           </div>
         </div>

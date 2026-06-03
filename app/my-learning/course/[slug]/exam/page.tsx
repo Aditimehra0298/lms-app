@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ExamSessionClock } from "@/components/ExamSessionClock";
+import { ExamProgressPanel } from "@/components/ExamProgressPanel";
 import {
   BookOpen,
   ChevronRight,
@@ -65,7 +66,7 @@ function CourseExamPageInner() {
     () => selectedAnswers.map((answer, idx) => (answer !== null ? idx : -1)).filter((idx) => idx >= 0),
     [selectedAnswers],
   );
-  const markedQuestions = reviewedQuestions.length;
+
   const score = useMemo(
     () =>
       selectedAnswers.reduce<number>((sum, answer, idx) => {
@@ -162,7 +163,7 @@ function CourseExamPageInner() {
   }, [courseMeta, isFinalExam, moduleIdx, moduleNumber]);
 
   useEffect(() => {
-    if (!courseMeta || isFinalExam) return;
+    if (!courseMeta?.slug || isFinalExam) return;
 
     let cancelled = false;
     setQuestionsLoading(true);
@@ -195,6 +196,7 @@ function CourseExamPageInner() {
               "No exam questions for this module. Upload a CSV on the Module Exam row in Admin.",
           );
           setLoadedModuleNumber(moduleNumber);
+          setQuestionsLoading(false);
           return;
         }
         setQuestions(data.questions);
@@ -215,7 +217,7 @@ function CourseExamPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [slug, moduleNumber, isFinalExam, courseMeta]);
+  }, [slug, moduleNumber, isFinalExam, courseMeta?.slug]);
 
   const previewGate = useMemo(() => {
     if (!courseMeta || isFinalExam) {
@@ -541,8 +543,13 @@ function CourseExamPageInner() {
             </article>
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-violet-300">Current question</p>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-violet-300">Current question</p>
+                  <p className="mt-0.5 text-sm font-semibold text-gray-300">
+                    Question {currentQuestionIndex + 1} of {questions.length}
+                  </p>
+                </div>
                 <button
                   onClick={() =>
                     setReviewedQuestions((prev) =>
@@ -631,26 +638,13 @@ function CourseExamPageInner() {
               onEndExam={() => setIsSubmitted(true)}
             />
 
-            <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
-              <p className="text-sm">Your progress</p>
-              <div className="mt-2 h-2 rounded-full bg-white/10">
-                <div
-                  className="h-2 rounded-full bg-violet-500 transition-all"
-                  style={{
-                    width: `${
-                      questions.length
-                        ? Math.round((answeredQuestions.length / questions.length) * 100)
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-              {markedQuestions > 0 ? (
-                <p className="mt-2 text-[11px] text-rose-200/90">
-                  {markedQuestions} marked for review
-                </p>
-              ) : null}
-            </article>
+            <ExamProgressPanel
+              total={questions.length}
+              currentIndex={currentQuestionIndex}
+              answeredIndices={answeredQuestions}
+              reviewedIndices={reviewedQuestions}
+              onSelectQuestion={setCurrentQuestionIndex}
+            />
 
           </aside>
         </section>

@@ -26,6 +26,14 @@ export async function POST(request: Request) {
     }
 
     if (!isManagedLocalMediaUrl(url) && !url.startsWith("/api/media/serve/")) {
+      const scope =
+        body.scope ?? (body.courseSlug?.trim() ? "learner" : email && isAdminEmail(email) ? "admin" : "catalog");
+      if (scope === "learner") {
+        return NextResponse.json(
+          { ok: false, error: "External video URLs are blocked for learners. Upload to protected storage." },
+          { status: 403 },
+        );
+      }
       return NextResponse.json({ ok: true, playUrl: url });
     }
 
@@ -56,7 +64,7 @@ export async function POST(request: Request) {
             : 10 * 60
           : Number.isFinite(learnerTtl) && learnerTtl > 0
             ? learnerTtl
-            : 5 * 60;
+            : 3 * 60;
 
     const token = createMediaAccessToken({
       f: fileName,

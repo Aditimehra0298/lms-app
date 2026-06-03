@@ -7,7 +7,7 @@ import {
 } from "@/lib/email-brand-config";
 import { buildWelcomeEmail, type WelcomeEmailMethod } from "@/lib/email-templates/welcome";
 import type { RegistrationLookupResult } from "@/lib/server/registration-lookup";
-import { buildN8nWebhookHeaders } from "@/lib/server/n8n-webhook-auth";
+import { buildN8nWebhookHeaders, n8nWebhookAuthHint } from "@/lib/server/n8n-webhook-auth";
 
 export type N8nWelcomeEmailInput = {
   email: string;
@@ -99,9 +99,13 @@ export async function sendWelcomeEmailViaN8n(
 
     if (!res.ok) {
       const hint = (await res.text()).slice(0, 300);
+      const authHint =
+        res.status === 401 || res.status === 403
+          ? n8nWebhookAuthHint()
+          : "Check workflow is active.";
       return {
         ok: false,
-        message: `n8n welcome webhook returned ${res.status}. ${hint || "Check workflow is active."}`,
+        message: `n8n welcome webhook returned ${res.status}. ${hint || authHint}`,
       };
     }
 

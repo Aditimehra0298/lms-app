@@ -50,8 +50,15 @@ export default function CertificatePrintView({ certificate, showActions = true }
             style={{ top: `${certificate.numberTopPercent ?? 52}%` }}
           >
             <p className="font-mono text-sm font-semibold text-[#333] md:text-lg print:text-base">
-              {certificate.certificateNumber}
+              {certificate.certificateNumber.startsWith("TEMP-")
+                ? "Certificate number pending"
+                : certificate.certificateNumber}
             </p>
+            {certificate.delegateNumber ? (
+              <p className="mt-1 font-mono text-[10px] text-[#444] md:text-xs">
+                Delegate {certificate.delegateNumber}
+              </p>
+            ) : null}
             <p className="mt-1 text-[10px] uppercase tracking-widest text-[#555] md:text-xs">
               Learner ID {certificate.identificationNumber}
             </p>

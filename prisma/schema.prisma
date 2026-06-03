@@ -232,3 +232,25 @@ model LmsIssue {
   @@index([createdAt])
   @@map("lms_issue")
 }
+
+/// Public website form submissions (contact, newsletter, etc.).
+model LmsFormSubmission {
+  id        String   @id @default(cuid())
+  formType  String   @db.VarChar(32)
+  status    String   @default("new") @db.VarChar(32)
+  name      String?  @db.VarChar(255)
+  email     String   @db.VarChar(255)
+  phone     String?  @db.VarChar(64)
+  subject   String?  @db.VarChar(255)
+  category  String?  @db.VarChar(64)
+  message   String?  @db.Text
+  pagePath  String?  @db.VarChar(512)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([formType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("lms_form_submission")
+}

@@ -1,6 +1,9 @@
 import type { ManagedCourse, ManagedCourseCertificateConfig } from "@/lib/content-schema";
 import { readAdminContent } from "@/lib/server/content-store";
-import { resolveCertificateAssetsForCourse } from "@/lib/global-certificate-assets";
+import {
+  resolveCertificateAssetsForCourse,
+  resolveGlobalCertificateAssets,
+} from "@/lib/global-certificate-assets";
 import { allocateSftCertificateNumber } from "@/lib/server/certificate-number-issue";
 import { allocateDelegateNumber } from "@/lib/server/delegate-number-issue";
 import { buildCertificateVerifyUrl } from "@/lib/certificate-verify-url";
@@ -31,23 +34,16 @@ export function resolveCertificateConfig(
   const globalAssets = content
     ? resolveCertificateAssetsForCourse(content, course)
     : null;
+  /** One shared design for every course — only learner/course fields vary on issue. */
   return {
     enabled: cfg.enabled !== false && (hero.certificate ?? "").trim().toLowerCase() !== "no",
-    templateImage:
-      globalAssets?.templateImage ||
-      cfg.templateImage?.trim() ||
-      hero.certificatePreviewImage?.trim() ||
-      DEFAULT_TEMPLATE,
-    badgeImage: globalAssets?.badgeImage || cfg.badgeImage?.trim() || "",
+    templateImage: globalAssets?.templateImage || DEFAULT_TEMPLATE,
+    badgeImage: globalAssets?.badgeImage || "",
     title: cfg.title?.trim() || hero.certificatePreviewLabel?.trim() || "Certificate of Attainment",
     nameTopPercent: cfg.nameTopPercent ?? 42,
     numberTopPercent: cfg.numberTopPercent ?? 52,
     dateTopPercent: cfg.dateTopPercent ?? 62,
-    supplementaryDocs: globalAssets?.supplementaryDocs.length
-      ? globalAssets.supplementaryDocs
-      : Array.isArray(cfg.supplementaryDocs)
-        ? cfg.supplementaryDocs.filter((d) => d?.title?.trim() && d?.url?.trim())
-        : [],
+    supplementaryDocs: globalAssets?.supplementaryDocs.length ? globalAssets.supplementaryDocs : [],
   };
 }
 
@@ -244,16 +240,21 @@ async function enrichCertificate(cert: IssuedCertificateDto): Promise<IssuedCert
   }
   try {
     const content = await readAdminContent();
+    const global = resolveGlobalCertificateAssets(content);
+    const transcriptDocs = global.transcriptFile
+      ? [{ title: "Transcript", url: global.transcriptFile }]
+      : cert.supplementaryDocs;
     const course = content.managedCourses?.find((c) => c.slug === cert.courseSlug);
-    if (course) {
-      const cfg = resolveCertificateConfig(course);
-      return {
-        ...cert,
-        nameTopPercent: cfg.nameTopPercent,
-        numberTopPercent: cfg.numberTopPercent,
-        dateTopPercent: cfg.dateTopPercent,
-      };
-    }
+    const cfg = course ? resolveCertificateConfig(course, content) : null;
+    return {
+      ...cert,
+      templateImage: global.templateImage,
+      badgeImage: global.badgeImage || cert.badgeImage,
+      supplementaryDocs: transcriptDocs,
+      nameTopPercent: cfg?.nameTopPercent ?? cert.nameTopPercent,
+      numberTopPercent: cfg?.numberTopPercent ?? cert.numberTopPercent,
+      dateTopPercent: cfg?.dateTopPercent ?? cert.dateTopPercent,
+    };
   } catch {
     /* ignore */
   }

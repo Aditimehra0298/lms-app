@@ -25,6 +25,22 @@ export function isLearnerLoggedIn(): boolean {
   return window.localStorage.getItem(AUTH_KEYS.loggedIn) === "true";
 }
 
+const LEARNER_AUTH_EVENTS = ["sft_auth_updated", "storage"] as const;
+
+/** Subscribe to login/session changes (for useSyncExternalStore). */
+export function subscribeLearnerAuth(onStoreChange: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const handler = () => onStoreChange();
+  for (const event of LEARNER_AUTH_EVENTS) {
+    window.addEventListener(event, handler);
+  }
+  return () => {
+    for (const event of LEARNER_AUTH_EVENTS) {
+      window.removeEventListener(event, handler);
+    }
+  };
+}
+
 export function getLearnerEmail(): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(AUTH_KEYS.email);

@@ -57,6 +57,7 @@ import type {
 } from "@/lib/content-schema";
 import { defaultHomePageConfig } from "@/lib/content-schema";
 import Link from "next/link";
+import AdminTestimonialPhotoField from "@/components/admin/AdminTestimonialPhotoField";
 
 /* ─── Canvas crop export ─── */
 function getCroppedBlob(src: string, pixelCrop: Area, flip = { h: false }, rotation = 0): Promise<Blob> {
@@ -304,7 +305,8 @@ export default function AdminHomePageEditor() {
   const removeWhyFeature = (i: number) => setConfig((p) => ({ ...p, whyFeatures: p.whyFeatures.filter((_, idx) => idx !== i) }));
 
   const setTestimonial = (i: number, patch: Partial<HomePageTestimonial>) => setConfig((p) => ({ ...p, testimonials: p.testimonials.map((t, idx) => (idx === i ? { ...t, ...patch } : t)) }));
-  const addTestimonial = () => setConfig((p) => ({ ...p, testimonials: [...p.testimonials, { quote: "", name: "", role: "" }] }));
+  const addTestimonial = () =>
+    setConfig((p) => ({ ...p, testimonials: [...p.testimonials, { quote: "", name: "", role: "", photo: "" }] }));
   const removeTestimonial = (i: number) => setConfig((p) => ({ ...p, testimonials: p.testimonials.filter((_, idx) => idx !== i) }));
 
   const setIndPlan = (i: number, patch: Partial<HomePagePlan>) => setConfig((p) => ({ ...p, individualPlans: p.individualPlans.map((pl, idx) => (idx === i ? { ...pl, ...patch } : pl)) }));
@@ -430,6 +432,11 @@ export default function AdminHomePageEditor() {
               <input className={`${inputCls} flex-1`} value={t.role} onChange={(e) => setTestimonial(idx, { role: e.target.value })} placeholder="Role" />
               <button type="button" onClick={() => removeTestimonial(idx)} className={btnDanger}><Trash2 size={13} /></button>
             </div>
+            <AdminTestimonialPhotoField
+              value={t.photo ?? ""}
+              onChange={(url) => setTestimonial(idx, { photo: url })}
+              name={t.name}
+            />
           </div>))}
           <button type="button" onClick={addTestimonial} className={btnAdd}><Plus size={14} /> Add Testimonial</button>
         </div>
@@ -486,9 +493,13 @@ export default function AdminHomePageEditor() {
       {/* ── Newsletter ── */}
       <div className={cardCls}><SectionHeader sectionKey="newsletter" />{expanded.newsletter && (
         <div className="mt-4 space-y-3">
-          <div><label className={labelCls}>Heading</label><input className={inputCls} value={config.newsletter.heading} onChange={(e) => updateNewsletter({ heading: e.target.value })} /></div>
-          <div><label className={labelCls}>Subtitle</label><input className={inputCls} value={config.newsletter.subtitle} onChange={(e) => updateNewsletter({ subtitle: e.target.value })} /></div>
-          <div><label className={labelCls}>Button Text</label><input className={inputCls} value={config.newsletter.buttonText} onChange={(e) => updateNewsletter({ buttonText: e.target.value })} /></div>
+          <p className="text-[11px] text-gray-500">
+            Controls the newsletter block on the home page. Subscribers are listed under Admin → Newsletter or Form
+            Submissions.
+          </p>
+          <div><label className={labelCls}>Section heading</label><input className={inputCls} value={config.newsletter.heading} onChange={(e) => updateNewsletter({ heading: e.target.value })} placeholder="Subscribe to Our Newsletter" /></div>
+          <div><label className={labelCls}>Section subtitle</label><input className={inputCls} value={config.newsletter.subtitle} onChange={(e) => updateNewsletter({ subtitle: e.target.value })} placeholder="Enter your email to receive updates…" /></div>
+          <div><label className={labelCls}>Subscribe button text</label><input className={inputCls} value={config.newsletter.buttonText} onChange={(e) => updateNewsletter({ buttonText: e.target.value })} placeholder="Subscribe" /></div>
         </div>
       )}</div>
 

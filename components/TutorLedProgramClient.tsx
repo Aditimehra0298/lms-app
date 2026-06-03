@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { mapTutorLedProgramToPageCourse } from "@/lib/tutor-led-program-map";
+import {
+  isEnrolledInTutorLedProgram,
+  subscribeTutorLedPurchases,
+} from "@/lib/tutor-led-enrollment-client";
 import TutorLedAfterHeroSection from "@/components/TutorLedAfterHeroSection";
 import TutorLedCourseHero from "@/components/TutorLedCourseHero";
 import TutorLedLearnerDashboard from "@/components/TutorLedLearnerDashboard";
+import TutorLedPreFooterReserveBar from "@/components/TutorLedPreFooterReserveBar";
 import CourseLandingVisit from "@/components/CourseLandingVisit";
-import { tutorLedLandingHref } from "@/lib/course-landing";
 
 type Props = { program: TutorLedProgramStored; enrolledLearning?: boolean };
 
@@ -47,6 +51,13 @@ function useCountdown(initial: { days: number; hours: number; mins: number; secs
 export default function TutorLedProgramClient({ program, enrolledLearning = false }: Props) {
   const course = mapTutorLedProgramToPageCourse(program);
   const cd = useCountdown(program.countdown);
+  const purchasedEnrolled = useSyncExternalStore(
+    subscribeTutorLedPurchases,
+    () => enrolledLearning || isEnrolledInTutorLedProgram(program.slug),
+    () => enrolledLearning,
+  );
+
+  const showLearnerDashboard = purchasedEnrolled;
 
   const crumbs = program.breadcrumb;
   const heroCourse = {
@@ -72,7 +83,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
     features: course.features,
   };
 
-  const breadcrumbs = enrolledLearning
+  const breadcrumbs = showLearnerDashboard
     ? [
         { label: "My Learning", href: "/my-learning?tab=dashboard" },
         { label: "Tutor Led", href: "/my-learning?tab=live" },
@@ -84,7 +95,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
         { label: crumbs[2] ?? program.title, href: `/tutor-led/${program.slug}` },
       ];
 
-  if (enrolledLearning) {
+  if (showLearnerDashboard) {
     return <TutorLedLearnerDashboard program={program} />;
   }
 
@@ -97,6 +108,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
         countdown={cd}
         heroSrc={program.heroSrc ?? "/h1.png"}
         heroAlt={program.heroAlt ?? "Live tutor-led training"}
+        thumbnailSrc={program.heroSrc ?? "/h1.png"}
         primaryCta={{ kind: "register", slug: program.slug, label: "Reserve Your Seat" }}
       />
 
@@ -111,9 +123,10 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
             programTitle: program.title,
             trainerName: program.trainer.name,
           }}
-          checkoutSlug={program.slug}
         />
       </div>
+
+      <TutorLedPreFooterReserveBar checkoutSlug={program.slug} enrolledLearning={showLearnerDashboard} />
     </div>
   );
 }

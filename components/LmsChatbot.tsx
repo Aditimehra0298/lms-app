@@ -95,6 +95,12 @@ export default function LmsChatbot() {
   }, []);
 
   useEffect(() => {
+    const onOpenChat = () => setOpen(true);
+    window.addEventListener("lms-open-chat", onOpenChat);
+    return () => window.removeEventListener("lms-open-chat", onOpenChat);
+  }, []);
+
+  useEffect(() => {
     const applyProfile = () => {
       const profile = readLearnerProfileFromStorage();
       setLearnerFirstName(learnerDisplayFirstName(profile.name, profile.email));

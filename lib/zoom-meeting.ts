@@ -15,9 +15,15 @@ export function isZoomJoinUrl(url: string): boolean {
   if (!u) return false;
   try {
     const host = new URL(u).hostname.toLowerCase();
-    return host === "zoom.us" || host.endsWith(".zoom.us") || host === "zoom.com" || host.endsWith(".zoom.com");
+    return (
+      host === "zoom.us" ||
+      host.endsWith(".zoom.us") ||
+      host === "zoom.com" ||
+      host.endsWith(".zoom.com") ||
+      host.endsWith(".zoomgov.com")
+    );
   } catch {
-    return /zoom\.(us|com)/i.test(u);
+    return /zoom\.(us|com|gov)/i.test(u);
   }
 }
 
@@ -102,4 +108,36 @@ export const ZOOM_PREMIUM_ADMIN_HINTS = [
   "Premium: use a fixed Personal Meeting ID (PMI) so the same link works every cohort.",
   "If Zoom shows a passcode, add it in the passcode field (or keep it in the link as ?pwd=…).",
   "Learners tap Join Live Session — Zoom opens in a new tab (app or browser).",
+] as const;
+
+export type ZoomMeetingDisplay = {
+  joinUrl: string | null;
+  meetingId: string | null;
+  meetingIdFormatted: string | null;
+  passcode: string | null;
+  hasZoom: boolean;
+};
+
+/** Structured meeting details for learner UI (admin-attached Zoom link). */
+export function getZoomMeetingDisplay(fields: ZoomMeetingFields): ZoomMeetingDisplay {
+  const joinUrl = resolveZoomJoinUrl(fields);
+  const meetingId = fields.zoomMeetingId?.trim().replace(/\s/g, "") || null;
+  const parsedFromUrl = joinUrl ? parseZoomMeetingFromUrl(joinUrl) : {};
+  const id = meetingId || parsedFromUrl.meetingId || null;
+  const passcode = fields.zoomPasscode?.trim() || parsedFromUrl.passcode || null;
+
+  return {
+    joinUrl,
+    meetingId: id,
+    meetingIdFormatted: id ? formatZoomMeetingId(id) : null,
+    passcode,
+    hasZoom: Boolean((joinUrl && isZoomJoinUrl(joinUrl)) || id),
+  };
+}
+
+export const ZOOM_JOIN_STEPS = [
+  "Join 5–10 minutes before the scheduled start time.",
+  "Click Join Live Session — Zoom opens in your browser or desktop app.",
+  "Enter the passcode if Zoom prompts you (shown below).",
+  "Allow camera and microphone when asked by Zoom.",
 ] as const;

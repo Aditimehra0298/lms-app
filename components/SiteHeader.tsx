@@ -16,6 +16,7 @@ import {
 import { getLearnerEmail, syncLearnerProfileFromServer } from "@/lib/learner-session-client";
 import MyLearningHeaderLink from "@/components/MyLearningHeaderLink";
 import { PricingRegionBadge } from "@/components/PricingRegionBadge";
+import { COMPANY_DISPLAY_NAME } from "@/lib/contact-site-data";
 
 export default function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -46,12 +47,14 @@ export default function SiteHeader() {
     { label: "Home", href: "/" },
     { label: "About", href: "/about" },
     { label: "Courses", href: "/courses" },
-    { label: "Contact", href: "#" },
+    { label: "Contact", href: "/contact" },
   ] as const;
   const audienceTabs = ["For Associators", "For Industry Professionals", "For University"];
   const pathname = usePathname();
+  const isContactPage = pathname === "/contact";
   const isMyLearningArea = pathname.startsWith("/my-learning");
   const useLearnerDashboardChrome = isLoggedIn && isMyLearningArea;
+  const compactHeader = isContactPage && !useLearnerDashboardChrome;
   /** After login, home highlights My Learning (not Home). */
   const highlightMyLearningNav = isLoggedIn && (pathname === "/" || isMyLearningArea);
 
@@ -147,7 +150,7 @@ export default function SiteHeader() {
         }`}
       >
         <div
-          className={`hidden border-b md:block ${
+          className={`hidden border-b md:block ${compactHeader ? "!hidden" : ""} ${
             isLight
               ? "border-[#b4965a]/35 bg-linear-to-r from-[#efe7da] via-[#f3ede3] to-[#efe7da]"
               : "border-white/10 bg-[#0a0f1a]"
@@ -186,17 +189,25 @@ export default function SiteHeader() {
             ))}
           </div>
         </div>
-        <div className="mx-auto flex h-18 w-full max-w-[1760px] flex-nowrap items-center justify-between gap-3 px-4 xl:px-6">
+        <div
+          className={`mx-auto flex w-full max-w-[1760px] flex-nowrap items-center justify-between gap-3 px-4 xl:px-6 ${
+            compactHeader ? "h-14" : "h-18"
+          }`}
+        >
           <Link href="/" className="group flex shrink-0 cursor-pointer items-center gap-3">
             <Image
               src={isLight ? sfLightLogo : sfWhiteLogo}
-              alt="Sustainable Futures Trainings"
+              alt={COMPANY_DISPLAY_NAME}
               priority
-              className="h-16 w-auto object-contain"
+              className={`w-auto object-contain ${compactHeader ? "h-11" : "h-16"}`}
             />
             <div className="hidden md:block">
-              <p className={`whitespace-nowrap text-lg font-extrabold tracking-tight ${goldText}`}>
-                Sustainable Futures Trainings
+              <p
+                className={`whitespace-nowrap font-extrabold tracking-tight ${goldText} ${
+                  compactHeader ? "text-base" : "text-lg"
+                }`}
+              >
+                {COMPANY_DISPLAY_NAME}
               </p>
             </div>
           </Link>
@@ -432,9 +443,9 @@ export default function SiteHeader() {
         {!useLearnerDashboardChrome ? (
           <div className={`hidden border-t md:block ${isLight ? "border-[#b4965a]/35" : "border-white/5"}`}>
             <div
-              className={`mx-auto flex h-10 w-full max-w-[1760px] items-center gap-8 px-4 text-[13px] font-bold xl:px-6 ${
-                isLight ? "text-slate-700" : "text-gray-400"
-              }`}
+              className={`mx-auto flex w-full max-w-[1760px] items-center gap-8 px-4 font-bold xl:px-6 ${
+                compactHeader ? "h-9 text-[12px]" : "h-10 text-[13px]"
+              } ${isLight ? "text-slate-700" : "text-gray-400"}`}
             >
               {navLinks.map((item) => {
                 const isActive =

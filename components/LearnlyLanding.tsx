@@ -11,6 +11,8 @@ import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import { CoursePrice } from "@/components/CoursePrice";
 import CourseCardActions from "@/components/CourseCardActions";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
+import { NewsletterSubscribeForm } from "@/components/NewsletterSubscribeForm";
+import TestimonialAvatar from "@/components/TestimonialAvatar";
 import {
   Play,
   Star,
@@ -488,7 +490,15 @@ export default function LearnlyLanding() {
         const res = await fetch("/api/admin/content", { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as AdminContent;
-        if (!cancelled && data.homePage) setHomeConfig({ ...defaultHomePageConfig, ...data.homePage });
+        if (!cancelled && data.homePage) {
+          const hp = data.homePage;
+          setHomeConfig({
+            ...defaultHomePageConfig,
+            ...hp,
+            faqPage: { ...defaultHomePageConfig.faqPage, ...hp.faqPage },
+            testimonialsPage: { ...defaultHomePageConfig.testimonialsPage, ...hp.testimonialsPage },
+          });
+        }
       } catch { /* use defaults */ }
     })();
     return () => { cancelled = true; };
@@ -577,7 +587,13 @@ export default function LearnlyLanding() {
   const brandDark = "bg-[#0a0a0a]";
 
   const liveTestimonials = homeConfig.testimonials.length > 0
-    ? homeConfig.testimonials.map((t, i) => ({ quote: t.quote, name: t.name, role: t.role, seed: t.name.toLowerCase().replace(/\s+/g, "-") }))
+    ? homeConfig.testimonials.map((t) => ({
+        quote: t.quote,
+        name: t.name,
+        role: t.role,
+        photo: t.photo,
+        seed: t.name.toLowerCase().replace(/\s+/g, "-"),
+      }))
     : testimonials;
   const liveFaqs = homeConfig.faqs.length > 0 ? homeConfig.faqs : faqs;
   const liveIndividualPlans = homeConfig.individualPlans.length > 0 ? homeConfig.individualPlans : individualPlans;
@@ -1300,15 +1316,15 @@ export default function LearnlyLanding() {
         <section className={`${sectionShell} border-t border-white/5 py-16 md:py-20`}>
           <div className="mb-4 flex justify-center">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-500">
-              What Our Learners Say
+              {homeConfig.testimonialsPage?.badge ?? "What Our Learners Say"}
             </span>
           </div>
           <h2 className={`${sectionTitle} text-center`}>
-            What Our Learners <span className={goldText}>Say</span>
+            {homeConfig.testimonialsPage?.title ?? "What Our Learners Say"}
           </h2>
           <p className={`mx-auto mt-4 max-w-3xl text-center ${mutedP}`}>
-            Real experiences from professionals who have advanced their skills with Sustainable
-            Futures Trainings.
+            {homeConfig.testimonialsPage?.subtitle ??
+              "Real experiences from professionals who have advanced their skills with our training programs."}
           </p>
           <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {liveTestimonials.map((t) => (
@@ -1318,16 +1334,7 @@ export default function LearnlyLanding() {
               >
                 <p className="flex-1 text-sm leading-relaxed text-gray-300">&ldquo;{t.quote}&rdquo;</p>
                 <footer className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4">
-                  <div className="h-11 w-11 overflow-hidden rounded-full border border-amber-500/20 bg-gray-800">
-                    <Image
-                      unoptimized
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${t.seed}`}
-                      alt=""
-                      width={44}
-                      height={44}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
+                  <TestimonialAvatar testimonial={{ name: t.name, photo: "photo" in t ? t.photo : undefined }} size={44} />
                   <div>
                     <div className="font-bold text-white">{t.name}</div>
                     <div className="text-xs text-gray-500">{t.role}</div>
@@ -1369,10 +1376,10 @@ export default function LearnlyLanding() {
         <section className={`${sectionShell} border-t border-white/5 py-16 md:py-20`}>
           <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
             <div className="w-full lg:flex-1">
-              <h2 className={sectionTitle}>Frequently Asked Questions</h2>
+              <h2 className={sectionTitle}>{homeConfig.faqPage?.title ?? "Frequently Asked Questions"}</h2>
               <p className={`mt-4 ${mutedP}`}>
-                Quick answers about programs, access, and accreditation. Reach out anytime for
-                personal guidance.
+                {homeConfig.faqPage?.subtitle ??
+                  "Quick answers about programs, access, and accreditation. Reach out anytime for personal guidance."}
               </p>
               <div className="mt-8 space-y-2">
                 {(showAllFaqs ? liveFaqs : liveFaqs.slice(0, 5)).map((item) => {
@@ -1444,28 +1451,24 @@ export default function LearnlyLanding() {
                   <Mail size={18} />
                 </span>
                 <div>
-                  <h3 className="text-lg font-bold text-white md:text-xl">Subscribe to our Newsletter</h3>
+                  <h3 className="text-lg font-bold text-white md:text-xl">
+                    {homeConfig.newsletter?.heading ?? "Subscribe to Our Newsletter"}
+                  </h3>
                   <p className="mt-1 text-sm text-gray-300">
-                    Write your email to subscribe for latest updates and announcements.
+                    {homeConfig.newsletter?.subtitle ??
+                      "Enter your email to receive course launches, workshop dates, and training updates."}
                   </p>
                 </div>
               </div>
-              <form
-                className="flex w-full max-w-xl flex-col gap-2 sm:flex-row"
-                onSubmit={(event) => event.preventDefault()}
-              >
-                <input
-                  type="email"
-                  placeholder="Write your email"
-                  className="lh-newsletter-input w-full rounded-full border border-amber-500/40 bg-black/35 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-amber-300/80"
-                />
-                <button
-                  type="submit"
-                  className={`rounded-full px-6 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
-                >
-                  Subscribe
-                </button>
-              </form>
+              <NewsletterSubscribeForm
+                pagePath="/"
+                emailLabel="Your email"
+                emailPlaceholder="Enter your email address"
+                buttonText={homeConfig.newsletter?.buttonText ?? "Subscribe"}
+                className="flex w-full max-w-xl flex-col gap-3 sm:flex-row sm:items-end"
+                inputClassName="lh-newsletter-input w-full rounded-full border border-amber-500/40 bg-black/35 px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-500 focus:border-amber-300/80"
+                buttonClassName={`rounded-full px-6 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
+              />
             </div>
           </div>
         </section>

@@ -9,13 +9,21 @@ import {
   Globe,
   Mail,
   MapPin,
-  MessageCircle,
   Phone,
   ShieldCheck,
   Users,
 } from "lucide-react";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
 import sfLightLogo from "@/Untitled design (4).png";
+import {
+  COMPANY_DISPLAY_NAME,
+  COMPANY_LEGAL_NAME,
+  SFT_ABOUT_BLURB,
+  SFT_EMAILS,
+  SFT_OFFICES,
+  SFT_QUICK_LINKS,
+  SFT_SOCIAL,
+} from "@/lib/contact-site-data";
 
 export default function SiteFooter() {
   const [isLightTheme, setIsLightTheme] = useState(false);
@@ -52,31 +60,53 @@ export default function SiteFooter() {
               <div className={`flex items-center gap-3 text-lg font-bold ${isLightTheme ? "text-slate-800" : "text-white"}`}>
                 <Image
                   src={isLightTheme ? sfLightLogo : sfWhiteLogo}
-                  alt="Sustainable Futures Trainings"
+                  alt={COMPANY_DISPLAY_NAME}
                   className="h-11 w-auto object-contain"
                   priority
                 />
-                <span>
-                  Sustainable Futures{" "}
-                  <span className={isLightTheme ? "text-[#b8860b]" : goldText}>Trainings</span>
+                <span className={isLightTheme ? "text-slate-800" : "text-white"}>
+                  {COMPANY_DISPLAY_NAME}
                 </span>
               </div>
-              <p className={`mt-4 text-sm leading-relaxed ${textTone}`}>
-                Sustainable Futures Trainings is a team of QMS and professional learning experts delivering
-                experiential online and offline training for individuals and organizations.
-              </p>
-              <div className={`mt-5 space-y-2 text-sm ${textTone}`}>
-                <div className="flex items-center gap-2">
-                  <Users size={15} className={headingTone} /> Expert Trainers
-                </div>
-                <div className="flex items-center gap-2">
-                  <BookOpen size={15} className={headingTone} /> Quality Content
-                </div>
-                <div className="flex items-center gap-2">
-                  <Globe size={15} className={headingTone} /> Flexible Learning
-                </div>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={15} className={headingTone} /> Certification
+              <p className={`mt-4 text-sm leading-relaxed ${textTone}`}>{SFT_ABOUT_BLURB}</p>
+              <div className={`mt-4 space-y-2 text-sm ${textTone}`}>
+                <a href={`mailto:${SFT_EMAILS.info}`} className={`flex items-center gap-2 transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
+                  <Mail size={15} className={headingTone} /> {SFT_EMAILS.info}
+                </a>
+                <a href={`mailto:${SFT_EMAILS.bdm}`} className={`flex items-center gap-2 transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
+                  <Mail size={15} className={headingTone} /> {SFT_EMAILS.bdm}
+                </a>
+              </div>
+              <div className="mt-5">
+                <p className={`text-xs font-bold uppercase tracking-[0.16em] ${headingTone}`}>Stay Connected</p>
+                <div className="mt-3 flex gap-3">
+                  <a
+                    href={SFT_SOCIAL.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-[10px] font-black uppercase text-white shadow-[0_0_14px_rgba(238,42,123,0.45)]"
+                  >
+                    ig
+                  </a>
+                  <a
+                    href={SFT_SOCIAL.whatsapp}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="WhatsApp"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#25D366] text-[10px] font-black uppercase text-white shadow-[0_0_14px_rgba(37,211,102,0.45)]"
+                  >
+                    wa
+                  </a>
+                  <a
+                    href={SFT_SOCIAL.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="LinkedIn"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0A66C2] text-xs font-black text-white shadow-[0_0_14px_rgba(10,102,194,0.45)]"
+                  >
+                    in
+                  </a>
                 </div>
               </div>
             </div>
@@ -84,16 +114,7 @@ export default function SiteFooter() {
             <div className="lg:w-[22%]">
               <h4 className={`text-sm font-bold uppercase tracking-[0.2em] ${headingTone}`}>Quick Links</h4>
               <ul className={`mt-4 space-y-2 text-sm ${textTone}`}>
-                {[
-                  { label: "About Us", href: "/about" },
-                  { label: "Our Courses", href: "/courses" },
-                  { label: "Accreditations", href: "#" },
-                  { label: "Candidate Register", href: "/account?mode=signup" },
-                  { label: "Contact Us", href: "#" },
-                  { label: "Privacy Policy", href: "#" },
-                  { label: "Terms & Conditions", href: "#" },
-                  { label: "Book a Call", href: "#" },
-                ].map((l) => (
+                {SFT_QUICK_LINKS.map((l) => (
                   <li key={l.label}>
                     <Link href={l.href} className={`transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
                       {l.label}
@@ -107,18 +128,19 @@ export default function SiteFooter() {
               <h4 className={`text-sm font-bold uppercase tracking-[0.2em] ${headingTone}`}>Support</h4>
               <ul className={`mt-4 space-y-2 text-sm ${textTone}`}>
                 {[
-                  "Contact Us",
-                  "Help Center",
-                  "FAQs",
-                  "Student Dashboard",
-                  "Learning Guides",
-                  "System Requirements",
-                  "Feedback",
+                  { label: "Contact Us", href: "/contact" },
+                  { label: "Help Center", href: "/contact" },
+                  { label: "FAQs", href: "/faq" },
+                  { label: "Testimonials", href: "/testimonials" },
+                  { label: "Student Dashboard", href: "/my-learning?tab=dashboard" },
+                  { label: "Learning Guides", href: "/courses" },
+                  { label: "System Requirements", href: "#" },
+                  { label: "Feedback", href: "/contact" },
                 ].map((l) => (
-                  <li key={l}>
-                    <a href="#" className={`transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
-                      {l}
-                    </a>
+                  <li key={l.label}>
+                    <Link href={l.href} className={`transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
+                      {l.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -126,55 +148,20 @@ export default function SiteFooter() {
 
             <div className="lg:w-[24%]">
               <h4 className={`text-sm font-bold uppercase tracking-[0.2em] ${headingTone}`}>Contact Us</h4>
-              <div className={`mt-4 space-y-2 text-sm ${textTone}`}>
-                <p className="flex items-center gap-2"><MapPin size={15} className={headingTone} /> UAE</p>
-                <p className="flex items-center gap-2"><MapPin size={15} className={headingTone} /> Canada</p>
-                <p className="flex items-center gap-2"><MapPin size={15} className={headingTone} /> India</p>
-              </div>
-              <div className={`mt-4 space-y-2 border-t ${dividerTone} pt-4 text-sm ${textTone}`}>
-                <p className="flex items-center gap-2"><Mail size={15} className={headingTone} /> info@sftrainings.org</p>
-                <p className="flex items-center gap-2"><Globe size={15} className={headingTone} /> www.sftrainings.org</p>
-                <p className="flex items-center gap-2"><Phone size={15} className={headingTone} /> +91 90567 42783</p>
-              </div>
-              <div className="mt-5">
-                <p className={`text-xs font-bold uppercase tracking-[0.16em] ${headingTone}`}>Stay Connected</p>
-                <div className="mt-3 flex gap-3">
-                  <a
-                    href="#"
-                    aria-label="LinkedIn"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0A66C2] text-xs font-black text-white shadow-[0_0_14px_rgba(10,102,194,0.45)]"
-                  >
-                    in
-                  </a>
-                  <a
-                    href="#"
-                    aria-label="Facebook"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1877F2] text-sm font-black text-white shadow-[0_0_14px_rgba(24,119,242,0.45)]"
-                  >
-                    f
-                  </a>
-                  <a
-                    href="#"
-                    aria-label="Instagram"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-[10px] font-black uppercase text-white shadow-[0_0_14px_rgba(238,42,123,0.45)]"
-                  >
-                    ig
-                  </a>
-                  <a
-                    href="#"
-                    aria-label="YouTube"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#FF0000] text-[10px] font-black uppercase text-white shadow-[0_0_14px_rgba(255,0,0,0.45)]"
-                  >
-                    yt
-                  </a>
-                  <a
-                    href="#"
-                    aria-label="WhatsApp"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#25D366] text-[10px] font-black uppercase text-white shadow-[0_0_14px_rgba(37,211,102,0.45)]"
-                  >
-                    wa
-                  </a>
-                </div>
+              <div className={`mt-4 space-y-4 text-sm ${textTone}`}>
+                {SFT_OFFICES.map((office) => (
+                  <div key={office.country} className={`border-b ${dividerTone} pb-3 last:border-b-0 last:pb-0`}>
+                    <p className="font-semibold text-white">{office.country}</p>
+                    <p className="mt-1 flex items-start gap-2 text-xs leading-relaxed">
+                      <MapPin size={14} className={`mt-0.5 shrink-0 ${headingTone}`} />
+                      <span>{office.address}</span>
+                    </p>
+                    <a href={office.phoneHref} className={`mt-1.5 inline-flex items-center gap-2 text-xs transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
+                      <Phone size={14} className={headingTone} />
+                      Call us {office.phone}
+                    </a>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -189,7 +176,7 @@ export default function SiteFooter() {
         </div>
       </div>
       <div className={`border-t ${dividerTone} py-5 text-center text-sm ${copyrightTone}`}>
-        © {new Date().getFullYear()} Sustainable Futures Trainings. All rights reserved.
+        © {new Date().getFullYear()} {COMPANY_LEGAL_NAME}. All rights reserved.
       </div>
     </footer>
   );

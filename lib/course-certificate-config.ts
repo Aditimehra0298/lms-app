@@ -18,8 +18,6 @@ export function sanitizeCertificateConfig(
     autoVisibleWhenReady: raw.autoVisibleWhenReady === true,
     requireAdminApproval: raw.requireAdminApproval !== false,
     title: raw.title?.trim(),
-    templateImage: raw.templateImage?.trim(),
-    badgeImage: raw.badgeImage?.trim(),
     nameTopPercent: clampPercent(raw.nameTopPercent),
     numberTopPercent: clampPercent(raw.numberTopPercent),
     dateTopPercent: clampPercent(raw.dateTopPercent),
@@ -35,12 +33,28 @@ function clampPercent(n: number | undefined): number | undefined {
   return Math.min(100, Math.max(0, Math.round(n)));
 }
 
+const PER_COURSE_TEMPLATE_KEYS = ["templateImage", "badgeImage", "supplementaryDocs"] as const;
+
+function stripPerCourseTemplateFields(
+  cfg: ManagedCourseCertificateConfig,
+): ManagedCourseCertificateConfig {
+  const next = { ...cfg };
+  for (const key of PER_COURSE_TEMPLATE_KEYS) {
+    delete next[key];
+  }
+  return next;
+}
+
 export function patchCertificateConfig(
   draft: ManagedCourse,
   patch: Partial<ManagedCourseCertificateConfig>,
 ): ManagedCourse {
+  const merged = stripPerCourseTemplateFields({
+    ...(draft.certificateConfig ?? {}),
+    ...patch,
+  });
   return {
     ...draft,
-    certificateConfig: { ...(draft.certificateConfig ?? {}), ...patch },
+    certificateConfig: sanitizeCertificateConfig(merged) ?? merged,
   };
 }

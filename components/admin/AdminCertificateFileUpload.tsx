@@ -102,7 +102,7 @@ export default function AdminCertificateFileUpload({
       {(kind === "pdf" || kind === "transcript") && uploaded && !showImagePreview ? (
         <p className="mt-3 flex items-center gap-2 text-xs text-gray-400">
           <FileText className="h-4 w-4 text-violet-300" aria-hidden />
-          Transcript file saved for this course
+          Transcript file saved (all courses)
         </p>
       ) : null}
     </div>

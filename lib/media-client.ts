@@ -10,6 +10,9 @@ export async function resolveProtectedMediaUrl(
 ): Promise<string> {
   const url = storedUrl.trim();
   if (!url) return "";
+  if (options?.scope === "learner" && (url.startsWith("http://") || url.startsWith("https://"))) {
+    return "";
+  }
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   if (url.includes("?t=")) return url;
   const isLocal =

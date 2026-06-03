@@ -147,6 +147,12 @@ OTP emails still use **SMTP** from the LMS (`/api/auth/otp`). You can add a sepa
 
 ## 7. Test
 
+```bash
+node --env-file=.env.local scripts/test-n8n-welcome.mjs
+```
+
+Expected: `Status: 200` and `Workflow was started` in n8n Executions.
+
 1. In n8n: Webhook → **Listen for test event**
 2. Register a **new** test user on `/account` (or Google Register)
 3. Check **Executions** in n8n
@@ -193,7 +199,8 @@ Optional: `N8N_WEBHOOK_SECRET` adds header `X-Webhook-Secret` for an extra check
 
 | Issue | Fix |
 |-------|-----|
-| Webhook returns **401** | `N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASSWORD` must match n8n Basic Auth exactly |
+| Webhook returns **401** | Auth required — set `N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASSWORD` (Basic) or header auth vars |
+| Webhook returns **403** | Credentials wrong — must match n8n Webhook → Authentication **exactly** (case-sensitive username) |
 | No execution in n8n | Workflow not active; wrong URL (`-test` vs production) |
 | LMS logs `n8n failed` | Check n8n execution error; enable `WELCOME_EMAIL_SMTP_FALLBACK=true` |
 | n8n Cloud cannot reach localhost LMS | Deploy LMS or use ngrok for callbacks (welcome is LMS → n8n only, so n8n Cloud is fine) |

@@ -253,7 +253,7 @@ export type ManagedCourse = {
   tabLabels?: ManagedCourseTabLabels;
   /** My Learning player — logos, labels, defaults (after payment). */
   learningSection?: ManagedCourseLearningSection;
-  /** Auto-generated PDF/HTML certificate template (Admin → Certificates). */
+  /** Per-course certificate on/off and workflow flags — template files are global only. */
   certificateConfig?: ManagedCourseCertificateConfig;
   /** Catalog visibility, enrollment, learner features (Admin → Settings). */
   settings?: ManagedCourseSettings;
@@ -289,7 +289,9 @@ export type ManagedCourseCertificateConfig = {
   /** Learner cannot see certificate until admin approves in Certificates tab. */
   requireAdminApproval?: boolean;
   title?: string;
+  /** @deprecated Use globalCertificateAssets — one template for all courses. */
   templateImage?: string;
+  /** @deprecated Use globalCertificateAssets — one badge for all courses. */
   badgeImage?: string;
   /** Vertical position % for learner name on template (0–100). */
   nameTopPercent?: number;
@@ -394,6 +396,8 @@ export type CoursesPageExpert = {
 
 export type CoursesPageFaq = {
   question: string;
+  /** Shown on /faq and courses page when set. */
+  answer?: string;
 };
 
 export type CoursesPageCta = {
@@ -449,9 +453,21 @@ export const defaultCoursesPageConfig: CoursesPageConfig = {
     { name: "Priya Nair", photo: "https://randomuser.me/api/portraits/women/68.jpg" },
   ],
   faqs: [
-    { question: "Are these courses industry-recognized?" },
-    { question: "Can I switch my learning plan anytime?" },
-    { question: "Do I get certificates after course completion?" },
+    {
+      question: "Are these courses industry-recognized?",
+      answer:
+        "Yes. Our programs align with industry standards and many include accreditation or certification from recognized bodies.",
+    },
+    {
+      question: "Can I switch my learning plan anytime?",
+      answer:
+        "Individual plans can be changed or cancelled according to your subscription terms. Contact support for team plans.",
+    },
+    {
+      question: "Do I get certificates after course completion?",
+      answer:
+        "Eligible courses issue digital certificates after you complete required modules and assessments.",
+    },
   ],
   cta: {
     heading: "Ready to Start Your Learning Journey?",
@@ -498,6 +514,8 @@ export type HomePageTestimonial = {
   quote: string;
   name: string;
   role: string;
+  /** Client / learner photo URL (shown on home, /testimonials). */
+  photo?: string;
 };
 
 export type HomePagePlan = {
@@ -523,6 +541,12 @@ export type HomePageOrgPlan = {
 export type HomePageFaq = {
   q: string;
   a: string;
+};
+
+export type HomePageSectionMeta = {
+  badge: string;
+  title: string;
+  subtitle: string;
 };
 
 export type HomePageNewsletter = {
@@ -553,6 +577,10 @@ export type HomePageConfig = {
   exploreProgramImages: string[];
   /** Avatar shown beside the home page FAQ accordion. */
   faqImage: string;
+  /** Dedicated /faq page copy (also used on contact page FAQ block). */
+  faqPage: HomePageSectionMeta;
+  /** Dedicated /testimonials page copy (home page section uses same testimonial list). */
+  testimonialsPage: HomePageSectionMeta;
 };
 
 export const defaultHomePageConfig: HomePageConfig = {
@@ -627,12 +655,42 @@ export const defaultHomePageConfig: HomePageConfig = {
     { title: "Progress Tracking & Assessments", desc: "Monitor your learning journey with module-wise assessments, exams, and performance insights.", icon: "CheckCircle2" },
   ],
   testimonials: [
-    { quote: "The content is practical and easy to follow. I could apply what I learned immediately in daily work.", name: "Rohan Verma", role: "Security Professional" },
-    { quote: "Tutor-led sessions and assignments helped me build confidence with real scenarios, not just theory.", name: "Priya Rao", role: "Data Analyst" },
-    { quote: "Great mentorship and structured learning path. The certification gave my profile a strong boost.", name: "Aman Kumar", role: "Cloud Engineer" },
-    { quote: "Clear modules, supportive trainers, and strong outcomes. One of the best learning platforms I used.", name: "Neha Sharma", role: "Program Coordinator" },
-    { quote: "The trainer-led sessions were highly practical. I improved my process audit skills and could apply them at work immediately.", name: "Vikram Singh", role: "Quality Specialist" },
-    { quote: "Excellent balance of self-paced modules and live expert guidance. The certifications added real value to my profile.", name: "Sneha Iyer", role: "Compliance Analyst" },
+    {
+      quote: "The content is practical and easy to follow. I could apply what I learned immediately in daily work.",
+      name: "Rohan Verma",
+      role: "Security Professional",
+      photo: "https://randomuser.me/api/portraits/men/32.jpg",
+    },
+    {
+      quote: "Tutor-led sessions and assignments helped me build confidence with real scenarios, not just theory.",
+      name: "Priya Rao",
+      role: "Data Analyst",
+      photo: "https://randomuser.me/api/portraits/women/44.jpg",
+    },
+    {
+      quote: "Great mentorship and structured learning path. The certification gave my profile a strong boost.",
+      name: "Aman Kumar",
+      role: "Cloud Engineer",
+      photo: "https://randomuser.me/api/portraits/men/52.jpg",
+    },
+    {
+      quote: "Clear modules, supportive trainers, and strong outcomes. One of the best learning platforms I used.",
+      name: "Neha Sharma",
+      role: "Program Coordinator",
+      photo: "https://randomuser.me/api/portraits/women/68.jpg",
+    },
+    {
+      quote: "The trainer-led sessions were highly practical. I improved my process audit skills and could apply them at work immediately.",
+      name: "Vikram Singh",
+      role: "Quality Specialist",
+      photo: "https://randomuser.me/api/portraits/men/75.jpg",
+    },
+    {
+      quote: "Excellent balance of self-paced modules and live expert guidance. The certifications added real value to my profile.",
+      name: "Sneha Iyer",
+      role: "Compliance Analyst",
+      photo: "https://randomuser.me/api/portraits/women/65.jpg",
+    },
   ],
   individualPlans: [
     {
@@ -686,8 +744,8 @@ export const defaultHomePageConfig: HomePageConfig = {
     { q: "Can organizations train their employees through Sustainable Futures Trainings?", a: "Yes, we provide corporate learning solutions, workforce upskilling programs, and centralized team management features." },
   ],
   newsletter: {
-    heading: "Stay Ahead with Sustainable Futures",
-    subtitle: "Get the latest updates on new courses, workshops, and training opportunities.",
+    heading: "Subscribe to Our Newsletter",
+    subtitle: "Enter your email to receive course launches, workshop dates, and training updates.",
     buttonText: "Subscribe",
   },
   unlock: {
@@ -700,6 +758,16 @@ export const defaultHomePageConfig: HomePageConfig = {
   exploreProgramImages: ["/p1.png", "/p2.png", "/p3.png", "/p4.jpg", "/p5.png", "/p6.png", "/p7.png", "/p8.png"],
   faqImage:
     "https://res.cloudinary.com/dwnnakrrh/image/upload/v1779337638/Untitled_design_1_zdyxfv.png",
+  faqPage: {
+    badge: "FAQ",
+    title: "Frequently Asked Questions",
+    subtitle: "Find quick answers to common questions about programs, enrollment, and certificates.",
+  },
+  testimonialsPage: {
+    badge: "What Our Learners Say",
+    title: "What Our Learners Say",
+    subtitle: "Real experiences from professionals who have advanced their skills with our training programs.",
+  },
 };
 
 /* ─── About Page Config Types ─── */
@@ -877,7 +945,7 @@ export const defaultAboutPageConfig: AboutPageConfig = {
   },
 };
 
-/** Shared certificate / badge / transcript templates — one workflow for all courses (Admin → Certificates). */
+/** Shared certificate / badge / transcript templates — Admin → Users & Access → Certificates only. */
 export type GlobalCertificateAssets = {
   templateImage?: string;
   badgeImage?: string;

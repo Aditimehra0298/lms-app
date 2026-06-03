@@ -1,7 +1,10 @@
 import type { SupplementaryDoc } from "@/lib/certificate-types";
 import type { AdminContent, ManagedCourse } from "@/lib/content-schema";
 
-const DEFAULT_TEMPLATE = "/certificates/haccp-certificate-template.jpg";
+/** Fallback certificate background when admin has not uploaded a custom file. */
+export const DEFAULT_CERTIFICATE_TEMPLATE = "/certificates/haccp-certificate-template.jpg";
+
+const DEFAULT_TEMPLATE = DEFAULT_CERTIFICATE_TEMPLATE;
 
 export type ResolvedGlobalCertificateAssets = {
   templateImage: string;
@@ -9,7 +12,7 @@ export type ResolvedGlobalCertificateAssets = {
   transcriptFile: string;
 };
 
-/** One shared design for every course — uploaded once in Admin → Certificates. */
+/** One shared design for every course — uploaded in Admin → Users & Access → Certificates. */
 export function resolveGlobalCertificateAssets(
   content: AdminContent,
 ): ResolvedGlobalCertificateAssets {

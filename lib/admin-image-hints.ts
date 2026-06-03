@@ -10,3 +10,7 @@ export const heroBackgroundImageHint = `Full-width hero background. Recommended 
 export const heroPreviewImageHint = `Enroll card preview (16:9). Recommended 1280×720 px. ${ADMIN_IMAGE_FORMATS}. Max ${ADMIN_IMAGE_MAX_MB} MB.`;
 
 export const heroCertificatePreviewImageHint = `Certificate preview in sidebar (~3:4). Recommended 800×1080 px. ${ADMIN_IMAGE_FORMATS}. Max ${ADMIN_IMAGE_MAX_MB} MB.`;
+
+export const testimonialPhotoHint = `Client headshot. Recommended 400×400 px (1:1). ${ADMIN_IMAGE_FORMATS}. Max ${ADMIN_IMAGE_MAX_MB} MB.`;
+
+export const faqAvatarImageHint = `FAQ page / home FAQ avatar. Recommended 600×800 px. ${ADMIN_IMAGE_FORMATS}. Max ${ADMIN_IMAGE_MAX_MB} MB.`;

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { TutorLedLearningToolsPanel } from "@/components/TutorLedLearningToolsPanel";
 import { resolveZoomJoinUrl } from "@/lib/zoom-meeting";
-import { TutorLedZoomJoinCard } from "@/components/TutorLedZoomJoinCard";
+import { TutorLedLiveZoomPanel } from "@/components/TutorLedLiveZoomPanel";
 import { tutorLedEnrolledPrice, tutorLedLearnerBannerSrc } from "@/lib/tutor-led-program-map";
 import { TutorLedCurriculumExplorer } from "@/components/TutorLedCurriculumExplorer";
 import { Calendar, Clock, HelpCircle, Megaphone, Play, Video } from "lucide-react";
@@ -214,6 +214,8 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
               </div>
             </section>
 
+            <TutorLedLiveZoomPanel program={program} variant="full" />
+
             {/* Curriculum — by week or by day */}
             <section className="rounded-2xl border border-white/10 bg-zinc-950/60 p-4 md:p-5">
               <TutorLedCurriculumExplorer
@@ -221,6 +223,7 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
                 variant="learner"
                 weekProgress={weekProgress}
                 liveJoinAnchor="#zoom-live"
+                liveJoinUrl={zoomJoinUrl}
               />
             </section>
             {/* Recordings */}
@@ -266,7 +269,7 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
 
           {/* Sidebar */}
           <aside className="space-y-4">
-            <TutorLedZoomJoinCard program={program} compact />
+            <TutorLedLiveZoomPanel program={program} variant="compact" id="zoom-live-sidebar" />
             <TutorLedLearningToolsPanel programSlug={program.slug} />
 
             <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4">

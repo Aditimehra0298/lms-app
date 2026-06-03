@@ -147,15 +147,15 @@ function CertificatePreviewCard({
     <div className={cardClass}>
       <h3 className="text-sm font-bold text-white">Certificate Preview</h3>
       {hero.certificatePreviewImage ? (
-        <div className="relative mt-3 overflow-hidden rounded-lg border border-white/10 bg-white">
-          <div className="relative aspect-[1/1.35] w-full">
+        <div className="mt-3 flex justify-center rounded-lg border border-white/10 bg-white p-2">
+          <div className="relative aspect-[1/1.35] w-full max-w-[280px]">
             <CatalogMediaImage
               storedSrc={hero.certificatePreviewImage}
               courseSlug={courseSlug}
               alt={hero.certificatePreviewLabel}
               fill
-              className="object-contain p-1"
-              sizes="360px"
+              className="object-contain"
+              sizes="280px"
             />
           </div>
         </div>

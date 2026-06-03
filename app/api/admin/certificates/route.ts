@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
-import { listAdminCertificatesForCourse } from "@/lib/server/n8n-certificate-service";
+import {
+  listAdminCertificatesAll,
+  listAdminCertificatesForCourse,
+} from "@/lib/server/n8n-certificate-service";
 
 export const dynamic = "force-dynamic";
 
-/** List all certificate rows for a course (admin approvals). */
+/** List certificate rows for admin — all courses, or filter by courseSlug. */
 export async function GET(request: Request) {
   const courseSlug = new URL(request.url).searchParams.get("courseSlug")?.trim();
-  if (!courseSlug) {
-    return NextResponse.json({ ok: false, message: "courseSlug required" }, { status: 400 });
-  }
   try {
-    const certificates = await listAdminCertificatesForCourse(courseSlug);
+    const certificates = courseSlug
+      ? await listAdminCertificatesForCourse(courseSlug)
+      : await listAdminCertificatesAll();
     return NextResponse.json({ ok: true, certificates });
   } catch (err) {
     console.error("[admin/certificates]", err);

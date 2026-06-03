@@ -1,7 +1,10 @@
 import type { ManagedCourse } from "@/lib/content-schema";
 import { buildCertificateVerifyUrl } from "@/lib/certificate-verify-url";
 import { allocateDelegateNumber } from "@/lib/server/delegate-number-issue";
-import { resolveCertificateAssetsForCourse } from "@/lib/global-certificate-assets";
+import {
+  resolveCertificateAssetsForCourse,
+  resolveGlobalCertificateAssets,
+} from "@/lib/global-certificate-assets";
 import { readAdminContent } from "@/lib/server/content-store";
 import { allocateSftCertificateNumber } from "@/lib/server/certificate-number-issue";
 import {
@@ -10,7 +13,7 @@ import {
 } from "@/lib/server/certificate-permissions";
 import { ensureCourseInMysql, getCourseBySlug } from "@/lib/server/course-mysql-sync";
 import { lookupRegistrationByEmail } from "@/lib/server/registration-lookup";
-import type { CertificateRowDto } from "@/lib/certificate-types";
+import type { AdminCertificateRowDto, CertificateRowDto } from "@/lib/certificate-types";
 import { issueCourseCertificate } from "@/lib/server/certificate-service";
 import {
   formatGrade,
@@ -25,7 +28,59 @@ import {
   resolveStoredCertificatePdfUrl,
 } from "@/lib/server/certificate-pdf-store";
 
-export type { CertificateRowDto };
+export type { AdminCertificateRowDto, CertificateRowDto };
+
+function learnerAccessLabel(
+  status: string,
+  visibleToLearner: boolean,
+): AdminCertificateRowDto["learnerAccess"] {
+  if (status !== "ready") return "pending";
+  return visibleToLearner ? "allowed" : "blocked";
+}
+
+/** Force every admin preview/list row to use the single global template (not per-course files). */
+async function withSharedCertificateDesign(
+  rows: CertificateRowDto[],
+): Promise<CertificateRowDto[]> {
+  const content = await readAdminContent();
+  const global = resolveGlobalCertificateAssets(content);
+  const transcriptDocs = global.transcriptFile
+    ? [{ title: "Transcript", url: global.transcriptFile }]
+    : [];
+  return rows.map((dto) => ({
+    ...dto,
+    templateImage: global.templateImage,
+    badgeImage: global.badgeImage || dto.badgeImage,
+    supplementaryDocs: transcriptDocs.length > 0 ? transcriptDocs : dto.supplementaryDocs,
+  }));
+}
+
+async function enrichAdminCertificateRows(
+  rows: CertificateRowDto[],
+): Promise<AdminCertificateRowDto[]> {
+  const emails = [...new Set(rows.map((r) => r.learnerEmail.trim().toLowerCase()))];
+  const users =
+    emails.length > 0
+      ? await prisma.lmsUser.findMany({
+          where: { email: { in: emails } },
+          select: { email: true, role: true, accountType: true, phone: true },
+        })
+      : [];
+  const byEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]));
+
+  return rows.map((dto) => {
+    const user = byEmail.get(dto.learnerEmail.trim().toLowerCase());
+    return {
+      ...dto,
+      phone: user?.phone?.trim() || null,
+      userRole: user?.role?.trim() || "learner",
+      userType:
+        user?.accountType?.trim() ||
+        (dto.holderType === "organisation" ? "organisation" : "individual"),
+      learnerAccess: learnerAccessLabel(dto.status, dto.visibleToLearner),
+    };
+  });
+}
 
 function appBaseUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
@@ -185,7 +240,8 @@ export async function requestCourseCertificate(input: {
   if (!assets.templateImage || !assets.badgeImage || !assets.transcriptFile) {
     return {
       ok: false,
-      message: "Certificate templates are not uploaded yet. Admin → Certificates → upload all 3 files.",
+      message:
+        "Certificate templates are not uploaded yet. Admin → Users & Access → Certificates → upload all 3 files (one design for every course).",
     };
   }
 
@@ -392,18 +448,28 @@ export async function listLearnerCertificates(email: string): Promise<Certificat
 
 export async function listAdminCertificatesForCourse(
   courseSlug: string,
-): Promise<CertificateRowDto[]> {
+): Promise<AdminCertificateRowDto[]> {
   const rows = await prisma.lmsCertificate.findMany({
     where: { courseSlug: courseSlug.trim() },
     orderBy: { issuedAt: "desc" },
   });
-  return Promise.all(rows.map((row) => toDto(row)));
+  const dtos = await withSharedCertificateDesign(await Promise.all(rows.map((row) => toDto(row))));
+  return enrichAdminCertificateRows(dtos);
+}
+
+/** All issued certificates (admin), newest first. */
+export async function listAdminCertificatesAll(): Promise<AdminCertificateRowDto[]> {
+  const rows = await prisma.lmsCertificate.findMany({
+    orderBy: { issuedAt: "desc" },
+  });
+  const dtos = await withSharedCertificateDesign(await Promise.all(rows.map((row) => toDto(row))));
+  return enrichAdminCertificateRows(dtos);
 }
 
 export async function setCertificateVisibility(
   certificateId: string,
   visibleToLearner: boolean,
-): Promise<{ ok: true; certificate: CertificateRowDto } | { ok: false; message: string }> {
+): Promise<{ ok: true; certificate: AdminCertificateRowDto } | { ok: false; message: string }> {
   const row = await prisma.lmsCertificate.findUnique({ where: { id: certificateId } });
   if (!row) return { ok: false, message: "Not found" };
   if (row.status !== "ready") {
@@ -413,7 +479,9 @@ export async function setCertificateVisibility(
     where: { id: certificateId },
     data: { visibleToLearner },
   });
-  return { ok: true, certificate: await toDto(updated) };
+  const [shared] = await withSharedCertificateDesign([await toDto(updated)]);
+  const [enriched] = await enrichAdminCertificateRows(shared);
+  return { ok: true, certificate: enriched };
 }
 
 /** Admin manually marks certificate ready (upload PDF in Drive, paste URL here). */

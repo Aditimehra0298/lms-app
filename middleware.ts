@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-/** Block direct public access to legacy upload folder (use /api/media/serve with token). */
+/** Block direct public access to private media (use /api/media/serve with token). */
 export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith("/uploads/admin/")) {
+  const path = request.nextUrl.pathname;
+  if (path.startsWith("/uploads/admin/") || path.startsWith("/storage/private/")) {
     return NextResponse.json(
       { error: "Direct media access is disabled. Use authorized course playback." },
       { status: 403 },
@@ -13,5 +14,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/uploads/admin/:path*"],
+  matcher: ["/uploads/admin/:path*", "/storage/private/:path*"],
 };

@@ -49,7 +49,7 @@ import AdminSelfPacedPageContentEditor from "@/components/admin/AdminSelfPacedPa
 import AdminRegionalPricingEditor from "@/components/admin/AdminRegionalPricingEditor";
 import AdminCourseSettingsPanel from "@/components/admin/AdminCourseSettingsPanel";
 import AdminCourseSeoPanel from "@/components/admin/AdminCourseSeoPanel";
-import AdminCourseCertificatesPanel from "@/components/admin/AdminCourseCertificatesPanel";
+import AdminCourseCertificateSettings from "@/components/admin/AdminCourseCertificateSettings";
 import AdminImageUrlUpload from "@/components/admin/AdminImageUrlUpload";
 import AdminCoursePublishPanel from "@/components/admin/AdminCoursePublishPanel";
 import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
@@ -83,7 +83,6 @@ const PRIMARY_WORKSPACE_TABS = [
   "Content",
   "Pricing",
   "Students",
-  "Certificates",
   "Publish",
 ] as const;
 const MORE_WORKSPACE_TABS = ["Settings", "SEO", "Subscription"] as const;
@@ -1826,17 +1825,10 @@ export default function AdminCoursesWorkspace() {
                     type="button"
                     onClick={() => void saveCurriculumOnly()}
                     disabled={savingCurriculum}
-                    className="rounded-lg border border-white/15 bg-[#0a1120] px-3 py-2 text-xs font-medium text-gray-200 hover:bg-white/5 disabled:opacity-50"
-                  >
-                    Save as Draft
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void saveCurriculumOnly()}
-                    disabled={savingCurriculum}
                     className="inline-flex items-center gap-1 rounded-lg bg-[#6f55ff] px-4 py-2 text-xs font-semibold text-white shadow-[0_0_20px_rgba(111,85,255,0.35)] hover:bg-[#7d63ff] disabled:opacity-50"
                   >
-                    Publish Course
+                    {savingCurriculum ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    Save curriculum
                     <ChevronDown className="h-3.5 w-3.5 opacity-80" />
                   </button>
                 </div>
@@ -2310,6 +2302,8 @@ export default function AdminCoursesWorkspace() {
           saving={savingCatalog}
           onSave={() => void saveCatalogDraft()}
           onGoCourseInfo={() => setWorkspaceTab("Course")}
+          onGoContent={() => setWorkspaceTab("Content")}
+          finalExam={finalExamDraft}
         />
       ) : null}
 
@@ -2330,20 +2324,6 @@ export default function AdminCoursesWorkspace() {
           workspaceCourseSlug={workspaceCourseSlug}
           canEdit={canEditPricing}
           onGoCourseInfo={() => setWorkspaceTab("Course")}
-        />
-      ) : null}
-
-      {workspaceTab === "Certificates" ? (
-        <AdminCourseCertificatesPanel
-          draft={draft}
-          setDraft={setDraft}
-          workspaceCourseSlug={workspaceCourseSlug}
-          finalExam={finalExamDraft}
-          canEdit={canEditPricing}
-          saving={savingCatalog}
-          onSave={() => void saveCatalogDraft()}
-          onGoCourseInfo={() => setWorkspaceTab("Course")}
-          onGoCoreSection={() => setWorkspaceTab("Content")}
         />
       ) : null}
 
