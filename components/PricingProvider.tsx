@@ -97,19 +97,22 @@ export function PricingProvider({ children }: { children: ReactNode }) {
 
   useLayoutEffect(() => {
     void sync();
-    const onUpdate = () => {
+    const onAuthUpdated = () => {
+      void sync();
+    };
+    const onRegionCached = () => {
       setLoggedIn(isLearnerLoggedIn());
       applyRegion(getCachedPricingRegion());
     };
-    window.addEventListener("sft_auth_updated", () => void sync());
-    window.addEventListener(PRICING_REGION_EVENT, onUpdate);
-    window.addEventListener("sft_pricing_reveal_updated", onUpdate);
-    window.addEventListener("storage", onUpdate);
+    window.addEventListener("sft_auth_updated", onAuthUpdated);
+    window.addEventListener(PRICING_REGION_EVENT, onRegionCached);
+    window.addEventListener("sft_pricing_reveal_updated", onRegionCached);
+    window.addEventListener("storage", onRegionCached);
     return () => {
-      window.removeEventListener("sft_auth_updated", () => void sync());
-      window.removeEventListener(PRICING_REGION_EVENT, onUpdate);
-      window.removeEventListener("sft_pricing_reveal_updated", onUpdate);
-      window.removeEventListener("storage", onUpdate);
+      window.removeEventListener("sft_auth_updated", onAuthUpdated);
+      window.removeEventListener(PRICING_REGION_EVENT, onRegionCached);
+      window.removeEventListener("sft_pricing_reveal_updated", onRegionCached);
+      window.removeEventListener("storage", onRegionCached);
     };
   }, [sync, applyRegion]);
 

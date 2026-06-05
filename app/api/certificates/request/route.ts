@@ -10,6 +10,7 @@ export async function POST(request: Request) {
     learnerName?: string;
     courseSlug?: string;
     scorePercent?: number;
+    forceRetry?: boolean;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
       learnerName: body.learnerName,
       courseSlug: body.courseSlug ?? "",
       scorePercent: body.scorePercent,
+      forceRetry: body.forceRetry === true,
     });
     if (!result.ok) {
       return NextResponse.json(result, { status: 400 });

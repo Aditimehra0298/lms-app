@@ -31,6 +31,8 @@ export type ManagedCourseExamLink = {
   href: string;
   label: string;
   slot: string;
+  /** Admin uploaded a CSV/PDF exam file for this module. */
+  ready: boolean;
 };
 
 function hasFinalExamPayload(fe: ManagedCourse["finalExam"]): boolean {
@@ -55,6 +57,7 @@ export function examLinksFromManagedCourse(course: ManagedCourse): ManagedCourse
         href: `/my-learning/course/${course.slug}/exam?module=${idx + 1}`,
         label: learnerExamDisplayLabel(row.label, `${mod.title} — Exam`),
         slot: `Module ${idx + 1}`,
+        ready: !!row.examUploadUrl?.trim(),
       });
     });
   }
@@ -64,6 +67,7 @@ export function examLinksFromManagedCourse(course: ManagedCourse): ManagedCourse
       href: `/my-learning/course/${course.slug}/exam?final=1`,
       label: fe.title?.trim() || "Final examination",
       slot: "Final",
+      ready: !!fe.examUploadUrl?.trim(),
     });
   }
   return out;

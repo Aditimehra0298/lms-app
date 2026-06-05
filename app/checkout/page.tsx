@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CreditCard, Landmark, ShieldCheck, Smartphone } from "lucide-react";
 import { appendEnrollmentsFromCheckout } from "@/lib/enrollment-storage";
+import { clearAbandonedCartSentFlag } from "@/lib/abandoned-cart-client";
 import { syncEnrollmentsToServer } from "@/lib/enrollment-sync-client";
 import { tutorLedLearnerJoinHref } from "@/lib/tutor-led-routes";
 import {
@@ -246,6 +247,7 @@ export default function CheckoutPage() {
       );
       window.localStorage.setItem("sft_purchased_courses", JSON.stringify(merged));
       window.localStorage.setItem("sft_cart", JSON.stringify([]));
+      clearAbandonedCartSentFlag();
       window.dispatchEvent(new Event("sft_purchases_updated"));
       window.dispatchEvent(new Event("sft_cart_updated"));
     } catch {

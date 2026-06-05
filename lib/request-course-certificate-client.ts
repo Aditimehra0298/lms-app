@@ -6,6 +6,7 @@ export async function requestCourseCertificateClient(input: {
   courseSlug: string;
   scorePercent?: number;
   learnerName?: string;
+  forceRetry?: boolean;
 }): Promise<{ ok: boolean; message?: string }> {
   const res = await fetch("/api/certificates/request", {
     method: "POST",

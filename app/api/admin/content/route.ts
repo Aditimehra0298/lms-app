@@ -11,9 +11,6 @@ const noStoreJson = { "Cache-Control": "private, no-store, max-age=0" };
 
 export async function GET() {
   const content = await readAdminContent();
-  void syncManagedCoursesToMysql(content.managedCourses ?? []).catch((err) =>
-    console.error("[admin/content GET] course sync", err),
-  );
   return NextResponse.json(content, { headers: noStoreJson });
 }
 

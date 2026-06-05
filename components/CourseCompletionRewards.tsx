@@ -3,15 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Award,
-  BadgeCheck,
-  Download,
-  FileText,
-  Loader2,
-  Lock,
-  Medal,
-} from "lucide-react";
+import { Award, BadgeCheck, Loader2, Lock, Medal } from "lucide-react";
 import type { CourseCurriculumModule } from "@/lib/content-schema";
 import type { CertificateRowDto } from "@/lib/certificate-types";
 import { readJsonResponse } from "@/lib/safe-json";
@@ -23,16 +15,21 @@ import {
   readModuleExamScores,
   type ModuleExamScore,
 } from "@/lib/learner-exam-scores";
-import { BADGES_UPDATED_EVENT, readLearnerBadges, type LearnerBadge } from "@/lib/learner-badges";
-import { downloadUrlAsFile } from "@/lib/share-credentials";
-import { certificatePdfDownloadHref } from "@/lib/certificate-pdf-client";
+import {
+  CertificateDownloadActions,
+  CertificateStatusBadge,
+} from "@/components/CertificateDownloadActions";
 import { ShareCredentialButtons } from "@/components/ShareCredentialButtons";
+import { ShareableBadgeCard } from "@/components/ShareableBadgeCard";
 import {
   CombinedCertificateTranscriptPrint,
-  triggerCombinedCredentialPrint,
   type CombinedCredentialData,
   type TranscriptRow,
 } from "@/components/CombinedCertificateTranscriptPrint";
+import {
+  buildBadgeShareText,
+  buildCertificateEarnedPageUrl,
+} from "@/lib/certificate-share-url";
 import { buildCertificateVerifyUrl } from "@/lib/certificate-verify-url";
 
 type Props = {
@@ -85,7 +82,6 @@ export function CourseCompletionRewards({
 }: Props) {
   const [certificate, setCertificate] = useState<CertificateRowDto | null>(null);
   const [certLoading, setCertLoading] = useState(false);
-  const [badges, setBadges] = useState<LearnerBadge[]>([]);
 
   const { allModulesDone, examsRequired, eligible } = learnerCredentialsEligible(
     curriculum,
@@ -97,13 +93,6 @@ export function CourseCompletionRewards({
     const profile = readLearnerProfileFromStorage();
     return profile.name?.trim() || profile.email?.split("@")[0] || "Learner";
   }, []);
-
-  useEffect(() => {
-    const loadBadges = () => setBadges(readLearnerBadges(courseSlug));
-    loadBadges();
-    window.addEventListener(BADGES_UPDATED_EVENT, loadBadges);
-    return () => window.removeEventListener(BADGES_UPDATED_EVENT, loadBadges);
-  }, [courseSlug]);
 
   useEffect(() => {
     const email = getLearnerEmail();
@@ -172,14 +161,14 @@ export function CourseCompletionRewards({
         >
           Continue course & exams
         </Link>
-        {badges.length > 0 ? (
+        {badgeImageUrl?.trim() ? (
           <div className="mt-4 border-t border-white/10 pt-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-violet-200">
               <Medal size={12} className="mr-1 inline" />
-              Module badges earned
+              Course badge ready
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              Badges are available now; certificate and transcript unlock after you pass all exams.
+              Same badge for every learner — certificate unlocks after you pass all exams.
             </p>
           </div>
         ) : null}
@@ -211,17 +200,41 @@ export function CourseCompletionRewards({
     dateTopPercent: 62,
   };
 
-  const downloadCombinedPdf = () => {
-    const href = certificatePdfDownloadHref(certificate?.pdfUrl, getLearnerEmail());
-    if (href && certificate?.status === "ready" && certificate.visibleToLearner) {
-      downloadUrlAsFile(href, `${courseSlug}-certificate-and-transcript.pdf`);
-      return;
+  const reloadCertificate = async () => {
+    const email = getLearnerEmail();
+    if (!email) return;
+    try {
+      const res = await fetch(`/api/certificates?email=${encodeURIComponent(email)}`, {
+        cache: "no-store",
+      });
+      const data = await readJsonResponse(res, {} as {
+        ok?: boolean;
+        certificates?: CertificateRowDto[];
+      });
+      if (data.ok && data.certificates) {
+        const hit = data.certificates.find((c) => c.courseSlug === courseSlug) ?? null;
+        setCertificate(hit);
+      }
+    } catch {
+      /* ignore */
     }
-    triggerCombinedCredentialPrint();
   };
 
-  const officialPdfHref = certificatePdfDownloadHref(certificate?.pdfUrl, getLearnerEmail());
-  const shareText = `I completed ${courseTitle} at SF Trainings!`;
+  const earnedShareUrl =
+    typeof window !== "undefined" && certificate
+      ? buildCertificateEarnedPageUrl(window.location.origin, certificate)
+      : typeof window !== "undefined"
+        ? `${window.location.origin}/my-learning/course/${courseSlug}`
+        : "";
+
+  const shareText = certificate
+    ? buildBadgeShareText({
+        learnerName: certificate.learnerName,
+        courseTitle,
+      })
+    : `I completed ${courseTitle} at SF Trainings! View my official certificate PDF:`;
+  const downloadBlocked =
+    certificate?.status === "ready" && !certificate.visibleToLearner;
 
   return (
     <section
@@ -235,8 +248,8 @@ export function CourseCompletionRewards({
           </p>
           <h2 className="mt-1 text-2xl font-bold text-white">Your certificate & transcript</h2>
           <p className="mt-1 text-sm text-gray-300">
-            You finished every module and passed all exams. Download your certificate and transcript, view
-            badges, and share your achievement.
+            Get your official certificate and transcript below. First time takes about 15 seconds;
+            after that it is saved and opens instantly.
           </p>
           {combinedExamPercent != null ? (
             <p className="mt-1 text-xs text-emerald-200/90">
@@ -252,7 +265,7 @@ export function CourseCompletionRewards({
         </Link>
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+      <div className="mt-4 space-y-4">
         <article className="rounded-xl border border-white/10 bg-black/30 p-4">
           <div className="flex items-start gap-3">
             <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg border border-amber-300/30 bg-white">
@@ -265,100 +278,90 @@ export function CourseCompletionRewards({
               />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-amber-200">
-                <Award size={14} /> Certificate + Transcript
-              </p>
-              <p className="mt-1 font-semibold text-white">{courseTitle}</p>
-              {certLoading || certificate?.status === "pending" ? (
-                <p className="mt-2 flex items-center gap-2 text-xs text-amber-200">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Generating official PDF…
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-amber-200">
+                  <Award size={14} /> Certificate + Transcript
                 </p>
-              ) : certificate?.status === "ready" && certificate.visibleToLearner ? (
-                <p className="mt-2 text-xs text-emerald-300">Verified • Ready to download</p>
-              ) : certificate?.status === "ready" && !certificate.visibleToLearner ? (
-                <p className="mt-2 text-xs text-gray-400">Awaiting admin approval</p>
-              ) : (
-                <p className="mt-2 text-xs text-gray-400">Preview available — download below</p>
-              )}
+                {certLoading ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-amber-200">
+                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                    Loading…
+                  </span>
+                ) : (
+                  <CertificateStatusBadge
+                    status={certificate?.status}
+                    visibleToLearner={certificate?.visibleToLearner}
+                    pdfReady={certificate?.pdfReady}
+                  />
+                )}
+              </div>
+              <p className="mt-1 font-semibold text-white">{courseTitle}</p>
+              {!certificate && !certLoading ? (
+                <p className="mt-2 text-xs text-gray-400">
+                  Click download to generate your official PDF.
+                </p>
+              ) : null}
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={downloadCombinedPdf}
-              className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-black hover:bg-amber-400"
-            >
-              <Download size={16} />
-              Download certificate & transcript (PDF)
-            </button>
-            {officialPdfHref && certificate?.status === "ready" && certificate?.visibleToLearner ? (
-              <a
-                href={officialPdfHref}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm text-gray-200 hover:bg-white/5"
-              >
-                <FileText size={16} /> Open official PDF
-              </a>
-            ) : null}
+          <div className="mt-4">
+            <CertificateDownloadActions
+              certificateId={certificate?.id}
+              learnerEmail={certificate?.learnerEmail}
+              courseSlug={courseSlug}
+              courseTitle={courseTitle}
+              scorePercent={certificate?.scorePercent ?? combinedExamPercent}
+              pdfReady={certificate?.pdfReady}
+              pdfUrl={certificate?.pdfUrl}
+              disabled={downloadBlocked}
+              disabledReason={
+                downloadBlocked
+                  ? "Your certificate is awaiting admin approval before download."
+                  : undefined
+              }
+              onComplete={() => void reloadCertificate()}
+            />
           </div>
           {verifyUrl ? (
             <div className="mt-3">
-              <ShareCredentialButtons url={verifyUrl} title={courseTitle} text={shareText} />
+              <ShareCredentialButtons
+                url={earnedShareUrl || verifyUrl}
+                title={courseTitle}
+                text={shareText}
+                badgeImageUrl={badgeImageUrl?.trim() || certificate?.badgeImage?.trim()}
+              />
             </div>
           ) : null}
         </article>
 
-        <article className="rounded-xl border border-white/10 bg-black/30 p-4">
-          <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-violet-200">
-            <Medal size={14} /> Earned badges
+        <article
+          className="relative overflow-hidden rounded-xl border border-amber-500/20 px-4 py-8 sm:px-8"
+          style={{
+            background:
+              "linear-gradient(165deg, rgba(245,158,11,0.07) 0%, rgba(20,24,32,0.95) 38%, rgba(88,28,135,0.08) 100%)",
+          }}
+        >
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent"
+            aria-hidden
+          />
+          <p className="text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-violet-200/80">
+            <Medal size={12} className="mr-1.5 inline -mt-0.5" aria-hidden />
+            Your course badge
           </p>
-          <p className="mt-1 text-sm text-gray-400">One badge per completed module — share on any platform.</p>
-          {badges.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500">No badges recorded yet.</p>
+          {badgeImageUrl?.trim() || certificate?.badgeImage?.trim() ? (
+            <ShareableBadgeCard
+              title={courseTitle}
+              subtitle="Share your achievement"
+              imageUrl={badgeImageUrl?.trim() || certificate?.badgeImage?.trim()}
+              shareUrl={earnedShareUrl || verifyUrl || `${window.location.origin}/my-learning/course/${courseSlug}`}
+              shareText={shareText}
+              courseSlug={courseSlug}
+              className="mx-auto w-full max-w-md"
+            />
           ) : (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {badges.map((badge) => {
-                const badgeShareUrl =
-                  verifyUrl || `${window.location.origin}/my-learning/course/${courseSlug}`;
-                const badgeShareText = `I earned the "${badge.moduleTitle}" badge in ${badge.courseTitle}!`;
-                return (
-                  <div
-                    key={badge.id}
-                    className="rounded-lg border border-violet-300/25 bg-violet-500/10 p-3 text-center"
-                  >
-                    <div className="relative mx-auto h-16 w-16">
-                      {badge.badgeImageUrl ? (
-                        <Image
-                          src={badge.badgeImageUrl}
-                          alt={badge.moduleTitle}
-                          fill
-                          unoptimized
-                          className="object-contain"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center rounded-full bg-amber-500/20 text-amber-200">
-                          <Medal size={28} />
-                        </div>
-                      )}
-                    </div>
-                    <p className="mt-2 text-xs font-semibold text-white">{badge.moduleTitle}</p>
-                    <p className="text-[10px] text-gray-400">
-                      Module {badge.moduleNumber} • {new Date(badge.earnedAt).toLocaleDateString()}
-                    </p>
-                    <div className="mt-2">
-                      <ShareCredentialButtons
-                        compact
-                        url={badgeShareUrl}
-                        title={badge.moduleTitle}
-                        text={badgeShareText}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <p className="mt-4 text-center text-sm text-gray-500">
+              Upload a course badge in Admin → Courses → Certificate for this course.
+            </p>
           )}
         </article>
       </div>

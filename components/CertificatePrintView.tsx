@@ -23,18 +23,18 @@ export default function CertificatePrintView({ certificate, showActions = true }
         <div className="relative aspect-[297/210] w-full overflow-hidden rounded-lg border border-amber-500/30 bg-white shadow-2xl print:rounded-none print:border-0 print:shadow-none">
           <Image src={template} alt="" fill unoptimized className="object-cover" priority />
           {certificate.badgeImage ? (
-            <div className="absolute right-[8%] top-[8%] h-[18%] w-[18%]">
+            <div className="absolute right-[8%] top-[8%] aspect-square h-[14%] overflow-hidden rounded-full border-2 border-amber-400/50 bg-white shadow-lg">
               <Image
                 src={certificate.badgeImage}
                 alt="Badge"
                 fill
                 unoptimized
-                className="object-contain drop-shadow-lg"
+                className="object-contain p-[2%]"
               />
             </div>
           ) : (
-            <div className="absolute right-[8%] top-[8%] flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/90 text-black shadow-lg print:bg-amber-400">
-              <Award className="h-8 w-8" aria-hidden />
+            <div className="absolute right-[8%] top-[8%] flex aspect-square h-[14%] items-center justify-center overflow-hidden rounded-full border-2 border-amber-400/50 bg-amber-500/90 text-black shadow-lg print:bg-amber-400">
+              <Award className="h-[55%] w-[55%]" aria-hidden />
             </div>
           )}
           <div

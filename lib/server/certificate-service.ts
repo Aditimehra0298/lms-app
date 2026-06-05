@@ -9,6 +9,11 @@ import { allocateDelegateNumber } from "@/lib/server/delegate-number-issue";
 import { buildCertificateVerifyUrl } from "@/lib/certificate-verify-url";
 import { prisma } from "@/lib/prisma";
 import {
+  isValidArchivedCertificatePdf,
+  N8N_ARCHIVED_PDF_MIN_BYTES,
+  resolveStoredCertificatePdfUrl,
+} from "@/lib/server/certificate-pdf-store";
+import {
   ensureOrganizationProfile,
   getOrganizationByWorkEmail,
 } from "@/lib/server/organization-identification";
@@ -34,11 +39,10 @@ export function resolveCertificateConfig(
   const globalAssets = content
     ? resolveCertificateAssetsForCourse(content, course)
     : null;
-  /** One shared design for every course — only learner/course fields vary on issue. */
   return {
     enabled: cfg.enabled !== false && (hero.certificate ?? "").trim().toLowerCase() !== "no",
     templateImage: globalAssets?.templateImage || DEFAULT_TEMPLATE,
-    badgeImage: globalAssets?.badgeImage || "",
+    badgeImage: globalAssets?.badgeImage || cfg.badgeImage?.trim() || "",
     title: cfg.title?.trim() || hero.certificatePreviewLabel?.trim() || "Certificate of Attainment",
     nameTopPercent: cfg.nameTopPercent ?? 42,
     numberTopPercent: cfg.numberTopPercent ?? 52,
@@ -249,7 +253,7 @@ async function enrichCertificate(cert: IssuedCertificateDto): Promise<IssuedCert
     return {
       ...cert,
       templateImage: global.templateImage,
-      badgeImage: global.badgeImage || cert.badgeImage,
+      badgeImage: cfg?.badgeImage || global.badgeImage || cert.badgeImage,
       supplementaryDocs: transcriptDocs,
       nameTopPercent: cfg?.nameTopPercent ?? cert.nameTopPercent,
       numberTopPercent: cfg?.numberTopPercent ?? cert.numberTopPercent,
@@ -269,10 +273,48 @@ export async function listCertificatesForEmail(email: string): Promise<IssuedCer
   return Promise.all(rows.map((r) => enrichCertificate(serializeCertificate(r))));
 }
 
+async function toPublishedCertificate(
+  row: {
+    id: string;
+    certificateNumber: string;
+    delegateNumber: string | null;
+    verifyNumber: number | null;
+    identificationNumber: number;
+    holderType: string;
+    organizationId: string | null;
+    learnerName: string | null;
+    learnerEmail: string;
+    courseSlug: string;
+    courseTitle: string;
+    issuedAt: Date;
+    scorePercent: number | null;
+    templateImage: string | null;
+    badgeImage: string | null;
+    supplementaryDocs: unknown;
+    status: string;
+    visibleToLearner: boolean;
+    pdfUrl: string | null;
+    issuedVia: string;
+  } | null,
+): Promise<IssuedCertificateDto | null> {
+  if (!row || row.status !== "ready" || !row.visibleToLearner) return null;
+  const cert = await enrichCertificate(serializeCertificate(row));
+  const pdfReady = await isValidArchivedCertificatePdf(row.id, {
+    minBytes: row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128,
+  });
+  const pdfUrl = await resolveStoredCertificatePdfUrl(row.id, row.pdfUrl);
+  return { ...cert, pdfReady, pdfUrl };
+}
+
 export async function getCertificateById(id: string): Promise<IssuedCertificateDto | null> {
   const row = await prisma.lmsCertificate.findUnique({ where: { id } });
   if (!row) return null;
-  return enrichCertificate(serializeCertificate(row));
+  const cert = await enrichCertificate(serializeCertificate(row));
+  const pdfReady = await isValidArchivedCertificatePdf(row.id, {
+    minBytes: row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128,
+  });
+  const pdfUrl = await resolveStoredCertificatePdfUrl(row.id, row.pdfUrl);
+  return { ...cert, pdfReady, pdfUrl };
 }
 
 export async function verifyCertificateNumber(
@@ -281,8 +323,7 @@ export async function verifyCertificateNumber(
   const row = await prisma.lmsCertificate.findUnique({
     where: { certificateNumber: certificateNumber.trim() },
   });
-  if (!row || row.status !== "ready") return null;
-  return enrichCertificate(serializeCertificate(row));
+  return toPublishedCertificate(row);
 }
 
 export async function verifyCertificateByDelegate(
@@ -291,14 +332,24 @@ export async function verifyCertificateByDelegate(
   const row = await prisma.lmsCertificate.findUnique({
     where: { delegateNumber: delegateNumber.trim() },
   });
-  if (!row || row.status !== "ready") return null;
-  return enrichCertificate(serializeCertificate(row));
+  return toPublishedCertificate(row);
+}
+
+export async function verifyCertificateById(id: string): Promise<IssuedCertificateDto | null> {
+  const row = await prisma.lmsCertificate.findUnique({ where: { id: id.trim() } });
+  return toPublishedCertificate(row);
 }
 
 export async function verifyCertificateLookup(input: {
   number?: string;
   delegate?: string;
+  id?: string;
 }): Promise<IssuedCertificateDto | null> {
+  const id = input.id?.trim();
+  if (id) {
+    const byId = await verifyCertificateById(id);
+    if (byId) return byId;
+  }
   const delegate = input.delegate?.trim();
   if (delegate) {
     const byDelegate = await verifyCertificateByDelegate(delegate);
@@ -306,5 +357,21 @@ export async function verifyCertificateLookup(input: {
   }
   const number = input.number?.trim();
   if (number) return verifyCertificateNumber(number);
+  return null;
+}
+
+/** Resolve a published certificate row for public PDF streaming. */
+export async function resolvePublicCertificateRow(input: {
+  delegate?: string;
+  number?: string;
+}) {
+  const delegate = input.delegate?.trim();
+  if (delegate) {
+    return prisma.lmsCertificate.findUnique({ where: { delegateNumber: delegate } });
+  }
+  const number = input.number?.trim();
+  if (number) {
+    return prisma.lmsCertificate.findUnique({ where: { certificateNumber: number } });
+  }
   return null;
 }

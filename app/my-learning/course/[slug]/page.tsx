@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { ResolvedLearningSection } from "@/lib/course-learning-resolve";
 import { resolveLearningSection } from "@/lib/course-learning-resolve";
 import { SecureCourseVideoPlayer } from "@/components/SecureCourseVideoPlayer";
@@ -45,8 +45,15 @@ import {
   computeCombinedExamGrade,
   DEFAULT_MODULE_EXAM_PASS_PERCENT,
   examModuleNumbers,
+  learnerCredentialsEligible,
 } from "@/lib/learner-exam-scores";
 import { learnerExamDisplayLabel } from "@/lib/my-learning-exams";
+import { CourseCompletedDashboard } from "@/components/CourseCompletedDashboard";
+import {
+  CourseCompletionCelebration,
+  hasSeenCompletionCelebration,
+  markCompletionCelebrationSeen,
+} from "@/components/CourseCompletionCelebration";
 import { CourseCompletionRewards } from "@/components/CourseCompletionRewards";
 import { CoursePlayerFeedbackSection } from "@/components/CoursePlayerFeedbackSection";
 import { CoursePlayerProgressSnapshot } from "@/components/CoursePlayerProgressSnapshot";
@@ -60,6 +67,7 @@ import {
   findLessonNavIndex,
   flattenLearnerLessons,
 } from "@/lib/course-lesson-nav";
+import type { CertificateRowDto } from "@/lib/certificate-types";
 import { readJsonResponse } from "@/lib/safe-json";
 import {
   healModuleWatchRecord,
@@ -173,11 +181,47 @@ export default function CourseLearningPlayerPage() {
   const [courseDuration, setCourseDuration] = useState("");
   const [certAssets, setCertAssets] = useState({ badge: "", template: "", transcript: "" });
   const [certRequested, setCertRequested] = useState(false);
+  const [hasIssuedCertificate, setHasIssuedCertificate] = useState(false);
+  const [celebrationDismissed, setCelebrationDismissed] = useState(() =>
+    typeof window !== "undefined" ? hasSeenCompletionCelebration(slug) : false,
+  );
+  const certRequestRef = useRef<string | null>(null);
   const [watermarkUser, setWatermarkUser] = useState("Learner");
   const [watermarkTime, setWatermarkTime] = useState("");
 
   useEffect(() => {
+    setCelebrationDismissed(hasSeenCompletionCelebration(slug));
+  }, [slug]);
+
+  const handleCelebrationComplete = useCallback(() => {
+    markCompletionCelebrationSeen(slug);
+    setCelebrationDismissed(true);
+  }, [slug]);
+
+  useEffect(() => {
     setCertRequested(window.localStorage.getItem(`sft_cert_requested_${slug}`) === "1");
+  }, [slug]);
+
+  useEffect(() => {
+    const email = getLearnerEmail()?.trim();
+    if (!email) {
+      setHasIssuedCertificate(false);
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/certificates?email=${encodeURIComponent(email)}`, { cache: "no-store" })
+      .then((res) => readJsonResponse(res, {} as { ok?: boolean; certificates?: CertificateRowDto[] }))
+      .then((data) => {
+        if (cancelled || !data.ok || !data.certificates) return;
+        const hit = data.certificates.find((c) => c.courseSlug === slug);
+        setHasIssuedCertificate(hit?.status === "ready" && hit.visibleToLearner !== false);
+      })
+      .catch(() => {
+        if (!cancelled) setHasIssuedCertificate(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
 
   useEffect(() => {
@@ -216,10 +260,15 @@ export default function CourseLearningPlayerPage() {
       .then(async (r) => (r.ok ? readJsonResponse(r, null) : null))
       .then((data) => {
         if (cancelled || !data) return;
-        const g = (data as { globalCertificateAssets?: { badgeImage?: string; templateImage?: string; transcriptFile?: string } })
-          .globalCertificateAssets;
+        const content = data as {
+          globalCertificateAssets?: { badgeImage?: string; templateImage?: string; transcriptFile?: string };
+          managedCourses?: Array<{ slug?: string; certificateConfig?: { badgeImage?: string } }>;
+        };
+        const g = content.globalCertificateAssets;
+        const courseRow = content.managedCourses?.find((c) => c.slug === slug);
+        const courseBadge = courseRow?.certificateConfig?.badgeImage?.trim() || "";
         setCertAssets({
-          badge: g?.badgeImage?.trim() || "",
+          badge: courseBadge || g?.badgeImage?.trim() || "",
           template: g?.templateImage?.trim() || "",
           transcript: g?.transcriptFile?.trim() || "",
         });
@@ -228,7 +277,7 @@ export default function CourseLearningPlayerPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [slug]);
 
   useEffect(() => {
     let cancelled = false;
@@ -345,11 +394,12 @@ export default function CourseLearningPlayerPage() {
     if (examsRequired && (!allExamsPassed || combinedExamPercent == null)) return;
 
     const flagKey = `sft_cert_requested_${slug}`;
-    if (window.localStorage.getItem(flagKey) === "1") return;
+    if (certRequestRef.current === slug) return;
 
     const email = getLearnerEmail();
     if (!email) return;
 
+    certRequestRef.current = slug;
     void requestCourseCertificateClient({
       learnerEmail: email,
       courseSlug: slug,
@@ -358,6 +408,8 @@ export default function CourseLearningPlayerPage() {
       if (r.ok) {
         window.localStorage.setItem(flagKey, "1");
         setCertRequested(true);
+      } else {
+        certRequestRef.current = null;
       }
     });
   }, [slug, curriculum, completedModules, allExamsPassed, combinedExamPercent]);
@@ -584,6 +636,16 @@ export default function CourseLearningPlayerPage() {
   const moduleTitle = (module: CourseCurriculumModule, idx: number) =>
     module.title?.trim() || `Module ${idx + 1}`;
 
+  const { allModulesDone, eligible } = learnerCredentialsEligible(
+    curriculum as SchemaCurriculumModule[],
+    completedModules,
+    allExamsPassed,
+  );
+
+  const showCompletionCelebration = eligible && !celebrationDismissed;
+
+  const showCompletionDashboard = eligible || hasIssuedCertificate;
+
   useEffect(() => {
     setActiveLearningTool("Notes");
   }, [selectedModuleIdx, selectedEntryIdx]);
@@ -624,6 +686,34 @@ export default function CourseLearningPlayerPage() {
       );
     }
     return <TutorLedProgramClient program={tutorLedResolved} enrolledLearning />;
+  }
+
+  if (showCompletionDashboard) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto max-w-[1760px] px-4 py-5 md:px-6 xl:px-8">
+          <CourseCompletedDashboard
+            courseSlug={slug}
+            courseTitle={apiCourseTitle || courseTitle}
+            courseDuration={courseDuration}
+            curriculum={curriculum as SchemaCurriculumModule[]}
+            completedModules={completedModules}
+            combinedExamPercent={combinedExamPercent}
+            allExamsPassed={allExamsPassed}
+            templateImageUrl={certAssets.template || undefined}
+            badgeImageUrl={certAssets.badge || undefined}
+            certRequested={certRequested}
+          />
+        </main>
+        {showCompletionCelebration ? (
+          <CourseCompletionCelebration
+            courseTitle={apiCourseTitle || courseTitle}
+            scorePercent={combinedExamPercent}
+            onComplete={handleCelebrationComplete}
+          />
+        ) : null}
+      </div>
+    );
   }
 
   return (
@@ -1028,6 +1118,17 @@ export default function CourseLearningPlayerPage() {
                                   </div>
                                 );
                               }
+                              if (!entry.examUploadUrl?.trim()) {
+                                return (
+                                  <div
+                                    key={entryKey}
+                                    className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] text-gray-400"
+                                  >
+                                    <span className="truncate">{examLabel}</span>
+                                    <span className="shrink-0 text-[10px] text-amber-300">Exam file pending</span>
+                                  </div>
+                                );
+                              }
                               return (
                                 <Link
                                   key={entryKey}
@@ -1209,19 +1310,21 @@ export default function CourseLearningPlayerPage() {
           </aside>
         </section>
 
-        <CourseCompletionRewards
-          courseSlug={slug}
-          courseTitle={apiCourseTitle || courseTitle}
-          courseDuration={courseDuration}
-          curriculum={curriculum as SchemaCurriculumModule[]}
-          completedModules={completedModules}
-          combinedExamPercent={combinedExamPercent}
-          allExamsPassed={allExamsPassed}
-          badgeImageUrl={certAssets.badge || undefined}
-          templateImageUrl={certAssets.template || undefined}
-          transcriptTemplateUrl={certAssets.transcript || undefined}
-          certRequested={certRequested}
-        />
+        {!allModulesDone ? (
+          <CourseCompletionRewards
+            courseSlug={slug}
+            courseTitle={apiCourseTitle || courseTitle}
+            courseDuration={courseDuration}
+            curriculum={curriculum as SchemaCurriculumModule[]}
+            completedModules={completedModules}
+            combinedExamPercent={combinedExamPercent}
+            allExamsPassed={allExamsPassed}
+            badgeImageUrl={certAssets.badge || undefined}
+            templateImageUrl={certAssets.template || undefined}
+            transcriptTemplateUrl={certAssets.transcript || undefined}
+            certRequested={certRequested}
+          />
+        ) : null}
       </main>
     </div>
   );

@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { cache } from "react";
 import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
 import {
   AdminContent,
@@ -57,7 +58,7 @@ function migrateManagedCourses(courses: ManagedCourse[]): ManagedCourse[] {
   }));
 }
 
-export async function readAdminContent(): Promise<AdminContent> {
+async function readAdminContentFromDisk(): Promise<AdminContent> {
   await ensureContentFile();
   const raw = await fs.readFile(contentFilePath, "utf8");
   try {
@@ -101,6 +102,9 @@ export async function readAdminContent(): Promise<AdminContent> {
     return defaultAdminContent;
   }
 }
+
+/** One disk read per server request (deduped across parallel catalog calls). */
+export const readAdminContent = cache(readAdminContentFromDisk);
 
 export async function writeAdminContent(content: AdminContent): Promise<void> {
   await ensureContentFile();

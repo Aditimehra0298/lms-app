@@ -410,7 +410,8 @@
         "provider": "n8n",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
-        "requireAdminApproval": false
+        "requireAdminApproval": false,
+        "badgeImage": "/badges/cybersecurity-certified.png"
       }
     },
     {

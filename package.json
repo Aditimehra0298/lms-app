@@ -22,6 +22,7 @@
     "db:deploy": "prisma migrate deploy",
     "env:init": "node scripts/init-env-local.mjs",
     "env:edit": "node scripts/open-env-local.mjs",
+    "demo:complete-course": "node --env-file=.env.local scripts/demo-complete-course.mjs",
     "setup:otp": "prisma db push && prisma generate && npm run install:nodemailer",
     "install:nodemailer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-nodemailer.ps1",
     "install:nodemailer:offline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-nodemailer-offline.ps1"

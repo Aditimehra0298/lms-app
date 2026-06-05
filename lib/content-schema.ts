@@ -291,7 +291,7 @@ export type ManagedCourseCertificateConfig = {
   title?: string;
   /** @deprecated Use globalCertificateAssets — one template for all courses. */
   templateImage?: string;
-  /** @deprecated Use globalCertificateAssets — one badge for all courses. */
+  /** Per-course badge — same for every learner; falls back to globalCertificateAssets.badgeImage. */
   badgeImage?: string;
   /** Vertical position % for learner name on template (0–100). */
   nameTopPercent?: number;

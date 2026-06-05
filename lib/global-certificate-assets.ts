@@ -29,6 +29,21 @@ export function globalCertificateAssetsReady(content: AdminContent): boolean {
   return Boolean(a.templateImage && a.badgeImage && a.transcriptFile);
 }
 
+/** Course badge from admin (per course) with global fallback. Same for all learners on that course. */
+export function resolveCourseBadgeImage(content: AdminContent, course: ManagedCourse): string {
+  const courseBadge = course.certificateConfig?.badgeImage?.trim();
+  if (courseBadge) return courseBadge;
+  return resolveGlobalCertificateAssets(content).badgeImage;
+}
+
+export function resolveCourseBadgeImageBySlug(content: AdminContent, courseSlug: string): string {
+  const slug = courseSlug.trim();
+  if (!slug) return resolveGlobalCertificateAssets(content).badgeImage;
+  const course = content.managedCourses?.find((c) => c.slug === slug);
+  if (!course) return resolveGlobalCertificateAssets(content).badgeImage;
+  return resolveCourseBadgeImage(content, course);
+}
+
 /** Assets + transcript doc list for a single certificate issue. */
 export function resolveCertificateAssetsForCourse(
   content: AdminContent,
@@ -39,5 +54,9 @@ export function resolveCertificateAssetsForCourse(
   if (global.transcriptFile) {
     docs.push({ title: "Transcript", url: global.transcriptFile });
   }
-  return { ...global, supplementaryDocs: docs };
+  return {
+    ...global,
+    badgeImage: resolveCourseBadgeImage(content, course),
+    supplementaryDocs: docs,
+  };
 }

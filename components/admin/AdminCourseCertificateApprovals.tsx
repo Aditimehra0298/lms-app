@@ -6,6 +6,7 @@ import type { AdminCertificateRowDto } from "@/lib/certificate-types";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import { certificatePdfDownloadHref } from "@/lib/certificate-pdf-client";
 import CertificatePrintView from "@/components/CertificatePrintView";
+import { ShareableBadgeCard } from "@/components/ShareableBadgeCard";
 
 export type AdminCertificateCourseOption = { slug: string; title: string };
 
@@ -216,11 +217,13 @@ export default function AdminCourseCertificateApprovals({
                       </td>
                       <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                         <div className="flex flex-col gap-1.5">
-                          {c.pdfUrl ? (
+                          {c.pdfUrl || c.pdfReady ? (
                             <a
                               href={
-                                certificatePdfDownloadHref(c.pdfUrl, getLearnerEmail() ?? c.learnerEmail) ??
-                                c.pdfUrl
+                                certificatePdfDownloadHref(
+                                  c.pdfUrl ?? `/api/certificates/${encodeURIComponent(c.id)}/pdf`,
+                                  getLearnerEmail() ?? c.learnerEmail,
+                                ) ?? c.pdfUrl ?? undefined
                               }
                               target="_blank"
                               rel="noreferrer"
@@ -307,6 +310,33 @@ export default function AdminCourseCertificateApprovals({
                     </>
                   ) : null}
                 </dl>
+                {selected.badgeImage?.trim() ? (
+                  <div
+                    className="relative overflow-hidden rounded-xl border border-amber-500/15 px-3 py-5"
+                    style={{
+                      background:
+                        "radial-gradient(ellipse at 50% 0%, rgba(245,158,11,0.08) 0%, transparent 60%)",
+                    }}
+                  >
+                    <p className="text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+                      Course badge
+                    </p>
+                    <ShareableBadgeCard
+                      variant="inline"
+                      title={selected.courseTitle}
+                      subtitle={selected.learnerName}
+                      imageUrl={selected.badgeImage.trim()}
+                      shareUrl={
+                        selected.verifyUrl?.trim() ||
+                        (typeof window !== "undefined"
+                          ? `${window.location.origin}/certificates/verify?number=${encodeURIComponent(selected.certificateNumber)}`
+                          : `/certificates/verify?number=${encodeURIComponent(selected.certificateNumber)}`)
+                      }
+                      shareText={`${selected.learnerName} earned a certificate in ${selected.courseTitle} at SF Trainings!`}
+                      className="mx-auto"
+                    />
+                  </div>
+                ) : null}
                 <div className="max-h-[360px] overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-2">
                   <CertificatePrintView certificate={selected} showActions={false} />
                 </div>

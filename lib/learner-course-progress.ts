@@ -176,3 +176,79 @@ export function readPurchasedCoursesFromStorage(): PurchasedCourseRow[] {
     return [];
   }
 }
+
+/** Mark all modules complete in localStorage when a certificate exists in DB. */
+export function ensureCompletedModulesForCertificate(
+  courseSlug: string,
+  moduleCount: number,
+): void {
+  if (typeof window === "undefined" || !courseSlug.trim() || moduleCount < 1) return;
+  const slug = courseSlug.trim();
+  const existing = readCompletedModules(slug);
+  const all = Array.from({ length: moduleCount }, (_, i) => i + 1);
+  const hasAll = all.every((n) => existing.includes(n));
+  if (!hasAll) {
+    writeCompletedModules(slug, all, moduleCount);
+  }
+}
+
+/** Merge server certificates into purchased courses so progress/dashboard shows completed work. */
+export function mergeCertificatesIntoPurchasedCourses(
+  rows: PurchasedCourseRow[],
+  certificates: Array<{
+    courseSlug: string;
+    courseTitle: string;
+    status?: string;
+    visibleToLearner?: boolean;
+  }>,
+  catalog: ManagedCourse[],
+): PurchasedCourseRow[] {
+  const bySlug = new Map<string, PurchasedCourseRow>();
+  for (const row of rows) {
+    const slug = row.slug?.trim();
+    if (slug) bySlug.set(slug, row);
+  }
+
+  for (const cert of certificates) {
+    const slug = cert.courseSlug?.trim();
+    if (!slug) continue;
+    if (cert.status !== "ready" && cert.status !== "pending") continue;
+
+    const catalogCourse = findCatalogCourse({ slug, title: cert.courseTitle }, catalog);
+    const modules = catalogCourse
+      ? countCurriculumModules(catalogCourse.curriculum)
+      : bySlug.get(slug)?.modules || 3;
+    const safeModules = Math.max(1, modules);
+
+    ensureCompletedModulesForCertificate(slug, safeModules);
+
+    const enriched = enrichPurchasedCourse(
+      {
+        slug,
+        title: cert.courseTitle,
+        modules: safeModules,
+        duration: catalogCourse?.duration?.trim() || bySlug.get(slug)?.duration || "—",
+        completed: safeModules,
+        status: "Completed",
+        action: "View Certificate",
+        tone: "emerald",
+        deliveryKind: "managed",
+        image: catalogCourse?.image?.trim() || bySlug.get(slug)?.image || "",
+      },
+      catalogCourse,
+    );
+    bySlug.set(slug, enriched);
+  }
+
+  const merged = Array.from(bySlug.values());
+  if (typeof window !== "undefined" && merged.length > rows.length) {
+    try {
+      window.localStorage.setItem("sft_purchased_courses", JSON.stringify(merged));
+      window.dispatchEvent(new Event("sft_purchases_updated"));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return merged;
+}

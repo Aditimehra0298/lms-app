@@ -119,7 +119,7 @@ type Props = {
   lesson: CourseCurriculumItem;
   lessonIndexLabel: string;
   onPatch: (patch: LessonRowPatch) => void;
-  onSave: () => void;
+  onSave: () => void | Promise<void>;
   saving?: boolean;
 };
 
@@ -547,9 +547,14 @@ export default function AdminLessonEditor({
                       const f = e.target.files?.[0];
                       if (!f) return;
                       setUploadingExam(true);
+                      setUploadError(null);
                       try {
                         const url = await uploadAdminFile(f);
                         onPatch({ examUploadUrl: url });
+                      } catch (err) {
+                        setUploadError(
+                          err instanceof Error ? err.message : "Exam file upload failed.",
+                        );
                       } finally {
                         setUploadingExam(false);
                         e.target.value = "";

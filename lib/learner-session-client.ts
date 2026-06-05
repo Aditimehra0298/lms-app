@@ -46,6 +46,17 @@ export function getLearnerEmail(): string | null {
   return window.localStorage.getItem(AUTH_KEYS.email);
 }
 
+/** Keep cookie in sync so certificate PDF GET works without ?email= in the URL. */
+export function syncLearnerEmailCookie(): void {
+  if (typeof window === "undefined") return;
+  const email = getLearnerEmail()?.trim().toLowerCase();
+  if (email) {
+    document.cookie = `${AUTH_KEYS.email}=${encodeURIComponent(email)}; path=/; max-age=31536000; SameSite=Lax`;
+  } else {
+    document.cookie = `${AUTH_KEYS.email}=; path=/; max-age=0`;
+  }
+}
+
 /** Pass `redirectPath` from `usePathname()` in render to avoid hydration mismatch. */
 export function loginRedirectHref(redirectPath: string = "/"): string {
   return `/account?mode=login&redirect=${encodeURIComponent(redirectPath)}`;
@@ -122,18 +133,29 @@ export type AuthRecordResult = {
 
 export function applyDbProfileToSession(profile: LmsUserProfilePayload): LearnerAuthProfile {
   const learner = learnerProfileFromDb(profile);
+  const prevEmail = window.localStorage.getItem(AUTH_KEYS.email);
+  const nextRole = profile.role === "admin" ? "admin" : "learner";
+  const prevRole = window.localStorage.getItem(AUTH_KEYS.role);
   window.localStorage.setItem(AUTH_KEYS.email, profile.email);
-  window.localStorage.setItem(AUTH_KEYS.role, profile.role === "admin" ? "admin" : "learner");
+  window.localStorage.setItem(AUTH_KEYS.role, nextRole);
+  syncLearnerEmailCookie();
   cacheLearnerProfile(learner);
   if (profile.countryCode && profile.countryName) {
-    cachePricingRegion(
-      pricingRegionForCountry(profile.countryCode, profile.countryName),
-    );
-    setPricingRevealed(true);
+    const cached = getCachedPricingRegion();
+    const sameCountry =
+      cached?.countryCode === profile.countryCode &&
+      cached?.countryName === profile.countryName;
+    if (!sameCountry) {
+      cachePricingRegion(pricingRegionForCountry(profile.countryCode, profile.countryName));
+      setPricingRevealed(true);
+    }
   }
-  window.dispatchEvent(new Event("sft_auth_updated"));
-  if (profile.role !== "admin") {
-    void syncEnrollmentsToServer(profile.email);
+  const sessionChanged = prevEmail !== profile.email || prevRole !== nextRole;
+  if (sessionChanged) {
+    window.dispatchEvent(new Event("sft_auth_updated"));
+    if (profile.role !== "admin") {
+      void syncEnrollmentsToServer(profile.email);
+    }
   }
   return learner;
 }
@@ -233,22 +255,39 @@ export async function saveLearnerPricingCountry(countryCode: string): Promise<Pr
   return cachePricingRegionFromCountryCode(code);
 }
 
-export async function refreshPricingRegion(): Promise<PricingRegion | null> {
+const PRICING_REGION_REFRESH_MS = 60_000;
+let pricingRegionRefreshAt = 0;
+let pricingRegionInflight: Promise<PricingRegion | null> | null = null;
+
+export async function refreshPricingRegion(force = false): Promise<PricingRegion | null> {
   const email = getLearnerEmail();
   if (!email || !isLearnerLoggedIn()) return getCachedPricingRegion();
 
-  try {
-    const res = await fetch(`/api/pricing/region?email=${encodeURIComponent(email)}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return getCachedPricingRegion();
-    const data = await readJsonResponse(res, {} as { region?: PricingRegion });
-    if (data.region) {
-      cachePricingRegion(data.region, { notify: false });
-      return data.region;
-    }
-  } catch {
-    /* network / dev server unavailable — use cached region */
+  const cached = getCachedPricingRegion();
+  if (!force && cached && Date.now() - pricingRegionRefreshAt < PRICING_REGION_REFRESH_MS) {
+    return cached;
   }
-  return getCachedPricingRegion();
+  if (pricingRegionInflight) return pricingRegionInflight;
+
+  pricingRegionInflight = (async () => {
+    try {
+      const res = await fetch(`/api/pricing/region?email=${encodeURIComponent(email)}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return getCachedPricingRegion();
+      const data = await readJsonResponse(res, {} as { region?: PricingRegion });
+      if (data.region) {
+        cachePricingRegion(data.region, { notify: false });
+        pricingRegionRefreshAt = Date.now();
+        return data.region;
+      }
+    } catch {
+      /* network / dev server unavailable — use cached region */
+    }
+    return getCachedPricingRegion();
+  })().finally(() => {
+    pricingRegionInflight = null;
+  });
+
+  return pricingRegionInflight;
 }

@@ -455,21 +455,36 @@ function resolveCourseCardImage(image: string | undefined) {
   return "/c1.png";
 }
 
-export default function LearnlyLanding() {
+export type LearnlyLandingInitialData = {
+  homeConfig?: HomePageConfig;
+  categories?: ManagedCategory[];
+  courses?: ManagedCourse[];
+  tutorLedPrograms?: TutorLedProgramStored[];
+};
+
+export default function LearnlyLanding({ initialData }: { initialData?: LearnlyLandingInitialData }) {
   const [isLightTheme, setIsLightTheme] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
   /** Default to self-paced so the course grid loads without an extra click (still switchable). */
   const [learningPath, setLearningPath] = useState<LearningPathId | null>("self-paced");
-  const [catalogCourses, setCatalogCourses] = useState<ManagedCourse[]>(() => fallbackPublishedCatalog());
-  const [tutorLedPrograms, setTutorLedPrograms] = useState<TutorLedProgramStored[]>(() =>
-    defaultTutorLedPrograms.filter((p) => p.published),
+  const [catalogCourses, setCatalogCourses] = useState<ManagedCourse[]>(
+    () => initialData?.courses ?? fallbackPublishedCatalog(),
+  );
+  const [tutorLedPrograms, setTutorLedPrograms] = useState<TutorLedProgramStored[]>(
+    () =>
+      initialData?.tutorLedPrograms ??
+      defaultTutorLedPrograms.filter((p) => p.published),
   );
   const [planAudience, setPlanAudience] = useState<"individual" | "organisation">("individual");
   const [openFaq, setOpenFaq] = useState<string | null>(faqs[0]?.q ?? null);
   const [showAllFaqs, setShowAllFaqs] = useState(false);
   const [showAllCourses, setShowAllCourses] = useState(false);
-  const [liveCategories, setLiveCategories] = useState<ManagedCategory[] | null>(null);
-  const [homeConfig, setHomeConfig] = useState<HomePageConfig>(defaultHomePageConfig);
+  const [liveCategories, setLiveCategories] = useState<ManagedCategory[] | null>(
+    initialData?.categories !== undefined ? initialData.categories : null,
+  );
+  const [homeConfig, setHomeConfig] = useState<HomePageConfig>(
+    initialData?.homeConfig ?? defaultHomePageConfig,
+  );
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const browseAnchorRef = useRef<HTMLDivElement>(null);
 
@@ -484,6 +499,7 @@ export default function LearnlyLanding() {
   }, []);
 
   useEffect(() => {
+    if (initialData?.homeConfig) return;
     let cancelled = false;
     (async () => {
       try {
@@ -502,9 +518,10 @@ export default function LearnlyLanding() {
       } catch { /* use defaults */ }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [initialData?.homeConfig]);
 
   useEffect(() => {
+    if (initialData?.categories !== undefined) return;
     let cancelled = false;
     (async () => {
       try {
@@ -519,9 +536,10 @@ export default function LearnlyLanding() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialData?.categories]);
 
   useEffect(() => {
+    if (initialData?.courses) return;
     let cancelled = false;
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
@@ -542,9 +560,10 @@ export default function LearnlyLanding() {
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, []);
+  }, [initialData?.courses]);
 
   useEffect(() => {
+    if (initialData?.tutorLedPrograms) return;
     let cancelled = false;
     (async () => {
       try {
@@ -561,7 +580,7 @@ export default function LearnlyLanding() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialData?.tutorLedPrograms]);
 
   useEffect(() => {
     if (liveCategories === null || activeCategory === "All") return;

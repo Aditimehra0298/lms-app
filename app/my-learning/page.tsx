@@ -44,17 +44,20 @@ import {
   isLearnerLoggedIn,
   syncLearnerProfileFromServer,
 } from "@/lib/learner-session-client";
+import type { CertificateRowDto } from "@/lib/certificate-types";
 import {
   COURSE_PROGRESS_UPDATED_EVENT,
   countCurriculumModules,
   enrichPurchasedCourse,
   findCatalogCourse,
+  mergeCertificatesIntoPurchasedCourses,
   readCompletedModules,
   readPurchasedCoursesFromStorage,
   syncPurchasedCourseProgress,
   type PurchasedCourseRow,
 } from "@/lib/learner-course-progress";
 import { BADGES_UPDATED_EVENT, readLearnerBadges } from "@/lib/learner-badges";
+import { ShareableBadgeCard } from "@/components/ShareableBadgeCard";
 
 export const dynamic = "force-dynamic";
 
@@ -175,8 +178,13 @@ export default function MyLearningPage() {
 
   useEffect(() => {
     setActiveTab(searchParams.get("tab") ?? "dashboard");
+    const progressFilter = searchParams.get("filter");
+    if (progressFilter === "completed") setCourseFilter("completed");
+    else if (progressFilter === "in-progress") setCourseFilter("in-progress");
+    else if (progressFilter === "not-started") setCourseFilter("not-started");
   }, [searchParams, pathname]);
   const [purchasedCourses, setPurchasedCourses] = useState<LearningCourseRow[]>([]);
+  const [learnerCertificates, setLearnerCertificates] = useState<CertificateRowDto[]>([]);
 
   useEffect(() => {
     const loadPurchasedCourses = () => {
@@ -189,6 +197,20 @@ export default function MyLearningPage() {
       });
     };
     loadPurchasedCourses();
+
+    const email = getLearnerEmail();
+    if (email) {
+      void fetch(`/api/certificates?email=${encodeURIComponent(email)}`, { cache: "no-store" })
+        .then(async (res) =>
+          readJsonResponse(res, {} as { ok?: boolean; certificates?: CertificateRowDto[] }),
+        )
+        .then((data) => {
+          if (data.ok && data.certificates) setLearnerCertificates(data.certificates);
+        })
+        .catch(() => {
+          /* ignore */
+        });
+    }
     setEarnedBadges(readLearnerBadges());
     window.addEventListener("storage", loadPurchasedCourses);
     window.addEventListener("sft_purchases_updated", loadPurchasedCourses);
@@ -227,36 +249,69 @@ export default function MyLearningPage() {
     };
   }, []);
 
+  const effectiveCatalog = useMemo(() => {
+    if (courseCatalog && courseCatalog.length > 0) return courseCatalog;
+    return (adminContent.managedCourses ?? []).filter(
+      (c) => c.published !== false && c.settings?.showInCatalog !== false,
+    );
+  }, [courseCatalog, adminContent.managedCourses]);
+
   const examsByCourse = useMemo(() => {
-    if (!courseCatalog?.length) return [];
-    return courseCatalog
+    if (!effectiveCatalog.length) return [];
+    return effectiveCatalog
       .map((c) => ({ course: c, links: examLinksFromManagedCourse(c) }))
       .filter((x) => x.links.length > 0);
-  }, [courseCatalog]);
+  }, [effectiveCatalog]);
 
   useEffect(() => {
-    if (!courseCatalog?.length) return;
+    if (!effectiveCatalog.length) return;
     const rows = readPurchasedCoursesFromStorage();
     if (rows.length === 0) return;
     for (const row of rows) {
       const slug = row.slug?.trim();
       if (!slug) continue;
-      const catalog = findCatalogCourse(row, courseCatalog);
+      const catalog = findCatalogCourse(row, effectiveCatalog);
       const modules = catalog ? countCurriculumModules(catalog.curriculum) : row.modules;
       syncPurchasedCourseProgress(slug, readCompletedModules(slug).length, modules || row.modules);
     }
-  }, [courseCatalog, progressTick]);
+  }, [effectiveCatalog, progressTick]);
 
   const courseRowKey = (c: { title: string; slug?: string }) =>
     (c.slug?.trim() || c.title.trim()).toLowerCase();
 
   const coursesForLearning = useMemo(() => {
     void progressTick;
-    const catalog = courseCatalog ?? adminContent.managedCourses ?? [];
-    return purchasedCourses.map((course) =>
+    const catalog =
+      effectiveCatalog.length > 0 ? effectiveCatalog : adminContent.managedCourses ?? [];
+    const merged = mergeCertificatesIntoPurchasedCourses(
+      purchasedCourses,
+      learnerCertificates,
+      catalog,
+    );
+    return merged.map((course) =>
       enrichPurchasedCourse(course, findCatalogCourse(course, catalog)),
     );
-  }, [purchasedCourses, courseCatalog, adminContent.managedCourses, progressTick]);
+  }, [
+    purchasedCourses,
+    learnerCertificates,
+    effectiveCatalog,
+    adminContent.managedCourses,
+    progressTick,
+  ]);
+
+  const completedCoursesWithCerts = useMemo(
+    () =>
+      coursesForLearning.filter(
+        (c) =>
+          c.status.toLowerCase() === "completed" ||
+          learnerCertificates.some(
+            (cert) =>
+              cert.courseSlug === c.slug?.trim() &&
+              (cert.status === "ready" || cert.status === "pending"),
+          ),
+      ),
+    [coursesForLearning, learnerCertificates],
+  );
   const totalEnrolledCourses = coursesForLearning.length;
   const totalCompletedCourses = coursesForLearning.filter(
     (course) =>
@@ -296,22 +351,24 @@ export default function MyLearningPage() {
   const communityFocusCourse = searchParams.get("course")?.trim() || null;
 
   const enrolledExamSlugs = useMemo(() => {
-    if (!courseCatalog?.length) return new Set<string>();
+    if (!effectiveCatalog.length) return new Set<string>();
     const s = new Set<string>();
     for (const lc of coursesForLearning) {
-      const slug = resolveLearningCourseSlug(lc, courseCatalog, toCourseSlug);
+      const slug = resolveLearningCourseSlug(lc, effectiveCatalog, toCourseSlug);
       if (slug) s.add(slug);
     }
     return s;
-  }, [courseCatalog, coursesForLearning]);
+  }, [effectiveCatalog, coursesForLearning]);
 
   const learningHrefFor = (course: { title: string; slug?: string; action?: string; status?: string }) => {
     if (course.status === "Completed" || course.action === "View Certificate") {
+      const slug = course.slug?.trim();
+      if (slug) return `/my-learning/course/${encodeURIComponent(slug)}#credentials`;
       return "/my-learning?tab=certificates";
     }
     const direct = course.slug?.trim();
     if (direct) return `/my-learning/course/${direct}`;
-    const catalog = courseCatalog?.length ? courseCatalog : adminContent.managedCourses ?? [];
+    const catalog = effectiveCatalog.length ? effectiveCatalog : adminContent.managedCourses ?? [];
     const resolved = resolveLearningCourseSlug(course, catalog, toCourseSlug);
     return `/my-learning/course/${resolved ?? toCourseSlug(course.title)}`;
   };
@@ -330,18 +387,19 @@ export default function MyLearningPage() {
   }, [coursesForLearning, courseFilter]);
 
   const enrolledExamTasks = useMemo(() => {
-    if (!courseCatalog?.length) return [];
+    if (!effectiveCatalog.length) return [];
     const tasks: Array<{
       courseTitle: string;
       label: string;
       href: string;
       status: string;
       courseSlug: string;
+      ready: boolean;
     }> = [];
     for (const row of coursesForLearning) {
-      const slug = row.slug ?? resolveLearningCourseSlug(row, courseCatalog, toCourseSlug);
+      const slug = row.slug ?? resolveLearningCourseSlug(row, effectiveCatalog, toCourseSlug);
       if (!slug) continue;
-      const course = courseCatalog.find((c) => c.slug === slug);
+      const course = effectiveCatalog.find((c) => c.slug === slug);
       if (!course) continue;
       const links = examLinksFromManagedCourse(course);
       const completed = readCompletedModules(slug);
@@ -354,13 +412,14 @@ export default function MyLearningPage() {
           courseTitle: course.title,
           label: link.label,
           href: link.href,
-          status: done ? "Completed" : "Pending",
+          status: !link.ready ? "Awaiting file" : done ? "Completed" : "Pending",
           courseSlug: slug,
+          ready: link.ready,
         });
       }
     }
     return tasks;
-  }, [courseCatalog, coursesForLearning]);
+  }, [effectiveCatalog, coursesForLearning, progressTick]);
 
   const quickActions = [
     { label: "Join Tutor-Led Session", icon: Rocket, cta: "View & Join", href: "/my-learning?tab=live" },
@@ -445,6 +504,65 @@ export default function MyLearningPage() {
                 <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-amber-500/20 blur-3xl" />
               </article>
             </div>
+
+            {completedCoursesWithCerts.length > 0 ? (
+              <article className="mt-4 rounded-xl border border-emerald-500/30 bg-linear-to-br from-emerald-500/10 to-black/30 p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="inline-flex items-center gap-2 text-xl font-bold text-white">
+                    <CheckCircle2 size={20} className="text-emerald-300" />
+                    Completed courses
+                  </h3>
+                  <Link
+                    href="/my-learning?tab=certificates"
+                    className="text-xs font-semibold text-amber-200 hover:text-amber-100"
+                  >
+                    All certificates →
+                  </Link>
+                </div>
+                <p className="mb-3 text-xs text-gray-400">
+                  Finish all modules and pass exams → your certificate appears on the course page and here.
+                </p>
+                <div className="space-y-2">
+                  {completedCoursesWithCerts.map((course) => {
+                    const cert = learnerCertificates.find((c) => c.courseSlug === course.slug?.trim());
+                    return (
+                      <div
+                        key={`completed-${courseRowKey(course)}`}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/25 px-3 py-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-semibold text-white">{course.title}</p>
+                          <p className="mt-0.5 text-xs text-gray-400">
+                            {course.completed}/{course.modules} modules complete
+                            {cert?.certificateNumber && !cert.certificateNumber.startsWith("TEMP-")
+                              ? ` · Cert ${cert.certificateNumber}`
+                              : ""}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Link
+                            href={
+                              course.slug
+                                ? `/my-learning/course/${encodeURIComponent(course.slug)}#credentials`
+                                : "/my-learning?tab=certificates"
+                            }
+                            className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-bold text-black hover:bg-amber-400"
+                          >
+                            View certificate
+                          </Link>
+                          <Link
+                            href="/my-learning?tab=learning&filter=completed"
+                            className="rounded-md border border-white/15 px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5"
+                          >
+                            My progress
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
+            ) : null}
 
             <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
               <div className="mb-3 flex items-center justify-between">
@@ -544,6 +662,52 @@ export default function MyLearningPage() {
                 </div>
               </article>
             </div>
+
+            {coursesForLearning.length > 0 ? (
+              <article className="mt-4 rounded-xl border border-emerald-500/25 bg-black/30 p-3">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="inline-flex items-center gap-2 text-xl font-bold">
+                    <ListChecks size={18} className="text-emerald-300" />
+                    Module exams
+                  </h3>
+                  <Link
+                    href="/my-learning?tab=assignments"
+                    className="text-xs text-emerald-200/90 underline-offset-2 hover:underline"
+                  >
+                    View all assignments
+                  </Link>
+                </div>
+                {enrolledExamTasks.length === 0 ? (
+                  <p className="text-sm text-gray-400">
+                    No module exams are configured on your enrolled courses yet.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {enrolledExamTasks.slice(0, 6).map((task) => (
+                      <li
+                        key={`${task.courseSlug}-${task.href}`}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/25 px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-white">{task.label}</p>
+                          <p className="truncate text-xs text-gray-400">{task.courseTitle}</p>
+                        </div>
+                        {task.ready ? (
+                          <Link
+                            href={task.href}
+                            className="shrink-0 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/20"
+                          >
+                            {task.status === "Completed" ? "Review" : "Start exam"}
+                          </Link>
+                        ) : (
+                          <span className="shrink-0 text-xs text-amber-300">CSV not saved in Admin</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            ) : null}
 
             <div className="mt-4 rounded-xl border border-white/10 bg-linear-to-r from-[#15163a] via-[#1c1744] to-[#131a39] p-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -678,6 +842,8 @@ export default function MyLearningPage() {
                           className={`mt-1 inline-flex rounded-full px-2.5 py-0.5 text-xs ${
                             task.status === "Pending"
                               ? "bg-amber-500/20 text-amber-200"
+                              : task.status === "Awaiting file"
+                                ? "bg-white/10 text-gray-400"
                               : "bg-emerald-500/20 text-emerald-200"
                           }`}
                         >
@@ -685,12 +851,16 @@ export default function MyLearningPage() {
                         </span>
                       </div>
                       <div className="text-right">
+                        {task.ready ? (
                         <Link
                           href={task.href}
                           className="rounded-md border border-white/15 px-3 py-1 text-xs text-amber-100 hover:bg-white/5"
                         >
                           {task.status === "Completed" ? "Review" : "Start exam"}
                         </Link>
+                        ) : (
+                          <span className="text-xs text-gray-500">Upload CSV in Admin</span>
+                        )}
                       </div>
                     </article>
                   ))
@@ -857,7 +1027,7 @@ export default function MyLearningPage() {
                   Assignments tab
                 </Link>
               </div>
-              {courseCatalog === undefined ? (
+              {courseCatalog === undefined && effectiveCatalog.length === 0 ? (
                 <p className="text-sm text-gray-400">Loading exam list from catalog…</p>
               ) : examsByCourse.length === 0 ? (
                 <p className="text-sm text-gray-400">
@@ -886,13 +1056,22 @@ export default function MyLearningPage() {
                             <span className="text-sm text-gray-300">
                               <span className="text-gray-500">{link.slot} · </span>
                               {link.label}
+                              {!link.ready ? (
+                                <span className="ml-2 text-[10px] text-amber-300">(CSV pending)</span>
+                              ) : null}
                             </span>
+                            {link.ready ? (
                             <Link
                               href={link.href}
                               className="shrink-0 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/20"
                             >
                               Open exam
                             </Link>
+                            ) : (
+                              <span className="shrink-0 rounded-md border border-white/10 px-2.5 py-1 text-xs text-gray-500">
+                                Not ready
+                              </span>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -985,31 +1164,41 @@ export default function MyLearningPage() {
               </article>
             </div>
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
-              <article className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <h3 className="text-lg font-bold">Badges Earned</h3>
-                <p className="text-xs text-gray-400">
+            <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-stretch">
+              <article
+                className="relative flex-1 overflow-hidden rounded-xl border border-amber-500/15 px-4 py-6 sm:px-6"
+                style={{
+                  background:
+                    "radial-gradient(ellipse at 50% -10%, rgba(245,158,11,0.1) 0%, transparent 50%), #0a0a0a",
+                }}
+              >
+                <h3 className="text-center text-lg font-bold">Badges Earned</h3>
+                <p className="mt-1 text-center text-xs text-gray-400">
                   {earnedBadges.length} badge{earnedBadges.length === 1 ? "" : "s"} unlocked
                 </p>
                 {earnedBadges.length === 0 ? (
-                  <p className="mt-3 text-sm text-gray-500">Complete course modules to earn shareable badges.</p>
+                  <p className="mt-6 text-center text-sm text-gray-500">
+                    Complete course modules to earn shareable badges.
+                  </p>
                 ) : (
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {earnedBadges.slice(0, 8).map((badge) => (
-                      <div
-                        key={badge.id}
-                        className="rounded-lg border border-violet-300/20 bg-violet-500/10 px-3 py-2"
-                      >
-                        <p className="text-xs font-semibold text-white">{badge.moduleTitle}</p>
-                        <p className="text-[10px] text-gray-400">{badge.courseTitle}</p>
-                        <Link
-                          href={`/my-learning/course/${encodeURIComponent(badge.courseSlug)}`}
-                          className="mt-1 inline-block text-[10px] text-amber-200 hover:underline"
-                        >
-                          Share from course page
-                        </Link>
-                      </div>
-                    ))}
+                  <div className="mt-2 flex flex-col items-center gap-10 py-4">
+                    {earnedBadges.slice(0, 6).map((badge) => {
+                      const shareUrl =
+                        typeof window !== "undefined"
+                          ? `${window.location.origin}/my-learning/course/${encodeURIComponent(badge.courseSlug)}`
+                          : `/my-learning/course/${encodeURIComponent(badge.courseSlug)}`;
+                      return (
+                        <ShareableBadgeCard
+                          key={badge.id}
+                          title={badge.courseTitle}
+                          subtitle={badge.moduleTitle}
+                          imageUrl={badge.badgeImageUrl}
+                          shareUrl={shareUrl}
+                          shareText={`I earned the "${badge.moduleTitle}" badge in ${badge.courseTitle}!`}
+                          className="w-full max-w-xs"
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </article>

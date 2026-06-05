@@ -16,6 +16,8 @@ type Props = {
   uploading: boolean;
   error?: string;
   onUpload: (file: File) => Promise<void>;
+  /** Circle preview for badge uploads. */
+  previewShape?: "circle" | "rectangle";
 };
 
 export default function AdminCertificateFileUpload({
@@ -28,6 +30,7 @@ export default function AdminCertificateFileUpload({
   uploading,
   error,
   onUpload,
+  previewShape = "rectangle",
 }: Props) {
   const [resolvedPreview, setResolvedPreview] = useState("");
 
@@ -94,9 +97,15 @@ export default function AdminCertificateFileUpload({
       {error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
 
       {showImagePreview ? (
-        <div className="relative mt-3 aspect-[297/210] max-w-full overflow-hidden rounded-lg border border-white/10">
-          <Image src={resolvedPreview} alt="" fill unoptimized className="object-cover" />
-        </div>
+        previewShape === "circle" ? (
+          <div className="relative mx-auto mt-3 h-28 w-28 overflow-hidden rounded-full border-2 border-amber-400/40 bg-black/40 shadow-lg">
+            <Image src={resolvedPreview} alt="" fill unoptimized className="object-contain p-1" />
+          </div>
+        ) : (
+          <div className="relative mt-3 aspect-[297/210] max-w-full overflow-hidden rounded-lg border border-white/10">
+            <Image src={resolvedPreview} alt="" fill unoptimized className="object-cover" />
+          </div>
+        )
       ) : null}
 
       {(kind === "pdf" || kind === "transcript") && uploaded && !showImagePreview ? (

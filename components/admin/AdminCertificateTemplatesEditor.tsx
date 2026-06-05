@@ -35,7 +35,7 @@ const UPLOAD_SLOTS: UploadSlot[] = [
     field: "badgeImage",
     label: "Badge",
     shortLabel: "Badge",
-    hint: "Same badge on every learner certificate.",
+    hint: "Circular badge shown on every learner certificate (square image is auto-clipped to a circle).",
     accept: "image/jpeg,image/png,image/webp,image/gif",
     kind: "image",
     icon: Award,
@@ -187,8 +187,10 @@ export default function AdminCertificateTemplatesEditor({
     <div className="space-y-4">
       {!compact ? (
         <p className="text-xs leading-relaxed text-gray-400">
-          One design for <strong className="text-gray-300">all courses</strong>. Choose what to upload, then pick your
-          file. Only learner name, email, phone, and certificate numbers change per person.
+          Shared certificate <strong className="text-gray-300">background and transcript</strong> for all courses.
+          The <strong className="text-gray-300">badge</strong> here is the default fallback — each course can upload
+          its own badge under <strong className="text-gray-300">Courses → Certificate</strong>. Only learner name,
+          email, phone, and certificate numbers change per person.
         </p>
       ) : null}
 
@@ -255,6 +257,7 @@ export default function AdminCertificateTemplatesEditor({
             previewUrl={assets[active.field]}
             accept={active.accept}
             kind={active.kind}
+            previewShape={active.id === "badge" ? "circle" : "rectangle"}
             uploading={Boolean(uploading[active.id])}
             error={uploadError[active.id]}
             onUpload={(file) => runUpload(active, file)}

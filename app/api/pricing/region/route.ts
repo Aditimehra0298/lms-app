@@ -109,8 +109,8 @@ export async function GET(request: Request) {
       ipv6: requestIps.ipv6 ?? user.ipv6,
       countrySource: geo.source,
     });
-  } catch {
-    /* fall through */
+  } catch (err) {
+    console.error("[pricing/region GET]", err);
   }
 
   const fallback = pricingRegionForCountry("IN", "India");

@@ -145,7 +145,7 @@ function VerifyContent() {
                     className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
                   >
                     <Download className="h-3.5 w-3.5" aria-hidden />
-                    Download certificate + transcript
+                    Download certificate PDF
                   </a>
                 ) : null}
                 <button

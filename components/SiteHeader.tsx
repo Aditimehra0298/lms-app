@@ -13,7 +13,11 @@ import {
   clearLearnerProfileStorage,
   type LearnerAuthProfile,
 } from "@/lib/auth-profile";
-import { getLearnerEmail, syncLearnerProfileFromServer } from "@/lib/learner-session-client";
+import {
+  getLearnerEmail,
+  syncLearnerEmailCookie,
+  syncLearnerProfileFromServer,
+} from "@/lib/learner-session-client";
 import MyLearningHeaderLink from "@/components/MyLearningHeaderLink";
 import { PricingRegionBadge } from "@/components/PricingRegionBadge";
 import { COMPANY_DISPLAY_NAME } from "@/lib/contact-site-data";
@@ -76,27 +80,38 @@ export default function SiteHeader() {
   }, [theme]);
 
   useEffect(() => {
-    const syncAuth = () => {
+    const applyLocalAuth = () => {
       const loggedIn = window.localStorage.getItem("sft_logged_in") === "true";
       setIsLoggedIn(loggedIn);
       setUserProfile(readLearnerProfileFromStorage());
-      if (loggedIn) {
-        const email = getLearnerEmail();
-        if (email) {
-          void syncLearnerProfileFromServer(email).then((p) => {
-            if (p) setUserProfile(p);
-          });
-        }
-      }
+      syncLearnerEmailCookie();
+      return loggedIn;
     };
-    syncAuth();
-    window.addEventListener("storage", syncAuth);
-    window.addEventListener("sft_auth_updated", syncAuth);
+
+    const syncFromServer = () => {
+      const email = getLearnerEmail();
+      if (!email) return;
+      void syncLearnerProfileFromServer(email).then((p) => {
+        if (p) setUserProfile(p);
+      });
+    };
+
+    if (applyLocalAuth()) syncFromServer();
+
+    const onStorage = () => {
+      if (applyLocalAuth()) syncFromServer();
+    };
+    const onAuthUpdated = () => {
+      applyLocalAuth();
+    };
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("sft_auth_updated", onAuthUpdated);
     return () => {
-      window.removeEventListener("storage", syncAuth);
-      window.removeEventListener("sft_auth_updated", syncAuth);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("sft_auth_updated", onAuthUpdated);
     };
-  }, [pathname]);
+  }, []);
 
   useEffect(() => {
     const syncCart = () => {

@@ -587,6 +587,7 @@ export default function AdminCoursesWorkspace() {
       const payload: AdminContent = { ...content, managedCourses: [...others, updated] };
       await putAdminContent(payload);
       setContent(payload);
+      setSaveNotice("Curriculum saved (exam file linked).");
       void load();
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Curriculum save failed.");
@@ -665,7 +666,14 @@ export default function AdminCoursesWorkspace() {
   };
 
   const updateRow = (sel: LessonSelection, patch: RowPatch) => {
-    setModules((prev) => patchLessonRow(prev, sel, patch));
+    let nextModules = modules;
+    setModules((prev) => {
+      nextModules = patchLessonRow(prev, sel, patch);
+      return nextModules;
+    });
+    if (patch.examUploadUrl?.trim()) {
+      void persistCurriculumSnapshot(nextModules);
+    }
   };
 
   const addRow = (mi: number) => {

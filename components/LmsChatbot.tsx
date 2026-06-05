@@ -6,11 +6,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Send, X } from "lucide-react";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
 import { learnerDisplayFirstName, readLearnerProfileFromStorage } from "@/lib/auth-profile";
-import {
-  getLearnerEmail,
-  isLearnerLoggedIn,
-  syncLearnerProfileFromServer,
-} from "@/lib/learner-session-client";
 
 type ChatLine = { role: "user" | "assistant"; content: string };
 
@@ -108,13 +103,11 @@ export default function LmsChatbot() {
     applyProfile();
     const onAuth = () => applyProfile();
     window.addEventListener("sft_auth_updated", onAuth);
-    if (isLearnerLoggedIn()) {
-      const email = getLearnerEmail();
-      if (email) void syncLearnerProfileFromServer(email).then((p) => {
-        if (p) setLearnerFirstName(learnerDisplayFirstName(p.name, p.email));
-      });
-    }
-    return () => window.removeEventListener("sft_auth_updated", onAuth);
+    window.addEventListener("storage", onAuth);
+    return () => {
+      window.removeEventListener("sft_auth_updated", onAuth);
+      window.removeEventListener("storage", onAuth);
+    };
   }, []);
 
   useEffect(() => {
