@@ -39,6 +39,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+body.tutor-led-marketing-body {
+  background: #000000;
+  color: #ffffff;
+}
+
 /* Light theme: remove white surfaces and keep premium beige feel */
 :root[data-theme="light"] body {
   background: #f8f4ec;

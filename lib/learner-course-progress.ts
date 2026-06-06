@@ -3,6 +3,10 @@ import type {
   LearningCourseStatus,
   ManagedCourse,
 } from "@/lib/content-schema";
+import {
+  computeCombinedExamGrade,
+  learnerCredentialsEligible,
+} from "@/lib/learner-exam-scores";
 
 export type PurchasedCourseRow = {
   slug?: string;
@@ -77,7 +81,17 @@ export function enrichPurchasedCourse(
   const title = catalog?.title?.trim() || row.title?.trim() || "Course";
   const image = catalog?.image?.trim() || row.image?.trim() || "";
   const completed = slug ? completedFromStorage : Math.min(row.completed ?? 0, modules);
-  const { status, action } = deriveCourseProgress(completed, modules);
+  let { status, action } = deriveCourseProgress(completed, modules);
+
+  if (slug && catalog?.curriculum?.length && (action === "View Certificate" || status === "Completed")) {
+    const completedModules = readCompletedModules(slug);
+    const { allExamsPassed } = computeCombinedExamGrade(slug, catalog.curriculum);
+    const { eligible } = learnerCredentialsEligible(catalog.curriculum, completedModules, allExamsPassed);
+    if (!eligible) {
+      status = "In Progress";
+      action = "Continue";
+    }
+  }
 
   return {
     ...row,

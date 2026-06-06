@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
-import { mapTutorLedProgramToPageCourse } from "@/lib/tutor-led-program-map";
 import {
-  isEnrolledInTutorLedProgram,
-  subscribeTutorLedPurchases,
-} from "@/lib/tutor-led-enrollment-client";
-import TutorLedAfterHeroSection from "@/components/TutorLedAfterHeroSection";
+  buildTutorLedBatchRow,
+  mapTutorLedProgramToPageCourse,
+} from "@/lib/tutor-led-program-map";
+import {
+  TUTOR_LED_CLASSROOM_IMAGE_SRC,
+  TUTOR_LED_HIGHLIGHTS_BADGE_SRC,
+} from "@/lib/tutor-led-marketing-assets";
 import TutorLedCourseHero from "@/components/TutorLedCourseHero";
 import TutorLedLearnerDashboard from "@/components/TutorLedLearnerDashboard";
-import TutorLedPreFooterReserveBar from "@/components/TutorLedPreFooterReserveBar";
+import TutorLedPostHeroSections from "@/components/TutorLedPostHeroSections";
 import CourseLandingVisit from "@/components/CourseLandingVisit";
 
 type Props = { program: TutorLedProgramStored; enrolledLearning?: boolean };
@@ -51,13 +53,10 @@ function useCountdown(initial: { days: number; hours: number; mins: number; secs
 export default function TutorLedProgramClient({ program, enrolledLearning = false }: Props) {
   const course = mapTutorLedProgramToPageCourse(program);
   const cd = useCountdown(program.countdown);
-  const purchasedEnrolled = useSyncExternalStore(
-    subscribeTutorLedPurchases,
-    () => enrolledLearning || isEnrolledInTutorLedProgram(program.slug),
-    () => enrolledLearning,
-  );
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  const showLearnerDashboard = purchasedEnrolled;
+  /** Marketing landing on `/tutor-led/[slug]`; learner dashboard only from My Learning when enrolled. */
+  const showLearnerDashboard = enrolledLearning;
 
   const crumbs = program.breadcrumb;
   const heroCourse = {
@@ -68,7 +67,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
       name: course.trainer.name,
       role: course.trainer.role,
       experience: course.trainer.experience,
-      avatar: program.trainer.avatar,
+      avatar: course.trainer.avatar,
     },
     nextBatchDate: course.nextBatchDate,
     schedule: course.schedule,
@@ -99,34 +98,42 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
     return <TutorLedLearnerDashboard program={program} />;
   }
 
+  const heroSrc = program.heroSrc?.trim() || "/h1.png";
+  const classroomSrc = TUTOR_LED_CLASSROOM_IMAGE_SRC;
+  const highlightsSrc = program.heroSrc?.trim() || TUTOR_LED_HIGHLIGHTS_BADGE_SRC;
+
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="tutor-led-marketing min-h-screen bg-black text-white">
       <CourseLandingVisit slug={program.slug} enrollAnchorId="course-enroll" />
       <TutorLedCourseHero
         breadcrumbs={breadcrumbs}
         course={heroCourse}
         countdown={cd}
-        heroSrc={program.heroSrc ?? "/h1.png"}
+        heroSrc={heroSrc}
         heroAlt={program.heroAlt ?? "Live tutor-led training"}
-        thumbnailSrc={program.heroSrc ?? "/h1.png"}
+        thumbnailSrc={heroSrc}
         primaryCta={{ kind: "register", slug: program.slug, label: "Reserve Your Seat" }}
       />
 
-      <div id="course-details">
-        <TutorLedAfterHeroSection
-          trainer={{ ...course.trainer, avatar: program.trainer.avatar }}
-          highlights={course.highlights}
-          curriculum={course.curriculum}
-          whyChoose={course.whyChoose}
-          faqs={course.faqs}
-          certificate={{
+      <div id="course-details" className="scroll-mt-24">
+        <TutorLedPostHeroSections
+          variant="tutor-led"
+          course={course}
+          openFaq={openFaq}
+          setOpenFaq={setOpenFaq}
+          highlightsImageSrc={highlightsSrc}
+          classroomImageSrc={classroomSrc}
+          tutorLedCheckoutSlug={program.slug}
+          tutorLedCertificate={{
             programTitle: program.title,
             trainerName: program.trainer.name,
           }}
+          tutorLedBatch={buildTutorLedBatchRow(program)}
+          tutorLedSchedule={program}
+          tutorLedCountdown={cd}
+          enrolledLearning={false}
         />
       </div>
-
-      <TutorLedPreFooterReserveBar checkoutSlug={program.slug} enrolledLearning={showLearnerDashboard} />
     </div>
   );
 }

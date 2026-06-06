@@ -126,6 +126,7 @@ export default function MyLearningPage() {
   const [dashboardNow] = useState(() => new Date());
   const [progressTick, setProgressTick] = useState(0);
   const [courseFilter, setCourseFilter] = useState<"all" | "in-progress" | "completed" | "not-started">("all");
+  const [courseSort, setCourseSort] = useState<"recent" | "title">("recent");
   const [earnedBadges, setEarnedBadges] = useState<ReturnType<typeof readLearnerBadges>>([]);
 
   useEffect(() => {
@@ -331,6 +332,15 @@ export default function MyLearningPage() {
     [purchasedCourses],
   );
 
+  const tutorLedCoursesForHub = useMemo(() => {
+    const catalog =
+      effectiveCatalog.length > 0 ? effectiveCatalog : adminContent.managedCourses ?? [];
+    return purchasedTutorLedRows
+      .map((course) => enrichPurchasedCourse(course, findCatalogCourse(course, catalog)))
+      .filter((c): c is typeof c & { slug: string } => Boolean(c.slug?.trim()))
+      .map((c) => ({ ...c, slug: c.slug!.trim() }));
+  }, [purchasedTutorLedRows, effectiveCatalog, adminContent.managedCourses]);
+
   const enrolledCourseSlugs = useMemo(
     () =>
       coursesForLearning
@@ -385,6 +395,14 @@ export default function MyLearningPage() {
     }
     return coursesForLearning.filter((c) => c.status.toLowerCase() === "in progress");
   }, [coursesForLearning, courseFilter]);
+
+  const sortedCoursesForLearning = useMemo(() => {
+    const list = [...filteredCoursesForLearning];
+    if (courseSort === "title") {
+      list.sort((a, b) => a.title.localeCompare(b.title));
+    }
+    return list;
+  }, [filteredCoursesForLearning, courseSort]);
 
   const enrolledExamTasks = useMemo(() => {
     if (!effectiveCatalog.length) return [];
@@ -744,9 +762,7 @@ export default function MyLearningPage() {
             </div>
           </section>
         ) : isLive ? (
-          <MyLearningLiveHub
-            enrollments={purchasedTutorLedRows.map((c) => ({ slug: c.slug!, title: c.title }))}
-          />
+          <MyLearningLiveHub enrollments={tutorLedCoursesForHub} />
         ) : isCertificates ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
             <MyCertificatesList />
@@ -931,20 +947,24 @@ export default function MyLearningPage() {
                     </button>
                   ))}
                 </div>
-                <button className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-gray-300">
-                  Sort by: Recent Activity
+                <button
+                  type="button"
+                  onClick={() => setCourseSort((s) => (s === "recent" ? "title" : "recent"))}
+                  className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:border-amber-400/30 hover:text-amber-100"
+                >
+                  Sort by: {courseSort === "recent" ? "Recent Activity" : "Course Title"}
                 </button>
               </div>
 
               <div className="space-y-2">
-                {filteredCoursesForLearning.length === 0 ? (
+                {sortedCoursesForLearning.length === 0 ? (
                   <p className="rounded-xl border border-dashed border-white/15 bg-black/20 p-6 text-center text-sm text-gray-400">
                     {coursesForLearning.length === 0
                       ? "You have not enrolled in any courses yet. Purchase a course to track your progress here."
                       : "No courses match this filter."}
                   </p>
                 ) : (
-                  filteredCoursesForLearning.map((course) => {
+                  sortedCoursesForLearning.map((course) => {
                   const safeModules = Math.max(1, course.modules);
                   const percentage = Math.round((course.completed / safeModules) * 100);
                   return (
@@ -1060,13 +1080,20 @@ export default function MyLearningPage() {
                                 <span className="ml-2 text-[10px] text-amber-300">(CSV pending)</span>
                               ) : null}
                             </span>
-                            {link.ready ? (
+                            {link.ready && enrolledExamSlugs.has(course.slug) ? (
                             <Link
                               href={link.href}
                               className="shrink-0 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/20"
                             >
                               Open exam
                             </Link>
+                            ) : link.ready ? (
+                              <Link
+                                href={`/courses/${encodeURIComponent(course.slug)}`}
+                                className="shrink-0 rounded-md border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-100 hover:bg-amber-500/20"
+                              >
+                                Enroll to take exam
+                              </Link>
                             ) : (
                               <span className="shrink-0 rounded-md border border-white/10 px-2.5 py-1 text-xs text-gray-500">
                                 Not ready

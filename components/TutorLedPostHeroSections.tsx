@@ -82,6 +82,8 @@ type Props = {
   };
   /** Live batch row for schedule table (marketing page). */
   tutorLedBatch?: TutorLedBatchRow;
+  /** Live countdown for dashboard preview on marketing page. */
+  tutorLedCountdown?: { days: number; hours: number; mins: number; secs: number };
 };
 
 const chatPreviewTutorLed = [
@@ -147,6 +149,7 @@ export default function TutorLedPostHeroSections({
   tutorLedSchedule,
   tutorLedCertificate,
   tutorLedBatch,
+  tutorLedCountdown,
 }: Props) {
   const router = useRouter();
   const isSelfPaced = variant === "self-paced";
@@ -320,6 +323,7 @@ export default function TutorLedPostHeroSections({
           checkoutSlug={tutorLedCheckoutSlug}
           enrolledLearning={enrolledLearning}
           classroomImageSrc={classroomImageSrc}
+          countdown={tutorLedCountdown}
         />
       ) : null}
 

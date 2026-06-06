@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { Copy } from "lucide-react";
 import {
+  SocialBrandIcon,
+  SOCIAL_BRAND_BUTTON_CLASS,
+  SOCIAL_BRAND_LABEL,
+  type SocialBrand,
+} from "@/components/SocialBrandIcon";
+import {
   buildCredentialShareLinks,
   copyCredentialShare,
   type SharePlatform,
@@ -19,14 +25,12 @@ type Props = {
 
 const SOCIAL_PLATFORMS: Array<{
   id: Exclude<SharePlatform, "copy">;
-  label: string;
-  letter: string;
-  bg: string;
+  brand: SocialBrand;
 }> = [
-  { id: "linkedin", label: "LinkedIn", letter: "in", bg: "bg-[#0A66C2] hover:bg-[#0958a8]" },
-  { id: "twitter", label: "X (Twitter)", letter: "𝕏", bg: "bg-zinc-800 hover:bg-zinc-700" },
-  { id: "facebook", label: "Facebook", letter: "f", bg: "bg-[#1877F2] hover:bg-[#166fe0]" },
-  { id: "whatsapp", label: "WhatsApp", letter: "wa", bg: "bg-[#25D366] hover:bg-[#20bd5c]" },
+  { id: "linkedin", brand: "linkedin" },
+  { id: "twitter", brand: "twitter" },
+  { id: "facebook", brand: "facebook" },
+  { id: "whatsapp", brand: "whatsapp" },
 ];
 
 export function ShareCredentialButtons({
@@ -62,7 +66,8 @@ export function ShareCredentialButtons({
     window.open(links[platform], "_blank", "noopener,noreferrer");
   };
 
-  const iconSize = compact ? "h-9 w-9 text-[10px]" : "h-10 w-10 text-[11px]";
+  const buttonSize = compact ? "h-9 w-9" : "h-10 w-10";
+  const iconSize = compact ? 16 : 18;
   const copyLabel = copied
     ? badgeImageUrl
       ? "Copied with badge!"
@@ -79,21 +84,21 @@ export function ShareCredentialButtons({
             key={platform.id}
             type="button"
             onClick={() => open(platform.id)}
-            className={`inline-flex shrink-0 items-center justify-center rounded-full font-black uppercase text-white shadow-md transition ${iconSize} ${platform.bg}`}
-            aria-label={`Share on ${platform.label}`}
-            title={platform.label}
+            className={`inline-flex shrink-0 items-center justify-center rounded-full text-white shadow-md transition ${buttonSize} ${SOCIAL_BRAND_BUTTON_CLASS[platform.brand]}`}
+            aria-label={`Share on ${SOCIAL_BRAND_LABEL[platform.brand]}`}
+            title={SOCIAL_BRAND_LABEL[platform.brand]}
           >
-            {platform.letter}
+            <SocialBrandIcon brand={platform.brand} size={iconSize} />
           </button>
         ))}
         <button
           type="button"
           onClick={() => open("copy")}
-          className={`inline-flex shrink-0 items-center justify-center rounded-full border border-amber-400/40 bg-amber-500/15 font-semibold text-amber-100 shadow-md transition hover:border-amber-300/60 hover:bg-amber-500/25 ${iconSize}`}
+          className={`inline-flex shrink-0 items-center justify-center rounded-full border border-amber-400/40 bg-amber-500/15 text-amber-100 shadow-md transition hover:border-amber-300/60 hover:bg-amber-500/25 ${buttonSize}`}
           aria-label={copyLabel}
           title={copyLabel}
         >
-          <Copy size={compact ? 14 : 16} aria-hidden />
+          <Copy size={iconSize} aria-hidden />
         </button>
       </div>
       {!compact ? (

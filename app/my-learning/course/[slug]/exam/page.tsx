@@ -19,9 +19,15 @@ import {
 import type { CourseCurriculumItem, CourseCurriculumModule, CourseFinalExam } from "@/lib/content-schema";
 import {
   DEFAULT_MODULE_EXAM_PASS_PERCENT,
+  computeCombinedExamGrade,
+  learnerCredentialsEligible,
   recordModuleExamAttempt,
 } from "@/lib/learner-exam-scores";
-import { markModuleCompleted } from "@/lib/learner-course-progress";
+import { markModuleCompleted, readCompletedModules } from "@/lib/learner-course-progress";
+import {
+  hasSeenCompletionCelebration,
+  queueCompletionCelebration,
+} from "@/components/CourseCompletionCelebration";
 import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
 import {
   healModuleWatchRecord,
@@ -276,7 +282,6 @@ function CourseExamPageInner() {
     if (!isSubmitted || !examRuntime || isFinalExam) return;
     const total = questions.length;
     const correct = score;
-    const percentage = Math.round((correct / total) * 100);
     const entry = recordModuleExamAttempt({
       courseSlug: slug,
       moduleNumber,
@@ -286,8 +291,17 @@ function CourseExamPageInner() {
     });
     if (entry.passed) {
       markModuleCompletedLocal();
+      const curriculum = courseMeta?.curriculum ?? [];
+      if (curriculum.length > 0) {
+        const completed = readCompletedModules(slug);
+        const { allExamsPassed } = computeCombinedExamGrade(slug, curriculum);
+        const { eligible } = learnerCredentialsEligible(curriculum, completed, allExamsPassed);
+        if (eligible && !hasSeenCompletionCelebration(slug)) {
+          queueCompletionCelebration(slug);
+        }
+      }
     }
-  }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug, questions.length]);
+  }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug, questions.length, courseMeta?.curriculum]);
 
   if (courseMeta === undefined) {
     return (
@@ -472,34 +486,48 @@ function CourseExamPageInner() {
 
         <section className="grid gap-3 xl:grid-cols-[0.35fr_1.65fr_1fr]">
           <aside className="space-y-2 rounded-xl border border-white/10 bg-[#0c1324] p-3">
-            {[
-              ["Overview", CircleHelp],
-              ["Course Content", BookOpen],
-              ["Modules", ListChecks],
-              ["Assignments", FileText],
-              ["Exams", ShieldCheck],
-              ["Results", ListChecks],
-              ["Certificate", ShieldCheck],
-              ["Discussion", CircleHelp],
-              ["Resources", FileText],
-              ["Help & Support", Headset],
-            ].map(([label, Icon], idx) => (
-              <button
-                key={String(label)}
-                className={`inline-flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm ${
-                  idx === 4 ? "bg-violet-500/20 text-violet-100" : "hover:bg-white/5"
-                }`}
-              >
-                <Icon size={14} className={idx === 4 ? "text-violet-300" : "text-gray-400"} />
-                {String(label)}
-              </button>
-            ))}
+            {(
+              [
+                ["Overview", CircleHelp, `/my-learning/course/${slug}`],
+                ["Course Content", BookOpen, `/my-learning/course/${slug}`],
+                ["Modules", ListChecks, `/my-learning/course/${slug}`],
+                ["Assignments", FileText, `/my-learning?tab=assignments`],
+                ["Exams", ShieldCheck, null],
+                ["Results", ListChecks, `/my-learning/course/${slug}`],
+                ["Certificate", ShieldCheck, `/my-learning/course/${slug}#credentials`],
+                ["Discussion", CircleHelp, `/my-learning?tab=community`],
+                ["Resources", FileText, `/my-learning/course/${slug}`],
+                ["Help & Support", Headset, "/contact"],
+              ] as const
+            ).map(([label, Icon, href], idx) =>
+              href ? (
+                <Link
+                  key={label}
+                  href={href}
+                  className="inline-flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-white/5"
+                >
+                  <Icon size={14} className="text-gray-400" />
+                  {label}
+                </Link>
+              ) : (
+                <span
+                  key={label}
+                  className="inline-flex w-full items-center gap-2 rounded-md bg-violet-500/20 px-2.5 py-2 text-left text-sm text-violet-100"
+                >
+                  <Icon size={14} className="text-violet-300" />
+                  {label}
+                </span>
+              ),
+            )}
             <div className="mt-3 rounded-lg border border-white/10 bg-black/30 p-3">
               <p className="text-sm font-semibold">Need Help?</p>
               <p className="mt-1 text-xs text-gray-400">If you face any issues during exam, contact support.</p>
-              <button className="mt-3 w-full rounded-md border border-violet-300/35 bg-violet-500/10 py-1.5 text-xs text-violet-100">
+              <Link
+                href="/contact"
+                className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-violet-300/35 bg-violet-500/10 py-1.5 text-xs text-violet-100 hover:bg-violet-500/20"
+              >
                 Contact Support
-              </button>
+              </Link>
             </div>
           </aside>
 

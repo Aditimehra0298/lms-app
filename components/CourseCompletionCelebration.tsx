@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { BadgeCheck, Sparkles } from "lucide-react";
+import { resolveProtectedMediaUrl } from "@/lib/media-client";
 
 type Phase = "enter" | "expand" | "celebrate" | "exit" | "done";
 
 type Props = {
   courseTitle: string;
   scorePercent?: number | null;
+  badgeImageUrl?: string;
   onComplete: () => void;
 };
 
@@ -41,7 +42,7 @@ function spawnConfetti(width: number, height: number, count: number): ConfettiPi
 }
 
 export function completionCelebrationStorageKey(courseSlug: string): string {
-  return `sft_completion_celebration_v2_${courseSlug.trim()}`;
+  return `sft_completion_celebration_v4_${courseSlug.trim()}`;
 }
 
 export function hasSeenCompletionCelebration(courseSlug: string): boolean {
@@ -54,39 +55,78 @@ export function markCompletionCelebrationSeen(courseSlug: string): void {
   window.localStorage.setItem(completionCelebrationStorageKey(courseSlug), "1");
 }
 
-export function CourseCompletionCelebration({ courseTitle, scorePercent, onComplete }: Props) {
+/** @deprecated Pending queue no longer required; kept for exam page compatibility. */
+export function queueCompletionCelebration(courseSlug: string): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(`sft_completion_celebration_pending_${courseSlug.trim()}`, "1");
+}
+
+export function clearPendingCompletionCelebration(courseSlug: string): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(`sft_completion_celebration_pending_${courseSlug.trim()}`);
+}
+
+export function CourseCompletionCelebration({
+  courseTitle,
+  scorePercent,
+  badgeImageUrl,
+  onComplete,
+}: Props) {
   const [phase, setPhase] = useState<Phase>("enter");
-  const [mounted, setMounted] = useState(false);
+  const [badgeSrc, setBadgeSrc] = useState("");
+  const [badgeFailed, setBadgeFailed] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
-  const completedRef = useRef(false);
-
-  useEffect(() => setMounted(true), []);
+  const finishedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
+    setBadgeFailed(false);
+    const raw = badgeImageUrl?.trim() ?? "";
+    if (!raw) {
+      setBadgeSrc("");
+      return;
+    }
+    const needsToken =
+      raw.startsWith("/api/media/serve/") ||
+      raw.startsWith("/uploads/admin/") ||
+      raw.startsWith("/storage/private/");
+    if (!needsToken) {
+      setBadgeSrc(raw);
+      return;
+    }
+    let cancelled = false;
+    void resolveProtectedMediaUrl(raw, { scope: "catalog" }).then((resolved) => {
+      if (!cancelled) setBadgeSrc(resolved || raw);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [badgeImageUrl]);
+
+  useEffect(() => {
+    finishedRef.current = false;
+    setPhase("enter");
+
+    const finish = () => {
+      if (finishedRef.current) return;
+      finishedRef.current = true;
+      setPhase("done");
+      onCompleteRef.current();
+    };
+
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reducedMotion) {
       setPhase("celebrate");
-      const t = window.setTimeout(() => {
-        setPhase("done");
-        if (!completedRef.current) {
-          completedRef.current = true;
-          onComplete();
-        }
-      }, 2500);
+      const t = window.setTimeout(finish, 2800);
       return () => window.clearTimeout(t);
     }
 
     const expandTimer = window.setTimeout(() => setPhase("expand"), 80);
     const celebrateTimer = window.setTimeout(() => setPhase("celebrate"), 1080);
     const exitTimer = window.setTimeout(() => setPhase("exit"), 4080);
-    const doneTimer = window.setTimeout(() => {
-      setPhase("done");
-      if (!completedRef.current) {
-        completedRef.current = true;
-        onComplete();
-      }
-    }, 4680);
+    const doneTimer = window.setTimeout(finish, 4680);
 
     return () => {
       window.clearTimeout(expandTimer);
@@ -94,7 +134,7 @@ export function CourseCompletionCelebration({ courseTitle, scorePercent, onCompl
       window.clearTimeout(exitTimer);
       window.clearTimeout(doneTimer);
     };
-  }, [onComplete]);
+  }, []);
 
   useEffect(() => {
     if (phase !== "celebrate" && phase !== "exit") return;
@@ -147,79 +187,94 @@ export function CourseCompletionCelebration({ courseTitle, scorePercent, onCompl
     };
   }, [phase]);
 
-  if (phase === "done" || !mounted) return null;
+  if (phase === "done") return null;
 
   const expanded = phase === "expand" || phase === "celebrate" || phase === "exit";
   const showMessage = phase === "celebrate" || phase === "exit";
   const exiting = phase === "exit";
+  const showBadgeImage = Boolean(badgeSrc) && !badgeFailed;
 
-  return createPortal(
+  const badgeSizeClass = expanded
+    ? showMessage
+      ? "h-36 w-36 md:h-44 md:w-44"
+      : "h-40 w-40 md:h-52 md:w-52"
+    : "h-28 w-28 md:h-32 md:w-32";
+
+  const badgeVisual = showBadgeImage ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={badgeSrc}
+      alt={`${courseTitle} course badge`}
+      className={`${badgeSizeClass} object-contain drop-shadow-[0_12px_40px_rgba(245,158,11,0.45)] transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]`}
+      onError={() => setBadgeFailed(true)}
+    />
+  ) : (
     <div
-      className="fixed inset-0 z-[300] flex items-center justify-center"
+      className={`flex ${badgeSizeClass} items-center justify-center rounded-3xl bg-gradient-to-br from-amber-500 to-violet-600 shadow-[0_12px_40px_rgba(245,158,11,0.35)] transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]`}
+    >
+      <BadgeCheck className="h-1/2 w-1/2 text-white" strokeWidth={2.5} aria-hidden />
+    </div>
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#060b17]"
       aria-live="polite"
       role="dialog"
       aria-label="Course completed"
     >
       <div
         className={`absolute inset-0 transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          expanded ? "bg-black/75 backdrop-blur-xl" : "bg-black/20 backdrop-blur-[2px]"
+          expanded ? "bg-black/75 backdrop-blur-xl" : "bg-black/40 backdrop-blur-sm"
         } ${exiting ? "opacity-0" : "opacity-100"}`}
         aria-hidden
       />
 
-      <div
-        className={`relative z-10 overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.55)] transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          expanded
-            ? "fixed inset-0 h-full w-full rounded-none"
-            : "h-28 w-28 rounded-3xl"
-        } ${exiting ? "scale-[1.02] opacity-0 blur-sm" : "scale-100 opacity-100 blur-0"}`}
-        style={{
-          background: expanded
-            ? "radial-gradient(ellipse at 50% 20%, rgba(245,158,11,0.22) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.18) 0%, transparent 45%), linear-gradient(165deg, #0f1419 0%, #1a1030 45%, #0a0a0a 100%)"
-            : "linear-gradient(145deg, rgba(245,158,11,0.95) 0%, rgba(139,92,246,0.92) 100%)",
-        }}
-      >
-        <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+      <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 z-20 h-full w-full" />
 
-        {!showMessage ? (
-          <div className="flex h-full w-full flex-col items-center justify-center text-white">
-            <div
-              className={`flex h-14 w-14 items-center justify-center rounded-full bg-white/20 ring-2 ring-white/40 transition-transform duration-500 ${
-                phase === "enter" ? "scale-100" : "scale-110"
-              }`}
-            >
-              <BadgeCheck className="h-8 w-8" strokeWidth={2.5} aria-hidden />
-            </div>
-          </div>
-        ) : (
+      <div
+        className={`relative z-10 flex flex-col items-center justify-center px-6 text-center transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          expanded ? "scale-100" : "scale-100"
+        } ${exiting ? "scale-[0.98] opacity-0 blur-sm" : "opacity-100"}`}
+      >
+        <div
+          className={`rounded-full transition-all duration-1000 ${
+            expanded && showMessage
+              ? "mb-6 ring-4 ring-amber-400/30 ring-offset-4 ring-offset-transparent"
+              : expanded
+                ? "ring-4 ring-amber-400/40 ring-offset-8 ring-offset-[#060b17]"
+                : "ring-4 ring-amber-300/50 ring-offset-4 ring-offset-[#060b17]"
+          }`}
+        >
+          {badgeVisual}
+        </div>
+
+        {showMessage ? (
           <div
-            className={`relative flex h-full flex-col items-center justify-center px-6 text-center transition-all duration-700 ${
-              phase === "celebrate" ? "scale-100 opacity-100" : "scale-[0.98] opacity-0"
+            className={`max-w-2xl transition-all duration-700 ${
+              phase === "celebrate" ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
             }`}
           >
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-amber-300/90">
               <Sparkles size={14} aria-hidden />
               Course complete
             </p>
-            <h2 className="mt-4 max-w-2xl text-3xl font-bold text-white md:text-5xl">
-              Congratulations!
-            </h2>
-            <p className="mt-3 max-w-xl text-base text-gray-300 md:text-lg">
+            <h2 className="mt-4 text-3xl font-bold text-white md:text-5xl">Congratulations!</h2>
+            <p className="mt-3 text-base text-gray-300 md:text-lg">
               You completed all modules and passed every assessment for
             </p>
             <p className="mt-2 bg-gradient-to-r from-amber-200 via-white to-violet-200 bg-clip-text text-xl font-bold text-transparent md:text-2xl">
               {courseTitle}
             </p>
             {scorePercent != null ? (
-              <p className="mt-5 rounded-full border border-emerald-400/35 bg-emerald-500/15 px-4 py-1.5 text-sm font-semibold text-emerald-200">
+              <p className="mt-5 inline-flex rounded-full border border-emerald-400/35 bg-emerald-500/15 px-4 py-1.5 text-sm font-semibold text-emerald-200">
                 Final score: {Math.round(scorePercent)}%
               </p>
             ) : null}
-            <p className="mt-8 text-sm text-gray-500">Your certificate is ready</p>
+            <p className="mt-8 text-sm text-gray-500">Opening your certificate…</p>
           </div>
-        )}
+        ) : null}
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }

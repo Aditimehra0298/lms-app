@@ -55,10 +55,13 @@ export function PriceDescriptionButtonRow({
   descriptionHref,
   onDescriptionClick,
   className = "",
+  hideKnowPrice = false,
 }: {
   descriptionHref?: string;
   onDescriptionClick?: () => void;
   className?: string;
+  /** Hide regional pricing / change region control (e.g. tutor-led landing). */
+  hideKnowPrice?: boolean;
 }) {
   return (
     <div
@@ -66,7 +69,7 @@ export function PriceDescriptionButtonRow({
       onClick={stopBubble}
       onKeyDown={(e) => e.stopPropagation()}
     >
-      <KnowPriceButton />
+      {!hideKnowPrice ? <KnowPriceButton /> : null}
       <DescriptionButton href={descriptionHref} onClick={onDescriptionClick} />
     </div>
   );

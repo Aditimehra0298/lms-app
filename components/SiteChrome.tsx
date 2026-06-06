@@ -1,31 +1,42 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { PricingProvider } from "@/components/PricingProvider";
 import CartAbandonmentTracker from "@/components/CartAbandonmentTracker";
 import DeferredChatbots from "@/components/DeferredChatbots";
+
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
-  if (pathname.startsWith("/admin")) {
+  const isAdmin = pathname.startsWith("/admin");
+  const accountPage = pathname === "/account";
+  const tutorLedMarketing = pathname.startsWith("/tutor-led");
+
+  useEffect(() => {
+    if (!tutorLedMarketing) return;
+    document.body.classList.add("tutor-led-marketing-body");
+    return () => document.body.classList.remove("tutor-led-marketing-body");
+  }, [tutorLedMarketing]);
+
+  if (isAdmin) {
     return <>{children}</>;
   }
 
-  const accountPage = pathname === "/account";
-
   return (
     <PricingProvider>
-      <SiteHeader />
+      <SiteHeader forceDarkChrome={tutorLedMarketing} />
       <div
-        className={`relative z-10 flex w-full min-w-0 flex-col${accountPage ? " shrink-0" : " flex-1"}`}
+        className={`relative z-10 flex w-full min-w-0 flex-col${
+          accountPage ? " shrink-0" : " flex-1"
+        }${tutorLedMarketing ? " bg-black text-white" : ""}`}
       >
         {children}
       </div>
-      <SiteFooter />
+      <SiteFooter forceDarkChrome={tutorLedMarketing} />
       <CartAbandonmentTracker />
       <DeferredChatbots />
     </PricingProvider>
-
   );
 }

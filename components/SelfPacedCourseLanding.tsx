@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { CatalogMediaImage } from "@/components/CatalogMediaImage";
+import {
+  SocialBrandIcon,
+  SOCIAL_BRAND_BUTTON_CLASS,
+  SOCIAL_BRAND_LABEL,
+} from "@/components/SocialBrandIcon";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ManagedCourse } from "@/lib/content-schema";
@@ -31,6 +36,7 @@ import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
 import { formatSimpleRichTextBlock } from "@/lib/simple-rich-text";
 import { useResolvedCoursePrice } from "@/lib/hooks/useResolvedCoursePrice";
 import { isLearnerLoggedIn, loginRedirectHref } from "@/lib/learner-session-client";
+import { buildCredentialShareLinks } from "@/lib/share-credentials";
 import {
   Award,
   BarChart3,
@@ -92,44 +98,66 @@ const learnIconPalette = [
 const cardClass = "rounded-xl border border-white/10 bg-[#141414] p-5";
 
 function SocialShareRow({ courseTitle }: { courseTitle: string }) {
-  const share = () => {
+  const [copied, setCopied] = useState(false);
+
+  const getShareLinks = () => {
+    if (typeof window === "undefined") return null;
+    const url = window.location.href;
+    return buildCredentialShareLinks({
+      url,
+      title: courseTitle,
+      text: `Check out ${courseTitle} on SF Trainings`,
+    });
+  };
+
+  const copyLink = () => {
     if (typeof window === "undefined") return;
     const url = window.location.href;
-    if (navigator.share) {
-      void navigator.share({ title: courseTitle, url });
-      return;
-    }
-    void navigator.clipboard.writeText(url);
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    });
   };
+
+  const openPlatform = (platform: "facebook" | "twitter" | "linkedin") => {
+    const links = getShareLinks();
+    if (!links) return;
+    window.open(links[platform], "_blank", "noopener,noreferrer");
+  };
+
+  const platforms: Array<{ brand: "facebook" | "twitter" | "linkedin"; id: "facebook" | "twitter" | "linkedin" }> = [
+    { brand: "facebook", id: "facebook" },
+    { brand: "twitter", id: "twitter" },
+    { brand: "linkedin", id: "linkedin" },
+  ];
 
   return (
     <div className={cardClass}>
       <h3 className="text-sm font-bold text-white">Share this course</h3>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={share}
+          onClick={copyLink}
           className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-zinc-900 text-zinc-300 transition hover:border-[#f4c150]/40 hover:text-white"
           aria-label="Copy link"
+          title={copied ? "Link copied!" : "Copy link"}
         >
           <Link2 className="h-4 w-4" />
         </button>
-        {[
-          { label: "Facebook", letter: "f" },
-          { label: "Twitter", letter: "𝕏" },
-          { label: "LinkedIn", letter: "in" },
-        ].map((s) => (
+        {platforms.map((platform) => (
           <button
-            key={s.label}
+            key={platform.id}
             type="button"
-            onClick={share}
-            className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-zinc-900 text-[11px] font-bold text-zinc-300 transition hover:border-[#f4c150]/40 hover:text-white"
-            aria-label={`Share on ${s.label}`}
+            onClick={() => openPlatform(platform.id)}
+            className={`grid h-9 w-9 place-items-center rounded-full text-white shadow-md transition ${SOCIAL_BRAND_BUTTON_CLASS[platform.brand]}`}
+            aria-label={`Share on ${SOCIAL_BRAND_LABEL[platform.brand]}`}
+            title={SOCIAL_BRAND_LABEL[platform.brand]}
           >
-            {s.letter}
+            <SocialBrandIcon brand={platform.brand} size={16} />
           </button>
         ))}
       </div>
+      {copied ? <p className="mt-2 text-[10px] text-emerald-300">Course link copied</p> : null}
     </div>
   );
 }

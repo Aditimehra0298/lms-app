@@ -24,6 +24,8 @@ import {
   Zap,
 } from "lucide-react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import type { TutorLedBatchRow } from "@/components/TutorLedLandingSections";
+import { TUTOR_LED_TRAINER_AVATAR_FALLBACK } from "@/lib/tutor-led-marketing-assets";
 
 export const TUTOR_LED_ICON_MAP: Record<string, LucideIcon> = {
   Award,
@@ -63,6 +65,12 @@ export function tutorLedEnrolledPrice(stored: TutorLedProgramStored): number {
   return stored.priceAfterPayment ?? stored.price;
 }
 
+export function resolveTutorLedTrainerAvatar(avatar?: string): string {
+  const trimmed = avatar?.trim();
+  if (!trimmed || trimmed === "/trainer-avatar.png") return TUTOR_LED_TRAINER_AVATAR_FALLBACK;
+  return trimmed;
+}
+
 export function mapTutorLedProgramToPageCourse(stored: TutorLedProgramStored) {
   return {
     title: stored.title,
@@ -78,7 +86,10 @@ export function mapTutorLedProgramToPageCourse(stored: TutorLedProgramStored) {
     batchLabel: stored.batchLabel,
     seatsFilling: stored.seatsFilling,
     seatsLeft: stored.seatsLeft,
-    trainer: { ...stored.trainer },
+    trainer: {
+      ...stored.trainer,
+      avatar: resolveTutorLedTrainerAvatar(stored.trainer.avatar),
+    },
     nextBatchDate: stored.nextBatchDate,
     schedule: stored.schedule,
     language: stored.language,
@@ -101,5 +112,22 @@ export function mapTutorLedProgramToPageCourse(stored: TutorLedProgramStored) {
       desc: w.desc,
     })),
     faqs: stored.faqs.map((f) => ({ ...f })),
+  };
+}
+
+/** Live batch table row for tutor-led marketing landing sections. */
+export function buildTutorLedBatchRow(stored: TutorLedProgramStored): TutorLedBatchRow {
+  const duration =
+    stored.batchDetails.find((d) => d.label === "Duration")?.value?.trim() || "12 Weeks";
+  const schedule = stored.schedule.trim();
+  const paren = schedule.match(/\(([^)]+)\)/);
+  const sessionDays = schedule.replace(/\([^)]*\)/, "").trim() || schedule;
+  return {
+    batchId: stored.batchLabel?.trim() || "Upcoming Live Batch",
+    startDate: stored.nextBatchDate?.trim() || "TBA",
+    sessionDays,
+    timeIst: paren?.[1]?.trim() || schedule,
+    duration,
+    mode: "Live on Zoom",
   };
 }

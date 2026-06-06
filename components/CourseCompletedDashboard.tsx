@@ -490,7 +490,7 @@ export function CourseCompletedDashboard({
                   )}
                   Download Certificate (PDF)
                 </button>
-                <OutlineBtn href={`/my-learning/course/${encodeURIComponent(courseSlug)}#transcript`}>
+                <OutlineBtn href="#module-results">
                   <FileText size={16} /> View Transcript
                 </OutlineBtn>
                 {verifyUrl ? (
@@ -795,7 +795,7 @@ export function CourseCompletedDashboard({
               {[
                 { label: "Course Details", icon: BookOpen, href: `/courses/${courseSlug}` },
                 { label: "Download", icon: Download, href: viewPdfHref },
-                { label: "My Notes", icon: FileText, href: `#credentials` },
+                { label: "My Notes", icon: FileText, href: `/my-learning/course/${encodeURIComponent(courseSlug)}` },
                 { label: "Ask Mentor", icon: MessageCircle, href: `/contact` },
               ].map(({ label, icon: Icon, href }) => (
                 <Link
@@ -856,6 +856,7 @@ export function CourseCompletedDashboard({
       </section>
 
       <section id="module-results" className={`${CARD} p-5`}>
+        <div id="transcript" className="scroll-mt-24" aria-hidden />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-white">Module completion &amp; scores</h2>

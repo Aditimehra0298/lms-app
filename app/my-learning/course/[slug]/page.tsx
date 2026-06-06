@@ -10,7 +10,6 @@ import { SecureCourseVideoPlayer } from "@/components/SecureCourseVideoPlayer";
 import {
   BadgeCheck,
   Bookmark,
-  CalendarDays,
   CheckCheck,
   CheckCircle2,
   ChevronDown,
@@ -27,7 +26,6 @@ import {
   Play,
   PlayCircle,
   Presentation,
-  Search,
   StickyNote,
   Subtitles,
 } from "lucide-react";
@@ -51,6 +49,7 @@ import { learnerExamDisplayLabel } from "@/lib/my-learning-exams";
 import { CourseCompletedDashboard } from "@/components/CourseCompletedDashboard";
 import {
   CourseCompletionCelebration,
+  clearPendingCompletionCelebration,
   hasSeenCompletionCelebration,
   markCompletionCelebrationSeen,
 } from "@/components/CourseCompletionCelebration";
@@ -128,9 +127,11 @@ function resolveTutorLedHit(
 ): TutorLedProgramStored | null {
   const slugHit = programs.find((p) => p.slug === slug) ?? null;
   if (!slugHit) return null;
-  if (purchasedThisSlug || isTutorLedPurchase || (Boolean(slugHit.published) && !purchasedThisSlug)) {
-    return slugHit;
-  }
+  // Self-paced (managed) purchase always uses the video player, even when slug exists in tutor-led catalog.
+  if (purchasedThisSlug && !isTutorLedPurchase) return null;
+  if (isTutorLedPurchase) return slugHit;
+  if (purchasedThisSlug) return slugHit;
+  if (Boolean(slugHit.published) && !purchasedThisSlug) return slugHit;
   return null;
 }
 
@@ -145,7 +146,8 @@ export default function CourseLearningPlayerPage() {
   const [curriculum, setCurriculum] = useState<CourseCurriculumModule[]>([]);
   const [selectedModuleIdx, setSelectedModuleIdx] = useState(0);
   const [selectedEntryIdx, setSelectedEntryIdx] = useState(0);
-  const [completedModules, setCompletedModules] = useState<number[]>([]);
+  const [completedModules, setCompletedModules] = useState<number[]>(() => readCompletedModules(slug));
+  const [progressHydrated, setProgressHydrated] = useState(true);
   const [expandedModules, setExpandedModules] = useState<Set<number>>(() => new Set([0]));
   const isPurchased = useSyncExternalStore(
     subscribeTutorLedPurchases,
@@ -182,21 +184,41 @@ export default function CourseLearningPlayerPage() {
   const [certAssets, setCertAssets] = useState({ badge: "", template: "", transcript: "" });
   const [certRequested, setCertRequested] = useState(false);
   const [hasIssuedCertificate, setHasIssuedCertificate] = useState(false);
-  const [celebrationDismissed, setCelebrationDismissed] = useState(() =>
-    typeof window !== "undefined" ? hasSeenCompletionCelebration(slug) : false,
-  );
+  const [celebrationFinished, setCelebrationFinished] = useState(false);
+  const [skipCelebrationForHash, setSkipCelebrationForHash] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const hash = window.location.hash.replace("#", "").toLowerCase();
+    return hash === "credentials" || hash === "transcript" || hash === "module-results";
+  });
+  const [lessonBookmarked, setLessonBookmarked] = useState(false);
+  const [learnerNote, setLearnerNote] = useState("");
+  const [resourcesPanelOpen, setResourcesPanelOpen] = useState(false);
+  const [activeLessonTab, setActiveLessonTab] = useState<"notes" | "resources">("notes");
   const certRequestRef = useRef<string | null>(null);
   const [watermarkUser, setWatermarkUser] = useState("Learner");
   const [watermarkTime, setWatermarkTime] = useState("");
 
-  useEffect(() => {
-    setCelebrationDismissed(hasSeenCompletionCelebration(slug));
+  const handleCelebrationComplete = useCallback(() => {
+    clearPendingCompletionCelebration(slug);
+    markCompletionCelebrationSeen(slug);
+    setCelebrationFinished(true);
   }, [slug]);
 
-  const handleCelebrationComplete = useCallback(() => {
-    markCompletionCelebrationSeen(slug);
-    setCelebrationDismissed(true);
+  useEffect(() => {
+    setCelebrationFinished(false);
   }, [slug]);
+
+  useEffect(() => {
+    const syncHash = () => {
+      const hash = window.location.hash.replace("#", "").toLowerCase();
+      setSkipCelebrationForHash(
+        hash === "credentials" || hash === "transcript" || hash === "module-results",
+      );
+    };
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, []);
 
   useEffect(() => {
     setCertRequested(window.localStorage.getItem(`sft_cert_requested_${slug}`) === "1");
@@ -322,9 +344,9 @@ export default function CourseLearningPlayerPage() {
   }, [slug]);
 
   useEffect(() => {
-    const key = `sft_completed_modules_${slug}`;
     const load = () => {
       setCompletedModules(readCompletedModules(slug));
+      setProgressHydrated(true);
     };
     load();
     window.addEventListener("storage", load);
@@ -414,6 +436,16 @@ export default function CourseLearningPlayerPage() {
     });
   }, [slug, curriculum, completedModules, allExamsPassed, combinedExamPercent]);
 
+  const { allModulesDone, eligible } = useMemo(
+    () =>
+      learnerCredentialsEligible(
+        curriculum as SchemaCurriculumModule[],
+        completedModules,
+        allExamsPassed,
+      ),
+    [curriculum, completedModules, allExamsPassed],
+  );
+
   useEffect(() => {
     const loadCourse = async () => {
       try {
@@ -487,6 +519,22 @@ export default function CourseLearningPlayerPage() {
   );
   const activeItem = activeModuleItems[selectedEntryIdx];
   const selectedModuleNumber = selectedModuleIdx + 1;
+  const lessonStorageKey = `${slug}_${selectedModuleNumber}_${selectedEntryIdx}`;
+
+  useEffect(() => {
+    setLessonBookmarked(window.localStorage.getItem(`sft_bookmark_${lessonStorageKey}`) === "1");
+    setLearnerNote(window.localStorage.getItem(`sft_learner_note_${lessonStorageKey}`) ?? "");
+  }, [lessonStorageKey]);
+
+  const toggleLessonBookmark = () => {
+    const next = !lessonBookmarked;
+    setLessonBookmarked(next);
+    window.localStorage.setItem(`sft_bookmark_${lessonStorageKey}`, next ? "1" : "0");
+  };
+
+  const saveLearnerNote = () => {
+    window.localStorage.setItem(`sft_learner_note_${lessonStorageKey}`, learnerNote);
+  };
 
   const requiredSecondsByModule = useMemo(() => {
     const out: Record<number, number> = {};
@@ -636,15 +684,23 @@ export default function CourseLearningPlayerPage() {
   const moduleTitle = (module: CourseCurriculumModule, idx: number) =>
     module.title?.trim() || `Module ${idx + 1}`;
 
-  const { allModulesDone, eligible } = learnerCredentialsEligible(
-    curriculum as SchemaCurriculumModule[],
-    completedModules,
-    allExamsPassed,
-  );
+  const completionStateReady = progressHydrated && curriculum.length > 0;
+  const completionUnlocked = eligible || hasIssuedCertificate;
+  const alreadyCelebrated =
+    celebrationFinished || hasSeenCompletionCelebration(slug) || skipCelebrationForHash;
+  const showCompletionCelebration =
+    completionStateReady && completionUnlocked && !alreadyCelebrated;
+  const showCompletionDashboard = completionStateReady && completionUnlocked && alreadyCelebrated;
 
-  const showCompletionCelebration = eligible && !celebrationDismissed;
-
-  const showCompletionDashboard = eligible || hasIssuedCertificate;
+  useEffect(() => {
+    if (!showCompletionDashboard) return;
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [showCompletionDashboard]);
 
   useEffect(() => {
     setActiveLearningTool("Notes");
@@ -688,6 +744,59 @@ export default function CourseLearningPlayerPage() {
     return <TutorLedProgramClient program={tutorLedResolved} enrolledLearning />;
   }
 
+  if (!tutorLedResolved && !isPurchased) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto max-w-[1760px] px-4 py-16 md:px-6 xl:px-8">
+          <Link href="/my-learning?tab=learning" className="text-xs text-gray-400 hover:text-amber-200">
+            ← My Learning
+          </Link>
+          <h1 className="mt-4 text-3xl font-bold">{apiCourseTitle || courseTitle}</h1>
+          <p className="mt-2 max-w-xl text-gray-300">
+            Enroll in this self-paced course to access video lessons, module exams, and your certificate.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href={`/courses/${encodeURIComponent(slug)}`}
+              className="inline-flex rounded-lg bg-amber-400 px-5 py-2.5 text-sm font-bold text-black hover:bg-amber-300"
+            >
+              View course & enroll
+            </Link>
+            <Link
+              href="/courses"
+              className="inline-flex rounded-lg border border-white/15 px-5 py-2.5 text-sm font-semibold text-gray-200 hover:bg-white/5"
+            >
+              Browse courses
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if ((hasIssuedCertificate || completedModules.length > 0) && !completionStateReady) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto flex max-w-[1760px] items-center justify-center px-4 py-24">
+          <p className="text-sm text-gray-400">Loading your course progress…</p>
+        </main>
+      </div>
+    );
+  }
+
+  if (showCompletionCelebration) {
+    const celebrationBadgeUrl =
+      certAssets.badge || (slug === "cybersecurity" ? "/badges/cybersecurity-certified.png" : "");
+    return (
+      <CourseCompletionCelebration
+        courseTitle={apiCourseTitle || courseTitle}
+        scorePercent={combinedExamPercent}
+        badgeImageUrl={celebrationBadgeUrl || undefined}
+        onComplete={handleCelebrationComplete}
+      />
+    );
+  }
+
   if (showCompletionDashboard) {
     return (
       <div className="min-h-screen bg-[#060b17] text-white">
@@ -705,13 +814,6 @@ export default function CourseLearningPlayerPage() {
             certRequested={certRequested}
           />
         </main>
-        {showCompletionCelebration ? (
-          <CourseCompletionCelebration
-            courseTitle={apiCourseTitle || courseTitle}
-            scorePercent={combinedExamPercent}
-            onComplete={handleCelebrationComplete}
-          />
-        ) : null}
       </div>
     );
   }
@@ -807,8 +909,17 @@ export default function CourseLearningPlayerPage() {
                       "Follow module lessons in order, then attempt module assessments and the final exam."}
                   </p>
                 </div>
-                <button className="inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-gray-300">
-                  <Bookmark size={14} /> {learningCopy.bookmarkLabel}
+                <button
+                  type="button"
+                  onClick={toggleLessonBookmark}
+                  className={`inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm transition ${
+                    lessonBookmarked
+                      ? "border-amber-300/50 bg-amber-500/20 text-amber-100"
+                      : "border-white/15 bg-black/30 text-gray-300 hover:border-amber-300/40"
+                  }`}
+                >
+                  <Bookmark size={14} className={lessonBookmarked ? "fill-current" : undefined} />{" "}
+                  {lessonBookmarked ? "Bookmarked" : learningCopy.bookmarkLabel}
                 </button>
               </div>
 
@@ -925,31 +1036,88 @@ export default function CourseLearningPlayerPage() {
               <div className="mt-4 grid gap-3 md:grid-cols-[1.2fr_1fr_minmax(140px,0.75fr)]">
                 <div className="rounded-lg border border-white/10 bg-black/20 p-3">
                   <div className="mb-2 flex items-center gap-5 text-sm">
-                    <span className="border-b-2 border-violet-400 pb-1 text-violet-100">
+                    <button
+                      type="button"
+                      onClick={() => setActiveLessonTab("notes")}
+                      className={`pb-1 ${
+                        activeLessonTab === "notes"
+                          ? "border-b-2 border-violet-400 text-violet-100"
+                          : "text-gray-400 hover:text-gray-200"
+                      }`}
+                    >
                       {learningCopy.notesTabLabel}
-                    </span>
-                    <span className="text-gray-400">{learningCopy.resourcesTabLabel}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveLessonTab("resources");
+                        setResourcesPanelOpen(true);
+                      }}
+                      className={`pb-1 ${
+                        activeLessonTab === "resources"
+                          ? "border-b-2 border-violet-400 text-violet-100"
+                          : "text-gray-400 hover:text-gray-200"
+                      }`}
+                    >
+                      {learningCopy.resourcesTabLabel}
+                    </button>
                   </div>
+                  {activeLessonTab === "notes" ? (
                   <div className="grid gap-2 md:grid-cols-[1fr_auto]">
                     <input
-                      value={activeItem?.notes ?? ""}
-                      onChange={() => {}}
-                      readOnly
-                      placeholder="No lesson notes added in admin."
+                      value={learnerNote}
+                      onChange={(e) => setLearnerNote(e.target.value)}
+                      placeholder={
+                        activeItem?.notes?.trim()
+                          ? `Instructor notes: ${activeItem.notes.trim().slice(0, 80)}…`
+                          : "Write your personal note for this lesson…"
+                      }
                       className="rounded-md border border-white/10 bg-black/35 px-3 py-2 text-sm placeholder:text-gray-500"
                     />
-                    <button className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold">
+                    <button
+                      type="button"
+                      onClick={saveLearnerNote}
+                      className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold hover:bg-violet-500"
+                    >
                       {learningCopy.saveNoteLabel}
                     </button>
                   </div>
+                  ) : (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {resourceLinks.length > 0 ? (
+                      resourceLinks.map((res) => (
+                        <a
+                          key={`${res.label}-${res.url}`}
+                          href={res.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-md border border-white/10 bg-black/30 p-2 text-xs text-violet-200 underline hover:border-violet-300/40"
+                        >
+                          {res.label}
+                        </a>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500">No resources uploaded for this lesson yet.</p>
+                    )}
+                  </div>
+                  )}
                 </div>
 
                 <div className="rounded-lg border border-white/10 bg-black/20 p-3">
                   <div className="mb-2 flex items-center justify-between">
                     <p className="font-semibold">Resources</p>
-                    <button className="text-xs text-violet-200">View All</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveLessonTab("resources");
+                        setResourcesPanelOpen(true);
+                      }}
+                      className="text-xs text-violet-200 hover:text-violet-100"
+                    >
+                      View All
+                    </button>
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className={`grid gap-2 sm:grid-cols-2 ${resourcesPanelOpen ? "" : "max-h-28 overflow-hidden"}`}>
                     {resourceLinks.length > 0 ? (
                       resourceLinks.map((res) => {
                         const iconMap: Record<string, typeof FileText> = {
@@ -1225,19 +1393,37 @@ export default function CourseLearningPlayerPage() {
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
               <h3 className="text-sm font-semibold">{learningCopy.quickToolsTitle}</h3>
               <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                <button className="rounded border border-white/10 bg-black/25 px-2 py-1.5">
-                  {activeItem?.notes?.trim() ? "Notes Added" : "No Notes"}
+                <button
+                  type="button"
+                  onClick={() => setActiveLearningTool("Notes")}
+                  className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
+                >
+                  {activeItem?.notes?.trim() || learnerNote.trim() ? "Notes Added" : "No Notes"}
                 </button>
-                <button className="rounded border border-white/10 bg-black/25 px-2 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveLessonTab("resources");
+                    setResourcesPanelOpen(true);
+                  }}
+                  className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
+                >
                   {resourceLinks.length > 0 ? "Resources Ready" : "No Resources"}
                 </button>
-                <button className="rounded border border-white/10 bg-black/25 px-2 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveLearningTool("Captions")}
+                  className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
+                >
                   {activeItem?.captions?.trim() ? "Captions Ready" : "No Captions"}
                 </button>
               </div>
-              <div className="mt-3 inline-flex items-center gap-2 text-xs text-gray-400">
-                <Search size={12} /> Search inside module content
-              </div>
+              <Link
+                href="/my-learning?tab=community"
+                className="mt-3 inline-flex items-center gap-2 text-xs text-violet-300 underline hover:text-violet-200"
+              >
+                <MessageCircle size={12} /> Ask mentor in community
+              </Link>
               {activeItem?.pdfUrl?.trim() ? (
                 <a
                   href={activeItem.pdfUrl.trim()}
@@ -1249,10 +1435,7 @@ export default function CourseLearningPlayerPage() {
                 </a>
               ) : null}
               <div className="mt-2 inline-flex items-center gap-2 text-xs text-gray-400">
-                <MessageCircle size={12} /> Ask mentor for clarification
-              </div>
-              <div className="mt-2 inline-flex items-center gap-2 text-xs text-gray-400">
-                <CalendarDays size={12} /> Next live Q&A on Friday
+                <MessageCircle size={12} /> Need help? Use community or contact support below.
               </div>
               <div className="mt-2 inline-flex items-center gap-2 text-xs text-emerald-300">
                 <CheckCircle2 size={12} /> Pass every exam at {DEFAULT_MODULE_EXAM_PASS_PERCENT}%+ — combined score = certificate %
@@ -1267,8 +1450,8 @@ export default function CourseLearningPlayerPage() {
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link
-                  href="/account"
-                  className="rounded-md border border-violet-300/35 bg-violet-500/15 px-3 py-1.5 text-xs font-semibold text-violet-100"
+                  href="/contact"
+                  className="rounded-md border border-violet-300/35 bg-violet-500/15 px-3 py-1.5 text-xs font-semibold text-violet-100 hover:bg-violet-500/25"
                 >
                   Contact support
                 </Link>

@@ -24,22 +24,28 @@ import {
   SFT_QUICK_LINKS,
   SFT_SOCIAL,
 } from "@/lib/contact-site-data";
+import {
+  SocialBrandIcon,
+  SOCIAL_BRAND_BUTTON_CLASS,
+  SOCIAL_BRAND_LABEL,
+} from "@/components/SocialBrandIcon";
 
-export default function SiteFooter() {
+export default function SiteFooter({ forceDarkChrome = false }: { forceDarkChrome?: boolean }) {
   const [isLightTheme, setIsLightTheme] = useState(false);
   const goldText = "text-[#fde68a]";
+  const useLightTheme = isLightTheme && !forceDarkChrome;
   const sectionShell = "mx-auto max-w-[1760px] px-4 md:px-6 xl:px-8";
-  const footerShell = isLightTheme
+  const footerShell = useLightTheme
     ? "relative z-20 border-t border-[#b4965a]/25 bg-[#f8f4ec]"
     : "relative z-20 border-t border-amber-500/20 bg-[#070707]";
-  const cardShell = isLightTheme
+  const cardShell = useLightTheme
     ? "bg-linear-to-b from-[#f8f4ec] via-[#f3ede3] to-[#efe7db]"
     : "bg-linear-to-b from-[#181107] via-[#100c08] to-[#090808]";
-  const headingTone = isLightTheme ? "text-[#8a6412]" : "text-amber-300";
-  const textTone = isLightTheme ? "text-slate-600" : "text-gray-300";
-  const statTone = isLightTheme ? "text-slate-700" : "text-gray-200";
-  const dividerTone = isLightTheme ? "border-[#b4965a]/25" : "border-amber-500/20";
-  const copyrightTone = isLightTheme ? "text-slate-600" : "text-gray-400";
+  const headingTone = useLightTheme ? "text-[#8a6412]" : "text-amber-300";
+  const textTone = useLightTheme ? "text-slate-600" : "text-gray-300";
+  const statTone = useLightTheme ? "text-slate-700" : "text-gray-200";
+  const dividerTone = useLightTheme ? "border-[#b4965a]/25" : "border-amber-500/20";
+  const copyrightTone = useLightTheme ? "text-slate-600" : "text-gray-400";
 
   useEffect(() => {
     const syncTheme = () => {
@@ -53,27 +59,27 @@ export default function SiteFooter() {
 
   return (
     <footer className={footerShell}>
-      <div className={`${sectionShell} ${isLightTheme ? "py-6" : "py-14"}`}>
+      <div className={`${sectionShell} ${useLightTheme ? "py-6" : "py-14"}`}>
         <div className={`${cardShell} p-1 md:p-2`}>
           <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
             <div className="lg:w-[26%]">
-              <div className={`flex items-center gap-3 text-lg font-bold ${isLightTheme ? "text-slate-800" : "text-white"}`}>
+              <div className={`flex items-center gap-3 text-lg font-bold ${useLightTheme ? "text-slate-800" : "text-white"}`}>
                 <Image
-                  src={isLightTheme ? sfLightLogo : sfWhiteLogo}
+                  src={useLightTheme ? sfLightLogo : sfWhiteLogo}
                   alt={COMPANY_DISPLAY_NAME}
                   className="h-11 w-auto object-contain"
                   priority
                 />
-                <span className={isLightTheme ? "text-slate-800" : "text-white"}>
+                <span className={useLightTheme ? "text-slate-800" : "text-white"}>
                   {COMPANY_DISPLAY_NAME}
                 </span>
               </div>
               <p className={`mt-4 text-sm leading-relaxed ${textTone}`}>{SFT_ABOUT_BLURB}</p>
               <div className={`mt-4 space-y-2 text-sm ${textTone}`}>
-                <a href={`mailto:${SFT_EMAILS.info}`} className={`flex items-center gap-2 transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
+                <a href={`mailto:${SFT_EMAILS.info}`} className={`flex items-center gap-2 transition-colors ${useLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
                   <Mail size={15} className={headingTone} /> {SFT_EMAILS.info}
                 </a>
-                <a href={`mailto:${SFT_EMAILS.bdm}`} className={`flex items-center gap-2 transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
+                <a href={`mailto:${SFT_EMAILS.bdm}`} className={`flex items-center gap-2 transition-colors ${useLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
                   <Mail size={15} className={headingTone} /> {SFT_EMAILS.bdm}
                 </a>
               </div>
@@ -84,28 +90,31 @@ export default function SiteFooter() {
                     href={SFT_SOCIAL.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label="Instagram"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-[10px] font-black uppercase text-white shadow-[0_0_14px_rgba(238,42,123,0.45)]"
+                    aria-label={SOCIAL_BRAND_LABEL.instagram}
+                    title={SOCIAL_BRAND_LABEL.instagram}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-white shadow-[0_0_14px_rgba(238,42,123,0.45)] ${SOCIAL_BRAND_BUTTON_CLASS.instagram}`}
                   >
-                    ig
+                    <SocialBrandIcon brand="instagram" size={18} />
                   </a>
                   <a
                     href={SFT_SOCIAL.whatsapp}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label="WhatsApp"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#25D366] text-[10px] font-black uppercase text-white shadow-[0_0_14px_rgba(37,211,102,0.45)]"
+                    aria-label={SOCIAL_BRAND_LABEL.whatsapp}
+                    title={SOCIAL_BRAND_LABEL.whatsapp}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-white shadow-[0_0_14px_rgba(37,211,102,0.45)] ${SOCIAL_BRAND_BUTTON_CLASS.whatsapp}`}
                   >
-                    wa
+                    <SocialBrandIcon brand="whatsapp" size={18} />
                   </a>
                   <a
                     href={SFT_SOCIAL.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label="LinkedIn"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0A66C2] text-xs font-black text-white shadow-[0_0_14px_rgba(10,102,194,0.45)]"
+                    aria-label={SOCIAL_BRAND_LABEL.linkedin}
+                    title={SOCIAL_BRAND_LABEL.linkedin}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-white shadow-[0_0_14px_rgba(10,102,194,0.45)] ${SOCIAL_BRAND_BUTTON_CLASS.linkedin}`}
                   >
-                    in
+                    <SocialBrandIcon brand="linkedin" size={18} />
                   </a>
                 </div>
               </div>
@@ -116,7 +125,7 @@ export default function SiteFooter() {
               <ul className={`mt-4 space-y-2 text-sm ${textTone}`}>
                 {SFT_QUICK_LINKS.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className={`transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
+                    <Link href={l.href} className={`transition-colors ${useLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
                       {l.label}
                     </Link>
                   </li>
@@ -138,7 +147,7 @@ export default function SiteFooter() {
                   { label: "Feedback", href: "/contact" },
                 ].map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className={`transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
+                    <Link href={l.href} className={`transition-colors ${useLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
                       {l.label}
                     </Link>
                   </li>
@@ -156,7 +165,7 @@ export default function SiteFooter() {
                       <MapPin size={14} className={`mt-0.5 shrink-0 ${headingTone}`} />
                       <span>{office.address}</span>
                     </p>
-                    <a href={office.phoneHref} className={`mt-1.5 inline-flex items-center gap-2 text-xs transition-colors ${isLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
+                    <a href={office.phoneHref} className={`mt-1.5 inline-flex items-center gap-2 text-xs transition-colors ${useLightTheme ? "hover:text-[#8a6412]" : "hover:text-amber-200"}`}>
                       <Phone size={14} className={headingTone} />
                       Call us {office.phone}
                     </a>
