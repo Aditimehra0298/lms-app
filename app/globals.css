@@ -44,6 +44,25 @@ body.tutor-led-marketing-body {
   color: #ffffff;
 }
 
+/* Enrolled tutor-led program hub — HACCP dashboard mockup */
+.tutor-led-learner-hub {
+  background: #000000;
+  color: #ffffff;
+}
+
+.tutor-led-learner-hub .tl-gold-glow {
+  box-shadow: 0 0 32px rgba(255, 193, 7, 0.22), inset 0 1px 0 rgba(255, 193, 7, 0.12);
+}
+
+.tutor-led-learner-hub .tl-progress-ring {
+  filter: drop-shadow(0 0 18px rgba(76, 175, 80, 0.45));
+}
+
+.tutor-led-learner-hub .tl-achievement-badge {
+  background: radial-gradient(circle at 30% 20%, rgba(255, 193, 7, 0.35), rgba(255, 193, 7, 0.08));
+  box-shadow: 0 0 20px rgba(255, 193, 7, 0.2), inset 0 1px 0 rgba(255, 215, 64, 0.25);
+}
+
 /* Light theme: remove white surfaces and keep premium beige feel */
 :root[data-theme="light"] body {
   background: #f8f4ec;

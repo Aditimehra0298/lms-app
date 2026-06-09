@@ -3,6 +3,13 @@ import { getCurriculumForCourse, normalizeCurriculumModules } from "@/lib/course
 import { resolveCourseHero } from "@/lib/course-hero-resolve";
 import { resolveLearningSection } from "@/lib/course-learning-resolve";
 import { getManagedCourseForLearner } from "@/lib/server/course-catalog";
+import { getTutorLedProgramForLearner } from "@/lib/server/tutor-led-catalog";
+import { resolveLearnerSection } from "@/lib/tutor-led-learner-section";
+import {
+  computeCompletedLiveSessions,
+  computeProgramProgress,
+  getCurriculumSessionCount,
+} from "@/lib/tutor-led-training-schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +18,33 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
   const { slug } = await context.params;
   const course = await getManagedCourseForLearner(slug);
   if (!course) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const tutorLed = await getTutorLedProgramForLearner(slug);
+    if (!tutorLed) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    const section = resolveLearnerSection(tutorLed);
+    const trainingDays = getCurriculumSessionCount(tutorLed);
+    const completedDays = computeCompletedLiveSessions(
+      tutorLed.zoomRecordings?.length ?? 0,
+      trainingDays,
+    );
+    const { examUnlocked } = computeProgramProgress(trainingDays, completedDays);
+    return NextResponse.json({
+      slug: tutorLed.slug,
+      title: tutorLed.title,
+      curriculum: null,
+      finalExam: {
+        title: section.finalExamTitle,
+        examUploadUrl: section.examUploadUrl,
+        passingScorePercent: section.examPassingScore ?? 70,
+        timedExam: true,
+        examDurationMinutes: section.examMinutes ?? 60,
+      },
+      deliveryKind: "tutor-led",
+      examUnlocked,
+      trainingDays,
+      completedDays,
+    });
   }
   const curriculum = normalizeCurriculumModules(
     getCurriculumForCourse(

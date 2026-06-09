@@ -1,4 +1,5 @@
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "./default-tutor-led-programs";
+import type { CommunityConnectCard } from "./my-learning-community-defaults";
 
 export type { TutorLedProgramStored };
 
@@ -13,10 +14,25 @@ export type LearningCourseItem = {
   action: string;
 };
 
+/** Admin-managed reminders on the learner dashboard / calendar. */
+export type DashboardCalendarReminder = {
+  id: string;
+  /** YYYY-MM-DD */
+  date: string;
+  title: string;
+  body?: string;
+  href?: string;
+  published?: boolean;
+};
+
 export type DashboardContent = {
   nextClassTitle: string;
   nextClassTime: string;
   streakDays: number;
+  /** Shown on all learners' My Learning calendar (notifications + day labels). */
+  calendarReminders?: DashboardCalendarReminder[];
+  /** Connect With Us cards on My Learning → Community tab. */
+  communityConnect?: CommunityConnectCard[];
 };
 
 /** Self-paced catalog vs other delivery modes (admin Courses tab manages self-paced only). */
@@ -972,6 +988,7 @@ export const defaultAdminContent: AdminContent = {
     nextClassTitle: "",
     nextClassTime: "",
     streakDays: 0,
+    calendarReminders: [],
   },
   learningCourses: [],
   managedCourses: [

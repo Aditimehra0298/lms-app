@@ -27,11 +27,24 @@ import {
   Trophy,
 } from "lucide-react";
 import { AdminContent, defaultAdminContent, type ManagedCourse } from "@/lib/content-schema";
-import { MyLearningDiscussionsHub } from "@/components/MyLearningDiscussionsHub";
+import { MyLearningCommunityHub } from "@/components/MyLearningCommunityHub";
+import { MyLearningDashboardPlanner } from "@/components/MyLearningDashboardPlanner";
 import { MyLearningLiveHub } from "@/components/MyLearningLiveHub";
 import MyCertificatesList from "@/components/MyCertificatesList";
+import { MyLearningAssignmentsTab } from "@/components/MyLearningAssignmentsTab";
+import {
+  buildMyLearningAssignments,
+  filterLearnerVisibleAssignments,
+} from "@/lib/my-learning-assignments";
 import { examLinksFromManagedCourse, resolveLearningCourseSlug } from "@/lib/my-learning-exams";
+import { PREVIEW_WATCH_UPDATED_EVENT } from "@/lib/learner-preview-gate";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import {
+  buildTutorLedExploreCards,
+  enrichTutorLedLiveHubRow,
+  mergeTutorLedPrograms,
+  type TutorLedLiveHubRow,
+} from "@/lib/tutor-led-live-hub-enrich";
 import {
   learnerDisplayFirstName,
   readLearnerProfileFromStorage,
@@ -57,7 +70,7 @@ import {
   type PurchasedCourseRow,
 } from "@/lib/learner-course-progress";
 import { BADGES_UPDATED_EVENT, readLearnerBadges } from "@/lib/learner-badges";
-import { ShareableBadgeCard } from "@/components/ShareableBadgeCard";
+import { MyLearningAchievementsTab } from "@/components/MyLearningAchievementsTab";
 
 export const dynamic = "force-dynamic";
 
@@ -217,6 +230,8 @@ export default function MyLearningPage() {
     window.addEventListener("sft_purchases_updated", loadPurchasedCourses);
     const onProgress = () => setProgressTick((n) => n + 1);
     window.addEventListener(COURSE_PROGRESS_UPDATED_EVENT, onProgress);
+    window.addEventListener("sft-exam-scores-updated", onProgress);
+    window.addEventListener(PREVIEW_WATCH_UPDATED_EVENT, onProgress);
     window.addEventListener("storage", onProgress);
     window.addEventListener("focus", onProgress);
     const onBadges = () => setEarnedBadges(readLearnerBadges());
@@ -225,6 +240,8 @@ export default function MyLearningPage() {
       window.removeEventListener("storage", loadPurchasedCourses);
       window.removeEventListener("sft_purchases_updated", loadPurchasedCourses);
       window.removeEventListener(COURSE_PROGRESS_UPDATED_EVENT, onProgress);
+      window.removeEventListener("sft-exam-scores-updated", onProgress);
+      window.removeEventListener(PREVIEW_WATCH_UPDATED_EVENT, onProgress);
       window.removeEventListener("storage", onProgress);
       window.removeEventListener("focus", onProgress);
       window.removeEventListener(BADGES_UPDATED_EVENT, onBadges);
@@ -332,14 +349,23 @@ export default function MyLearningPage() {
     [purchasedCourses],
   );
 
-  const tutorLedCoursesForHub = useMemo(() => {
-    const catalog =
-      effectiveCatalog.length > 0 ? effectiveCatalog : adminContent.managedCourses ?? [];
+  const tutorLedProgramsMerged = useMemo(
+    () => mergeTutorLedPrograms(adminContent.tutorLedPrograms),
+    [adminContent.tutorLedPrograms],
+  );
+
+  const tutorLedCoursesForHub = useMemo((): TutorLedLiveHubRow[] => {
     return purchasedTutorLedRows
-      .map((course) => enrichPurchasedCourse(course, findCatalogCourse(course, catalog)))
-      .filter((c): c is typeof c & { slug: string } => Boolean(c.slug?.trim()))
-      .map((c) => ({ ...c, slug: c.slug!.trim() }));
-  }, [purchasedTutorLedRows, effectiveCatalog, adminContent.managedCourses]);
+      .filter((c) => c.slug?.trim())
+      .map((course) =>
+        enrichTutorLedLiveHubRow(course.slug!.trim(), { title: course.title, image: course.image }, tutorLedProgramsMerged),
+      );
+  }, [purchasedTutorLedRows, tutorLedProgramsMerged]);
+
+  const tutorLedExploreCourses = useMemo(
+    () => buildTutorLedExploreCards(tutorLedProgramsMerged),
+    [tutorLedProgramsMerged],
+  );
 
   const enrolledCourseSlugs = useMemo(
     () =>
@@ -404,40 +430,71 @@ export default function MyLearningPage() {
     return list;
   }, [filteredCoursesForLearning, courseSort]);
 
-  const enrolledExamTasks = useMemo(() => {
-    if (!effectiveCatalog.length) return [];
-    const tasks: Array<{
-      courseTitle: string;
-      label: string;
-      href: string;
-      status: string;
-      courseSlug: string;
-      ready: boolean;
-    }> = [];
-    for (const row of coursesForLearning) {
-      const slug = row.slug ?? resolveLearningCourseSlug(row, effectiveCatalog, toCourseSlug);
-      if (!slug) continue;
-      const course = effectiveCatalog.find((c) => c.slug === slug);
-      if (!course) continue;
-      const links = examLinksFromManagedCourse(course);
-      const completed = readCompletedModules(slug);
-      for (const link of links) {
-        const moduleNum = link.href.includes("module=")
-          ? Number.parseInt(link.href.split("module=")[1]?.split("&")[0] ?? "", 10)
-          : NaN;
-        const done = Number.isFinite(moduleNum) && completed.includes(moduleNum);
-        tasks.push({
-          courseTitle: course.title,
-          label: link.label,
-          href: link.href,
-          status: !link.ready ? "Awaiting file" : done ? "Completed" : "Pending",
-          courseSlug: slug,
-          ready: link.ready,
-        });
-      }
-    }
-    return tasks;
-  }, [effectiveCatalog, coursesForLearning, progressTick]);
+  const certificateAlerts = useMemo(
+    () =>
+      learnerCertificates
+        .filter((c) => c.status === "ready" && c.courseSlug?.trim())
+        .map((c) => ({
+          courseTitle: c.courseTitle?.trim() || c.courseSlug || "Course",
+          status: c.status,
+          href: `/my-learning/course/${encodeURIComponent(c.courseSlug!)}#credentials`,
+        })),
+    [learnerCertificates],
+  );
+
+  const coursesNotStartedAlerts = useMemo(
+    () =>
+      coursesForLearning
+        .filter((c) => c.status.toLowerCase().includes("not started"))
+        .map((c) => ({
+          title: c.title,
+          href: c.slug ? `/my-learning/course/${encodeURIComponent(c.slug)}` : "/my-learning?tab=learning",
+        })),
+    [coursesForLearning],
+  );
+
+  const assignmentRows = useMemo(
+    () =>
+      buildMyLearningAssignments({
+        purchased: purchasedCourses,
+        catalog: effectiveCatalog,
+        tutorLedHubRows: tutorLedCoursesForHub,
+        tutorLedPrograms: tutorLedProgramsMerged,
+        titleToSlug: toCourseSlug,
+      }),
+    [
+      purchasedCourses,
+      effectiveCatalog,
+      tutorLedCoursesForHub,
+      tutorLedProgramsMerged,
+      progressTick,
+    ],
+  );
+
+  const learnerAssignmentRows = useMemo(
+    () => filterLearnerVisibleAssignments(assignmentRows),
+    [assignmentRows],
+  );
+
+  const enrolledExamTasks = useMemo(
+    () =>
+      learnerAssignmentRows.map((row) => ({
+        courseTitle: row.courseTitle,
+        label: row.assessment,
+        href: row.href,
+        status:
+          row.status === "passed"
+            ? "Completed"
+            : row.status === "locked"
+              ? "Locked"
+              : "Pending",
+        courseSlug: row.courseSlug,
+        ready: row.ready,
+        unlocked: row.unlocked,
+        marksLabel: row.marksLabel,
+      })),
+    [learnerAssignmentRows],
+  );
 
   const quickActions = [
     { label: "Join Tutor-Led Session", icon: Rocket, cta: "View & Join", href: "/my-learning?tab=live" },
@@ -522,6 +579,16 @@ export default function MyLearningPage() {
                 <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-amber-500/20 blur-3xl" />
               </article>
             </div>
+
+            <MyLearningDashboardPlanner
+              tutorLedEnrollments={tutorLedCoursesForHub}
+              tutorLedPrograms={tutorLedProgramsMerged}
+              examTasks={enrolledExamTasks}
+              certificateAlerts={certificateAlerts}
+              coursesNotStarted={coursesNotStartedAlerts}
+              adminCalendarReminders={adminContent.dashboard?.calendarReminders ?? []}
+              today={dashboardNow}
+            />
 
             {completedCoursesWithCerts.length > 0 ? (
               <article className="mt-4 rounded-xl border border-emerald-500/30 bg-linear-to-br from-emerald-500/10 to-black/30 p-4">
@@ -708,17 +775,22 @@ export default function MyLearningPage() {
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-white">{task.label}</p>
-                          <p className="truncate text-xs text-gray-400">{task.courseTitle}</p>
+                          <p className="truncate text-xs text-gray-400">
+                            {task.courseTitle}
+                            {task.marksLabel !== "—" ? ` · ${task.marksLabel}` : ""}
+                          </p>
                         </div>
-                        {task.ready ? (
+                        {task.ready && task.unlocked ? (
                           <Link
                             href={task.href}
                             className="shrink-0 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/20"
                           >
                             {task.status === "Completed" ? "Review" : "Start exam"}
                           </Link>
+                        ) : task.status === "Locked" ? (
+                          <span className="shrink-0 text-xs text-zinc-500">Locked</span>
                         ) : (
-                          <span className="shrink-0 text-xs text-amber-300">CSV not saved in Admin</span>
+                          <span className="shrink-0 text-xs text-zinc-500">Not available yet</span>
                         )}
                       </li>
                     ))}
@@ -762,7 +834,10 @@ export default function MyLearningPage() {
             </div>
           </section>
         ) : isLive ? (
-          <MyLearningLiveHub enrollments={tutorLedCoursesForHub} />
+          <MyLearningLiveHub
+            enrollments={tutorLedCoursesForHub}
+            exploreCourses={tutorLedExploreCourses}
+          />
         ) : isCertificates ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
             <MyCertificatesList />
@@ -786,104 +861,22 @@ export default function MyLearningPage() {
           </section>
         ) : isCommunity ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
-            <h1 className="text-4xl font-bold">Q&amp;A &amp; feedback</h1>
-            <p className="mt-1 text-sm text-gray-300">
-              See questions from your courses, answer other learners, and open full threads on each course
-              page.
-            </p>
-            <MyLearningDiscussionsHub
+            <MyLearningCommunityHub
               enrolledSlugs={enrolledCourseSlugs}
               courseTitles={enrolledCourseTitles}
               focusCourseSlug={communityFocusCourse}
+              completedCourses={coursesForLearning.filter(
+                (c) => c.status.toLowerCase() === "completed" || c.completed >= c.modules,
+              )}
+              certificates={learnerCertificates}
+              earnedBadges={earnedBadges}
+              globalBadgeImage={adminContent.globalCertificateAssets?.badgeImage}
+              calendarReminders={adminContent.dashboard?.calendarReminders ?? []}
+              communityConnect={adminContent.dashboard?.communityConnect ?? []}
             />
           </section>
         ) : isAssignments ? (
-          <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
-            <div className="grid gap-4 lg:grid-cols-[1.7fr_1fr]">
-              <div>
-                <h1 className="text-4xl font-bold">Assignments</h1>
-                <p className="mt-1 text-sm text-gray-300">
-                  Module exams and assessments from your enrolled courses.
-                </p>
-              </div>
-              {enrolledExamTasks.some((t) => t.status === "Pending") ? (
-                <div className="rounded-xl border border-amber-300/25 bg-linear-to-r from-amber-500/15 to-rose-500/10 p-4">
-                  <p className="inline-flex items-center gap-1 text-sm font-semibold text-amber-100">
-                    <AlertTriangle size={14} /> Pending exams
-                  </p>
-                  <p className="mt-1 text-xs text-gray-300">
-                    {enrolledExamTasks.filter((t) => t.status === "Pending").length} module exam
-                    {enrolledExamTasks.filter((t) => t.status === "Pending").length === 1 ? "" : "s"} waiting
-                    for you.
-                  </p>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {[
-                [FileText, String(enrolledExamTasks.length), "Total Exams", "From your courses"],
-                [Clock3, String(enrolledExamTasks.filter((t) => t.status === "Pending").length), "Pending", "Not passed yet"],
-                [CheckCircle2, String(enrolledExamTasks.filter((t) => t.status === "Completed").length), "Completed", "Passed"],
-              ].map(([Icon, value, label, hint]) => (
-                <article key={label as string} className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <p className="inline-flex items-center gap-1 text-xs text-gray-300">
-                    <Icon size={13} className="text-amber-300" /> {label as string}
-                  </p>
-                  <p className="mt-2 text-3xl font-bold">{value as string}</p>
-                  <p className="text-xs text-gray-400">{hint as string}</p>
-                </article>
-              ))}
-            </div>
-
-            <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
-              <div className="space-y-2">
-                {enrolledExamTasks.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-white/15 bg-black/20 p-6 text-center text-sm text-gray-400">
-                    No exams found for your enrolled courses yet.
-                  </p>
-                ) : (
-                  enrolledExamTasks.map((task) => (
-                    <article
-                      key={`${task.courseSlug}-${task.href}`}
-                      className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-3 lg:grid-cols-[1.2fr_170px_120px]"
-                    >
-                      <div>
-                        <p className="text-lg font-semibold">{task.label}</p>
-                        <p className="mt-1 text-xs text-gray-400">{task.courseTitle}</p>
-                      </div>
-                      <div className="text-sm">
-                        <p className="text-xs text-gray-400">Status</p>
-                        <span
-                          className={`mt-1 inline-flex rounded-full px-2.5 py-0.5 text-xs ${
-                            task.status === "Pending"
-                              ? "bg-amber-500/20 text-amber-200"
-                              : task.status === "Awaiting file"
-                                ? "bg-white/10 text-gray-400"
-                              : "bg-emerald-500/20 text-emerald-200"
-                          }`}
-                        >
-                          {task.status}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        {task.ready ? (
-                        <Link
-                          href={task.href}
-                          className="rounded-md border border-white/15 px-3 py-1 text-xs text-amber-100 hover:bg-white/5"
-                        >
-                          {task.status === "Completed" ? "Review" : "Start exam"}
-                        </Link>
-                        ) : (
-                          <span className="text-xs text-gray-500">Upload CSV in Admin</span>
-                        )}
-                      </div>
-                    </article>
-                  ))
-                )}
-              </div>
-            </div>
-          </section>
+          <MyLearningAssignmentsTab rows={learnerAssignmentRows} />
         ) : isLearning ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
             <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
@@ -1051,13 +1044,18 @@ export default function MyLearningPage() {
                 <p className="text-sm text-gray-400">Loading exam list from catalog…</p>
               ) : examsByCourse.length === 0 ? (
                 <p className="text-sm text-gray-400">
-                  No exams are configured on published courses yet. In{" "}
-                  <strong className="text-gray-200">Admin → Courses</strong>, add curriculum rows with kind{" "}
-                  <strong className="text-gray-200">exam</strong> (and optional final exam) so they appear here.
+                  No assessments are listed for your courses yet. Open the{" "}
+                  <Link href="/my-learning?tab=assignments" className="text-emerald-200 underline">
+                    Assignments
+                  </Link>{" "}
+                  tab after you enroll and start learning.
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {examsByCourse.map(({ course, links }) => (
+                  {examsByCourse.map(({ course, links }) => {
+                    const readyLinks = links.filter((link) => link.ready);
+                    if (readyLinks.length === 0) return null;
+                    return (
                     <div key={course.slug} className="rounded-lg border border-white/10 bg-black/25 p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="font-semibold text-white">{course.title}</p>
@@ -1068,7 +1066,7 @@ export default function MyLearningPage() {
                         ) : null}
                       </div>
                       <ul className="mt-2 space-y-2">
-                        {links.map((link) => (
+                        {readyLinks.map((link) => (
                           <li
                             key={link.href}
                             className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0"
@@ -1076,187 +1074,55 @@ export default function MyLearningPage() {
                             <span className="text-sm text-gray-300">
                               <span className="text-gray-500">{link.slot} · </span>
                               {link.label}
-                              {!link.ready ? (
-                                <span className="ml-2 text-[10px] text-amber-300">(CSV pending)</span>
-                              ) : null}
                             </span>
-                            {link.ready && enrolledExamSlugs.has(course.slug) ? (
+                            {enrolledExamSlugs.has(course.slug) ? (
                             <Link
                               href={link.href}
                               className="shrink-0 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/20"
                             >
                               Open exam
                             </Link>
-                            ) : link.ready ? (
+                            ) : (
                               <Link
                                 href={`/courses/${encodeURIComponent(course.slug)}`}
                                 className="shrink-0 rounded-md border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-100 hover:bg-amber-500/20"
                               >
                                 Enroll to take exam
                               </Link>
-                            ) : (
-                              <span className="shrink-0 rounded-md border border-white/10 px-2.5 py-1 text-xs text-gray-500">
-                                Not ready
-                              </span>
                             )}
                           </li>
                         ))}
                       </ul>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </article>
           </section>
         ) : isAchievements ? (
-          <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
-            <div className="grid gap-4 lg:grid-cols-[2fr_1.1fr]">
-              <div>
-                <h1 className="text-4xl font-bold">
-                  Welcome back{learnerFirstName === "there" ? "" : `, ${learnerFirstName}`}!
-                </h1>
-                <p className="mt-1 text-sm text-gray-300">
-                  Keep going! You are making great progress.
-                </p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-linear-to-r from-violet-500/20 to-fuchsia-500/15 p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
-                <p className="text-sm font-semibold">AI Learning Assistant</p>
-                <p className="mt-1 text-xs text-gray-200">
-                  Get personalized suggestions and stay ahead in your learning journey.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              {[
-                [ShieldCheck, "Courses Enrolled", String(totalEnrolledCourses), "Your courses"],
-                [Clock3, "In Progress", String(totalInProgressCourses), "Active now"],
-                [Award, "Completed", String(totalCompletedCourses), "Finished courses"],
-                [Trophy, "Modules Done", String(coursesForLearning.reduce((s, c) => s + c.completed, 0)), "Across all courses"],
-                [Flame, "Not Started", String(totalNotStartedCourses), "Ready to begin"],
-              ].map(([Icon, label, value, hint]) => (
-                <article
-                  key={label as string}
-                  className="rounded-xl border border-white/10 bg-linear-to-b from-white/10 to-black/30 p-3"
-                >
-                  <p className="inline-flex items-center gap-1 text-xs text-gray-300">
-                    <Icon size={13} className="text-amber-300" /> {label as string}
-                  </p>
-                  <p className="mt-2 text-3xl font-bold">{value as string}</p>
-                  <p className="text-xs text-gray-400">{hint as string}</p>
-                </article>
-              ))}
-            </div>
-
-            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
-              <article className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <h2 className="text-xl font-bold">Certificates</h2>
-                <p className="mt-1 text-xs text-gray-400">
-                  View and download certificates you earn after completing courses.
-                </p>
-                <Link
-                  href="/my-learning?tab=certificates"
-                  className="mt-4 inline-flex rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-black"
-                >
-                  Open certificate records
-                </Link>
-              </article>
-
-              <article className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <div className="space-y-2">
-                  {coursesForLearning.length === 0 ? (
-                    <p className="text-sm text-gray-400">Enroll in a course to track achievements.</p>
-                  ) : (
-                    coursesForLearning.map((item) => (
-                    <div
-                      key={courseRowKey(item)}
-                      className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold">{item.title}</p>
-                        <p className="text-xs text-gray-400">
-                          {item.completed}/{item.modules} modules • {item.status}
-                        </p>
-                      </div>
-                      <Link
-                        href={learningHrefFor(item)}
-                        className="rounded-md border border-blue-300/30 px-2.5 py-1 text-xs text-blue-200"
-                      >
-                        {item.action}
-                      </Link>
-                    </div>
-                    ))
-                  )}
-                </div>
-              </article>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-stretch">
-              <article
-                className="relative flex-1 overflow-hidden rounded-xl border border-amber-500/15 px-4 py-6 sm:px-6"
-                style={{
-                  background:
-                    "radial-gradient(ellipse at 50% -10%, rgba(245,158,11,0.1) 0%, transparent 50%), #0a0a0a",
-                }}
-              >
-                <h3 className="text-center text-lg font-bold">Badges Earned</h3>
-                <p className="mt-1 text-center text-xs text-gray-400">
-                  {earnedBadges.length} badge{earnedBadges.length === 1 ? "" : "s"} unlocked
-                </p>
-                {earnedBadges.length === 0 ? (
-                  <p className="mt-6 text-center text-sm text-gray-500">
-                    Complete course modules to earn shareable badges.
-                  </p>
-                ) : (
-                  <div className="mt-2 flex flex-col items-center gap-10 py-4">
-                    {earnedBadges.slice(0, 6).map((badge) => {
-                      const shareUrl =
-                        typeof window !== "undefined"
-                          ? `${window.location.origin}/my-learning/course/${encodeURIComponent(badge.courseSlug)}`
-                          : `/my-learning/course/${encodeURIComponent(badge.courseSlug)}`;
-                      return (
-                        <ShareableBadgeCard
-                          key={badge.id}
-                          title={badge.courseTitle}
-                          subtitle={badge.moduleTitle}
-                          imageUrl={badge.badgeImageUrl}
-                          shareUrl={shareUrl}
-                          shareText={`I earned the "${badge.moduleTitle}" badge in ${badge.courseTitle}!`}
-                          className="w-full max-w-xs"
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-              </article>
-              <article className="rounded-xl border border-white/10 bg-linear-to-r from-violet-500/15 to-blue-500/10 p-3 shadow-[inset_0_0_35px_rgba(59,130,246,0.18)]">
-                <h3 className="text-lg font-bold">Overall Progress</h3>
-                <p className="mt-1 text-sm">
-                  {coursesForLearning.reduce((s, c) => s + c.completed, 0)} /{" "}
-                  {coursesForLearning.reduce((s, c) => s + c.modules, 0)} modules
-                </p>
-                <p className="text-xs text-gray-300">Across {totalEnrolledCourses} enrolled course(s)</p>
-                <div className="mt-3 h-2 rounded-full bg-white/10">
-                  <div
-                    className="h-2 rounded-full bg-amber-400"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        Math.round(
-                          (coursesForLearning.reduce((s, c) => s + c.completed, 0) /
-                            Math.max(1, coursesForLearning.reduce((s, c) => s + c.modules, 0))) *
-                            100,
-                        ),
-                      )}%`,
-                    }}
-                  />
-                </div>
-                <p className="mt-1 text-xs text-gray-300">
-                  {totalCompletedCourses} course{totalCompletedCourses === 1 ? "" : "s"} fully completed
-                </p>
-              </article>
-            </div>
-          </section>
+          <MyLearningAchievementsTab
+            learnerFirstName={learnerFirstName}
+            certificates={learnerCertificates}
+            earnedBadges={earnedBadges}
+            completedCourses={coursesForLearning}
+            globalBadgeImage={adminContent.globalCertificateAssets?.badgeImage}
+            stats={{
+              enrolled: totalEnrolledCourses,
+              inProgress: totalInProgressCourses,
+              completed: totalCompletedCourses,
+              modulesDone: coursesForLearning.reduce((s, c) => s + c.completed, 0),
+              notStarted: totalNotStartedCourses,
+            }}
+            overallProgressPercent={Math.min(
+              100,
+              Math.round(
+                (coursesForLearning.reduce((s, c) => s + c.completed, 0) /
+                  Math.max(1, coursesForLearning.reduce((s, c) => s + c.modules, 0))) *
+                  100,
+              ),
+            )}
+          />
         ) : null}
       </main>
     </div>

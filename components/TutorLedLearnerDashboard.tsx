@@ -4,12 +4,16 @@ import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { resolveZoomJoinUrl } from "@/lib/zoom-meeting";
+import { TutorLedLearnerHero } from "@/components/TutorLedLearnerHero";
 import {
   buildJourneySteps,
+  computeCompletedLiveSessions,
   computeProgramProgress,
-  TutorLedLearnerHero,
-} from "@/components/TutorLedLearnerHero";
+  getCurriculumSessionCount,
+} from "@/lib/tutor-led-training-schedule";
 import { TutorLedLearnerHubSections } from "@/components/TutorLedLearnerHubSections";
+import { TutorLedLearnerSidebar } from "@/components/TutorLedLearnerSidebar";
+import { tlPage } from "@/lib/tutor-led-learner-theme";
 import { ArrowLeft } from "lucide-react";
 
 type Props = { program: TutorLedProgramStored };
@@ -38,12 +42,19 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
     }));
   }, [program.zoomRecordings, program.heroSrc, program.learnerHeroSrc, program.nextBatchDate]);
 
-  const completedSessions = sessionRecordings.length;
-  const totalSessions = Math.max(weeks.length, 1);
+  const totalSessions = getCurriculumSessionCount(program);
+  const completedSessions = computeCompletedLiveSessions(sessionRecordings.length, totalSessions);
   const nextSessionIndex = Math.min(completedSessions, Math.max(0, weeks.length - 1));
   const nextSessionTitle = weeks[nextSessionIndex]?.topic ?? weeks[0]?.topic ?? "Live session";
 
-  const { completedCount, inProgressCount, upcomingCount, progressPercent } = useMemo(
+  const {
+    completedCount,
+    inProgressCount,
+    upcomingCount,
+    progressPercent,
+    examUnlocked,
+    certificateEarned,
+  } = useMemo(
     () => computeProgramProgress(totalSessions, completedSessions),
     [totalSessions, completedSessions],
   );
@@ -71,7 +82,7 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
   }, [program.slug]);
 
   return (
-    <div className="min-h-full bg-[#0a0a0a] text-white">
+    <div className={tlPage}>
       <main className="mx-auto w-full max-w-[1760px] px-4 py-6 md:px-5 lg:px-6">
         <Link
           href="/my-learning?tab=live"
@@ -81,27 +92,42 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
           Tutor Led programs
         </Link>
 
-        <TutorLedLearnerHero
-          program={program}
-          nextSessionTitle={nextSessionTitle}
-          zoomJoinUrl={zoomJoinUrl}
-          progressPercent={progressPercent}
-          journeySteps={journeySteps}
-          completedCount={completedCount}
-          inProgressCount={inProgressCount}
-          upcomingCount={upcomingCount}
-          firstRecordingUrl={sessionRecordings[0]?.playUrl}
-        />
+        <div className="grid gap-4 lg:grid-cols-[1fr_300px] lg:items-start">
+          <div className="min-w-0">
+            <TutorLedLearnerHero
+              program={program}
+              zoomJoinUrl={zoomJoinUrl}
+              progressPercent={progressPercent}
+              journeySteps={journeySteps}
+              completedCount={completedCount}
+              inProgressCount={inProgressCount}
+              upcomingCount={upcomingCount}
+              firstRecordingUrl={sessionRecordings[0]?.playUrl}
+              sessionsAttended={completedSessions}
+              recordingsWatched={sessionRecordings.length}
+              totalSessions={totalSessions}
+              examUnlocked={examUnlocked}
+            />
 
-        <TutorLedLearnerHubSections
-          program={program}
-          nextSessionTitle={nextSessionTitle}
-          zoomJoinUrl={zoomJoinUrl}
-          progressPercent={progressPercent}
-          sessionRecordings={sessionRecordings}
-          weekProgress={weekProgress}
-          completedSessions={completedSessions}
-        />
+            <TutorLedLearnerHubSections
+              program={program}
+              nextSessionTitle={nextSessionTitle}
+              zoomJoinUrl={zoomJoinUrl}
+              progressPercent={progressPercent}
+              sessionRecordings={sessionRecordings}
+              weekProgress={weekProgress}
+              completedSessions={completedSessions}
+              examUnlocked={examUnlocked}
+            />
+          </div>
+
+          <TutorLedLearnerSidebar
+            program={program}
+            nextSessionTitle={nextSessionTitle}
+            zoomJoinUrl={zoomJoinUrl}
+            certificateEarned={certificateEarned}
+          />
+        </div>
       </main>
     </div>
   );

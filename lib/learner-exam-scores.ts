@@ -4,6 +4,9 @@ import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
 /** Default: learner must score at least this % on each module exam to pass that exam. */
 export const DEFAULT_MODULE_EXAM_PASS_PERCENT = 70;
 
+/** localStorage key for final / tutor-led certification exam score. */
+export const FINAL_EXAM_SCORE_KEY = "final";
+
 export type ModuleExamScore = {
   correct: number;
   total: number;
@@ -74,7 +77,7 @@ export function examModuleNumbers(curriculum: CourseCurriculumModule[]): number[
 
 export function recordModuleExamAttempt(input: {
   courseSlug: string;
-  moduleNumber: number;
+  moduleNumber: number | typeof FINAL_EXAM_SCORE_KEY;
   correct: number;
   total: number;
   passingPercent?: number;
@@ -85,7 +88,8 @@ export function recordModuleExamAttempt(input: {
   const percent = Math.round((correct / total) * 100);
   const passedThisAttempt = percent >= passing;
 
-  const key = String(input.moduleNumber);
+  const key =
+    input.moduleNumber === FINAL_EXAM_SCORE_KEY ? FINAL_EXAM_SCORE_KEY : String(input.moduleNumber);
   const prev = readModuleExamScores(input.courseSlug)[key];
   const entry: ModuleExamScore = {
     correct,

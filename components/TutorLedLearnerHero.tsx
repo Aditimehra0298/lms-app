@@ -1,35 +1,36 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { TUTOR_LED_LEARNER_HERO_BG_SRC } from "@/lib/tutor-led-marketing-assets";
 import {
-  TUTOR_LED_CERTIFICATE_SAMPLE_SRC,
-  TUTOR_LED_TRUST_BADGE_SRC,
-} from "@/lib/tutor-led-marketing-assets";
+  tlCard,
+  tlCardGold,
+  tlGoldOutline,
+  tlGoldSolid,
+  tlGreenBadge,
+  TL,
+} from "@/lib/tutor-led-learner-theme";
+import { resolveLearnerSection } from "@/lib/tutor-led-learner-section";
 import {
+  resolveTrainingDuration,
+  type JourneyStep,
+} from "@/lib/tutor-led-training-schedule";
+import {
+  ArrowRight,
   Calendar,
-  CalendarPlus,
   Check,
-  Clock,
+  CheckCircle2,
   Download,
   Globe,
   Lock,
   PlayCircle,
-  User,
   Video,
 } from "lucide-react";
 
-type JourneyStep = {
-  day: number;
-  title: string;
-  status: "completed" | "in-progress" | "upcoming";
-};
-
 type Props = {
   program: TutorLedProgramStored;
-  nextSessionTitle: string;
   zoomJoinUrl: string | null;
   progressPercent: number;
   journeySteps: JourneyStep[];
@@ -37,12 +38,11 @@ type Props = {
   inProgressCount: number;
   upcomingCount: number;
   firstRecordingUrl?: string;
+  sessionsAttended: number;
+  recordingsWatched: number;
+  totalSessions: number;
+  examUnlocked: boolean;
 };
-
-function batchDuration(program: TutorLedProgramStored): string {
-  const row = program.batchDetails.find((d) => d.label === "Duration");
-  return row?.value?.trim() || "4 Days";
-}
 
 function MetaCell({ label, value }: { label: string; value: string }) {
   return (
@@ -53,12 +53,8 @@ function MetaCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-const goldOutlineBtnClass =
-  "inline-flex items-center justify-center gap-2 rounded-lg border border-[#FFB800]/55 bg-transparent px-4 py-2.5 text-sm font-semibold text-[#FFB800] transition hover:bg-[#FFB800]/10";
-
 export function TutorLedLearnerHero({
   program,
-  nextSessionTitle,
   zoomJoinUrl,
   progressPercent,
   journeySteps,
@@ -66,199 +62,172 @@ export function TutorLedLearnerHero({
   inProgressCount,
   upcomingCount,
   firstRecordingUrl,
+  sessionsAttended,
+  recordingsWatched,
+  totalSessions,
+  examUnlocked,
 }: Props) {
   const batchLabel = program.batchLabel?.trim() || program.nextBatchDate;
-  const duration = batchDuration(program);
-  const heroGraphic = program.learnerHeroSrc?.trim() || TUTOR_LED_TRUST_BADGE_SRC;
-
-  const joinButton = zoomJoinUrl ? (
-    <a
-      href={zoomJoinUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-black shadow-[0_8px_24px_rgba(255,184,0,0.35)] transition hover:bg-[#e5a500]"
-    >
-      <Video className="h-4 w-4" aria-hidden />
-      Join Zoom Session
-    </a>
-  ) : (
-    <button
-      type="button"
-      disabled
-      className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-zinc-800 px-5 py-2.5 text-sm font-bold text-zinc-500"
-    >
-      <Video className="h-4 w-4" aria-hidden />
-      Join Zoom Session
-    </button>
-  );
+  const duration = resolveTrainingDuration(program);
+  const heroBg = program.learnerHeroBgSrc?.trim() || TUTOR_LED_LEARNER_HERO_BG_SRC;
+  const section = useMemo(() => resolveLearnerSection(program), [program]);
+  const ringColor = progressPercent >= 80 ? TL.green : TL.gold;
+  const allSessionsDone = sessionsAttended >= totalSessions;
 
   const donutStyle = useMemo(
     () => ({
-      background: `conic-gradient(#22c55e 0% ${progressPercent}%, #27272a ${progressPercent}% 100%)`,
+      background: `conic-gradient(${ringColor} 0% ${progressPercent}%, #1a1a1a ${progressPercent}% 100%)`,
     }),
-    [progressPercent],
+    [progressPercent, ringColor],
   );
+
+  const checklistDone = [
+    allSessionsDone || sessionsAttended > 0,
+    sessionsAttended > 0,
+    recordingsWatched > 0,
+    sessionsAttended > 1,
+  ];
+  const checklist = section.checklistItems.map((label, i) => ({
+    label,
+    done: checklistDone[i] ?? false,
+  }));
 
   return (
     <div className="space-y-4">
-      {/* Top row — main hero + upcoming session */}
-      <div className="grid gap-4 lg:grid-cols-[1.45fr_1fr]">
-        {/* Main course hero card */}
-        <article className="relative overflow-hidden rounded-2xl border border-[#FFB800]/25 bg-gradient-to-br from-zinc-950 via-[#141008] to-black p-5 shadow-[0_0_40px_rgba(255,184,0,0.08)] md:p-6">
-          <div className="pointer-events-none absolute -right-16 top-0 h-56 w-56 rounded-full bg-[#FFB800]/10 blur-3xl" aria-hidden />
-          <div className="relative grid gap-5 lg:grid-cols-[1fr_140px] lg:items-start">
-            <div className="min-w-0">
-              <span className="inline-flex rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                Enrolled
-              </span>
-              <h1 className="mt-3 text-2xl font-bold leading-tight tracking-tight text-white md:text-[1.65rem] lg:text-3xl">
-                {program.title}
-              </h1>
-              <p className="mt-1 text-sm text-zinc-400">{program.subtitle?.trim() || program.badge}</p>
+      <article className={`${tlCardGold} tl-gold-glow relative overflow-hidden`}>
+        <div
+          className="pointer-events-none absolute inset-0 bg-[length:min(52%,420px)_auto] bg-right-top bg-no-repeat opacity-90"
+          style={{ backgroundImage: `url(${heroBg})` }}
+          role="img"
+          aria-label={program.learnerHeroBgAlt?.trim() || "Course achievement badge"}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black via-black/92 to-black/55"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full opacity-25"
+          style={{ background: "radial-gradient(circle, rgba(255,193,7,0.2) 0%, transparent 70%)" }}
+          aria-hidden
+        />
+        <div className="relative z-[1] grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
+          <div className="min-w-0">
+            <span className={tlGreenBadge}>{section.enrolledBadgeLabel}</span>
+            <h1 className="mt-3 text-2xl font-bold leading-tight tracking-tight text-white md:text-[1.75rem] lg:text-3xl">
+              {program.title}
+            </h1>
+            <p className="mt-1 text-sm text-zinc-400">{program.subtitle?.trim() || program.badge}</p>
 
-              <div className="mt-5 grid gap-4 border-y border-white/10 py-4 sm:grid-cols-2 xl:grid-cols-4">
-                <MetaCell label="Batch" value={batchLabel} />
-                <MetaCell label="Trainer" value={program.trainer.name} />
-                <MetaCell label="Duration" value={duration} />
-                <MetaCell label="Language" value={program.language?.trim() || "English"} />
-              </div>
+            <div className="mt-5 grid gap-4 border-y border-[#FFC107]/10 py-4 sm:grid-cols-2 xl:grid-cols-4">
+              <MetaCell label="Batch" value={batchLabel} />
+              <MetaCell label="Trainer" value={program.trainer.name} />
+              <MetaCell label="Duration" value={duration} />
+              <MetaCell label="Language" value={program.language?.trim() || "English"} />
+            </div>
 
-              <div className="mt-4">
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="font-medium text-zinc-300">Your Progress</span>
-                  <span className="font-bold text-[#FFB800]">{progressPercent}%</span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-800">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#FFB800] to-[#f59e0b] shadow-[0_0_12px_rgba(255,184,0,0.45)] transition-all duration-500"
-                    style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
+            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+              {checklist.map((item) => (
+                <li
+                  key={item.label}
+                  className="flex items-center gap-2 rounded-lg border border-[#FFC107]/10 bg-black/40 px-3 py-2"
+                >
+                  <CheckCircle2
+                    className={`h-4 w-4 shrink-0 ${item.done ? "text-[#4CAF50]" : "text-zinc-600"}`}
+                    aria-hidden
                   />
-                </div>
-              </div>
+                  <span className={`text-xs ${item.done ? "text-zinc-200" : "text-zinc-500"}`}>{item.label}</span>
+                </li>
+              ))}
+            </ul>
 
-              <p className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-zinc-300">
-                <Calendar className="h-4 w-4 shrink-0 text-[#FFB800]" aria-hidden />
-                <span>
-                  Next Live Session:{" "}
-                  <span className="font-semibold text-white">
-                    {program.nextBatchDate}
-                    {program.schedule ? ` · ${program.schedule}` : ""}
-                  </span>
-                </span>
+            <div
+              className={`mt-4 rounded-xl border p-4 ${
+                examUnlocked
+                  ? "border-[#FFC107]/35 bg-gradient-to-r from-[#FFC107]/14 to-[#FFC107]/5"
+                  : "border-white/8 bg-black/30"
+              }`}
+            >
+              <p className="text-sm font-semibold text-white">
+                {examUnlocked ? section.examEligibleTitle : section.examLockedTitle}
               </p>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {joinButton}
-                {firstRecordingUrl ? (
-                  <a href={firstRecordingUrl} target="_blank" rel="noopener noreferrer" className={goldOutlineBtnClass}>
-                    <PlayCircle className="h-4 w-4" aria-hidden />
-                    Watch Recording
-                  </a>
-                ) : (
-                  <Link href="#session-recordings" className={goldOutlineBtnClass}>
-                    <PlayCircle className="h-4 w-4" aria-hidden />
-                    Watch Recording
-                  </Link>
-                )}
-                <Link href="#learning-materials" className={goldOutlineBtnClass}>
-                  <Download className="h-4 w-4" aria-hidden />
-                  Download Notes
+              {examUnlocked ? (
+                <Link
+                  href={`/my-learning/course/${program.slug}/exam?module=final`}
+                  className={`${tlGoldSolid} mt-3`}
+                >
+                  {section.startExamLabel}
+                  <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
-              </div>
+              ) : (
+                <p className="mt-2 text-xs text-zinc-500">{section.examLockedHint}</p>
+              )}
             </div>
 
-            <div className="relative mx-auto flex h-[140px] w-[140px] shrink-0 items-center justify-center lg:mx-0 lg:mt-6">
-              <div
-                className="absolute inset-0 rounded-full bg-[#FFB800]/20 blur-2xl"
-                aria-hidden
-              />
-              <div className="relative h-full w-full">
-                <Image
-                  src={heroGraphic}
-                  alt=""
-                  fill
-                  className="object-contain drop-shadow-[0_0_28px_rgba(255,184,0,0.45)]"
-                  unoptimized
-                  sizes="140px"
-                />
-              </div>
-              <Image
-                src={TUTOR_LED_CERTIFICATE_SAMPLE_SRC}
-                alt=""
-                width={48}
-                height={48}
-                className="pointer-events-none absolute -bottom-1 -right-1 hidden rounded-lg border border-[#FFB800]/30 opacity-40 lg:block"
-                unoptimized
-              />
+            <p className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[#FFC107]/12 bg-black/40 px-3 py-2 text-xs text-zinc-300">
+              <Calendar className="h-4 w-4 shrink-0 text-[#FFC107]" aria-hidden />
+              <span>
+                {section.nextSessionPrefix}{" "}
+                <span className="font-semibold text-white">
+                  {program.nextBatchDate}
+                  {program.schedule ? ` · ${program.schedule}` : ""}
+                </span>
+              </span>
+            </p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {zoomJoinUrl ? (
+                <a href={zoomJoinUrl} target="_blank" rel="noopener noreferrer" className={tlGoldSolid}>
+                  <Video className="h-4 w-4" aria-hidden />
+                  {section.joinZoomLabel}
+                </a>
+              ) : null}
+              {firstRecordingUrl ? (
+                <a href={firstRecordingUrl} target="_blank" rel="noopener noreferrer" className={tlGoldOutline}>
+                  <PlayCircle className="h-4 w-4" aria-hidden />
+                  {section.watchRecordingLabel}
+                </a>
+              ) : (
+                <Link href="#session-recordings" className={tlGoldOutline}>
+                  <PlayCircle className="h-4 w-4" aria-hidden />
+                  {section.watchRecordingLabel}
+                </Link>
+              )}
+              <Link href="#learning-materials" className={tlGoldOutline}>
+                <Download className="h-4 w-4" aria-hidden />
+                {section.downloadNotesLabel}
+              </Link>
             </div>
           </div>
-        </article>
 
-        {/* Upcoming live session card */}
-        <article className="flex flex-col rounded-2xl border border-[#FFB800]/30 bg-gradient-to-b from-[#1a1408] to-zinc-950 p-5 shadow-[0_0_32px_rgba(255,184,0,0.06)]">
-          <div className="flex items-start justify-between gap-2">
-            <h2 className="text-lg font-bold text-white">Upcoming Live Session</h2>
-            <span className="shrink-0 rounded-md bg-[#FFB800]/20 px-2 py-0.5 text-[10px] font-bold uppercase text-[#FFB800]">
-              Next
-            </span>
+          <div className="flex flex-col items-center gap-3 lg:pt-1">
+            <div className="tl-progress-ring relative grid h-40 w-40 place-items-center">
+              <div className="absolute inset-0 rounded-full opacity-95" style={donutStyle} aria-hidden />
+              <div className="relative flex h-[6.25rem] w-[6.25rem] flex-col items-center justify-center rounded-full bg-black text-center ring-2 ring-[#FFC107]/10">
+                <span
+                  className="text-3xl font-extrabold"
+                  style={{ color: progressPercent >= 80 ? TL.green : TL.gold }}
+                >
+                  {progressPercent}%
+                </span>
+                <span className="text-[11px] font-medium text-zinc-400">Completed</span>
+              </div>
+            </div>
           </div>
-          <p className="mt-3 text-base font-semibold leading-snug text-white">{nextSessionTitle}</p>
-          <ul className="mt-4 space-y-2.5 text-sm text-zinc-400">
-            <li className="flex items-start gap-2">
-              <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" aria-hidden />
-              <span>{program.nextBatchDate}</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" aria-hidden />
-              <span>{program.schedule}</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <User className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" aria-hidden />
-              <span>{program.trainer.name}</span>
-            </li>
-          </ul>
-          <div className="mt-auto space-y-2 pt-6">
-            {zoomJoinUrl ? (
-              <a
-                href={zoomJoinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#FFB800] px-5 py-2.5 text-sm font-bold text-black shadow-[0_8px_24px_rgba(255,184,0,0.35)] transition hover:bg-[#e5a500]"
-              >
-                <Video className="h-4 w-4" aria-hidden />
-                Join Zoom Session
-              </a>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-zinc-800 px-5 py-2.5 text-sm font-bold text-zinc-500"
-              >
-                <Video className="h-4 w-4" aria-hidden />
-                Join Zoom Session
-              </button>
-            )}
-            <Link href="/my-learning/calendar" className={`${goldOutlineBtnClass} w-full`}>
-              <CalendarPlus className="h-4 w-4" aria-hidden />
-              Add to Calendar
-            </Link>
-          </div>
-        </article>
-      </div>
+        </div>
+      </article>
 
-      {/* Bottom row — learning journey + progress donut */}
       <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
-        <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-5">
-          <h2 className="text-lg font-bold text-white">Learning Journey</h2>
+        <article className={tlCard}>
+          <h2 className="text-lg font-bold text-white">{section.learningJourneyTitle}</h2>
           <div className="mt-6 overflow-x-auto pb-2">
-            <div className="flex min-w-[520px] items-start justify-between gap-0 px-2">
+            <div className="flex min-w-[520px] items-start justify-between px-2">
               {journeySteps.map((step, i) => {
                 const isLast = i === journeySteps.length - 1;
                 const lineClass =
                   step.status === "completed"
-                    ? "bg-emerald-500"
+                    ? "bg-[#4CAF50]"
                     : step.status === "in-progress"
-                      ? "bg-gradient-to-r from-emerald-500 to-[#FFB800]"
+                      ? "bg-gradient-to-r from-[#4CAF50] to-[#FFC107]"
                       : "bg-zinc-700";
 
                 return (
@@ -272,9 +241,9 @@ export function TutorLedLearnerHero({
                     <span
                       className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold ${
                         step.status === "completed"
-                          ? "border-emerald-500 bg-emerald-500/20 text-emerald-300"
+                          ? "border-[#4CAF50] bg-[#4CAF50]/15 text-[#66BB6A]"
                           : step.status === "in-progress"
-                            ? "border-[#FFB800] bg-[#FFB800]/20 text-[#FFB800]"
+                            ? "border-[#FFC107] bg-[#FFC107]/15 text-[#FFC107]"
                             : "border-zinc-600 bg-zinc-900 text-zinc-500"
                       }`}
                     >
@@ -293,9 +262,9 @@ export function TutorLedLearnerHero({
                     <p
                       className={`mt-1 text-[10px] font-semibold ${
                         step.status === "completed"
-                          ? "text-emerald-400"
+                          ? "text-[#66BB6A]"
                           : step.status === "in-progress"
-                            ? "text-[#FFB800]"
+                            ? "text-[#FFC107]"
                             : "text-zinc-500"
                       }`}
                     >
@@ -312,37 +281,25 @@ export function TutorLedLearnerHero({
           </div>
         </article>
 
-        <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-5">
-          <h2 className="text-lg font-bold text-white">Course Progress</h2>
-          <div className="mt-4 flex flex-col items-center sm:flex-row sm:items-center sm:gap-6">
-            <div className="relative grid h-28 w-28 place-items-center">
-              <div className="absolute inset-0 rounded-full opacity-90" style={donutStyle} aria-hidden />
-              <div className="relative flex h-[4.5rem] w-[4.5rem] flex-col items-center justify-center rounded-full bg-zinc-950 text-center">
-                <span className="text-xl font-bold text-[#FFB800]">{progressPercent}%</span>
-                <span className="text-[9px] text-zinc-500">Completed</span>
-              </div>
-            </div>
-            <ul className="mt-4 space-y-2 text-sm sm:mt-0">
-              <li className="flex items-center gap-2 text-zinc-300">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden />
-                Completed ({completedCount} Sessions)
-              </li>
-              <li className="flex items-center gap-2 text-zinc-300">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#FFB800]" aria-hidden />
-                In Progress ({inProgressCount} Sessions)
-              </li>
-              <li className="flex items-center gap-2 text-zinc-300">
-                <span className="h-2.5 w-2.5 rounded-full bg-zinc-600" aria-hidden />
-                Upcoming ({upcomingCount} Sessions)
-              </li>
-            </ul>
-          </div>
-          <Link
-            href="#live-curriculum"
-            className={`${goldOutlineBtnClass} mt-5 w-full`}
-          >
+        <article className={tlCard}>
+          <h2 className="text-lg font-bold text-white">{section.courseProgressTitle}</h2>
+          <ul className="mt-4 space-y-3 text-sm">
+            <li className="flex items-center gap-2 text-zinc-200">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#4CAF50]" aria-hidden />
+              Completed ({completedCount} sessions)
+            </li>
+            <li className="flex items-center gap-2 text-zinc-200">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#FFC107]" aria-hidden />
+              In progress ({inProgressCount} sessions)
+            </li>
+            <li className="flex items-center gap-2 text-zinc-200">
+              <span className="h-2.5 w-2.5 rounded-full bg-zinc-600" aria-hidden />
+              Upcoming ({upcomingCount} sessions)
+            </li>
+          </ul>
+          <Link href="#live-curriculum" className={`${tlGoldOutline} mt-5 w-full text-xs`}>
             <Globe className="h-4 w-4" aria-hidden />
-            View Progress Report
+            View progress report
           </Link>
         </article>
       </div>
@@ -350,34 +307,8 @@ export function TutorLedLearnerHero({
   );
 }
 
-export function buildJourneySteps(
-  curriculum: TutorLedProgramStored["curriculum"],
-  completedSessions: number,
-  maxDays = 6,
-): JourneyStep[] {
-  const steps = curriculum.slice(0, maxDays).map((w, i) => {
-    const title =
-      w.topic.split(/[—–-]/)[0]?.trim() ||
-      w.label?.replace(/^Module\s*/i, "").trim() ||
-      w.topic;
-    let status: JourneyStep["status"] = "upcoming";
-    if (i < completedSessions) status = "completed";
-    else if (i === completedSessions) status = "in-progress";
-    return { day: i + 1, title, status };
-  });
-  return steps.length > 0
-    ? steps
-    : [
-        { day: 1, title: "Introduction", status: "in-progress" as const },
-        { day: 2, title: "Core modules", status: "upcoming" as const },
-      ];
-}
-
-export function computeProgramProgress(totalSessions: number, completedSessions: number) {
-  const total = Math.max(1, totalSessions);
-  const completed = Math.min(completedSessions, total);
-  const inProgressCount = completed < total ? 1 : 0;
-  const upcomingCount = Math.max(0, total - completed - inProgressCount);
-  const progressPercent = Math.round(((completed + (inProgressCount ? 0.35 : 0)) / total) * 100);
-  return { completedCount: completed, inProgressCount, upcomingCount, progressPercent };
-}
+export {
+  buildJourneySteps,
+  computeProgramProgress,
+  type JourneyStep,
+} from "@/lib/tutor-led-training-schedule";

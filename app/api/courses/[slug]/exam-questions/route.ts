@@ -3,6 +3,8 @@ import { getCurriculumForCourse, normalizeCurriculumModules } from "@/lib/course
 import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
 import { loadExamQuestionsFromStoredUrl } from "@/lib/server/load-exam-questions";
 import { getManagedCourseForLearner } from "@/lib/server/course-catalog";
+import { getTutorLedProgramForLearner } from "@/lib/server/tutor-led-catalog";
+import { resolveLearnerSection } from "@/lib/tutor-led-learner-section";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +15,59 @@ export async function GET(
 ) {
   const { slug } = await params;
   const { searchParams } = new URL(request.url);
-  const moduleNumber = Math.max(1, Number.parseInt(searchParams.get("module") ?? "1", 10) || 1);
+  const moduleParam = searchParams.get("module") ?? "1";
+  const isFinal = moduleParam === "final" || searchParams.get("final") === "1";
 
   const course = await getManagedCourseForLearner(slug);
+
+  if (isFinal) {
+    const fe = course?.finalExam;
+    const tutorLed = course ? null : await getTutorLedProgramForLearner(slug);
+    const tutorSection = tutorLed ? resolveLearnerSection(tutorLed) : null;
+    const examUploadUrl =
+      fe?.examUploadUrl?.trim() || tutorSection?.examUploadUrl?.trim() || "";
+    const title =
+      fe?.title?.trim() ||
+      tutorSection?.finalExamTitle?.trim() ||
+      "Final examination";
+    const passingScorePercent =
+      typeof fe?.passingScorePercent === "number"
+        ? fe.passingScorePercent
+        : tutorSection?.examPassingScore ?? 70;
+
+    if (!examUploadUrl) {
+      return NextResponse.json({
+        ok: false,
+        message: "No final exam file uploaded in Admin. Upload a CSV on the course or tutor-led learner dashboard.",
+      });
+    }
+
+    const questions = await loadExamQuestionsFromStoredUrl(examUploadUrl);
+    if (questions.length === 0) {
+      return NextResponse.json({
+        ok: false,
+        message: "Exam file could not be read or has no valid questions.",
+        examUploadUrl,
+      });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      moduleNumber: "final",
+      moduleTitle: title,
+      examLabel: title,
+      passingScorePercent,
+      timedExam: fe?.timedExam ?? true,
+      examDurationMinutes: fe?.examDurationMinutes ?? tutorSection?.examMinutes ?? 60,
+      questions,
+    });
+  }
+
   if (!course) {
     return NextResponse.json({ ok: false, message: "Course not found" }, { status: 404 });
   }
 
+  const moduleNumber = Math.max(1, Number.parseInt(moduleParam, 10) || 1);
   const curriculum = normalizeCurriculumModules(
     getCurriculumForCourse(course.slug, course.category, course.title, course.curriculum),
   );

@@ -1,4 +1,8 @@
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import {
+  getCurriculumSessionCount,
+  resolveTrainingDuration,
+} from "@/lib/tutor-led-training-schedule";
 
 /** Cart / checkout line item (stored in `sft_cart`). */
 export type ShopCartItem = {
@@ -30,13 +34,11 @@ export function applyTutorLedShopMeta(
 ): ShopCartItem {
   const program = tutorLedProgramBySlug(programs, item.slug);
   if (!program) return item;
-  const modules = Math.max(1, program.curriculum.length * 5);
-  const durationFromDetail = program.batchDetails?.find((d) => d.label === "Duration")?.value;
   return {
     ...item,
     deliveryKind: "tutor-led",
-    learningModules: modules,
-    learningDuration: durationFromDetail?.trim() || "Live cohort",
+    learningModules: getCurriculumSessionCount(program),
+    learningDuration: resolveTrainingDuration(program),
     learningTone: "amber",
     learningAction: "Continue",
     image: item.image || program.heroSrc,

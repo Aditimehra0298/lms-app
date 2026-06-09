@@ -78,13 +78,6 @@ function scheduleTimeIst(schedule: string): string {
   return schedule;
 }
 
-function batchDuration(course: TutorLedHeroCourse): string {
-  const row = course.batchDetails.find((d) => d.label === "Duration");
-  if (!row) return "12 Weeks";
-  const v = row.value;
-  if (/week/i.test(v)) return v;
-  return "12 Weeks";
-}
 
 const heroPills: { icon: typeof Video; label: string }[] = [
   { icon: Video, label: "Live Training" },
@@ -144,7 +137,8 @@ export default function TutorLedCourseHero({
 }: Props) {
   const router = useRouter();
   const timeIst = scheduleTimeIst(course.schedule);
-  const duration = batchDuration(course);
+  const duration =
+    course.batchDetails.find((d) => d.label === "Duration")?.value?.trim() || "4 Days";
   const enrollThumb = thumbnailSrc?.trim() || heroSrc;
   const previewSrc = heroSrc?.trim() || TUTOR_LED_CLASSROOM_IMAGE_SRC;
 

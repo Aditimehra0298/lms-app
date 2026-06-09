@@ -19,9 +19,11 @@ import {
   IndianRupee,
   Radio,
   CalendarDays,
+  LayoutDashboard,
 } from "lucide-react";
 import { AdminModeToggle } from "@/components/admin/AdminModeToggle";
 import { AdminTutorLedCurriculumEditor } from "@/components/admin/AdminTutorLedCurriculumEditor";
+import { AdminTutorLedLearnerDashboardEditor } from "@/components/admin/AdminTutorLedLearnerDashboardEditor";
 import { AdminTutorLedMediaPanel } from "@/components/admin/AdminTutorLedMediaPanel";
 import type { AdminContent } from "@/lib/content-schema";
 import { defaultAdminContent } from "@/lib/content-schema";
@@ -41,6 +43,7 @@ import {
   resolveZoomJoinUrl,
   ZOOM_PREMIUM_ADMIN_HINTS,
 } from "@/lib/zoom-meeting";
+import { syncDurationBatchDetail, getDurationSource } from "@/lib/tutor-led-training-schedule";
 
 const LEARNING_TOOL_KINDS: TutorLedToolKind[] = ["pad-notes", "ppt", "webbook"];
 
@@ -62,6 +65,7 @@ type EditorTab =
   | "curriculum"
   | "marketing"
   | "downloads"
+  | "learner"
   | "faqs";
 type ListFilter = "all" | "published" | "draft";
 
@@ -74,6 +78,7 @@ const EDITOR_TABS: { id: EditorTab; label: string; icon: typeof BookOpen }[] = [
   { id: "curriculum", label: "Curriculum & days", icon: CalendarDays },
   { id: "marketing", label: "Page content", icon: FileText },
   { id: "downloads", label: "Downloads", icon: Upload },
+  { id: "learner", label: "Learner dashboard", icon: LayoutDashboard },
   { id: "faqs", label: "FAQs", icon: HelpCircle },
 ];
 
@@ -158,6 +163,7 @@ export default function AdminTutorLedWorkspace() {
   const [uploadingMaterialId, setUploadingMaterialId] = useState<string | null>(null);
   const [uploadingHero, setUploadingHero] = useState(false);
   const [uploadingLearnerHero, setUploadingLearnerHero] = useState(false);
+  const [uploadingLearnerHeroBg, setUploadingLearnerHeroBg] = useState(false);
   const [uploadingTrainerAvatar, setUploadingTrainerAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState<EditorTab>("basics");
   const [searchQuery, setSearchQuery] = useState("");
@@ -407,7 +413,8 @@ export default function AdminTutorLedWorkspace() {
       setLoadError("Slug is required (use letters, numbers, hyphens).");
       return;
     }
-    const normalized = { ...draft, slug };
+    const normalized =
+      getDurationSource(draft) === "manual" ? { ...draft, slug } : syncDurationBatchDetail({ ...draft, slug });
 
     if (isCreating) {
       if (programs.some((p) => p.slug === slug)) {
@@ -1288,6 +1295,7 @@ export default function AdminTutorLedWorkspace() {
                 setDraft={setDraft}
                 uploadingHero={uploadingHero}
                 uploadingLearnerHero={uploadingLearnerHero}
+                uploadingLearnerHeroBg={uploadingLearnerHeroBg}
                 uploadingTrainerAvatar={uploadingTrainerAvatar}
                 onUploadHero={(file) =>
                   void uploadImageField(
@@ -1302,7 +1310,15 @@ export default function AdminTutorLedWorkspace() {
                     file,
                     (url) => setDraft({ ...draft, learnerHeroSrc: url }),
                     setUploadingLearnerHero,
-                    "Learner banner upload failed.",
+                    "Learner thumbnail upload failed.",
+                  )
+                }
+                onUploadLearnerHeroBg={(file) =>
+                  void uploadImageField(
+                    file,
+                    (url) => setDraft({ ...draft, learnerHeroBgSrc: url }),
+                    setUploadingLearnerHeroBg,
+                    "Learner hero background upload failed.",
                   )
                 }
                 onUploadTrainerAvatar={(file) =>
@@ -1585,6 +1601,13 @@ export default function AdminTutorLedWorkspace() {
                 );
               })}
             </div>
+            </div>
+            <div className={activeTab === "learner" ? "space-y-4" : "hidden"}>
+              <AdminTutorLedLearnerDashboardEditor
+                draft={draft}
+                setDraft={setDraft}
+                fieldClass={tlField}
+              />
             </div>
             <div className={activeTab === "faqs" ? "space-y-4" : "hidden"}>
             <h3 className="text-xs font-semibold text-gray-300">FAQs</h3>

@@ -43,33 +43,33 @@ export function EnrolledTutorLedOnCalendar() {
   if (!rows.length) return null;
 
   return (
-    <section className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4">
-      <h2 className="text-lg font-bold text-amber-100">Your tutor-led enrollments</h2>
-      <p className="mt-1 text-xs text-gray-300">
-        These programs appear on your schedule below. Open the program for Zoom links and materials when available.
+    <section className="mb-5 rounded-2xl border border-[#FFC107]/30 bg-gradient-to-r from-[#2a2210] via-[#1a1508] to-[#0f0d08] p-4 shadow-[inset_0_1px_0_rgba(255,193,7,0.12)]">
+      <h2 className="text-base font-bold text-[#FFC107]">Your tutor-led enrollments</h2>
+      <p className="mt-1 text-xs text-zinc-400">
+        These programs appear on your schedule below. Open the program for Zoom links and materials.
       </p>
       <ul className="mt-3 space-y-2">
         {rows.map(({ program }) => (
           <li
             key={program.slug}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#FFC107]/20 bg-black/40 px-4 py-3"
           >
-            <div>
+            <div className="min-w-0">
               <p className="font-semibold text-white">{program.title}</p>
-              <p className="text-xs text-gray-400">
+              <p className="mt-0.5 text-xs text-zinc-400">
                 Next batch: {program.nextBatchDate} · {program.schedule}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
                 href={`/my-learning/course/${encodeURIComponent(program.slug)}`}
-                className="rounded-md bg-amber-400 px-3 py-1.5 text-xs font-bold text-black hover:bg-amber-300"
+                className="rounded-lg bg-[#FFC107] px-4 py-2 text-xs font-bold text-black shadow-[0_4px_16px_rgba(255,193,7,0.3)] hover:bg-[#FFD54F]"
               >
                 Open program
               </Link>
               <Link
                 href="/my-learning?tab=live"
-                className="rounded-md border border-white/20 bg-black/30 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-white/10"
+                className="rounded-lg border border-[#FFC107]/45 bg-transparent px-4 py-2 text-xs font-semibold text-[#FFC107] hover:bg-[#FFC107]/10"
               >
                 Tutor Led tab
               </Link>

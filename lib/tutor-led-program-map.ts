@@ -6,17 +6,27 @@ import {
   BookOpen,
   Brain,
   Calendar,
+  ClipboardList,
   Clock,
+  Download,
+  FileText,
   Globe,
   GraduationCap,
   Handshake,
+  Headphones,
+  HelpCircle,
+  Link2,
   MessageCircle,
+  MessageSquare,
   Mic,
   Monitor,
   MonitorPlay,
+  Play,
+  Presentation,
   Rocket,
   Shield,
   Star,
+  Trophy,
   TrendingUp,
   UserRound,
   Users,
@@ -24,6 +34,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { resolveTrainingDuration } from "@/lib/tutor-led-training-schedule";
 import type { TutorLedBatchRow } from "@/components/TutorLedLandingSections";
 import { TUTOR_LED_TRAINER_AVATAR_FALLBACK } from "@/lib/tutor-led-marketing-assets";
 
@@ -32,17 +43,27 @@ export const TUTOR_LED_ICON_MAP: Record<string, LucideIcon> = {
   BookOpen,
   Brain,
   Calendar,
+  ClipboardList,
   Clock,
+  Download,
+  FileText,
   Globe,
   GraduationCap,
   Handshake,
+  Headphones,
+  HelpCircle,
+  Link2,
   MessageCircle,
+  MessageSquare,
   Mic,
   Monitor,
   MonitorPlay,
+  Play,
+  Presentation,
   Rocket,
   Shield,
   Star,
+  Trophy,
   TrendingUp,
   UserRound,
   Users,
@@ -97,7 +118,7 @@ export function mapTutorLedProgramToPageCourse(stored: TutorLedProgramStored) {
     batchDetails: stored.batchDetails.map((r) => ({
       icon: tutorLedIcon(r.icon),
       label: r.label,
-      value: r.value,
+      value: r.label === "Duration" ? resolveTrainingDuration(stored) : r.value,
     })),
     features: stored.features.map((f) => ({
       icon: tutorLedIcon(f.icon),
@@ -117,8 +138,7 @@ export function mapTutorLedProgramToPageCourse(stored: TutorLedProgramStored) {
 
 /** Live batch table row for tutor-led marketing landing sections. */
 export function buildTutorLedBatchRow(stored: TutorLedProgramStored): TutorLedBatchRow {
-  const duration =
-    stored.batchDetails.find((d) => d.label === "Duration")?.value?.trim() || "12 Weeks";
+  const duration = resolveTrainingDuration(stored);
   const schedule = stored.schedule.trim();
   const paren = schedule.match(/\(([^)]+)\)/);
   const sessionDays = schedule.replace(/\([^)]*\)/, "").trim() || schedule;

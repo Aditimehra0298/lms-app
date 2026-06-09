@@ -42,6 +42,8 @@ import AdminCoursesPageEditor from "@/components/admin/AdminCoursesPageEditor";
 import AdminHomePageEditor from "@/components/admin/AdminHomePageEditor";
 import AdminAboutPageEditor from "@/components/admin/AdminAboutPageEditor";
 import AdminTutorLedWorkspace from "@/components/admin/AdminTutorLedWorkspace";
+import { AdminCommunityConnectEditor } from "@/components/admin/AdminCommunityConnectEditor";
+import { AdminDashboardCalendarEditor } from "@/components/admin/AdminDashboardCalendarEditor";
 import AdminCourseQAModeration from "@/components/admin/AdminCourseQAModeration";
 import AdminSupportTickets from "@/components/admin/AdminSupportTickets";
 import AdminFormSubmissions from "@/components/admin/AdminFormSubmissions";
@@ -761,6 +763,10 @@ export default function AdminPage() {
             </article>
           </div>
 
+          <AdminDashboardCalendarEditor />
+
+          <AdminCommunityConnectEditor />
+
           <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#0b1224] px-3 py-2 text-xs text-gray-400">
             <Calendar size={12} />
             Last updated just now
@@ -1025,7 +1031,8 @@ export default function AdminPage() {
               </p>
               <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-amber-100/85">
                 To manage <strong className="text-white">live tutor-led programs</strong> (Zoom links, curriculum,
-                pad notes / PPT / webbook on <strong className="text-white">/tutor-led/your-slug</strong>), open{" "}
+                enrolled learner dashboard, pad notes / PPT / webbook on{" "}
+                <strong className="text-white">/tutor-led/your-slug</strong>), open{" "}
                 <button
                   type="button"
                   onClick={() => selectMenu("Tutor Led")}

@@ -24,6 +24,12 @@ export async function PUT(request: Request) {
           body.dashboard?.nextClassTitle ?? defaultAdminContent.dashboard.nextClassTitle,
         nextClassTime: body.dashboard?.nextClassTime ?? defaultAdminContent.dashboard.nextClassTime,
         streakDays: Number(body.dashboard?.streakDays ?? defaultAdminContent.dashboard.streakDays),
+        calendarReminders: Array.isArray(body.dashboard?.calendarReminders)
+          ? body.dashboard.calendarReminders
+          : existing.dashboard.calendarReminders ?? defaultAdminContent.dashboard.calendarReminders ?? [],
+        communityConnect: Array.isArray(body.dashboard?.communityConnect)
+          ? body.dashboard.communityConnect
+          : existing.dashboard.communityConnect ?? defaultAdminContent.dashboard.communityConnect ?? [],
       },
       learningCourses:
         body.learningCourses && body.learningCourses.length > 0

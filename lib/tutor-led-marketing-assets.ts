@@ -12,3 +12,6 @@ export const TUTOR_LED_CLASSROOM_IMAGE_SRC = "/h3.png";
 
 /** Trust / money-back guarantee badge — pre-footer reserve bar. */
 export const TUTOR_LED_TRUST_BADGE_SRC = "/trust-badge-shield.png";
+
+/** Gold shield glow — enrolled learner hero card background. */
+export const TUTOR_LED_LEARNER_HERO_BG_SRC = "/learner-dashboard-hero-bg.png";

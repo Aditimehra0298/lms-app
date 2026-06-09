@@ -12,6 +12,12 @@ import {
   type TutorLedCurriculumWeek,
 } from "@/lib/tutor-led-curriculum-days";
 import { AdminModeToggle } from "@/components/admin/AdminModeToggle";
+import {
+  formatTrainingDuration,
+  getCurriculumSessionCount,
+  getDurationSource,
+  syncDurationBatchDetail,
+} from "@/lib/tutor-led-training-schedule";
 
 const tlField =
   "mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-violet-500/50";
@@ -31,14 +37,22 @@ export function AdminTutorLedCurriculumEditor({ draft, setDraft, onUploadImage }
   const [openWeeks, setOpenWeeks] = useState<Record<number, boolean>>({ 0: true });
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
+  const durationSource = getDurationSource(draft);
+  const sessionCount = getCurriculumSessionCount(draft);
+  const autoDurationLabel = formatTrainingDuration(sessionCount);
+
+  const commitDraft = (next: TutorLedProgramStored) => {
+    setDraft(getDurationSource(next) === "manual" ? next : syncDurationBatchDetail(next));
+  };
+
   const setMode = (m: TutorLedContentMode) => {
-    setDraft({ ...draft, curriculumMode: m });
+    commitDraft({ ...draft, curriculumMode: m });
   };
 
   const patchWeek = (i: number, patch: Partial<TutorLedCurriculumWeek>) => {
     const next = [...draft.curriculum];
     next[i] = { ...next[i], ...patch };
-    setDraft({ ...draft, curriculum: next });
+    commitDraft({ ...draft, curriculum: next });
   };
 
   const patchWeekDays = (weekIndex: number, days: TutorLedCurriculumDay[]) => {
@@ -56,6 +70,38 @@ export function AdminTutorLedCurriculumEditor({ draft, setDraft, onUploadImage }
 
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3">
+        <p className="text-[11px] font-semibold text-amber-100">Training length on learner dashboard</p>
+        <p className="mt-1 text-[10px] text-amber-200/80">
+          <strong className="text-white">{sessionCount}</strong> live module
+          {sessionCount === 1 ? "" : "s"} → journey shows Day 1–{sessionCount}, duration{" "}
+          <strong className="text-white">{autoDurationLabel}</strong>. Progress updates when Zoom
+          recordings are synced.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-[11px] text-gray-200">
+            <input
+              type="radio"
+              name={`duration-source-${draft.slug}`}
+              checked={durationSource === "curriculum"}
+              onChange={() => commitDraft({ ...draft, durationSource: "curriculum" })}
+              className="accent-amber-400"
+            />
+            Auto from curriculum ({autoDurationLabel})
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-[11px] text-gray-200">
+            <input
+              type="radio"
+              name={`duration-source-${draft.slug}`}
+              checked={durationSource === "manual"}
+              onChange={() => setDraft({ ...draft, durationSource: "manual" })}
+              className="accent-amber-400"
+            />
+            Manual — edit Duration in Page content
+          </label>
+        </div>
+      </div>
+
       <AdminModeToggle
         label="Curriculum days"
         value={mode}
@@ -325,7 +371,7 @@ export function AdminTutorLedCurriculumEditor({ draft, setDraft, onUploadImage }
                     type="button"
                     className="text-[11px] text-red-300"
                     onClick={() =>
-                      setDraft({
+                      commitDraft({
                         ...draft,
                         curriculum: draft.curriculum.filter((_, j) => j !== weekIndex),
                       })
@@ -344,13 +390,13 @@ export function AdminTutorLedCurriculumEditor({ draft, setDraft, onUploadImage }
         type="button"
         className="text-[11px] font-semibold text-violet-300"
         onClick={() =>
-          setDraft({
+          commitDraft({
             ...draft,
             curriculum: [
               ...draft.curriculum,
               {
                 week: draft.curriculum.length + 1,
-                label: "",
+                label: `Module ${draft.curriculum.length + 1}`,
                 topic: "",
                 keyLearning: "",
                 sessionType: "Live",

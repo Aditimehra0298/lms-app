@@ -1,4 +1,5 @@
 import type { TutorLedLearningMaterial } from "@/lib/tutor-led-learning-tools";
+import type { TutorLedLearnerSection } from "@/lib/tutor-led-learner-section";
 import type { ZoomSessionRecording } from "@/lib/zoom-session-types";
 
 /**
@@ -50,9 +51,12 @@ export type TutorLedProgramStored = {
   /** Hero on `/tutor-led/[slug]` before payment. */
   heroSrc?: string;
   heroAlt?: string;
-  /** Banner on My Learning after payment; falls back to `heroSrc`. */
+  /** Thumbnail / recordings fallback on My Learning after payment; falls back to `heroSrc`. */
   learnerHeroSrc?: string;
   learnerHeroAlt?: string;
+  /** Gold shield background on enrolled learner hero card. */
+  learnerHeroBgSrc?: string;
+  learnerHeroBgAlt?: string;
   /** Full Zoom join link (from Zoom → Meetings → copy invitation). */
   liveJoinUrl?: string;
   /** Optional — auto-filled when you paste a Zoom link; or enter PMI / meeting ID manually. */
@@ -69,6 +73,10 @@ export type TutorLedProgramStored = {
   curriculumMode?: "auto" | "manual";
   /** auto = Zoom API buttons; manual = paste join link only. */
   zoomLinkMode?: "auto" | "manual";
+  /** Enrolled learner hub — `/my-learning/course/[slug]` when tutor-led. */
+  learnerSection?: TutorLedLearnerSection;
+  /** `curriculum` (default) = duration & journey follow module count; `manual` = batchDetails Duration row. */
+  durationSource?: "curriculum" | "manual";
 };
 
 export const defaultTutorLedPrograms: TutorLedProgramStored[] = [
@@ -202,6 +210,8 @@ export const defaultTutorLedPrograms: TutorLedProgramStored[] = [
     heroAlt: "Live interactive sessions with expert trainer",
     learnerHeroSrc: "/h2.png",
     learnerHeroAlt: "Your live cohort dashboard",
+    learnerHeroBgSrc: "/learner-dashboard-hero-bg.png",
+    learnerHeroBgAlt: "Gold achievement shield",
     priceAfterPayment: 12999,
     learningMaterials: [],
   },

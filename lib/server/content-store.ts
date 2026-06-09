@@ -64,7 +64,16 @@ async function readAdminContentFromDisk(): Promise<AdminContent> {
   try {
     const parsed = JSON.parse(raw) as AdminContent;
     return {
-      dashboard: parsed.dashboard ?? defaultAdminContent.dashboard,
+      dashboard: {
+        ...defaultAdminContent.dashboard,
+        ...(parsed.dashboard ?? {}),
+        calendarReminders: Array.isArray(parsed.dashboard?.calendarReminders)
+          ? parsed.dashboard.calendarReminders
+          : defaultAdminContent.dashboard.calendarReminders ?? [],
+        communityConnect: Array.isArray(parsed.dashboard?.communityConnect)
+          ? parsed.dashboard.communityConnect
+          : defaultAdminContent.dashboard.communityConnect ?? [],
+      },
       learningCourses:
         parsed.learningCourses && parsed.learningCourses.length > 0
           ? parsed.learningCourses

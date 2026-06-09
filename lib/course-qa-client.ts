@@ -35,3 +35,13 @@ export function qaApiHeaders(): Record<string, string> {
   if (name) headers["x-learner-name"] = name;
   return headers;
 }
+
+/** Multipart uploads — omit Content-Type so the browser sets the boundary. */
+export function learnerUploadHeaders(): Record<string, string> {
+  const email = getLearnerEmail();
+  const name = getLearnerDisplayName();
+  const headers: Record<string, string> = {};
+  if (email) headers["x-learner-email"] = email;
+  if (name) headers["x-learner-name"] = name;
+  return headers;
+}

@@ -19,6 +19,7 @@ import {
 import type { CourseCurriculumItem, CourseCurriculumModule, CourseFinalExam } from "@/lib/content-schema";
 import {
   DEFAULT_MODULE_EXAM_PASS_PERCENT,
+  FINAL_EXAM_SCORE_KEY,
   computeCombinedExamGrade,
   learnerCredentialsEligible,
   recordModuleExamAttempt,
@@ -45,14 +46,21 @@ type CourseExamPayload = {
   title: string;
   curriculum: CourseCurriculumModule[] | null;
   finalExam: CourseFinalExam | null;
+  deliveryKind?: "tutor-led" | "self-paced";
+  examUnlocked?: boolean;
+  trainingDays?: number;
+  completedDays?: number;
 };
 
 function CourseExamPageInner() {
   const params = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
   const slug = params?.slug ?? "course";
-  const isFinalExam = searchParams.get("final") === "1";
-  const moduleNumber = Math.max(1, Number(searchParams.get("module") || "1"));
+  const moduleParam = searchParams.get("module");
+  const isFinalExam = searchParams.get("final") === "1" || moduleParam === "final";
+  const moduleNumber = isFinalExam
+    ? 0
+    : Math.max(1, Number.parseInt(moduleParam || "1", 10) || 1);
   const moduleIdx = moduleNumber - 1;
 
   const [courseMeta, setCourseMeta] = useState<CourseExamPayload | null | undefined>(undefined);
@@ -168,8 +176,28 @@ function CourseExamPageInner() {
     };
   }, [courseMeta, isFinalExam, moduleIdx, moduleNumber]);
 
+  const selfPacedFinalUnlocked = useMemo(() => {
+    if (!courseMeta?.curriculum?.length || !isFinalExam) return true;
+    const completed = readCompletedModules(slug);
+    const { allExamsPassed } = computeCombinedExamGrade(slug, courseMeta.curriculum);
+    const { allModulesDone } = learnerCredentialsEligible(
+      courseMeta.curriculum,
+      completed,
+      allExamsPassed,
+    );
+    return allModulesDone && allExamsPassed;
+  }, [courseMeta, isFinalExam, slug]);
+
+  const examAccessUnlocked = useMemo(() => {
+    if (!isFinalExam) return true;
+    if (courseMeta?.deliveryKind === "tutor-led") {
+      return courseMeta.examUnlocked === true;
+    }
+    return selfPacedFinalUnlocked;
+  }, [courseMeta, isFinalExam, selfPacedFinalUnlocked]);
+
   useEffect(() => {
-    if (!courseMeta?.slug || isFinalExam) return;
+    if (!courseMeta?.slug) return;
 
     let cancelled = false;
     setQuestionsLoading(true);
@@ -181,10 +209,14 @@ function CourseExamPageInner() {
     setReviewedQuestions([]);
     setExamStartedAtMs(null);
 
+    const query = isFinalExam
+      ? "module=final"
+      : `module=${moduleNumber}`;
+
     void (async () => {
       try {
         const res = await fetch(
-          `/api/courses/${encodeURIComponent(slug)}/exam-questions?module=${moduleNumber}`,
+          `/api/courses/${encodeURIComponent(slug)}/exam-questions?${query}`,
           { cache: "no-store" },
         );
         const data = (await res.json()) as {
@@ -199,22 +231,22 @@ function CourseExamPageInner() {
           setSelectedAnswers([]);
           setQuestionsError(
             data.message ??
-              "No exam questions for this module. Upload a CSV on the Module Exam row in Admin.",
+              "This exam is not available yet. Please try again later or contact support if you need help.",
           );
-          setLoadedModuleNumber(moduleNumber);
+          setLoadedModuleNumber(isFinalExam ? -1 : moduleNumber);
           setQuestionsLoading(false);
           return;
         }
         setQuestions(data.questions);
         setSelectedAnswers(Array.from({ length: data.questions.length }, () => null));
-        setLoadedModuleNumber(moduleNumber);
+        setLoadedModuleNumber(isFinalExam ? -1 : moduleNumber);
         setQuestionsError(null);
       } catch {
         if (cancelled) return;
         setQuestions([]);
         setSelectedAnswers([]);
         setQuestionsError("Could not load exam questions. Refresh the page and try again.");
-        setLoadedModuleNumber(moduleNumber);
+        setLoadedModuleNumber(isFinalExam ? -1 : moduleNumber);
       } finally {
         if (!cancelled) setQuestionsLoading(false);
       }
@@ -279,16 +311,17 @@ function CourseExamPageInner() {
   };
 
   useEffect(() => {
-    if (!isSubmitted || !examRuntime || isFinalExam) return;
+    if (!isSubmitted || !examRuntime) return;
     const total = questions.length;
     const correct = score;
     const entry = recordModuleExamAttempt({
       courseSlug: slug,
-      moduleNumber,
+      moduleNumber: isFinalExam ? FINAL_EXAM_SCORE_KEY : moduleNumber,
       correct,
       total,
       passingPercent: examRuntime.passingScorePercent,
     });
+    if (isFinalExam) return;
     if (entry.passed) {
       markModuleCompletedLocal();
       const curriculum = courseMeta?.curriculum ?? [];
@@ -330,26 +363,7 @@ function CourseExamPageInner() {
     );
   }
 
-  if (isFinalExam) {
-    return (
-      <div className="min-h-screen bg-[#060b17] text-white">
-
-        <main className="mx-auto max-w-[700px] px-4 py-16 text-center">
-          <p className="text-2xl font-bold">Final exam is not required</p>
-          <p className="mt-2 text-sm text-gray-300">
-            Certification is based on all module exams. Pass each exam at 70%+ (unlimited retakes). Your
-            certificate grade is the combined percentage from all exam marks.
-          </p>
-          <Link href={`/my-learning/course/${slug}`} className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold">
-            Back to My Learning
-          </Link>
-        </main>
-
-      </div>
-    );
-  }
-
-  if (questionsLoading || loadedModuleNumber !== moduleNumber) {
+  if (questionsLoading || loadedModuleNumber !== (isFinalExam ? -1 : moduleNumber)) {
     return (
       <div className="min-h-screen bg-[#060b17] text-white">
         <main className="mx-auto flex max-w-[600px] flex-col items-center justify-center px-4 py-24 text-center">
@@ -373,6 +387,41 @@ function CourseExamPageInner() {
           >
             Back to course
           </Link>
+        </main>
+      </div>
+    );
+  }
+
+  if (!examAccessUnlocked) {
+    const tutorLocked =
+      courseMeta?.deliveryKind === "tutor-led" &&
+      typeof courseMeta.trainingDays === "number";
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto max-w-[760px] px-4 py-16 text-center">
+          <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-6">
+            <p className="inline-flex items-center gap-2 text-amber-200">
+              <Lock size={18} /> Assessment locked
+            </p>
+            <h1 className="mt-3 text-2xl font-bold">
+              {tutorLocked ? "Complete all live training first" : "Complete all modules first"}
+            </h1>
+            <p className="mt-2 text-sm text-amber-100/90">
+              {tutorLocked
+                ? `Attend all ${courseMeta.trainingDays} training days (${courseMeta.completedDays ?? 0}/${courseMeta.trainingDays} completed) before the final exam unlocks.`
+                : "Pass every module exam and finish all module lessons to unlock the final examination."}
+            </p>
+            <Link
+              href={
+                tutorLocked
+                  ? `/my-learning/course/${slug}`
+                  : `/my-learning/course/${slug}`
+              }
+              className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold"
+            >
+              Back to course
+            </Link>
+          </div>
         </main>
       </div>
     );
