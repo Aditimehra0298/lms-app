@@ -33,11 +33,19 @@ export default function AdminCertificatesWorkspace() {
   }, [load]);
 
   const certificateCourses = useMemo((): AdminCertificateCourseOption[] => {
-    const courses = (content?.managedCourses ?? []).filter(isSelfPaced);
-    return courses.map((c) => ({
+    const selfPaced = (content?.managedCourses ?? []).filter(isSelfPaced).map((c) => ({
       slug: c.slug,
       title: c.title?.trim() || c.slug,
     }));
+    const tutorLed = (content?.tutorLedPrograms ?? []).map((p) => ({
+      slug: p.slug,
+      title: `${p.title?.trim() || p.slug} (Tutor-led)`,
+    }));
+    const bySlug = new Map<string, AdminCertificateCourseOption>();
+    for (const row of [...selfPaced, ...tutorLed]) {
+      if (!bySlug.has(row.slug)) bySlug.set(row.slug, row);
+    }
+    return [...bySlug.values()].sort((a, b) => a.title.localeCompare(b.title));
   }, [content]);
 
   if (!content && !loadError) {
@@ -57,9 +65,9 @@ export default function AdminCertificatesWorkspace() {
       ) : null}
       <AdminGlobalCertificatesPanel certificateCourses={certificateCourses} />
       <p className="text-[11px] text-gray-500">
-        Step 1: choose a course here. Use <strong className="text-gray-400">All courses</strong> to upload the shared
-        design. To enable certificates per course:{" "}
-        <strong className="text-gray-400">Self-paced courses → [course] → Settings</strong>.
+        Upload global defaults under <strong className="text-gray-400">All courses</strong>, or per-program samples in{" "}
+        <strong className="text-gray-400">Self-paced → Certificate</strong> or{" "}
+        <strong className="text-gray-400">Tutor Led → Certificate</strong>.
       </p>
     </div>
   );

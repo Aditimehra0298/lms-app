@@ -20,13 +20,14 @@ import LevelFilterSelect from "@/components/LevelFilterSelect";
 import type { CategoryWhyTone, CourseLearningFormat } from "@/lib/content-schema";
 import {
   canonicalCategorySlug,
-  getCategoryWorkshopPlaceholders,
   mergeCategoryPageConfig,
   whyLearnToRows,
 } from "@/lib/category-page-resolve";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { getManagedCourses } from "@/lib/server/course-catalog";
-import { getPublishedTutorLedPrograms } from "@/lib/server/tutor-led-catalog";
+import { getPublishedTutorLedPrograms, getPublishedWorkshopPrograms } from "@/lib/server/tutor-led-catalog";
+import { getCategoryWorkshopPlaceholders } from "@/lib/category-page-resolve";
+import { mapProgramToWorkshopCard } from "@/lib/workshop-program";
 import { readAdminContent } from "@/lib/server/content-store";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 
@@ -191,10 +192,11 @@ export default async function CourseCategoryPage({
 }) {
   const { category } = await params;
   const categoryKey = canonicalCategorySlug(category);
-  const [managedCourses, adminContent, tutorLedPrograms] = await Promise.all([
+  const [managedCourses, adminContent, tutorLedPrograms, workshopPrograms] = await Promise.all([
     getManagedCourses(),
     readAdminContent(),
     getPublishedTutorLedPrograms(),
+    getPublishedWorkshopPrograms(),
   ]);
   const tutorLedSlugs = new Set(tutorLedPrograms.map((p) => p.slug));
   const pageCfg = mergeCategoryPageConfig(categoryKey, adminContent);
@@ -231,8 +233,11 @@ export default async function CourseCategoryPage({
 
   if (!title) notFound();
 
-  const workshopRegisterHref = liveTutorCourseHref();
-  const workshops = getCategoryWorkshopPlaceholders(title, workshopRegisterHref);
+  const workshopCards = workshopPrograms.map(mapProgramToWorkshopCard);
+  const workshops =
+    workshopCards.length > 0
+      ? workshopCards
+      : getCategoryWorkshopPlaceholders(title, "/workshops");
 
   const instructors = pageCfg.instructors;
   const whyLearnItems = whyLearnToRows(pageCfg.whyLearn);
@@ -490,7 +495,7 @@ export default async function CourseCategoryPage({
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-2xl font-bold md:text-3xl">Upcoming Live Workshops</h2>
             <Link
-              href="/my-learning?tab=live"
+              href="/workshops"
               className="text-sm font-semibold text-amber-300 hover:text-amber-200"
             >
               View All Workshops →
@@ -499,7 +504,7 @@ export default async function CourseCategoryPage({
           <div className="grid gap-4 md:grid-cols-3">
             {workshops.map((w) => (
               <article
-                key={w.title}
+                key={w.slug ?? w.title}
                 className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f0f]"
               >
                 <div className="relative aspect-[16/9]">

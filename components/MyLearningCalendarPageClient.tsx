@@ -53,7 +53,10 @@ export function MyLearningCalendarPageClient() {
 
   const tutorLedEnrollments = useMemo(() => {
     return purchased
-      .filter((c) => c.deliveryKind === "tutor-led" && c.slug?.trim())
+      .filter(
+        (c) =>
+          (c.deliveryKind === "tutor-led" || c.deliveryKind === "workshop") && c.slug?.trim(),
+      )
       .map((c) =>
         enrichTutorLedLiveHubRow(c.slug!.trim(), { title: c.title, image: c.image }, programs),
       );

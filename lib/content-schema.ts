@@ -1,7 +1,9 @@
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "./default-tutor-led-programs";
+import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
 import type { CommunityConnectCard } from "./my-learning-community-defaults";
 
 export type { TutorLedProgramStored };
+export type { ManagedCourseCertificateConfig };
 
 export type LearningCourseStatus = "In Progress" | "Completed" | "Not Started";
 
@@ -269,7 +271,7 @@ export type ManagedCourse = {
   tabLabels?: ManagedCourseTabLabels;
   /** My Learning player — logos, labels, defaults (after payment). */
   learningSection?: ManagedCourseLearningSection;
-  /** Per-course certificate on/off and workflow flags — template files are global only. */
+  /** Per-course certificate, badge, transcript samples + workflow flags. */
   certificateConfig?: ManagedCourseCertificateConfig;
   /** Catalog visibility, enrollment, learner features (Admin → Settings). */
   settings?: ManagedCourseSettings;
@@ -289,31 +291,6 @@ export type ManagedCourseSettings = {
   featured?: boolean;
   /** e.g. Lifetime, 12 months — shown in hero if hero.access empty. */
   accessLabel?: string;
-};
-
-/** Template + layout for issued certificates (name & number overlaid on image). */
-export type ManagedCourseCertificateConfig = {
-  enabled?: boolean;
-  /** builtin = LMS template; n8n = external workflow (recommended). */
-  provider?: "builtin" | "n8n";
-  /** Per-course n8n webhook URL (optional; falls back to N8N_CERTIFICATE_WEBHOOK_URL env). */
-  n8nWebhookUrl?: string;
-  /** Show Certificates tab/cards on learner dashboard for this course. */
-  showInLearnerDashboard?: boolean;
-  /** When n8n finishes, auto-show on dashboard (if requireAdminApproval is false). */
-  autoVisibleWhenReady?: boolean;
-  /** Learner cannot see certificate until admin approves in Certificates tab. */
-  requireAdminApproval?: boolean;
-  title?: string;
-  /** @deprecated Use globalCertificateAssets — one template for all courses. */
-  templateImage?: string;
-  /** Per-course badge — same for every learner; falls back to globalCertificateAssets.badgeImage. */
-  badgeImage?: string;
-  /** Vertical position % for learner name on template (0–100). */
-  nameTopPercent?: number;
-  numberTopPercent?: number;
-  dateTopPercent?: number;
-  supplementaryDocs?: { title: string; url: string }[];
 };
 
 /** Google / social metadata — edited under Admin → SEO. */
@@ -972,7 +949,7 @@ export type AdminContent = {
   dashboard: DashboardContent;
   learningCourses: LearningCourseItem[];
   managedCourses: ManagedCourse[];
-  /** Upload once — used for every course certificate + transcript generation. */
+  /** Default certificate assets when a course/program has no per-item upload. */
   globalCertificateAssets?: GlobalCertificateAssets;
   /** Live Zoom-style programs for `/tutor-led/[slug]` — edited under Admin → Tutor Led. */
   tutorLedPrograms: TutorLedProgramStored[];

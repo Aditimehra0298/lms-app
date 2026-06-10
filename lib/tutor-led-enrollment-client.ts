@@ -27,7 +27,9 @@ export function isEnrolledInTutorLedProgramExplicit(slug: string): boolean {
   const key = slug.trim();
   if (!key) return false;
   return readPurchasedCourses().some(
-    (row) => (row.slug ?? "").trim() === key && row.deliveryKind === "tutor-led",
+    (row) =>
+      (row.slug ?? "").trim() === key &&
+      (row.deliveryKind === "tutor-led" || row.deliveryKind === "workshop"),
   );
 }
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Check, MessageSquare, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Check, Loader2, MessageSquare, RefreshCw, X } from "lucide-react";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import type { StoredCourseAnswer, StoredCourseQuestion } from "@/lib/course-qa-types";
 
@@ -11,8 +12,10 @@ export default function AdminCourseQAModeration() {
   const [pendingQuestions, setPendingQuestions] = useState<StoredCourseQuestion[]>([]);
   const [pendingAnswers, setPendingAnswers] = useState<PendingAnswerRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [officialDraft, setOfficialDraft] = useState<Record<string, string>>({});
+  const [courseFilter, setCourseFilter] = useState("");
 
   const adminHeaders = useCallback((): Record<string, string> => {
     const email = getLearnerEmail();
@@ -24,6 +27,7 @@ export default function AdminCourseQAModeration() {
 
   const load = useCallback(async () => {
     setLoadError(null);
+    setLoading(true);
     try {
       const email = getLearnerEmail();
       const qs = email ? `?email=${encodeURIComponent(email)}` : "";
@@ -45,12 +49,31 @@ export default function AdminCourseQAModeration() {
       setPendingAnswers(data.pendingAnswers ?? []);
     } catch {
       setLoadError("Network error while loading Q&A moderation.");
+    } finally {
+      setLoading(false);
     }
   }, [adminHeaders]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const courseSlugs = useMemo(() => {
+    const slugs = new Set<string>();
+    for (const q of pendingQuestions) slugs.add(q.courseSlug);
+    for (const { question } of pendingAnswers) slugs.add(question.courseSlug);
+    return [...slugs].sort();
+  }, [pendingQuestions, pendingAnswers]);
+
+  const filteredQuestions = useMemo(() => {
+    if (!courseFilter) return pendingQuestions;
+    return pendingQuestions.filter((q) => q.courseSlug === courseFilter);
+  }, [pendingQuestions, courseFilter]);
+
+  const filteredAnswers = useMemo(() => {
+    if (!courseFilter) return pendingAnswers;
+    return pendingAnswers.filter(({ question }) => question.courseSlug === courseFilter);
+  }, [pendingAnswers, courseFilter]);
 
   const patch = async (payload: Record<string, string | undefined>) => {
     const res = await fetch("/api/admin/course-qa", {
@@ -105,18 +128,80 @@ export default function AdminCourseQAModeration() {
     }
   };
 
+  if (loading && pendingQuestions.length === 0 && pendingAnswers.length === 0) {
+    return (
+      <div className="flex items-center justify-center rounded-xl border border-white/10 bg-[#0b1224] px-4 py-16 text-sm text-gray-400">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin text-violet-400" /> Loading Q&amp;A queue…
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-xl font-bold text-white">Course Q&amp;A moderation</h2>
-        <p className="mt-2 max-w-2xl text-sm text-zinc-500">
-          The Q&amp;A tab uses the same layout on every self-paced course. Learner questions and
-          community answers are held here until you approve them — then others can see and respond.
-        </p>
+    <div className="space-y-6">
+      <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0c1428] via-[#0a101c] to-[#070b14]">
+        <div className="border-b border-white/[0.06] bg-violet-500/[0.07] px-4 py-5 sm:px-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-violet-500/20 ring-1 ring-violet-400/30">
+                <MessageSquare className="h-6 w-6 text-violet-200" aria-hidden />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-violet-300/90">
+                  Self-paced courses
+                </p>
+                <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">Course Q&amp;A moderation</h1>
+                <p className="mt-2 max-w-2xl text-xs leading-relaxed text-gray-400">
+                  Learner questions and community answers stay hidden until you approve them. Post an{" "}
+                  <strong className="text-gray-300">official answer</strong> as the SFT Expert Team when needed.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 font-semibold text-amber-200">
+                {pendingQuestions.length} questions
+              </span>
+              <span className="rounded-full border border-sky-500/25 bg-sky-500/10 px-2.5 py-1 font-semibold text-sky-200">
+                {pendingAnswers.length} answers
+              </span>
+              <button
+                type="button"
+                onClick={() => void load()}
+                disabled={loading}
+                className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1 text-gray-300 hover:bg-white/5 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} /> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+          <label className="flex items-center gap-2 text-[11px] text-gray-500">
+            Filter by course
+            <select
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+              className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs text-white outline-none"
+            >
+              <option value="">All courses</option>
+              {courseSlugs.map((slug) => (
+                <option key={slug} value={slug}>
+                  {slug}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Link
+            href="/admin?panel=self-paced"
+            className="ml-auto text-[11px] font-medium text-violet-300 hover:text-violet-100"
+          >
+            Manage self-paced courses →
+          </Link>
+        </div>
       </div>
 
       {loadError ? (
-        <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+        <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
           {loadError}
         </p>
       ) : null}
@@ -124,30 +209,27 @@ export default function AdminCourseQAModeration() {
       <section>
         <h3 className="flex items-center gap-2 text-sm font-bold text-white">
           <MessageSquare className="h-4 w-4 text-violet-400" />
-          Pending questions ({pendingQuestions.length})
+          Pending questions ({filteredQuestions.length})
         </h3>
-        {pendingQuestions.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-600">No questions waiting for review.</p>
+        {filteredQuestions.length === 0 ? (
+          <p className="mt-3 rounded-xl border border-dashed border-white/10 bg-[#0d1528]/50 px-4 py-8 text-center text-sm text-gray-500">
+            No questions waiting for review.
+          </p>
         ) : (
           <ul className="mt-4 space-y-4">
-            {pendingQuestions.map((q) => (
-              <li
-                key={q.id}
-                className="rounded-xl border border-white/10 bg-[#141414] p-4"
-              >
-                <p className="text-xs text-violet-300">{q.courseSlug}</p>
-                <p className="mt-1 text-xs text-zinc-500">
+            {filteredQuestions.map((q) => (
+              <li key={q.id} className="rounded-xl border border-white/10 bg-[#0d1528] p-4">
+                <p className="font-mono text-xs text-violet-300">{q.courseSlug}</p>
+                <p className="mt-1 text-xs text-gray-500">
                   {q.authorName} · {q.module}
                 </p>
                 <p className="mt-2 text-sm font-medium text-white">{q.question}</p>
                 <textarea
                   value={officialDraft[q.id] ?? ""}
-                  onChange={(e) =>
-                    setOfficialDraft((d) => ({ ...d, [q.id]: e.target.value }))
-                  }
+                  onChange={(e) => setOfficialDraft((d) => ({ ...d, [q.id]: e.target.value }))}
                   rows={2}
                   placeholder="Optional official answer (SFT Expert Team)…"
-                  className="mt-3 w-full resize-none rounded-lg border border-white/10 bg-[#0f0f12] px-3 py-2 text-sm text-zinc-200 outline-none focus:border-violet-500/40"
+                  className="mt-3 w-full resize-none rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-gray-200 outline-none focus:border-violet-500/40"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -186,23 +268,19 @@ export default function AdminCourseQAModeration() {
       </section>
 
       <section>
-        <h3 className="text-sm font-bold text-white">
-          Pending answers ({pendingAnswers.length})
-        </h3>
-        {pendingAnswers.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-600">No answers waiting for review.</p>
+        <h3 className="text-sm font-bold text-white">Pending answers ({filteredAnswers.length})</h3>
+        {filteredAnswers.length === 0 ? (
+          <p className="mt-3 rounded-xl border border-dashed border-white/10 bg-[#0d1528]/50 px-4 py-8 text-center text-sm text-gray-500">
+            No answers waiting for review.
+          </p>
         ) : (
           <ul className="mt-4 space-y-4">
-            {pendingAnswers.map(({ question, answer }) => (
-              <li
-                key={answer.id}
-                className="rounded-xl border border-white/10 bg-[#141414] p-4"
-              >
-                <p className="text-xs text-violet-300">{question.courseSlug}</p>
-                <p className="mt-1 text-xs text-zinc-500">Re: {question.question}</p>
-                <p className="mt-2 text-sm text-zinc-300">
-                  <span className="font-semibold text-white">{answer.authorName}:</span>{" "}
-                  {answer.body}
+            {filteredAnswers.map(({ question, answer }) => (
+              <li key={answer.id} className="rounded-xl border border-white/10 bg-[#0d1528] p-4">
+                <p className="font-mono text-xs text-violet-300">{question.courseSlug}</p>
+                <p className="mt-1 text-xs text-gray-500">Re: {question.question}</p>
+                <p className="mt-2 text-sm text-gray-300">
+                  <span className="font-semibold text-white">{answer.authorName}:</span> {answer.body}
                 </p>
                 <div className="mt-3 flex gap-2">
                   <button

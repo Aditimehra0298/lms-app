@@ -9,7 +9,8 @@ import {
 } from "@/lib/learner-session-client";
 import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
 import type { PricingRegion } from "@/lib/country-pricing";
-import { setPricingRevealed } from "@/lib/pricing-reveal";
+import { markLearnerAuthProvider, applyGoogleRecommendationSignals } from "@/lib/learner-learning-preferences";
+import type { GoogleAccountRecommendationSignals } from "@/lib/google-account-recommendation-signals";
 
 export type GoogleAuthResult = AuthRecordResult & {
   email?: string;
@@ -19,6 +20,7 @@ export type GoogleAuthResult = AuthRecordResult & {
   role?: string;
   region?: PricingRegion;
   profile?: LmsUserProfilePayload;
+  googleRecommendationSignals?: GoogleAccountRecommendationSignals;
 };
 
 export async function signInWithGoogleAccessToken(
@@ -60,6 +62,12 @@ export async function signInWithGoogleAccessToken(
       name: data.name ?? undefined,
       avatarUrl: data.avatarUrl ?? undefined,
     });
+  }
+  if (data.ok && accountType !== "self") {
+    markLearnerAuthProvider("google");
+    if (data.googleRecommendationSignals) {
+      applyGoogleRecommendationSignals(data.googleRecommendationSignals);
+    }
   }
   return data;
 }

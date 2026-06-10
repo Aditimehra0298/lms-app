@@ -40,8 +40,11 @@ export default function AdminGlobalCertificatesPanel({ certificateCourses }: Pro
           Certificates
         </h2>
         <p className="mt-1 max-w-2xl text-xs leading-relaxed text-gray-400">
-          Start by choosing a course. Use <strong className="text-gray-300">All courses</strong> to set the shared
-          certificate design (same layout for every course). Pick one course to view its learners only.
+          Upload <strong className="text-gray-300">global defaults</strong> under All courses, or set a unique
+          certificate, badge, and transcript per program in{" "}
+          <strong className="text-gray-300">Self-paced → Certificate</strong> or{" "}
+          <strong className="text-gray-300">Tutor Led → Certificate</strong>. Pick a course below to review issued
+          certificates.
         </p>
       </div>
 
@@ -55,7 +58,7 @@ export default function AdminGlobalCertificatesPanel({ certificateCourses }: Pro
           className="mt-1 w-full max-w-lg rounded-lg border border-white/15 bg-[#0a1020] px-3 py-2.5 text-sm text-white"
         >
           <option value="">— Select a course —</option>
-          <option value={ALL_COURSES_CERT_VALUE}>All courses (shared certificate design)</option>
+          <option value={ALL_COURSES_CERT_VALUE}>All courses (global default design)</option>
           {sortedCourses.map((c) => (
             <option key={c.slug} value={c.slug}>
               {c.title}
@@ -74,10 +77,9 @@ export default function AdminGlobalCertificatesPanel({ certificateCourses }: Pro
       </AdminPanelSection>
 
       {hasCourse && isAllCourses ? (
-        <AdminPanelSection title="Certificate design (shared for every course)" step={2}>
+        <AdminPanelSection title="Global certificate defaults (fallback)" step={2}>
           <div className="mb-4 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
-            Steps 2–3: choose certificate design, badge, or transcript — then upload. Saved once for{" "}
-            <strong>all courses</strong>.
+            Used when a course or tutor-led program has not uploaded its own certificate sample, badge, or transcript.
           </div>
           <AdminCertificateTemplatesEditor compact uploadStepOffset={2} />
         </AdminPanelSection>
@@ -85,8 +87,8 @@ export default function AdminGlobalCertificatesPanel({ certificateCourses }: Pro
 
       {hasCourse && !isAllCourses ? (
         <div className="rounded-lg border border-violet-400/25 bg-violet-500/10 px-3 py-2 text-[11px] text-violet-100">
-          Certificate design is shared for every course. To upload or change the template, select{" "}
-          <strong>All courses (shared certificate design)</strong> in step 1.
+          Per-program uploads: <strong>Self-paced courses → [course] → Certificate</strong> or{" "}
+          <strong>Tutor Led → [program] → Certificate</strong>. Global defaults apply only for empty fields.
         </div>
       ) : null}
 

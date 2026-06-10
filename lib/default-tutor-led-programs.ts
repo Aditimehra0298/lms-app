@@ -1,3 +1,4 @@
+import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
 import type { TutorLedLearningMaterial } from "@/lib/tutor-led-learning-tools";
 import type { TutorLedLearnerSection } from "@/lib/tutor-led-learner-section";
 import type { ZoomSessionRecording } from "@/lib/zoom-session-types";
@@ -8,6 +9,8 @@ import type { ZoomSessionRecording } from "@/lib/zoom-session-types";
  */
 export type TutorLedProgramStored = {
   slug: string;
+  /** tutor-led = multi-day program; workshop = one-day live session (landing at `/workshops/[slug]`). */
+  programKind?: "tutor-led" | "workshop";
   published: boolean;
   title: string;
   subtitle: string;
@@ -77,6 +80,8 @@ export type TutorLedProgramStored = {
   learnerSection?: TutorLedLearnerSection;
   /** `curriculum` (default) = duration & journey follow module count; `manual` = batchDetails Duration row. */
   durationSource?: "curriculum" | "manual";
+  /** Same certificate / badge / transcript uploads as self-paced courses (Admin → Certificate tab). */
+  certificateConfig?: ManagedCourseCertificateConfig;
 };
 
 export const defaultTutorLedPrograms: TutorLedProgramStored[] = [

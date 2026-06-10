@@ -2,6 +2,8 @@
 
 Use this when the app must run on a **public server** (not `localhost` or LAN only).
 
+> **Senior / production plan (Google Cloud + Cloudflare):** see **`docs/GCP_CLOUDFLARE_DEPLOYMENT.md`** — architecture, sizing, security, sign-off checklist.
+
 ## What you need
 
 | Item | Example |

@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { cache } from "react";
 import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
+import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import {
   AdminContent,
   defaultAdminContent,
@@ -50,11 +51,18 @@ function migrateAboutPage(cfg: ReturnType<typeof Object.assign>) {
   return cfg;
 }
 
-/** Drop per-course certificate template fields — design lives in globalCertificateAssets only. */
+/** Sanitize per-course certificate config (template, badge, transcript per course/program). */
 function migrateManagedCourses(courses: ManagedCourse[]): ManagedCourse[] {
   return courses.map((c) => ({
     ...c,
     certificateConfig: sanitizeCertificateConfig(c.certificateConfig),
+  }));
+}
+
+function migrateTutorLedPrograms(programs: TutorLedProgramStored[]): TutorLedProgramStored[] {
+  return programs.map((p) => ({
+    ...p,
+    certificateConfig: sanitizeCertificateConfig(p.certificateConfig),
   }));
 }
 
@@ -100,7 +108,7 @@ async function readAdminContentFromDisk(): Promise<AdminContent> {
         : defaultAboutPageConfig,
       tutorLedPrograms:
         Array.isArray(parsed.tutorLedPrograms) && parsed.tutorLedPrograms.length > 0
-          ? parsed.tutorLedPrograms
+          ? migrateTutorLedPrograms(parsed.tutorLedPrograms)
           : defaultAdminContent.tutorLedPrograms,
       globalCertificateAssets:
         parsed.globalCertificateAssets && typeof parsed.globalCertificateAssets === "object"

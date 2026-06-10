@@ -17,7 +17,7 @@ export type PurchasedCourseRow = {
   status: string;
   action: string;
   tone: string;
-  deliveryKind?: "managed" | "tutor-led";
+  deliveryKind?: "managed" | "tutor-led" | "workshop";
   image?: string;
 };
 
@@ -189,6 +189,48 @@ export function readPurchasedCoursesFromStorage(): PurchasedCourseRow[] {
   } catch {
     return [];
   }
+}
+
+/** Merge MySQL enrollments into browser storage so My Learning shows server-side purchases. */
+export function mergeServerEnrollmentsIntoStorage(
+  serverCourses: Array<{ slug: string; title: string }>,
+  tutorLedSlugs?: Set<string>,
+): number {
+  if (typeof window === "undefined" || serverCourses.length === 0) return 0;
+
+  const existing = readPurchasedCoursesFromStorage();
+  const bySlug = new Map(existing.map((c) => [(c.slug ?? "").trim().toLowerCase(), c]));
+  let added = 0;
+
+  for (const course of serverCourses) {
+    const slug = course.slug.trim().toLowerCase();
+    if (!slug || bySlug.has(slug)) continue;
+
+    const isTutorLed = tutorLedSlugs?.has(slug) ?? false;
+    bySlug.set(slug, {
+      slug,
+      title: course.title.trim() || slug,
+      modules: 1,
+      duration: "—",
+      completed: 0,
+      status: isTutorLed ? "In Progress" : "Not Started",
+      action: isTutorLed ? "Continue" : "Start Course",
+      tone: "violet",
+      deliveryKind: isTutorLed ? "tutor-led" : "managed",
+    });
+    added += 1;
+  }
+
+  if (added === 0) return 0;
+
+  try {
+    window.localStorage.setItem("sft_purchased_courses", JSON.stringify([...bySlug.values()]));
+    window.dispatchEvent(new Event("sft_purchases_updated"));
+  } catch {
+    return 0;
+  }
+
+  return added;
 }
 
 /** Mark all modules complete in localStorage when a certificate exists in DB. */

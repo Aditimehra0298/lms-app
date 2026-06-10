@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { Settings } from "lucide-react";
-import type { CourseFinalExam, ManagedCourse } from "@/lib/content-schema";
-import AdminCourseCertificateSettings from "@/components/admin/AdminCourseCertificateSettings";
+import type { ManagedCourse } from "@/lib/content-schema";
 import AdminCourseTabShell, {
   AdminCourseSelectPrompt,
   AdminPanelSection,
@@ -20,8 +19,6 @@ type Props = {
   saving: boolean;
   onSave: () => void;
   onGoCourseInfo: () => void;
-  onGoContent?: () => void;
-  finalExam?: CourseFinalExam;
 };
 
 function patchSettings(
@@ -38,8 +35,6 @@ export default function AdminCourseSettingsPanel({
   saving,
   onSave,
   onGoCourseInfo,
-  onGoContent,
-  finalExam,
 }: Props) {
   if (!canEdit) {
     return <AdminCourseSelectPrompt tabName="Settings" onGoCourseInfo={onGoCourseInfo} />;
@@ -153,20 +148,13 @@ export default function AdminCourseSettingsPanel({
         </label>
       </AdminPanelSection>
 
-      <AdminCourseCertificateSettings
-        draft={draft}
-        setDraft={setDraft}
-        finalExam={finalExam}
-        onGoContent={onGoContent ?? onGoCourseInfo}
-      />
-
-      <AdminPanelSection title="Related admin areas" step={4}>
+      <AdminPanelSection title="Related admin areas" step={3}>
         <p className="text-[11px] text-gray-500">
-          Certificate templates: <strong className="text-gray-400">Users &amp; Access → Certificates</strong> (one
-          design for all courses). Other tabs:
+          Certificate samples: use the <strong className="text-gray-400">Certificate</strong> tab (same as Tutor Led).
+          Global defaults: <strong className="text-gray-400">Users &amp; Access → Certificates</strong>. Other tabs:
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
-          {(["Content", "Pricing", "SEO", "Publish"] as const).map((tab) => (
+          {(["Certificate", "Content", "Pricing", "SEO", "Publish"] as const).map((tab) => (
             <span
               key={tab}
               className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] text-gray-400"

@@ -28,7 +28,9 @@ import {
 } from "lucide-react";
 import { AdminContent, defaultAdminContent, type ManagedCourse } from "@/lib/content-schema";
 import { MyLearningCommunityHub } from "@/components/MyLearningCommunityHub";
-import { MyLearningDashboardPlanner } from "@/components/MyLearningDashboardPlanner";
+import { MyLearningDashboardCourses } from "@/components/MyLearningDashboardCourses";
+import { MyLearningFeaturedCourse } from "@/components/MyLearningFeaturedCourse";
+import { MyLearningIndividualSubscriptions } from "@/components/MyLearningIndividualSubscriptions";
 import { MyLearningLiveHub } from "@/components/MyLearningLiveHub";
 import MyCertificatesList from "@/components/MyCertificatesList";
 import { MyLearningAssignmentsTab } from "@/components/MyLearningAssignmentsTab";
@@ -50,7 +52,18 @@ import {
   readLearnerProfileFromStorage,
   timeOfDayGreeting,
 } from "@/lib/auth-profile";
-import { syncEnrollmentsToServer } from "@/lib/enrollment-sync-client";
+import {
+  buildRecommendationContext,
+  pickFeaturedCourse,
+  rankExploreCourses,
+  rankTutorLedExplore,
+} from "@/lib/learner-course-recommendations";
+import {
+  LEARNING_PREFS_EVENT,
+  ensureGoogleRecommendationSignals,
+  readLearningPreferences,
+} from "@/lib/learner-learning-preferences";
+import { syncEnrollmentsFromServer, syncEnrollmentsToServer } from "@/lib/enrollment-sync-client";
 import { readJsonResponse } from "@/lib/safe-json";
 import {
   getLearnerEmail,
@@ -71,6 +84,7 @@ import {
 } from "@/lib/learner-course-progress";
 import { BADGES_UPDATED_EVENT, readLearnerBadges } from "@/lib/learner-badges";
 import { MyLearningAchievementsTab } from "@/components/MyLearningAchievementsTab";
+import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
 
 export const dynamic = "force-dynamic";
 
@@ -141,10 +155,13 @@ export default function MyLearningPage() {
   const [courseFilter, setCourseFilter] = useState<"all" | "in-progress" | "completed" | "not-started">("all");
   const [courseSort, setCourseSort] = useState<"recent" | "title">("recent");
   const [earnedBadges, setEarnedBadges] = useState<ReturnType<typeof readLearnerBadges>>([]);
+  const [learnerProfile, setLearnerProfile] = useState(readLearnerProfileFromStorage);
+  const [prefsTick, setPrefsTick] = useState(0);
 
   useEffect(() => {
     const applyProfile = () => {
       const profile = readLearnerProfileFromStorage();
+      setLearnerProfile(profile);
       setLearnerFirstName(learnerDisplayFirstName(profile.name, profile.email));
     };
     applyProfile();
@@ -153,13 +170,24 @@ export default function MyLearningPage() {
     if (isLearnerLoggedIn()) {
       const email = getLearnerEmail();
       if (email) {
+        ensureGoogleRecommendationSignals(email);
+        setPrefsTick((n) => n + 1);
         void syncEnrollmentsToServer(email);
         void syncLearnerProfileFromServer(email).then((p) => {
-          if (p) setLearnerFirstName(learnerDisplayFirstName(p.name, p.email));
+          if (p) {
+            setLearnerProfile(p);
+            setLearnerFirstName(learnerDisplayFirstName(p.name, p.email));
+          }
         });
       }
     }
     return () => window.removeEventListener("sft_auth_updated", onAuth);
+  }, []);
+
+  useEffect(() => {
+    const onPrefs = () => setPrefsTick((n) => n + 1);
+    window.addEventListener(LEARNING_PREFS_EVENT, onPrefs);
+    return () => window.removeEventListener(LEARNING_PREFS_EVENT, onPrefs);
   }, []);
 
   useEffect(() => {
@@ -214,6 +242,9 @@ export default function MyLearningPage() {
 
     const email = getLearnerEmail();
     if (email) {
+      void syncEnrollmentsFromServer(email).then((result) => {
+        if (result.ok && (result.added ?? 0) > 0) loadPurchasedCourses();
+      });
       void fetch(`/api/certificates?email=${encodeURIComponent(email)}`, { cache: "no-store" })
         .then(async (res) =>
           readJsonResponse(res, {} as { ok?: boolean; certificates?: CertificateRowDto[] }),
@@ -345,7 +376,11 @@ export default function MyLearningPage() {
   );
 
   const purchasedTutorLedRows = useMemo(
-    () => purchasedCourses.filter((c) => c.deliveryKind === "tutor-led" && c.slug?.trim()),
+    () =>
+      purchasedCourses.filter(
+        (c) =>
+          (c.deliveryKind === "tutor-led" || c.deliveryKind === "workshop") && c.slug?.trim(),
+      ),
     [purchasedCourses],
   );
 
@@ -365,6 +400,88 @@ export default function MyLearningPage() {
   const tutorLedExploreCourses = useMemo(
     () => buildTutorLedExploreCards(tutorLedProgramsMerged),
     [tutorLedProgramsMerged],
+  );
+
+  const selfPacedCoursesForDashboard = useMemo(
+    () => coursesForLearning.filter((c) => c.deliveryKind !== "tutor-led"),
+    [coursesForLearning],
+  );
+
+  const enrolledSlugSet = useMemo(() => {
+    const slugs = new Set<string>();
+    for (const c of coursesForLearning) {
+      const slug = c.slug?.trim().toLowerCase();
+      if (slug) slugs.add(slug);
+    }
+    return slugs;
+  }, [coursesForLearning]);
+
+  const exploreSelfPacedCourses = useMemo(
+    () =>
+      effectiveCatalog.filter(
+        (c) =>
+          c.slug?.trim() &&
+          c.published !== false &&
+          c.settings?.showInCatalog !== false &&
+          !enrolledSlugSet.has(c.slug.trim().toLowerCase()),
+      ),
+    [effectiveCatalog, enrolledSlugSet],
+  );
+
+  const exploreTutorLedCourses = useMemo(
+    () => tutorLedExploreCourses.filter((c) => !enrolledSlugSet.has(c.slug.toLowerCase())),
+    [tutorLedExploreCourses, enrolledSlugSet],
+  );
+
+  const recommendationContext = useMemo(() => {
+    void prefsTick;
+    return buildRecommendationContext({
+      profile: learnerProfile,
+      preferences: readLearningPreferences(),
+      enrolledSlugs: enrolledSlugSet,
+    });
+  }, [learnerProfile, enrolledSlugSet, prefsTick]);
+
+  const rankedExploreSelfPaced = useMemo(
+    () => rankExploreCourses(exploreSelfPacedCourses, recommendationContext),
+    [exploreSelfPacedCourses, recommendationContext],
+  );
+
+  const rankedExploreTutorLed = useMemo(
+    () => rankTutorLedExplore(exploreTutorLedCourses, recommendationContext),
+    [exploreTutorLedCourses, recommendationContext],
+  );
+
+  const sortedExploreSelfPaced = useMemo(
+    () => rankedExploreSelfPaced.map((row) => row.course),
+    [rankedExploreSelfPaced],
+  );
+
+  const sortedExploreTutorLed = useMemo(
+    () => rankedExploreTutorLed.map((row) => row.card),
+    [rankedExploreTutorLed],
+  );
+
+  const recommendedSelfPacedSlugs = useMemo(
+    () =>
+      new Set(
+        rankedExploreSelfPaced
+          .slice(0, 3)
+          .map((r) => r.course.slug?.trim().toLowerCase())
+          .filter(Boolean) as string[],
+      ),
+    [rankedExploreSelfPaced],
+  );
+
+  const recommendedTutorSlugs = useMemo(
+    () =>
+      new Set(
+        rankedExploreTutorLed
+          .slice(0, 2)
+          .map((r) => r.card.slug.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    [rankedExploreTutorLed],
   );
 
   const enrolledCourseSlugs = useMemo(
@@ -409,6 +526,23 @@ export default function MyLearningPage() {
     return `/my-learning/course/${resolved ?? toCourseSlug(course.title)}`;
   };
 
+  const featuredCoursePick = useMemo(
+    () =>
+      pickFeaturedCourse({
+        enrolled: coursesForLearning,
+        exploreRanked: rankedExploreSelfPaced,
+        ctx: recommendationContext,
+        learningHrefFor,
+      }),
+    [
+      coursesForLearning,
+      rankedExploreSelfPaced,
+      recommendationContext,
+      effectiveCatalog,
+      adminContent.managedCourses,
+    ],
+  );
+
   const resumeCourse = coursesForLearning.find((c) => c.status === "In Progress") ?? coursesForLearning[0];
 
   const filteredCoursesForLearning = useMemo(() => {
@@ -429,29 +563,6 @@ export default function MyLearningPage() {
     }
     return list;
   }, [filteredCoursesForLearning, courseSort]);
-
-  const certificateAlerts = useMemo(
-    () =>
-      learnerCertificates
-        .filter((c) => c.status === "ready" && c.courseSlug?.trim())
-        .map((c) => ({
-          courseTitle: c.courseTitle?.trim() || c.courseSlug || "Course",
-          status: c.status,
-          href: `/my-learning/course/${encodeURIComponent(c.courseSlug!)}#credentials`,
-        })),
-    [learnerCertificates],
-  );
-
-  const coursesNotStartedAlerts = useMemo(
-    () =>
-      coursesForLearning
-        .filter((c) => c.status.toLowerCase().includes("not started"))
-        .map((c) => ({
-          title: c.title,
-          href: c.slug ? `/my-learning/course/${encodeURIComponent(c.slug)}` : "/my-learning?tab=learning",
-        })),
-    [coursesForLearning],
-  );
 
   const assignmentRows = useMemo(
     () =>
@@ -506,12 +617,18 @@ export default function MyLearningPage() {
   ] as const;
 
   return (
-    <div className="min-h-full bg-[#0a0a0a] text-white">
-      <main className="mx-auto w-full max-w-[1760px] px-4 py-6 md:px-5 lg:px-6">
+    <div className="bg-[#0a0a0a] text-white">
+      <main
+        className={`mx-auto w-full max-w-[1760px] px-4 md:px-5 lg:px-6 ${
+          isSubscriptions ? "pb-2 pt-4" : "py-6"
+        }`}
+      >
         {isDashboard ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
             <div className="grid gap-3 lg:grid-cols-[1fr_1.5fr]">
               <article className="rounded-xl border border-white/10 bg-linear-to-br from-violet-500/15 via-[#101933] to-[#0a1023] p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
                 <p className="text-3xl font-bold">
                   {learnerFirstName !== "there" ? (
                     <>
@@ -527,6 +644,12 @@ export default function MyLearningPage() {
                 <p className="mt-1 text-sm text-gray-300">
                   Elevate your professional skills with industry-led courses.
                 </p>
+                <p className="mt-3 text-sm text-gray-400">
+                  {coursesForLearning.length > 0
+                    ? `You are enrolled in ${selfPacedCoursesForDashboard.length} course${selfPacedCoursesForDashboard.length === 1 ? "" : "s"} and ${tutorLedCoursesForHub.length} tutor-led program${tutorLedCoursesForHub.length === 1 ? "" : "s"}.`
+                    : "Browse the catalog below to enroll and start learning."}
+                </p>
+
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link
                     href="/courses"
@@ -541,53 +664,29 @@ export default function MyLearningPage() {
                     View My Courses
                   </Link>
                 </div>
+                  </div>
+                  <div className="hidden shrink-0 sm:block">
+                    <Image
+                      src={sfWhiteLogo}
+                      alt="Sustainable Futures Trainings"
+                      className="h-24 w-auto object-contain opacity-95 md:h-28 lg:h-32"
+                      priority
+                    />
+                  </div>
+                </div>
               </article>
 
-              <article className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-r from-black/40 via-[#121c39] to-[#0d1530] p-4">
-                <p className="inline-flex rounded bg-white/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-100">
-                  Featured Course
-                </p>
-                <h3 className="mt-3 text-4xl font-bold">
-                  {resumeCourse ? (
-                    <>
-                      {resumeCourse.title.split(" ").slice(0, 2).join(" ")}{" "}
-                      <span className="text-amber-300">
-                        {resumeCourse.title.split(" ").slice(2, 4).join(" ") || "Course"}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      Explore <span className="text-amber-300">SF Trainings</span>
-                    </>
-                  )}
-                </h3>
-                <p className="mt-2 max-w-md text-sm text-gray-300">
-                  {resumeCourse
-                    ? `${resumeCourse.modules} modules • ${resumeCourse.duration} • ${resumeCourse.completed} completed`
-                    : "Browse the catalog and enroll to start your learning journey."}
-                </p>
-                <Link
-                  href={
-                    resumeCourse
-                      ? learningHrefFor(resumeCourse)
-                      : "/courses"
-                  }
-                  className="mt-4 inline-flex rounded-md border border-white/15 bg-black/30 px-4 py-2 text-sm font-semibold"
-                >
-                  Start Learning
-                </Link>
-                <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-amber-500/20 blur-3xl" />
-              </article>
+              <MyLearningFeaturedCourse featured={featuredCoursePick} />
             </div>
 
-            <MyLearningDashboardPlanner
-              tutorLedEnrollments={tutorLedCoursesForHub}
-              tutorLedPrograms={tutorLedProgramsMerged}
-              examTasks={enrolledExamTasks}
-              certificateAlerts={certificateAlerts}
-              coursesNotStarted={coursesNotStartedAlerts}
-              adminCalendarReminders={adminContent.dashboard?.calendarReminders ?? []}
-              today={dashboardNow}
+            <MyLearningDashboardCourses
+              selfPacedCourses={selfPacedCoursesForDashboard}
+              tutorLedCourses={tutorLedCoursesForHub}
+              exploreSelfPaced={sortedExploreSelfPaced}
+              exploreTutorLed={sortedExploreTutorLed}
+              recommendedSelfPacedSlugs={recommendedSelfPacedSlugs}
+              recommendedTutorSlugs={recommendedTutorSlugs}
+              learningHrefFor={learningHrefFor}
             />
 
             {completedCoursesWithCerts.length > 0 ? (
@@ -649,104 +748,22 @@ export default function MyLearningPage() {
               </article>
             ) : null}
 
-            <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-xl font-bold">Explore Courses</h3>
-                <Link href="/courses" className="text-xs text-amber-200 hover:text-amber-100">
-                  View All Courses
-                </Link>
-              </div>
-              <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-                {coursesForLearning.length === 0 ? (
-                  <p className="col-span-full rounded-lg border border-dashed border-white/15 bg-black/20 p-4 text-sm text-gray-400">
-                    No enrolled courses yet. Complete checkout on a course to see it here.
-                  </p>
-                ) : (
-                  coursesForLearning.slice(0, 7).map((course) => (
-                  <article key={courseRowKey(course)} className="rounded-lg border border-white/10 bg-black/25 p-3">
-                    {course.image?.trim() ? (
-                      <div className="relative h-20 overflow-hidden rounded-md border border-white/10 bg-black/30">
-                        <Image
-                          src={course.image.trim()}
-                          alt={course.title}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 33vw, 20vw"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex h-20 items-center justify-center rounded-md border border-dashed border-white/20 bg-black/30 text-center text-[10px] text-gray-500">
-                        No image
-                      </div>
-                    )}
-                    <p className="mt-2 line-clamp-2 text-base font-semibold">{course.title}</p>
-                    <p className="mt-1 text-xs text-gray-400">
-                      {course.modules} lessons • {course.duration}
+            <article className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
+              <h3 className="text-xl font-bold">Quick Actions</h3>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {quickActions.map(({ label, icon: Icon, cta, href }) => (
+                  <div key={label} className="rounded-lg border border-white/10 bg-black/25 p-3">
+                    <p className="inline-flex items-center gap-2 text-sm font-semibold text-amber-100">
+                      <Icon size={15} className="text-amber-300" />
+                      {label}
                     </p>
-                    <Link
-                      href={learningHrefFor(course)}
-                      className="mt-2 inline-flex w-full items-center justify-center rounded-md border border-white/15 py-1 text-xs text-amber-200"
-                    >
-                      View Course
+                    <Link href={href} className="mt-2 inline-block text-xs text-amber-200 hover:text-amber-100">
+                      {cta}
                     </Link>
-                  </article>
-                  ))
-                )}
+                  </div>
+                ))}
               </div>
-            </div>
-
-            <div className="mt-4 grid gap-3 xl:grid-cols-[1fr_1.1fr]">
-              <article className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-xl font-bold">Recommended For You</h3>
-                  <Link href="/my-learning?tab=learning" className="text-xs text-amber-200 hover:text-amber-100">
-                    View All
-                  </Link>
-                </div>
-                <div className="space-y-2">
-                  {coursesForLearning.length === 0 ? (
-                    <p className="text-sm text-gray-400">Enroll in courses to see recommendations here.</p>
-                  ) : (
-                    coursesForLearning.slice(0, 3).map((course) => {
-                    const safeModules = Math.max(1, course.modules);
-                    const percentage = Math.round((course.completed / safeModules) * 100);
-                    return (
-                      <div
-                        key={`recommended-${courseRowKey(course)}`}
-                        className="rounded-lg border border-white/10 bg-black/20 p-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm font-semibold">{course.title}</p>
-                          <span className="text-xs text-gray-400">{course.duration}</span>
-                        </div>
-                        <div className="mt-2 h-1.5 rounded-full bg-white/10">
-                          <div className="h-1.5 rounded-full bg-violet-400" style={{ width: `${percentage}%` }} />
-                        </div>
-                        <p className="mt-1 text-xs text-gray-400">{percentage}% Completed</p>
-                      </div>
-                    );
-                  })
-                  )}
-                </div>
-              </article>
-
-              <article className="rounded-xl border border-white/10 bg-black/30 p-3">
-                <h3 className="text-xl font-bold">Quick Actions</h3>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                  {quickActions.map(({ label, icon: Icon, cta, href }) => (
-                    <div key={label} className="rounded-lg border border-white/10 bg-black/25 p-3">
-                      <p className="inline-flex items-center gap-2 text-sm font-semibold text-amber-100">
-                        <Icon size={15} className="text-amber-300" />
-                        {label}
-                      </p>
-                      <Link href={href} className="mt-2 inline-block text-xs text-amber-200 hover:text-amber-100">
-                        {cta}
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            </div>
+            </article>
 
             {coursesForLearning.length > 0 ? (
               <article className="mt-4 rounded-xl border border-emerald-500/25 bg-black/30 p-3">
@@ -843,21 +860,8 @@ export default function MyLearningPage() {
             <MyCertificatesList />
           </section>
         ) : isSubscriptions ? (
-          <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
-            <h1 className="text-4xl font-bold">Subscriptions</h1>
-            <p className="mt-1 text-sm text-gray-300">
-              Your active plans and billing will appear here when configured for your account.
-            </p>
-            <p className="mt-6 rounded-xl border border-dashed border-white/15 bg-black/20 p-8 text-center text-sm text-gray-400">
-              No subscription on file yet. Enroll in courses from the catalog or contact support for
-              organisation plans.
-            </p>
-            <Link
-              href="/courses"
-              className="mt-4 inline-flex rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-black"
-            >
-              Browse courses
-            </Link>
+          <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 pb-3 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
+            <MyLearningIndividualSubscriptions />
           </section>
         ) : isCommunity ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">

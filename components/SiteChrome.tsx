@@ -12,7 +12,9 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
   const pathname = usePathname() ?? "";
   const isAdmin = pathname.startsWith("/admin");
   const accountPage = pathname === "/account";
+  const myLearningPage = pathname.startsWith("/my-learning");
   const tutorLedMarketing = pathname.startsWith("/tutor-led");
+  const compactMainChrome = accountPage || myLearningPage;
 
   useEffect(() => {
     if (!tutorLedMarketing) return;
@@ -29,7 +31,7 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
       <SiteHeader forceDarkChrome={tutorLedMarketing} />
       <div
         className={`relative z-10 flex w-full min-w-0 flex-col${
-          accountPage ? " shrink-0" : " flex-1"
+          compactMainChrome ? " shrink-0" : " flex-1"
         }${tutorLedMarketing ? " bg-black text-white" : ""}`}
       >
         {children}

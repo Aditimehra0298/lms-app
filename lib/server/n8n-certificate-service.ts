@@ -1,9 +1,9 @@
-import type { ManagedCourse } from "@/lib/content-schema";
+import type { CertificateProgramRef } from "@/lib/certificate-program-resolve";
+import { findCertificateProgram } from "@/lib/certificate-program-resolve";
 import { buildCertificateVerifyUrl } from "@/lib/certificate-verify-url";
 import { allocateDelegateNumber } from "@/lib/server/delegate-number-issue";
 import {
-  resolveCertificateAssetsForCourse,
-  resolveGlobalCertificateAssets,
+  resolveCertificateAssetsForSlug,
 } from "@/lib/global-certificate-assets";
 import { readAdminContent } from "@/lib/server/content-store";
 import { allocateSftCertificateNumber } from "@/lib/server/certificate-number-issue";
@@ -66,23 +66,18 @@ function learnerAccessLabel(
   return visibleToLearner ? "allowed" : "blocked";
 }
 
-/** Force every admin preview/list row to use the single global template (not per-course files). */
+/** Apply per-course/program certificate design with global fallback. */
 async function withSharedCertificateDesign(
   rows: CertificateRowDto[],
 ): Promise<CertificateRowDto[]> {
   const content = await readAdminContent();
-  const global = resolveGlobalCertificateAssets(content);
-  const transcriptDocs = global.transcriptFile
-    ? [{ title: "Transcript", url: global.transcriptFile }]
-    : [];
   return rows.map((dto) => {
-    const course = content.managedCourses?.find((c) => c.slug === dto.courseSlug);
-    const courseBadge = course?.certificateConfig?.badgeImage?.trim();
+    const assets = resolveCertificateAssetsForSlug(content, dto.courseSlug);
     return {
       ...dto,
-      templateImage: global.templateImage,
-      badgeImage: courseBadge || global.badgeImage || dto.badgeImage,
-      supplementaryDocs: transcriptDocs.length > 0 ? transcriptDocs : dto.supplementaryDocs,
+      templateImage: assets.templateImage,
+      badgeImage: assets.badgeImage || dto.badgeImage,
+      supplementaryDocs: assets.supplementaryDocs.length ? assets.supplementaryDocs : dto.supplementaryDocs,
     };
   });
 }
@@ -179,9 +174,9 @@ async function toDto(row: {
   };
 }
 
-async function findCourse(slug: string): Promise<ManagedCourse | undefined> {
+async function findCourse(slug: string): Promise<CertificateProgramRef | undefined> {
   const content = await readAdminContent();
-  return content.managedCourses?.find((c) => c.slug === slug);
+  return findCertificateProgram(content, slug);
 }
 
 /** True only when n8n generated a valid PDF saved on LMS disk. */
@@ -217,11 +212,11 @@ type CertificateDbRow = {
 
 function buildN8nCertificatePayload(input: {
   row: CertificateDbRow;
-  course: ManagedCourse;
+  course: CertificateProgramRef;
   courseRow: NonNullable<Awaited<ReturnType<typeof getCourseBySlug>>>;
   registration: NonNullable<Awaited<ReturnType<typeof lookupRegistrationByEmail>>>;
   perms: CertificatePermissionSettings;
-  assets: ReturnType<typeof resolveCertificateAssetsForCourse>;
+  assets: ReturnType<typeof resolveCertificateAssetsForSlug>;
   displayName: string;
   scorePercent?: number | null;
 }) {
@@ -297,11 +292,11 @@ function buildN8nCertificatePayload(input: {
 /** POST certificate payload to n8n; archive PDF when Respond to Webhook returns a URL. */
 async function dispatchCertificateToN8n(input: {
   row: CertificateDbRow;
-  course: ManagedCourse;
+  course: CertificateProgramRef;
   courseRow: NonNullable<Awaited<ReturnType<typeof getCourseBySlug>>>;
   registration: NonNullable<Awaited<ReturnType<typeof lookupRegistrationByEmail>>>;
   perms: CertificatePermissionSettings;
-  assets: ReturnType<typeof resolveCertificateAssetsForCourse>;
+  assets: ReturnType<typeof resolveCertificateAssetsForSlug>;
   displayName: string;
   scorePercent?: number | null;
 }): Promise<
@@ -375,7 +370,7 @@ async function dispatchCertificateToN8n(input: {
 
 async function retryN8nCertificate(input: {
   row: CertificateDbRow;
-  course: ManagedCourse;
+  course: CertificateProgramRef;
   courseRow: NonNullable<Awaited<ReturnType<typeof getCourseBySlug>>>;
   perms: CertificatePermissionSettings;
   learnerName?: string;
@@ -390,12 +385,12 @@ async function retryN8nCertificate(input: {
   }
 
   const content = await readAdminContent();
-  const assets = resolveCertificateAssetsForCourse(content, input.course);
+  const assets = resolveCertificateAssetsForSlug(content, input.course.slug);
   if (!assets.templateImage || !assets.badgeImage || !assets.transcriptFile) {
     return {
       ok: false,
       message:
-        "Certificate templates are not uploaded yet. Admin → Users & Access → Certificates → upload all 3 files (one design for every course).",
+        "Certificate samples are not ready. Upload certificate, badge, and transcript for this program (or set global defaults under Users & Access → Certificates).",
     };
   }
 
@@ -518,12 +513,12 @@ export async function requestCourseCertificate(input: {
   }
 
   const content = await readAdminContent();
-  const assets = resolveCertificateAssetsForCourse(content, course);
+  const assets = resolveCertificateAssetsForSlug(content, slug);
   if (!assets.templateImage || !assets.badgeImage || !assets.transcriptFile) {
     return {
       ok: false,
       message:
-        "Certificate templates are not uploaded yet. Admin → Users & Access → Certificates → upload all 3 files (one design for every course).",
+        "Certificate samples are not ready. Upload certificate, badge, and transcript for this program (or set global defaults under Users & Access → Certificates).",
     };
   }
 
@@ -810,7 +805,7 @@ export async function listLearnerCertificates(email: string): Promise<Certificat
   const out: CertificateRowDto[] = [];
 
   for (const row of rows) {
-    const course = content.managedCourses?.find((c) => c.slug === row.courseSlug);
+    const course = findCertificateProgram(content, row.courseSlug);
     if (!course) continue;
     const perms = resolveCertificatePermissions(course);
     if (!shouldShowOnLearnerDashboard(perms, row)) continue;

@@ -6,6 +6,7 @@ import {
   getCurriculumSessionCount,
   resolveTrainingDuration,
 } from "@/lib/tutor-led-training-schedule";
+import { getProgramTrainingDays, isWorkshopProgram } from "@/lib/workshop-program";
 
 export type TutorLedExploreCard = {
   slug: string;
@@ -20,7 +21,7 @@ export type TutorLedExploreCard = {
 
 export function buildTutorLedExploreCards(programs: TutorLedProgramStored[]): TutorLedExploreCard[] {
   return programs
-    .filter((p) => p.published && p.slug?.trim())
+    .filter((p) => p.published && p.slug?.trim() && !isWorkshopProgram(p))
     .map((p) => ({
       slug: p.slug.trim(),
       title: p.title,
@@ -65,7 +66,7 @@ export function enrichTutorLedLiveHubRow(
   programs: TutorLedProgramStored[],
 ): TutorLedLiveHubRow {
   const program = programs.find((p) => p.slug === slug.trim());
-  const trainingDays = program ? getCurriculumSessionCount(program) : 4;
+  const trainingDays = program ? getProgramTrainingDays(program) : 4;
   const completedDays = program
     ? computeCompletedLiveSessions(program.zoomRecordings?.length ?? 0, trainingDays)
     : 0;

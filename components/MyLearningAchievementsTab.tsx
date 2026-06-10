@@ -3,7 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Award, Flame, Medal, ShieldCheck, Star, Trophy } from "lucide-react";
+import { Award, FileText, Flame, Medal, ShieldCheck, Star, Trophy } from "lucide-react";
+import { LearnerOtherCredentialsUpload } from "@/components/LearnerOtherCredentialsUpload";
+import {
+  isPdfCredential,
+  LEARNER_OTHER_CREDENTIALS_EVENT,
+  readLearnerOtherCredentials,
+  type LearnerOtherCredential,
+} from "@/lib/learner-other-credentials";
 import type { CertificateRowDto } from "@/lib/certificate-types";
 import { buildCertificateEarnedPageUrl } from "@/lib/certificate-share-url";
 import type { LearnerBadge } from "@/lib/learner-badges";
@@ -241,6 +248,18 @@ export function MyLearningAchievementsTab({
   overallProgressPercent,
 }: Props) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const [otherCredentials, setOtherCredentials] = useState<LearnerOtherCredential[]>([]);
+
+  useEffect(() => {
+    const refresh = () => setOtherCredentials(readLearnerOtherCredentials());
+    refresh();
+    window.addEventListener(LEARNER_OTHER_CREDENTIALS_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(LEARNER_OTHER_CREDENTIALS_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
 
   const readyCerts = useMemo(
     () =>
@@ -305,7 +324,10 @@ export function MyLearningAchievementsTab({
   }, [completedCourses, readyCerts]);
 
   const hasWall =
-    readyCerts.length > 0 || badgeOnlyFrames.length > 0 || progressFrames.length > 0;
+    readyCerts.length > 0 ||
+    badgeOnlyFrames.length > 0 ||
+    progressFrames.length > 0 ||
+    otherCredentials.length > 0;
 
   return (
     <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)] md:p-5">
@@ -321,8 +343,7 @@ export function MyLearningAchievementsTab({
             ) : null}
           </h1>
           <p className="mt-1 max-w-xl text-sm text-zinc-400">
-            Certificates, badges, and completed programs — framed highlights from your learning
-            journey.
+            Certificates, badges, and completed programs — plus any other credentials you upload.
           </p>
         </div>
         <Link
@@ -353,8 +374,8 @@ export function MyLearningAchievementsTab({
       </div>
 
       {!hasWall ? (
-        <p className="mt-6 rounded-xl border border-dashed border-white/10 py-12 text-center text-sm text-zinc-500">
-          Complete a course or earn your first badge to appear on the wall of fame.
+        <p className="mt-6 rounded-xl border border-dashed border-white/10 py-8 text-center text-sm text-zinc-500">
+          Complete a course or upload an external certificate to appear on your wall of fame.
           <Link href="/courses" className="mt-2 block text-[#FFC107] hover:underline">
             Browse courses
           </Link>
@@ -362,6 +383,39 @@ export function MyLearningAchievementsTab({
       ) : (
         <div className="-mx-1 mt-5 snap-x snap-mandatory overflow-x-auto px-1 pb-2 scrollbar-thin">
           <div className="flex min-w-min gap-3">
+            {otherCredentials.map((item) => {
+              const isPdf = isPdfCredential(item.name, item.url);
+              const href = item.url.startsWith("http") ? item.url : `${origin}${item.url}`;
+              return (
+                <FameFrame
+                  key={item.id}
+                  href={href}
+                  frameTone="sky"
+                  label="Other certificate"
+                  labelTone="sky"
+                  title={item.name.replace(/\.[^.]+$/, "")}
+                  subtitle="Uploaded credential"
+                  meta={new Date(item.uploadedAt).toLocaleDateString()}
+                >
+                  {isPdf ? (
+                    <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 bg-sky-500/10 px-2">
+                      <FileText className="h-10 w-10 text-sky-300/80" aria-hidden />
+                      <span className="text-center text-[9px] font-semibold uppercase tracking-wide text-sky-200/90">
+                        PDF
+                      </span>
+                    </div>
+                  ) : (
+                    <MediaThumb
+                      src={item.url}
+                      alt={item.name}
+                      className="aspect-[4/3] w-full"
+                      contain
+                    />
+                  )}
+                </FameFrame>
+              );
+            })}
+
             {readyCerts.map((cert) => {
               const href = cert.courseSlug
                 ? `/my-learning/certificates/${encodeURIComponent(cert.id)}`
@@ -453,6 +507,16 @@ export function MyLearningAchievementsTab({
         </div>
       )}
 
+      <div className="mt-5">
+        <LearnerOtherCredentialsUpload
+          title="Upload other certificate"
+          description="Add badges or certificates from outside SF Trainings (PNG, JPG, or PDF). They appear on this wall and stay in sync with Subscriptions."
+          compact
+          showList={false}
+          onChange={setOtherCredentials}
+        />
+      </div>
+
       <div className="mt-5 rounded-xl border border-white/10 bg-black/30 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
           <span>Overall learning progress</span>
@@ -469,6 +533,9 @@ export function MyLearningAchievementsTab({
           {readyCerts.length} certificate{readyCerts.length === 1 ? "" : "s"}
           {badgeOnlyFrames.length > 0
             ? ` · ${badgeOnlyFrames.length} module badge${badgeOnlyFrames.length === 1 ? "" : "s"}`
+            : ""}
+          {otherCredentials.length > 0
+            ? ` · ${otherCredentials.length} uploaded credential${otherCredentials.length === 1 ? "" : "s"}`
             : ""}
         </p>
       </div>

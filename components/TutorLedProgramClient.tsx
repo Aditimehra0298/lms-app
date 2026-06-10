@@ -15,7 +15,12 @@ import TutorLedLearnerDashboard from "@/components/TutorLedLearnerDashboard";
 import TutorLedPostHeroSections from "@/components/TutorLedPostHeroSections";
 import CourseLandingVisit from "@/components/CourseLandingVisit";
 
-type Props = { program: TutorLedProgramStored; enrolledLearning?: boolean };
+type Props = {
+  program: TutorLedProgramStored;
+  enrolledLearning?: boolean;
+  /** workshop = one-day landing (same layout as tutor-led). */
+  variant?: "tutor-led" | "workshop";
+};
 
 function useCountdown(initial: { days: number; hours: number; mins: number; secs: number }) {
   const [time, setTime] = useState(initial);
@@ -50,7 +55,12 @@ function useCountdown(initial: { days: number; hours: number; mins: number; secs
   return time;
 }
 
-export default function TutorLedProgramClient({ program, enrolledLearning = false }: Props) {
+export default function TutorLedProgramClient({
+  program,
+  enrolledLearning = false,
+  variant,
+}: Props) {
+  const isWorkshop = variant === "workshop" || program.programKind === "workshop";
   const course = mapTutorLedProgramToPageCourse(program);
   const cd = useCountdown(program.countdown);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -62,7 +72,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
   const heroCourse = {
     title: course.title,
     subtitle: course.subtitle,
-    badge: course.badge,
+    badge: isWorkshop ? program.badge?.trim() || "LIVE WORKSHOP" : course.badge,
     trainer: {
       name: course.trainer.name,
       role: course.trainer.role,
@@ -72,7 +82,7 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
     nextBatchDate: course.nextBatchDate,
     schedule: course.schedule,
     language: course.language,
-    batchLabel: course.batchLabel,
+    batchLabel: isWorkshop ? program.batchLabel?.trim() || "One-day live workshop" : course.batchLabel,
     seatsFilling: course.seatsFilling,
     price: course.price,
     originalPrice: course.originalPrice,
@@ -88,11 +98,17 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
         { label: "Tutor Led", href: "/my-learning?tab=live" },
         { label: program.title, href: `/my-learning/course/${program.slug}` },
       ]
-    : [
-        { label: crumbs[0] ?? "Home", href: "/" },
-        { label: crumbs[1] ?? "Live Trainings", href: "/courses" },
-        { label: crumbs[2] ?? program.title, href: `/tutor-led/${program.slug}` },
-      ];
+    : isWorkshop
+      ? [
+          { label: crumbs[0] ?? "Home", href: "/" },
+          { label: "Workshops", href: "/workshops" },
+          { label: program.title, href: `/workshops/${program.slug}` },
+        ]
+      : [
+          { label: crumbs[0] ?? "Home", href: "/" },
+          { label: crumbs[1] ?? "Live Trainings", href: "/courses" },
+          { label: crumbs[2] ?? program.title, href: `/tutor-led/${program.slug}` },
+        ];
 
   if (showLearnerDashboard) {
     return <TutorLedLearnerDashboard program={program} />;
@@ -110,9 +126,13 @@ export default function TutorLedProgramClient({ program, enrolledLearning = fals
         course={heroCourse}
         countdown={cd}
         heroSrc={heroSrc}
-        heroAlt={program.heroAlt ?? "Live tutor-led training"}
+        heroAlt={program.heroAlt ?? (isWorkshop ? "Live one-day workshop" : "Live tutor-led training")}
         thumbnailSrc={heroSrc}
-        primaryCta={{ kind: "register", slug: program.slug, label: "Reserve Your Seat" }}
+        primaryCta={{
+          kind: "register",
+          slug: program.slug,
+          label: isWorkshop ? "Register for workshop" : "Reserve Your Seat",
+        }}
       />
 
       <div id="course-details" className="scroll-mt-24">

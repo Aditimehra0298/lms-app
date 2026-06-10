@@ -1,4 +1,4 @@
-import type { ManagedCourse, ManagedCourseCertificateConfig } from "@/lib/content-schema";
+import type { CertificateProgramRef } from "@/lib/certificate-program-resolve";
 
 export type CertificatePermissionSettings = {
   enabled: boolean;
@@ -10,10 +10,10 @@ export type CertificatePermissionSettings = {
 };
 
 export function resolveCertificatePermissions(
-  course: ManagedCourse,
+  program: CertificateProgramRef,
 ): CertificatePermissionSettings {
-  const cfg = course.certificateConfig ?? {};
-  const hero = course.hero ?? {};
+  const cfg = program.certificateConfig ?? {};
+  const hero = program.hero ?? {};
   const enabled = cfg.enabled !== false && (hero.certificate ?? "").trim().toLowerCase() !== "no";
   const requireAdminApproval = cfg.requireAdminApproval === true;
   return {

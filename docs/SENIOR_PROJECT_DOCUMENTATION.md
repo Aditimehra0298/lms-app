@@ -38,7 +38,8 @@ Content is **hybrid**: shared marketing data in `data/admin-content.json`, learn
 | Image crop | **react-easy-crop** | 5.5.x | Profile/avatar cropping |
 | IDs | **nanoid** / **cuid** | — | Client IDs; Prisma default cuid |
 | Lint | **ESLint** + eslint-config-next | 9.x | Code quality |
-| Deploy config | **Netlify** | `netlify.toml` | Static/hosting hints |
+| Deploy config | **GCE + Cloudflare** | `docs/GCP_CLOUDFLARE_DEPLOYMENT.md` | Production VPS plan |
+| Deploy config | **Netlify** | `netlify.toml` | Legacy/static hints only |
 
 ### Build & dev scripts
 

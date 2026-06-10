@@ -38,6 +38,10 @@ declare global {
 
 export const GOOGLE_GSI_SCRIPT = "https://accounts.google.com/gsi/client";
 
+export const GOOGLE_SIGNIN_SCOPES = "openid email profile";
+
+export const GOOGLE_YOUTUBE_SCOPES = "https://www.googleapis.com/auth/youtube.readonly";
+
 export function getGoogleClientId(): string | null {
   const id = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
   return id || null;
@@ -94,7 +98,7 @@ export function requestGoogleAccessToken(
 
   const tokenClient = window.google.accounts.oauth2.initTokenClient({
     client_id: clientId,
-    scope: "openid email profile",
+    scope: GOOGLE_SIGNIN_SCOPES,
     ...(loginHint ? { hint: loginHint } : {}),
     callback: (response) => {
       if (response.error) {
@@ -122,5 +126,60 @@ export function requestGoogleAccessToken(
 
   tokenClient.requestAccessToken({
     prompt: options?.prompt ?? (loginHint ? "" : "select_account"),
+  });
+}
+
+/** Request OAuth token with custom scopes (e.g. YouTube readonly for recommendations). */
+export function requestGoogleScopedAccessToken(
+  scope: string,
+  onToken: (accessToken: string) => void,
+  onError: (message: string) => void,
+  options?: {
+    prompt?: "" | "none" | "consent" | "select_account";
+    loginHint?: string;
+  },
+): void {
+  const clientId = getGoogleClientId();
+  if (!clientId) {
+    onError(
+      "Google is not configured. Add NEXT_PUBLIC_GOOGLE_CLIENT_ID to .env.local and restart the dev server.",
+    );
+    return;
+  }
+  if (!window.google?.accounts?.oauth2) {
+    onError("Google sign-in is still loading. Try again in a moment.");
+    return;
+  }
+
+  const loginHint = options?.loginHint?.trim().toLowerCase();
+
+  const tokenClient = window.google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope,
+    ...(loginHint ? { hint: loginHint } : {}),
+    callback: (response) => {
+      if (response.error) {
+        if (response.error === "popup_closed_by_user") return;
+        onError(response.error_description ?? response.error);
+        return;
+      }
+      const token = response.access_token?.trim();
+      if (!token) {
+        onError("Google did not return an access token.");
+        return;
+      }
+      onToken(token);
+    },
+    error_callback: (err) => {
+      if (err.type === "popup_closed" || err.type === "popup_failed_to_open") {
+        onError("Google popup was blocked. Allow popups for this site, then try again.");
+        return;
+      }
+      onError(err.message ?? "Google authorization failed.");
+    },
+  });
+
+  tokenClient.requestAccessToken({
+    prompt: options?.prompt ?? "consent",
   });
 }

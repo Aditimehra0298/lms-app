@@ -412,7 +412,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
                           isLight ? "text-slate-700 hover:bg-amber-100/45" : "text-gray-200 hover:bg-white/10"
                         }`}
                       >
-                        Profile
+                        Profile & settings
                       </Link>
                       <button
                         type="button"

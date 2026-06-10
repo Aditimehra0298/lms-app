@@ -1,4 +1,7 @@
-import type { ManagedCourse, ManagedCourseCertificateConfig } from "@/lib/content-schema";
+import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
+import type { ManagedCourse } from "@/lib/content-schema";
+
+export type { ManagedCourseCertificateConfig };
 
 export function sanitizeCertificateConfig(
   raw: ManagedCourseCertificateConfig | undefined,
@@ -18,8 +21,9 @@ export function sanitizeCertificateConfig(
     autoVisibleWhenReady: raw.autoVisibleWhenReady === true,
     requireAdminApproval: raw.requireAdminApproval !== false,
     title: raw.title?.trim(),
-    /** Per-course badge — same image for every learner; only the certificate PDF personalizes. */
+    templateImage: raw.templateImage?.trim() || undefined,
     badgeImage: raw.badgeImage?.trim() || undefined,
+    transcriptFile: raw.transcriptFile?.trim() || undefined,
     nameTopPercent: clampPercent(raw.nameTopPercent),
     numberTopPercent: clampPercent(raw.numberTopPercent),
     dateTopPercent: clampPercent(raw.dateTopPercent),
@@ -35,27 +39,22 @@ function clampPercent(n: number | undefined): number | undefined {
   return Math.min(100, Math.max(0, Math.round(n)));
 }
 
-/** Global-only fields — per-course badge is allowed on certificateConfig.badgeImage. */
-const PER_COURSE_TEMPLATE_KEYS = ["templateImage", "supplementaryDocs"] as const;
-
-function stripPerCourseTemplateFields(
-  cfg: ManagedCourseCertificateConfig,
-): ManagedCourseCertificateConfig {
-  const next = { ...cfg };
-  for (const key of PER_COURSE_TEMPLATE_KEYS) {
-    delete next[key];
-  }
-  return next;
-}
-
 export function patchCertificateConfig(
   draft: ManagedCourse,
   patch: Partial<ManagedCourseCertificateConfig>,
 ): ManagedCourse {
-  const merged = stripPerCourseTemplateFields({
-    ...(draft.certificateConfig ?? {}),
-    ...patch,
-  });
+  const merged = { ...(draft.certificateConfig ?? {}), ...patch };
+  return {
+    ...draft,
+    certificateConfig: sanitizeCertificateConfig(merged) ?? merged,
+  };
+}
+
+export function patchProgramCertificateConfig<T extends { certificateConfig?: ManagedCourseCertificateConfig }>(
+  draft: T,
+  patch: Partial<ManagedCourseCertificateConfig>,
+): T {
+  const merged = { ...(draft.certificateConfig ?? {}), ...patch };
   return {
     ...draft,
     certificateConfig: sanitizeCertificateConfig(merged) ?? merged,

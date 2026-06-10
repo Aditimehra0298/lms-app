@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { fetchTutorLedProgramsClient, tutorLedProgramBySlug } from "@/lib/shop-cart";
+import { isWorkshopProgram } from "@/lib/workshop-program";
 
 type PurchasedRow = { slug?: string; title: string; deliveryKind?: string };
 
@@ -21,7 +22,12 @@ export function EnrolledTutorLedOnCalendar() {
         purchased = [];
       }
       const slugs = new Set(
-        purchased.filter((p) => p.deliveryKind === "tutor-led" && p.slug?.trim()).map((p) => p.slug!.trim()),
+        purchased
+          .filter(
+            (p) =>
+              (p.deliveryKind === "tutor-led" || p.deliveryKind === "workshop") && p.slug?.trim(),
+          )
+          .map((p) => p.slug!.trim()),
       );
       if (!slugs.size) {
         if (!cancelled) setRows([]);
@@ -44,9 +50,9 @@ export function EnrolledTutorLedOnCalendar() {
 
   return (
     <section className="mb-5 rounded-2xl border border-[#FFC107]/30 bg-gradient-to-r from-[#2a2210] via-[#1a1508] to-[#0f0d08] p-4 shadow-[inset_0_1px_0_rgba(255,193,7,0.12)]">
-      <h2 className="text-base font-bold text-[#FFC107]">Your tutor-led enrollments</h2>
+      <h2 className="text-base font-bold text-[#FFC107]">Your live enrollments</h2>
       <p className="mt-1 text-xs text-zinc-400">
-        These programs appear on your schedule below. Open the program for Zoom links and materials.
+        Tutor-led and one-day workshops appear on your calendar. Open the program for Zoom links.
       </p>
       <ul className="mt-3 space-y-2">
         {rows.map(({ program }) => (
@@ -55,9 +61,13 @@ export function EnrolledTutorLedOnCalendar() {
             className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#FFC107]/20 bg-black/40 px-4 py-3"
           >
             <div className="min-w-0">
-              <p className="font-semibold text-white">{program.title}</p>
+              <p className="font-semibold text-white">
+                {isWorkshopProgram(program) ? "Workshop · " : ""}
+                {program.title}
+              </p>
               <p className="mt-0.5 text-xs text-zinc-400">
-                Next batch: {program.nextBatchDate} · {program.schedule}
+                {isWorkshopProgram(program) ? "One day · " : "Next batch: "}
+                {program.nextBatchDate} · {program.schedule}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

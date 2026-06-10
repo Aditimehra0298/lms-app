@@ -68,6 +68,8 @@ import {
 } from "@/lib/course-lesson-nav";
 import type { CertificateRowDto } from "@/lib/certificate-types";
 import { readJsonResponse } from "@/lib/safe-json";
+import type { AdminContent } from "@/lib/content-schema";
+import { resolveCertificateAssetsForSlug } from "@/lib/global-certificate-assets";
 import {
   healModuleWatchRecord,
   moduleCurriculumRows,
@@ -282,17 +284,12 @@ export default function CourseLearningPlayerPage() {
       .then(async (r) => (r.ok ? readJsonResponse(r, null) : null))
       .then((data) => {
         if (cancelled || !data) return;
-        const content = data as {
-          globalCertificateAssets?: { badgeImage?: string; templateImage?: string; transcriptFile?: string };
-          managedCourses?: Array<{ slug?: string; certificateConfig?: { badgeImage?: string } }>;
-        };
-        const g = content.globalCertificateAssets;
-        const courseRow = content.managedCourses?.find((c) => c.slug === slug);
-        const courseBadge = courseRow?.certificateConfig?.badgeImage?.trim() || "";
+        const content = data as AdminContent;
+        const assets = resolveCertificateAssetsForSlug(content, slug);
         setCertAssets({
-          badge: courseBadge || g?.badgeImage?.trim() || "",
-          template: g?.templateImage?.trim() || "",
-          transcript: g?.transcriptFile?.trim() || "",
+          badge: assets.badgeImage,
+          template: assets.templateImage,
+          transcript: assets.transcriptFile,
         });
       })
       .catch(() => {});
@@ -312,7 +309,8 @@ export default function CourseLearningPlayerPage() {
       if (Array.isArray(parsed)) {
         const row = parsed.find((c) => (c.slug ?? "").trim() === slug);
         purchasedThisSlug = !!row;
-        isTutorLedPurchase = row?.deliveryKind === "tutor-led";
+        isTutorLedPurchase =
+          row?.deliveryKind === "tutor-led" || row?.deliveryKind === "workshop";
       }
     } catch {
       isTutorLedPurchase = false;

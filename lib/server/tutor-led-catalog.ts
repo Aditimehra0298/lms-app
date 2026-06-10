@@ -1,5 +1,6 @@
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { readAdminContent } from "@/lib/server/content-store";
+import { filterPublishedWorkshops, isWorkshopProgram } from "@/lib/workshop-program";
 
 function matchSlug(program: TutorLedProgramStored, key: string, decoded: string): boolean {
   return program.slug === key || program.slug === decoded;
@@ -40,6 +41,17 @@ export async function getTutorLedProgramBySlug(slug: string): Promise<TutorLedPr
 export async function getPublishedTutorLedPrograms(): Promise<TutorLedProgramStored[]> {
   const bySlug = await loadMergedPrograms();
   return Array.from(bySlug.values()).filter((p) => p.published !== false);
+}
+
+/** Published one-day workshops (`programKind: workshop`). */
+export async function getPublishedWorkshopPrograms(): Promise<TutorLedProgramStored[]> {
+  return filterPublishedWorkshops(await getPublishedTutorLedPrograms());
+}
+
+/** Published multi-day tutor-led only (excludes workshops). */
+export async function getPublishedTutorLedProgramsOnly(): Promise<TutorLedProgramStored[]> {
+  const all = await getPublishedTutorLedPrograms();
+  return all.filter((p) => !isWorkshopProgram(p));
 }
 
 /** Tutor-led program for enrolled learner flows (exams, hub). */

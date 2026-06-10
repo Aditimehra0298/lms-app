@@ -1,8 +1,9 @@
-import type { ManagedCourse, ManagedCourseCertificateConfig } from "@/lib/content-schema";
+import type { ManagedCourseCertificateConfig } from "@/lib/content-schema";
+import { findCertificateProgram, type CertificateProgramRef } from "@/lib/certificate-program-resolve";
 import { readAdminContent } from "@/lib/server/content-store";
 import {
-  resolveCertificateAssetsForCourse,
-  resolveGlobalCertificateAssets,
+  resolveCertificateAssetsForSlug,
+  resolveCertificateAssetsFromConfig,
 } from "@/lib/global-certificate-assets";
 import { allocateSftCertificateNumber } from "@/lib/server/certificate-number-issue";
 import { allocateDelegateNumber } from "@/lib/server/delegate-number-issue";
@@ -26,7 +27,7 @@ export type { IssuedCertificateDto, SupplementaryDoc };
 const DEFAULT_TEMPLATE = "/certificates/haccp-certificate-template.jpg";
 
 export function resolveCertificateConfig(
-  course: ManagedCourse,
+  program: CertificateProgramRef,
   content?: Awaited<ReturnType<typeof readAdminContent>>,
 ): Required<
   Pick<
@@ -34,10 +35,10 @@ export function resolveCertificateConfig(
     "templateImage" | "badgeImage" | "title" | "nameTopPercent" | "numberTopPercent" | "dateTopPercent"
   >
 > & { supplementaryDocs: SupplementaryDoc[]; enabled: boolean } {
-  const cfg = course.certificateConfig ?? {};
-  const hero = course.hero ?? {};
+  const cfg = program.certificateConfig ?? {};
+  const hero = program.hero ?? {};
   const globalAssets = content
-    ? resolveCertificateAssetsForCourse(content, course)
+    ? resolveCertificateAssetsFromConfig(content, program.certificateConfig)
     : null;
   return {
     enabled: cfg.enabled !== false && (hero.certificate ?? "").trim().toLowerCase() !== "no",
@@ -64,10 +65,10 @@ export async function issueCourseCertificate(input: {
   if (!email || !slug) return { ok: false, message: "Email and course slug are required." };
 
   const content = await readAdminContent();
-  const course = content.managedCourses?.find((c) => c.slug === slug);
-  if (!course) return { ok: false, message: "Course not found in catalog." };
+  const program = findCertificateProgram(content, slug);
+  if (!program) return { ok: false, message: "Course not found in catalog." };
 
-  const cfg = resolveCertificateConfig(course, content);
+  const cfg = resolveCertificateConfig(program, content);
   if (!cfg.enabled) return { ok: false, message: "Certificates are not enabled for this course." };
 
   const courseRow = await prisma.lmsCourse.findUnique({ where: { slug } });
@@ -159,7 +160,7 @@ export async function issueCourseCertificate(input: {
       learnerEmail: email,
       learnerName: displayName,
       courseSlug: slug,
-      courseTitle: course.title,
+      courseTitle: program.title,
       certificateNumber,
       delegateNumber,
       verifyNumber,
@@ -244,17 +245,14 @@ async function enrichCertificate(cert: IssuedCertificateDto): Promise<IssuedCert
   }
   try {
     const content = await readAdminContent();
-    const global = resolveGlobalCertificateAssets(content);
-    const transcriptDocs = global.transcriptFile
-      ? [{ title: "Transcript", url: global.transcriptFile }]
-      : cert.supplementaryDocs;
-    const course = content.managedCourses?.find((c) => c.slug === cert.courseSlug);
-    const cfg = course ? resolveCertificateConfig(course, content) : null;
+    const assets = resolveCertificateAssetsForSlug(content, cert.courseSlug);
+    const program = findCertificateProgram(content, cert.courseSlug);
+    const cfg = program ? resolveCertificateConfig(program, content) : null;
     return {
       ...cert,
-      templateImage: global.templateImage,
-      badgeImage: cfg?.badgeImage || global.badgeImage || cert.badgeImage,
-      supplementaryDocs: transcriptDocs,
+      templateImage: assets.templateImage,
+      badgeImage: assets.badgeImage || cert.badgeImage,
+      supplementaryDocs: assets.supplementaryDocs.length ? assets.supplementaryDocs : cert.supplementaryDocs,
       nameTopPercent: cfg?.nameTopPercent ?? cert.nameTopPercent,
       numberTopPercent: cfg?.numberTopPercent ?? cert.numberTopPercent,
       dateTopPercent: cfg?.dateTopPercent ?? cert.dateTopPercent,

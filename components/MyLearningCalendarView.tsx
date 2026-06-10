@@ -57,6 +57,7 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 const LEGEND: { kind: CalendarEventKind; label: string }[] = [
   { kind: "live", label: "Live session" },
+  { kind: "workshop", label: "Workshop" },
   { kind: "exam", label: "Exam" },
   { kind: "certificate", label: "Certificate" },
   { kind: "reminder", label: "Reminder" },
@@ -87,6 +88,7 @@ export type MyLearningCalendarViewProps = {
 function notificationIcon(kind: CalendarEventKind | "course") {
   switch (kind) {
     case "live":
+    case "workshop":
       return Video;
     case "exam":
       return GraduationCap;

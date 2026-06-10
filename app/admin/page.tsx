@@ -35,6 +35,7 @@ import {
   Video,
   Award,
   HelpCircle,
+  Shield,
 } from "lucide-react";
 import AdminCoursesWorkspace from "@/components/admin/AdminCoursesWorkspace";
 import AdminCertificatesWorkspace from "@/components/admin/AdminCertificatesWorkspace";
@@ -42,6 +43,11 @@ import AdminCoursesPageEditor from "@/components/admin/AdminCoursesPageEditor";
 import AdminHomePageEditor from "@/components/admin/AdminHomePageEditor";
 import AdminAboutPageEditor from "@/components/admin/AdminAboutPageEditor";
 import AdminTutorLedWorkspace from "@/components/admin/AdminTutorLedWorkspace";
+import AdminWorkshopsWorkspace from "@/components/admin/AdminWorkshopsWorkspace";
+import AdminLessonsWorkspace from "@/components/admin/AdminLessonsWorkspace";
+import AdminBatchesWorkspace from "@/components/admin/AdminBatchesWorkspace";
+import AdminUsersWorkspace from "@/components/admin/AdminUsersWorkspace";
+import AdminRolesPermissionsWorkspace from "@/components/admin/AdminRolesPermissionsWorkspace";
 import { AdminCommunityConnectEditor } from "@/components/admin/AdminCommunityConnectEditor";
 import { AdminDashboardCalendarEditor } from "@/components/admin/AdminDashboardCalendarEditor";
 import AdminCourseQAModeration from "@/components/admin/AdminCourseQAModeration";
@@ -136,6 +142,7 @@ const menuIcons: Record<string, typeof Home> = {
   Batches: Users,
   Users: Users,
   Certificates: Award,
+  "Roles & Permissions": Shield,
   Settings: Settings,
   "Support Tickets": TicketCheck,
   "FAQ Page": HelpCircle,
@@ -174,14 +181,25 @@ export default function AdminPage() {
   const selectMenu = useCallback(
     (item: string) => {
       setActiveMenu(item);
-      if (item === "Tutor Led") {
+      if (item === "Self-paced courses") {
+        router.replace("/admin?panel=self-paced", { scroll: false });
+      } else if (item === "Lessons") {
+        router.replace("/admin?panel=lessons", { scroll: false });
+      } else if (item === "Course Q&A") {
+        router.replace("/admin?panel=course-qa", { scroll: false });
+      } else if (item === "Batches") {
+        router.replace("/admin?panel=batches", { scroll: false });
+      } else if (item === "Tutor Led") {
         router.replace("/admin?panel=tutor-led", { scroll: false });
+      } else if (item === "Workshops") {
+        router.replace("/admin?panel=workshops", { scroll: false });
+      } else if (item === "Users") {
+        router.replace("/admin?panel=users", { scroll: false });
       } else if (item === "Certificates") {
         router.replace("/admin?panel=certificates", { scroll: false });
-      } else if (
-        searchParams.get("panel") === "tutor-led" ||
-        searchParams.get("panel") === "certificates"
-      ) {
+      } else if (item === "Roles & Permissions") {
+        router.replace("/admin?panel=roles", { scroll: false });
+      } else if (searchParams.get("panel")) {
         router.replace("/admin", { scroll: false });
       }
     },
@@ -190,8 +208,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     const panel = searchParams.get("panel");
+    if (panel === "self-paced") setActiveMenu("Self-paced courses");
+    if (panel === "lessons") setActiveMenu("Lessons");
+    if (panel === "course-qa") setActiveMenu("Course Q&A");
+    if (panel === "batches") setActiveMenu("Batches");
     if (panel === "tutor-led") setActiveMenu("Tutor Led");
+    if (panel === "workshops") setActiveMenu("Workshops");
+    if (panel === "users") setActiveMenu("Users");
     if (panel === "certificates") setActiveMenu("Certificates");
+    if (panel === "roles") setActiveMenu("Roles & Permissions");
   }, [searchParams]);
 
   useEffect(() => {
@@ -317,31 +342,41 @@ export default function AdminPage() {
   }
 
   const showCoursesWorkspace = activeMenu === "Self-paced courses";
+  const showLessonsWorkspace = activeMenu === "Lessons";
   const showCourseQAModeration = activeMenu === "Course Q&A";
+  const showBatchesWorkspace = activeMenu === "Batches";
   const showCoursesPageEditor = activeMenu === "Courses Page";
   const showHomePageEditor = activeMenu === "Home Page";
   const showAboutPageEditor = activeMenu === "About Page";
   const showTutorLedWorkspace = activeMenu === "Tutor Led";
+  const showWorkshopsWorkspace = activeMenu === "Workshops";
   const showSupportTickets = activeMenu === "Support Tickets";
   const showFormSubmissions = activeMenu === "Website Form Data";
   const showImageUploadGuide = activeMenu === "Image Upload Guide";
   const showFaqPageEditor = activeMenu === "FAQ Page";
   const showTestimonialsEditor = activeMenu === "Testimonials";
   const showCertificatesWorkspace = activeMenu === "Certificates";
+  const showUsersWorkspace = activeMenu === "Users";
+  const showRolesWorkspace = activeMenu === "Roles & Permissions";
   const hasMainPanel =
     activeMenu === "Dashboard" ||
     showCoursesWorkspace ||
+    showLessonsWorkspace ||
     showCourseQAModeration ||
+    showBatchesWorkspace ||
     showCoursesPageEditor ||
     showHomePageEditor ||
     showAboutPageEditor ||
     showTutorLedWorkspace ||
+    showWorkshopsWorkspace ||
     showSupportTickets ||
     showFormSubmissions ||
     showImageUploadGuide ||
     showFaqPageEditor ||
     showTestimonialsEditor ||
     showCertificatesWorkspace ||
+    showUsersWorkspace ||
+    showRolesWorkspace ||
     activeMenu === "Categories";
 
   const persistCategories = async (rows: string[][]) => {
@@ -470,9 +505,19 @@ export default function AdminPage() {
                   placeholder={
                     showCoursesWorkspace
                       ? "Search for courses, modules, users…"
-                      : showTutorLedWorkspace
-                        ? "Search tutor-led programs…"
-                        : "Search here..."
+                      : showLessonsWorkspace
+                        ? "Search courses for lessons…"
+                        : showTutorLedWorkspace
+                          ? "Search tutor-led programs…"
+                          : showWorkshopsWorkspace
+                            ? "Search workshops…"
+                            : showBatchesWorkspace
+                              ? "Search batch schedules…"
+                              : showCourseQAModeration
+                                ? "Filter Q&A by course…"
+                                : showUsersWorkspace
+                                  ? "Search users by email…"
+                                  : "Search here..."
                   }
                 />
               </div>
@@ -575,6 +620,7 @@ export default function AdminPage() {
                     onClick={() => {
                       if (action === "Add New Course") selectMenu("Self-paced courses");
                       else if (action === "Add New Category") selectMenu("Categories");
+                      else if (action === "Manage Users") selectMenu("Users");
                       else if (action === "Create Tutor-Led Session") selectMenu("Tutor Led");
                     }}
                     className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-left text-xs hover:border-[#6f55ff]/50"
@@ -776,9 +822,15 @@ export default function AdminPage() {
 
           {showCoursesWorkspace && <AdminCoursesWorkspace />}
 
+          {showLessonsWorkspace && <AdminLessonsWorkspace />}
+
           {showCourseQAModeration && <AdminCourseQAModeration />}
 
+          {showBatchesWorkspace && <AdminBatchesWorkspace />}
+
           {showTutorLedWorkspace && <AdminTutorLedWorkspace />}
+
+          {showWorkshopsWorkspace && <AdminWorkshopsWorkspace />}
 
           {showCoursesPageEditor && <AdminCoursesPageEditor />}
 
@@ -791,6 +843,10 @@ export default function AdminPage() {
           {showFormSubmissions && <AdminFormSubmissions />}
 
           {showCertificatesWorkspace && <AdminCertificatesWorkspace />}
+
+          {showUsersWorkspace && <AdminUsersWorkspace />}
+
+          {showRolesWorkspace && <AdminRolesPermissionsWorkspace />}
 
           {showImageUploadGuide && <AdminWebsiteImageGuide />}
           {showFaqPageEditor && <AdminFaqPageEditor />}

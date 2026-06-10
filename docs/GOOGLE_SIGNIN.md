@@ -42,6 +42,16 @@ npm run dev
 
 Google sign-in skips email OTP (Google already verified the email) and saves the user in MySQL when the database is available.
 
+## 5. YouTube recommendations (optional)
+
+Learners can connect **YouTube (read-only)** on My Learning → Profile to improve course picks from subscriptions and liked videos.
+
+1. In Google Cloud, enable **YouTube Data API v3** on the same project as your OAuth client.
+2. On the **OAuth consent screen**, add scope: `https://www.googleapis.com/auth/youtube.readonly`
+3. Restart the dev server after env changes.
+
+Optional: set `GOOGLE_YOUTUBE_API_KEY` in `.env.local` if your project requires an API key for quota.
+
 ## Troubleshooting
 
 | Issue | Fix |

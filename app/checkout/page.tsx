@@ -14,6 +14,7 @@ import {
   type ShopCartItem,
   tutorLedProgramBySlug,
 } from "@/lib/shop-cart";
+import { syncWorkshopCalendarReminders } from "@/lib/learner-workshop-calendar";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
 import { hasViewedCourseLanding, prePaymentLandingHref } from "@/lib/course-landing";
 import { SignInToViewPrices } from "@/components/SignInToViewPrices";
@@ -35,7 +36,7 @@ type PurchasedLearningCourse = {
   status: string;
   action: string;
   tone: string;
-  deliveryKind?: "managed" | "tutor-led";
+  deliveryKind?: "managed" | "tutor-led" | "workshop";
   image?: string;
 };
 
@@ -168,9 +169,12 @@ export default function CheckoutPage() {
     void loadItems();
   }, [buyNowSlug]);
 
-  const successHasTutorLed = useMemo(() => items.some((i) => i.deliveryKind === "tutor-led"), [items]);
+  const successHasTutorLed = useMemo(
+    () => items.some((i) => i.deliveryKind === "tutor-led" || i.deliveryKind === "workshop"),
+    [items],
+  );
   const tutorLedSlug = useMemo(
-    () => items.find((i) => i.deliveryKind === "tutor-led")?.slug,
+    () => items.find((i) => i.deliveryKind === "tutor-led" || i.deliveryKind === "workshop")?.slug,
     [items],
   );
   const successMyLearningHref = successHasTutorLed && tutorLedSlug
@@ -231,7 +235,8 @@ export default function CheckoutPage() {
         modules,
         duration,
         completed: 0,
-        status: item.deliveryKind === "tutor-led" ? "In Progress" : status,
+        status:
+          item.deliveryKind === "tutor-led" || item.deliveryKind === "workshop" ? "In Progress" : status,
         action: item.learningAction ?? action,
         tone: item.learningTone ?? "violet",
         deliveryKind: item.deliveryKind,
@@ -250,6 +255,8 @@ export default function CheckoutPage() {
       clearAbandonedCartSentFlag();
       window.dispatchEvent(new Event("sft_purchases_updated"));
       window.dispatchEvent(new Event("sft_cart_updated"));
+      window.dispatchEvent(new Event("sft_purchased_courses_updated"));
+      syncWorkshopCalendarReminders(normalizedItems, tutorPrograms);
     } catch {
       // Keep UI flow even if local storage is unavailable.
     }
@@ -261,7 +268,7 @@ export default function CheckoutPage() {
     }
 
     const tutorLedItem =
-      normalizedItems.find((i) => i.deliveryKind === "tutor-led") ??
+      normalizedItems.find((i) => i.deliveryKind === "tutor-led" || i.deliveryKind === "workshop") ??
       normalizedItems.find((i) => tutorLedProgramBySlug(tutorPrograms, i.slug));
     if (tutorLedItem?.slug) {
       void syncEnrollmentsToServer();

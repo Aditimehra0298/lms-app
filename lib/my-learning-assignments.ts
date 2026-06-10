@@ -121,7 +121,7 @@ export function buildMyLearningAssignments(input: {
   const rows: AssignmentRow[] = [];
 
   for (const purchase of input.purchased) {
-    if (purchase.deliveryKind === "tutor-led") {
+    if (purchase.deliveryKind === "tutor-led" || purchase.deliveryKind === "workshop") {
       const slug = purchase.slug?.trim();
       if (!slug) continue;
       const hub = input.tutorLedHubRows.find((r) => r.slug === slug);

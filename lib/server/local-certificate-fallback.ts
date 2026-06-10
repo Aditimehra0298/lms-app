@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { findCertificateProgram } from "@/lib/certificate-program-resolve";
 import { readAdminContent } from "@/lib/server/content-store";
 import { resolveCertificatePermissions } from "@/lib/server/certificate-permissions";
 import {
@@ -67,8 +68,8 @@ export async function applyLocalCertificateFallback(certificateId: string): Prom
   if (!row || row.status === "ready") return false;
 
   const content = await readAdminContent();
-  const course = content.managedCourses?.find((c) => c.slug === row.courseSlug);
-  const perms = course ? resolveCertificatePermissions(course) : null;
+  const program = findCertificateProgram(content, row.courseSlug);
+  const perms = program ? resolveCertificatePermissions(program) : null;
 
   const issueDate = row.issuedAt.toLocaleDateString("en-GB", {
     day: "2-digit",

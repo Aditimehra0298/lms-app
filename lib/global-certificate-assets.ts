@@ -1,4 +1,5 @@
 import type { SupplementaryDoc } from "@/lib/certificate-types";
+import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
 import type { AdminContent, ManagedCourse } from "@/lib/content-schema";
 
 /** Fallback certificate background when admin has not uploaded a custom file. */
@@ -12,7 +13,7 @@ export type ResolvedGlobalCertificateAssets = {
   transcriptFile: string;
 };
 
-/** One shared design for every course — uploaded in Admin → Users & Access → Certificates. */
+/** Default design — used when a course/program field is empty. */
 export function resolveGlobalCertificateAssets(
   content: AdminContent,
 ): ResolvedGlobalCertificateAssets {
@@ -29,34 +30,64 @@ export function globalCertificateAssetsReady(content: AdminContent): boolean {
   return Boolean(a.templateImage && a.badgeImage && a.transcriptFile);
 }
 
-/** Course badge from admin (per course) with global fallback. Same for all learners on that course. */
-export function resolveCourseBadgeImage(content: AdminContent, course: ManagedCourse): string {
-  const courseBadge = course.certificateConfig?.badgeImage?.trim();
-  if (courseBadge) return courseBadge;
-  return resolveGlobalCertificateAssets(content).badgeImage;
-}
-
-export function resolveCourseBadgeImageBySlug(content: AdminContent, courseSlug: string): string {
+export function findCertificateConfigForSlug(
+  content: AdminContent,
+  courseSlug: string,
+): ManagedCourseCertificateConfig | undefined {
   const slug = courseSlug.trim();
-  if (!slug) return resolveGlobalCertificateAssets(content).badgeImage;
+  if (!slug) return undefined;
   const course = content.managedCourses?.find((c) => c.slug === slug);
-  if (!course) return resolveGlobalCertificateAssets(content).badgeImage;
-  return resolveCourseBadgeImage(content, course);
+  if (course?.certificateConfig) return course.certificateConfig;
+  const program = content.tutorLedPrograms?.find((p) => p.slug === slug);
+  return program?.certificateConfig;
 }
 
-/** Assets + transcript doc list for a single certificate issue. */
+export function resolveCertificateAssetsFromConfig(
+  content: AdminContent,
+  cfg: ManagedCourseCertificateConfig | undefined,
+): ResolvedGlobalCertificateAssets & { supplementaryDocs: SupplementaryDoc[] } {
+  const global = resolveGlobalCertificateAssets(content);
+  const templateImage = cfg?.templateImage?.trim() || global.templateImage;
+  const badgeImage = cfg?.badgeImage?.trim() || global.badgeImage;
+  const transcriptFile = cfg?.transcriptFile?.trim() || global.transcriptFile;
+  const docs: SupplementaryDoc[] = [];
+  if (transcriptFile) {
+    docs.push({ title: "Transcript", url: transcriptFile });
+  }
+  if (Array.isArray(cfg?.supplementaryDocs)) {
+    for (const d of cfg.supplementaryDocs) {
+      if (d.title?.trim() && d.url?.trim()) {
+        docs.push({ title: d.title.trim(), url: d.url.trim() });
+      }
+    }
+  }
+  return {
+    templateImage,
+    badgeImage,
+    transcriptFile,
+    supplementaryDocs: docs,
+  };
+}
+
+export function resolveCertificateAssetsForSlug(
+  content: AdminContent,
+  courseSlug: string,
+): ResolvedGlobalCertificateAssets & { supplementaryDocs: SupplementaryDoc[] } {
+  return resolveCertificateAssetsFromConfig(content, findCertificateConfigForSlug(content, courseSlug));
+}
+
+/** Per-course assets with global fallback. */
 export function resolveCertificateAssetsForCourse(
   content: AdminContent,
   course: ManagedCourse,
 ): ResolvedGlobalCertificateAssets & { supplementaryDocs: SupplementaryDoc[] } {
-  const global = resolveGlobalCertificateAssets(content);
-  const docs: SupplementaryDoc[] = [];
-  if (global.transcriptFile) {
-    docs.push({ title: "Transcript", url: global.transcriptFile });
-  }
-  return {
-    ...global,
-    badgeImage: resolveCourseBadgeImage(content, course),
-    supplementaryDocs: docs,
-  };
+  return resolveCertificateAssetsFromConfig(content, course.certificateConfig);
+}
+
+export function resolveCourseBadgeImage(content: AdminContent, course: ManagedCourse): string {
+  return resolveCertificateAssetsForCourse(content, course).badgeImage;
+}
+
+export function resolveCourseBadgeImageBySlug(content: AdminContent, courseSlug: string): string {
+  return resolveCertificateAssetsForSlug(content, courseSlug).badgeImage;
 }

@@ -1,11 +1,12 @@
 import type { DashboardCalendarReminder } from "@/lib/content-schema";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import type { TutorLedLiveHubRow } from "@/lib/tutor-led-live-hub-enrich";
+import { getProgramTrainingDays, isWorkshopProgram } from "@/lib/workshop-program";
 import {
   type LearnerCalendarReminder,
   parseDateKey,
 } from "@/lib/learner-calendar-reminders";
-export type CalendarEventKind = "live" | "exam" | "certificate" | "course" | "reminder";
+export type CalendarEventKind = "live" | "workshop" | "exam" | "certificate" | "course" | "reminder";
 
 export type DashboardCalendarEvent = {
   id: string;
@@ -119,34 +120,46 @@ export function buildTutorLedCalendarEvents(
   for (const row of enrollments) {
     const program = programs.find((p) => p.slug === row.slug);
     const batchDate = parseFlexibleDate(program?.nextBatchDate ?? "");
-    const days = row.trainingDays;
+    const days = program ? getProgramTrainingDays(program) : row.trainingDays;
     const schedule = program?.schedule?.trim();
+    const workshop = isWorkshopProgram(program);
 
     if (batchDate) {
-      for (let i = 0; i < days; i++) {
-        const date = new Date(batchDate);
-        date.setDate(batchDate.getDate() + i);
+      if (workshop) {
         events.push({
-          id: `live-${row.slug}-day-${i + 1}`,
-          date: startOfDay(date),
-          title: `Day ${i + 1} — ${row.title}`,
-          subtitle: schedule ? `Live on Zoom · ${schedule}` : "Live on Zoom",
+          id: `workshop-${row.slug}`,
+          date: startOfDay(batchDate),
+          title: `Workshop — ${row.title}`,
+          subtitle: schedule ? `One day · ${schedule}` : "One-day live workshop on Zoom",
           href: `/my-learning/course/${encodeURIComponent(row.slug)}#zoom-live`,
-          kind: "live",
+          kind: "workshop",
         });
+      } else {
+        for (let i = 0; i < days; i++) {
+          const date = new Date(batchDate);
+          date.setDate(batchDate.getDate() + i);
+          events.push({
+            id: `live-${row.slug}-day-${i + 1}`,
+            date: startOfDay(date),
+            title: `Day ${i + 1} — ${row.title}`,
+            subtitle: schedule ? `Live on Zoom · ${schedule}` : "Live on Zoom",
+            href: `/my-learning/course/${encodeURIComponent(row.slug)}#zoom-live`,
+            kind: "live",
+          });
+        }
       }
     } else {
       events.push({
-        id: `live-${row.slug}-tba`,
+        id: `${workshop ? "workshop" : "live"}-${row.slug}-tba`,
         date: startOfDay(new Date()),
-        title: row.title,
-        subtitle: program?.nextBatchDate || "Batch date to be announced",
+        title: workshop ? `Workshop — ${row.title}` : row.title,
+        subtitle: program?.nextBatchDate || "Date to be announced",
         href: `/my-learning/course/${encodeURIComponent(row.slug)}`,
-        kind: "live",
+        kind: workshop ? "workshop" : "live",
       });
     }
 
-    if (row.examUnlocked) {
+    if (!workshop && row.examUnlocked) {
       const examDate = batchDate ? new Date(batchDate) : new Date();
       if (batchDate) examDate.setDate(batchDate.getDate() + days);
       events.push({
@@ -376,6 +389,8 @@ export function eventKindColor(kind: CalendarEventKind): string {
   switch (kind) {
     case "live":
       return "bg-violet-400";
+    case "workshop":
+      return "bg-rose-400";
     case "exam":
       return "bg-[#FFC107]";
     case "certificate":
@@ -391,6 +406,8 @@ export function eventKindRing(kind: CalendarEventKind): string {
   switch (kind) {
     case "live":
       return "ring-violet-400/70";
+    case "workshop":
+      return "ring-rose-400/70";
     case "exam":
       return "ring-[#FFC107]/70";
     case "certificate":
@@ -401,6 +418,7 @@ export function eventKindRing(kind: CalendarEventKind): string {
 }
 
 export function primaryEventKindOnDay(events: DashboardCalendarEvent[]): CalendarEventKind | null {
+  if (events.some((e) => e.kind === "workshop")) return "workshop";
   if (events.some((e) => e.kind === "live")) return "live";
   if (events.some((e) => e.kind === "exam")) return "exam";
   if (events.some((e) => e.kind === "certificate")) return "certificate";

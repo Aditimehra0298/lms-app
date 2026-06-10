@@ -1,5 +1,6 @@
 import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
 import type { CourseLearningFormat } from "@/lib/content-schema";
+import { hasPublishedWorkshopProgram, workshopLandingHref } from "@/lib/workshop-program";
 
 /** Primary demo / cyber tutor-led program slug (public template). */
 export const DEFAULT_TUTOR_LED_SLUG = "advanced-cyber-security-professional";
@@ -65,6 +66,10 @@ export function courseBrowseHref(
 
   if (learningFormat === "self-paced") {
     return `/courses/${encodeURIComponent(key)}`;
+  }
+
+  if (hasPublishedWorkshopProgram(key)) {
+    return workshopLandingHref(key);
   }
 
   if (hasPublishedTutorLedProgram(key)) {

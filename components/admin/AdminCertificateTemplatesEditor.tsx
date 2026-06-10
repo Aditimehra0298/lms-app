@@ -25,7 +25,7 @@ const UPLOAD_SLOTS: UploadSlot[] = [
     field: "templateImage",
     label: "Certificate background",
     shortLabel: "Certificate design",
-    hint: "Background image used on every course certificate (JPG or PNG).",
+    hint: "Default certificate background when a course/program has no upload (JPG or PNG).",
     accept: "image/jpeg,image/png,image/webp,image/gif",
     kind: "image",
     icon: ImageIcon,
@@ -35,7 +35,7 @@ const UPLOAD_SLOTS: UploadSlot[] = [
     field: "badgeImage",
     label: "Badge",
     shortLabel: "Badge",
-    hint: "Circular badge shown on every learner certificate (square image is auto-clipped to a circle).",
+    hint: "Default badge when a course/program has no upload (square image is auto-clipped to a circle).",
     accept: "image/jpeg,image/png,image/webp,image/gif",
     kind: "image",
     icon: Award,
@@ -45,7 +45,7 @@ const UPLOAD_SLOTS: UploadSlot[] = [
     field: "transcriptFile",
     label: "Transcript layout",
     shortLabel: "Transcript",
-    hint: "Transcript PDF or image paired with the certificate.",
+    hint: "Default transcript when a course/program has no upload.",
     accept: "application/pdf,image/jpeg,image/png,image/webp,image/gif",
     kind: "transcript",
     icon: FileText,
@@ -127,15 +127,19 @@ export default function AdminCertificateTemplatesEditor({
   }, [load]);
 
   const save = async (nextAssets: GlobalCertificateAssets) => {
-    if (!nextAssets.templateImage?.trim() || !nextAssets.badgeImage?.trim() || !nextAssets.transcriptFile?.trim()) {
-      setMessage("Upload all 3 parts: certificate design, badge, and transcript.");
+    const hasAny =
+      nextAssets.templateImage?.trim() ||
+      nextAssets.badgeImage?.trim() ||
+      nextAssets.transcriptFile?.trim();
+    if (!hasAny) {
+      setMessage("Upload at least one default (certificate, badge, or transcript).");
       return false;
     }
     setSaving(true);
     setMessage("");
     try {
       await persistGlobalCertificateAssets(nextAssets);
-      setMessage("Saved — one shared design for all courses.");
+      setMessage("Saved global certificate defaults (used when a program field is empty).");
       return true;
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Save failed");
@@ -187,10 +191,9 @@ export default function AdminCertificateTemplatesEditor({
     <div className="space-y-4">
       {!compact ? (
         <p className="text-xs leading-relaxed text-gray-400">
-          Shared certificate <strong className="text-gray-300">background and transcript</strong> for all courses.
-          The <strong className="text-gray-300">badge</strong> here is the default fallback — each course can upload
-          its own badge under <strong className="text-gray-300">Courses → Certificate</strong>. Only learner name,
-          email, phone, and certificate numbers change per person.
+          Global <strong className="text-gray-300">fallback</strong> for certificate background, badge, and transcript.
+          Each self-paced course (<strong className="text-gray-300">Certificate</strong> tab) and tutor-led program (
+          <strong className="text-gray-300">Tutor Led → Certificate</strong>) can override with its own uploads.
         </p>
       ) : null}
 

@@ -15,6 +15,18 @@ import { normalizeLearnerEmail } from "@/lib/learner-email";
 import type { AccountTypeId, LearnerAuthProfile } from "@/lib/auth-profile";
 import { cacheLearnerProfile } from "@/lib/auth-profile";
 import {
+  LEARNING_GOAL_OPTIONS,
+  LEARNING_INTEREST_OPTIONS,
+  markLearnerAuthProvider,
+  seedPreferencesFromProfile,
+} from "@/lib/learner-learning-preferences";
+import {
+  PROFILE_COMPANY_SIZE_OPTIONS,
+  REGISTRATION_INDUSTRY_OPTIONS,
+  profileFieldClass,
+  profileLabelClass,
+} from "@/lib/learner-profile-form";
+import {
   GOOGLE_GSI_SCRIPT,
   getGoogleClientId,
   isGoogleOAuthReady,
@@ -86,19 +98,20 @@ const accountTypes = [
   },
 ] as const;
 
-const industryTypes = [
-  "Technology",
-  "Information Technology",
-  "Software & IT",
-  "Cybersecurity",
-  "Finance",
-  "Healthcare",
-  "Education",
-  "Manufacturing",
-  "Any Technology",
-  "Other",
-];
-const companySizes = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
+function RegisterSection({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
+      <h3 className="text-sm font-bold uppercase tracking-wide text-amber-200">{title}</h3>
+      {description ? <p className="mt-1 text-xs text-gray-400">{description}</p> : null}
+    </div>
+  );
+}
 
 type AccountType = AccountTypeId;
 type AuthView = "register" | "login";
@@ -148,6 +161,13 @@ function profileFromForm(
     if (industryType) base.industryType = industryType;
     const companySize = String(formData.get("company_size") ?? "").trim();
     if (companySize) base.companySize = companySize;
+  }
+
+  if (accountType === "individual") {
+    const industryType = String(formData.get("industry_type") ?? "").trim();
+    if (industryType) base.industryType = industryType;
+    const companyName = String(formData.get("company_name") ?? "").trim();
+    if (companyName) base.companyName = companyName;
   }
 
   return base;
@@ -487,6 +507,19 @@ export default function AccountPage() {
     window.localStorage.setItem("sft_logged_in", "true");
     window.localStorage.setItem("sft_learner_email", normalizedEmail);
     cacheLearnerProfile(profile);
+    if (authView === "register") {
+      markLearnerAuthProvider("email");
+      seedPreferencesFromProfile({
+        industryType: profile.industryType,
+        learningInterest: String(formData.get("learning_interest") ?? "").trim(),
+        learningGoal: String(formData.get("learning_goal") ?? "").trim(),
+      });
+      if (profile.companyName) {
+        cacheLearnerProfile({ ...profile, companyName: profile.companyName });
+      }
+    } else {
+      markLearnerAuthProvider("email");
+    }
     try {
       const country = authView === "register" ? authCountryInput(registerCountryCode) : undefined;
       const result = await recordLearnerAuth(
@@ -715,8 +748,8 @@ export default function AccountPage() {
         aria-hidden
         {...ACCOUNT_GALAXY_PROPS}
       />
-      <main className="relative z-10 px-6 pt-4 pb-4">
-        <div className="mx-auto max-w-6xl">
+      <main className="relative z-10 w-full px-4 pt-4 pb-6 sm:px-6 lg:px-8 xl:px-10">
+        <div className="mx-auto w-full max-w-[1760px]">
         {!showAuthStep && (
           <>
             <div className="text-center">
@@ -728,7 +761,7 @@ export default function AccountPage() {
               </p>
             </div>
             <div className="mt-4">
-              <div className="flex flex-wrap items-start justify-center gap-5">
+              <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-5 sm:grid-cols-2 lg:max-w-none lg:grid-cols-3 xl:gap-6">
                 {accountTypes.map((type) => {
                   const active = selectedAccountType === type.id;
                   return (
@@ -736,7 +769,7 @@ export default function AccountPage() {
                       key={type.id}
                       type="button"
                       onClick={() => handleAccountTypeChange(type.id)}
-                      className={`relative w-full max-w-[280px] overflow-hidden rounded-3xl border p-3 text-left transition-all duration-300 md:w-[280px] ${
+                      className={`relative w-full overflow-hidden rounded-3xl border p-3 text-left transition-all duration-300 ${
                         active
                           ? "border-amber-300/90 bg-amber-500/15 shadow-[0_0_45px_rgba(235,148,34,0.45)]"
                           : "border-white/15 bg-white/5 hover:border-amber-500/40 hover:shadow-[0_0_30px_rgba(235,148,34,0.2)]"
@@ -781,7 +814,7 @@ export default function AccountPage() {
         )}
 
         {showAuthStep && (
-          <div className="overflow-visible rounded-3xl border border-white/15 bg-black/65 p-6 shadow-[0_0_45px_rgba(0,0,0,0.45)] md:p-8">
+          <div className="mx-auto w-full overflow-visible rounded-3xl border border-white/15 bg-black/65 p-5 shadow-[0_0_45px_rgba(0,0,0,0.45)] sm:p-6 md:p-8 xl:p-10">
             <div className="mb-6 flex items-center gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4">
               <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-amber-500/30">
                 <Image
@@ -795,6 +828,9 @@ export default function AccountPage() {
               <div>
                 <p className="text-xs uppercase tracking-wide text-amber-200/80">Selected profile</p>
                 <p className="text-lg font-bold capitalize">{selectedAccountType}</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Edit organisation, industry & learning preferences anytime under Profile & settings.
+                </p>
               </div>
             </div>
             <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -927,24 +963,87 @@ export default function AccountPage() {
               </div>
             )}
 
-              <form className="grid gap-4 overflow-visible md:grid-cols-2" onSubmit={handleAuthSubmit}>
+              <form className="grid gap-4 overflow-visible sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5" onSubmit={handleAuthSubmit}>
               {selectedAccountType === "individual" && authView === "register" && (
                 <>
-                  <input name="name" type="text" placeholder="Name" required className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none" />
-                  <PhoneWithCountryCode
-                    countryCode={registerCountryCode}
-                    onCountryChange={setRegisterCountryCode}
-                    onPhoneChange={setRegisterPhone}
+                  <RegisterSection
+                    title="Account details"
+                    description="Your login email must be verified with OTP before you can register."
                   />
-                  <EmailOtpField
-                    email={registerEmail}
-                    onEmailChange={setRegisterEmail}
-                    emailInputName="email"
-                    emailPlaceholder="Email"
-                    verified={emailOtpVerified}
-                    onVerifiedChange={setEmailOtpVerified}
+                  <label className="block">
+                    <span className={profileLabelClass}>Full name</span>
+                    <input name="name" type="text" required placeholder="Your full name" className={profileFieldClass} />
+                  </label>
+                  <div>
+                    <span className={profileLabelClass}>Mobile number</span>
+                    <PhoneWithCountryCode
+                      countryCode={registerCountryCode}
+                      onCountryChange={setRegisterCountryCode}
+                      onPhoneChange={setRegisterPhone}
+                    />
+                  </div>
+                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                    <EmailOtpField
+                      email={registerEmail}
+                      onEmailChange={setRegisterEmail}
+                      emailInputName="email"
+                      emailPlaceholder="Email address"
+                      verified={emailOtpVerified}
+                      onVerifiedChange={setEmailOtpVerified}
+                    />
+                  </div>
+
+                  <RegisterSection
+                    title="Work & learning profile"
+                    description="Optional — we use this to recommend the right LMS courses on your dashboard."
                   />
-                  <PasswordConfirmFields />
+                  <label className="block">
+                    <span className={profileLabelClass}>Industry</span>
+                    <select name="industry_type" className={profileFieldClass}>
+                      <option value="">Select industry</option>
+                      {REGISTRATION_INDUSTRY_OPTIONS.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className={profileLabelClass}>Organisation you work for</span>
+                    <input
+                      name="company_name"
+                      type="text"
+                      placeholder="Company or employer name"
+                      className={profileFieldClass}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className={profileLabelClass}>Primary learning interest</span>
+                    <select name="learning_interest" className={profileFieldClass}>
+                      <option value="">Select interest</option>
+                      {LEARNING_INTEREST_OPTIONS.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className={profileLabelClass}>Learning goal</span>
+                    <select name="learning_goal" className={profileFieldClass}>
+                      <option value="">Select goal</option>
+                      {LEARNING_GOAL_OPTIONS.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <RegisterSection title="Security" description="Choose a strong password for your account." />
+                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                    <PasswordConfirmFields />
+                  </div>
                 </>
               )}
 
@@ -985,39 +1084,69 @@ export default function AccountPage() {
 
               {selectedAccountType === "organisation" && authView === "register" && (
                 <>
-                  <input name="name" type="text" placeholder="Name" required className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none" />
-                  <PhoneWithCountryCode
-                    countryCode={registerCountryCode}
-                    onCountryChange={setRegisterCountryCode}
-                    onPhoneChange={setRegisterPhone}
+                  <RegisterSection
+                    title="Account details"
+                    description="Organisation accounts manage team training. Work email must be verified with OTP."
                   />
-                  <input name="company_name" type="text" placeholder="Company Name" required className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none" />
-                  <EmailOtpField
-                    email={registerEmail}
-                    onEmailChange={setRegisterEmail}
-                    emailInputName="work_email"
-                    emailPlaceholder="Work Email"
-                    verified={emailOtpVerified}
-                    onVerifiedChange={setEmailOtpVerified}
-                  />
-                  <input name="personal_email" type="email" placeholder="Personal Email" className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none" />
-                  <select name="industry_type" className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 focus:border-amber-400/50 focus:outline-none">
-                    <option value="">Industry Type</option>
-                    {industryTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                  <select name="company_size" className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 focus:border-amber-400/50 focus:outline-none">
-                    <option value="">Company Size</option>
-                    {companySizes.map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                  <PasswordConfirmFields />
+                  <label className="block">
+                    <span className={profileLabelClass}>Contact name</span>
+                    <input name="name" type="text" required placeholder="Your name" className={profileFieldClass} />
+                  </label>
+                  <div>
+                    <span className={profileLabelClass}>Mobile number</span>
+                    <PhoneWithCountryCode
+                      countryCode={registerCountryCode}
+                      onCountryChange={setRegisterCountryCode}
+                      onPhoneChange={setRegisterPhone}
+                    />
+                  </div>
+                  <label className="block sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                    <span className={profileLabelClass}>Company name</span>
+                    <input name="company_name" type="text" required placeholder="Legal company name" className={profileFieldClass} />
+                  </label>
+                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                    <EmailOtpField
+                      email={registerEmail}
+                      onEmailChange={setRegisterEmail}
+                      emailInputName="work_email"
+                      emailPlaceholder="Work email"
+                      verified={emailOtpVerified}
+                      onVerifiedChange={setEmailOtpVerified}
+                    />
+                  </div>
+                  <label className="block">
+                    <span className={profileLabelClass}>Personal email</span>
+                    <input name="personal_email" type="email" placeholder="Optional backup email" className={profileFieldClass} />
+                  </label>
+
+                  <RegisterSection title="Organisation profile" />
+                  <label className="block">
+                    <span className={profileLabelClass}>Industry</span>
+                    <select name="industry_type" className={profileFieldClass}>
+                      <option value="">Select industry</option>
+                      {REGISTRATION_INDUSTRY_OPTIONS.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className={profileLabelClass}>Company size</span>
+                    <select name="company_size" className={profileFieldClass}>
+                      <option value="">Select size</option>
+                      {PROFILE_COMPANY_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {size} employees
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <RegisterSection title="Security" />
+                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                    <PasswordConfirmFields />
+                  </div>
                 </>
               )}
 

@@ -20,6 +20,7 @@ import { registrationPeriodFromDate } from "@/lib/registration-ids";
 import { getClientIps } from "@/lib/request-ip";
 import { ensureUserIdentificationNumber } from "@/lib/server/user-identification";
 import { queueWelcomeEmail } from "@/lib/welcome-email-service";
+import { deriveGoogleAccountRecommendationSignals } from "@/lib/google-account-recommendation-signals";
 
 export const dynamic = "force-dynamic";
 
@@ -189,6 +190,12 @@ export async function POST(request: Request) {
   const isNewLearner =
     dbSaved && !existing && !isAdminGoogleStep && !isAdminEmail(email);
 
+  const googleRecommendationSignals = deriveGoogleAccountRecommendationSignals({
+    email,
+    locale: googleUser.locale,
+    workspaceDomain: googleUser.hd,
+  });
+
   // New Google users may use the Login tab — still send welcome email + n8n webhook.
   if (isNewLearner) {
     queueWelcomeEmail({
@@ -212,5 +219,6 @@ export async function POST(request: Request) {
     countrySource: geo.source,
     role: isAdminGoogleStep ? "admin" : (profile?.role ?? role),
     profile,
+    googleRecommendationSignals,
   });
 }
