@@ -1,3 +1,6 @@
+/** Default post-login destination for individual and organisation learners. */
+export const MY_LEARNING_DASHBOARD_HREF = "/my-learning?tab=dashboard";
+
 export type MyLearningNavItem = {
   label: string;
   href: string;

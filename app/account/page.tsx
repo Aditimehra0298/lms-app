@@ -51,12 +51,12 @@ import {
   type AuthCountryInput,
 } from "@/lib/learner-session-client";
 import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
+import { MY_LEARNING_DASHBOARD_HREF } from "@/lib/my-learning-nav";
 
 export const dynamic = "force-dynamic";
 
-/** Learners land here after sign-in when no `redirect` query is provided. */
-const DEFAULT_LEARNER_AFTER_LOGIN = "/";
-const DEFAULT_ORG_AFTER_LOGIN = "/my-learning";
+/** Learners land on the dashboard after sign-in when no purchase/enrollment redirect applies. */
+const DEFAULT_LEARNER_AFTER_LOGIN = MY_LEARNING_DASHBOARD_HREF;
 
 /** New registrations go to checkout first (demo payment), then success links to My Learning. */
 const DEFAULT_REGISTER_CHECKOUT = "/checkout?buyNow=advanced-cyber-security-professional";
@@ -180,8 +180,19 @@ function authCountryInput(countryCode: string): AuthCountryInput | undefined {
   return { countryCode: code, countryName: countryDisplayName(code) };
 }
 
+/** Keep checkout, enrollment, and course-player redirects after login; otherwise open the dashboard. */
+function shouldPreserveLoginRedirect(redirectTo: string): boolean {
+  const r = redirectTo.trim();
+  if (!r) return false;
+  const path = r.split("?")[0];
+  if (r.startsWith("/checkout")) return true;
+  if (path.startsWith("/tutor-led/") || path.startsWith("/workshops/")) return true;
+  if (path.startsWith("/my-learning/course/")) return true;
+  return /^\/courses\/[^/?#]+/.test(path);
+}
+
 function learnerDestinationAfterAuth(
-  accountType: AccountType,
+  _accountType: AccountType,
   redirectTo: string,
   authView: AuthView,
 ): string {
@@ -191,10 +202,8 @@ function learnerDestinationAfterAuth(
   if (authView === "register") {
     return registerKeepsRedirect ? redirectTo : DEFAULT_REGISTER_CHECKOUT;
   }
-  if (accountType === "organisation" && (r === "/" || r === DEFAULT_LEARNER_AFTER_LOGIN || !r)) {
-    return DEFAULT_ORG_AFTER_LOGIN;
-  }
-  return redirectTo;
+  if (shouldPreserveLoginRedirect(r)) return redirectTo;
+  return MY_LEARNING_DASHBOARD_HREF;
 }
 
 function GoogleMark({ className = "h-4 w-4 shrink-0" }: { className?: string }) {

@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, BookOpen, Compass, Rocket, Sparkles } from "lucide-react";
 import { MyLearningFeaturedCourse } from "@/components/MyLearningFeaturedCourse";
-import { MyLearningRecommendationPrefs } from "@/components/MyLearningRecommendationPrefs";
 import type { LearnerAuthProfile } from "@/lib/auth-profile";
 import type { ScoredCourse, FeaturedCoursePick } from "@/lib/learner-course-recommendations";
 import type { TutorLedExploreCard } from "@/lib/tutor-led-live-hub-enrich";
@@ -26,7 +25,6 @@ type Props = {
   featured: FeaturedCoursePick | null;
   rankedSelfPaced: ScoredCourse[];
   rankedTutorLed: TutorRanked[];
-  onProfileUpdated?: () => void;
 };
 
 const surface =
@@ -52,7 +50,6 @@ export function MyLearningOrganizationRecommendations({
   featured,
   rankedSelfPaced,
   rankedTutorLed,
-  onProfileUpdated,
 }: Props) {
   const topSelfPaced = rankedSelfPaced.slice(0, 4);
   const topTutorLed = rankedTutorLed.slice(0, 2);
@@ -94,6 +91,12 @@ export function MyLearningOrganizationRecommendations({
             >
               Browse catalog
               <ArrowRight size={14} />
+            </Link>
+            <Link
+              href="/profile"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-amber-500/30 hover:text-amber-300"
+            >
+              Profile &amp; recommendations
             </Link>
           </div>
         </article>
@@ -218,8 +221,6 @@ export function MyLearningOrganizationRecommendations({
           </div>
         )}
       </article>
-
-      <MyLearningRecommendationPrefs profile={profile} onProfileUpdated={onProfileUpdated} />
     </section>
   );
 }

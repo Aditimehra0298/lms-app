@@ -2,7 +2,9 @@
   "dashboard": {
     "nextClassTitle": "",
     "nextClassTime": "",
-    "streakDays": 0
+    "streakDays": 0,
+    "calendarReminders": [],
+    "communityConnect": []
   },
   "learningCourses": [],
   "managedCourses": [
@@ -30,7 +32,8 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "information-security-governance",
@@ -56,7 +59,8 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "medical-device-quality-regulatory",
@@ -82,7 +86,8 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "workplace-compliance-practical",
@@ -108,7 +113,8 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "skill-development-framework-implementation",
@@ -134,7 +140,8 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "hvac-refrigeration-core-operations",
@@ -160,7 +167,8 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "cyber-security-essentials",
@@ -187,7 +195,8 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "advanced-cyber-security-professional",
@@ -275,144 +284,8 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
-    },
-    {
-      "slug": "cybersecurity",
-      "title": "Cyber Security Phishing Awareness Trainings",
-      "subtitle": "Cyber Security Phishing Awareness Training equips individuals with the knowledge to identify, prevent, and respond to phishing attacks, helping protect sensitive data and strengthen organizational security.",
-      "category": "cyber-security",
-      "level": "Beginner",
-      "duration": "2h 00m",
-      "rating": "4.6",
-      "learners": "0",
-      "price": "1299",
-      "oldPrice": "$79.00",
-      "image": "/course-food-safety.png",
-      "published": true,
-      "learningFormat": "self-paced",
-      "instructorName": "Sustaniable Future Trainings Expert",
-      "curriculum": [
-        {
-          "title": "Module 1: What is Phishing?",
-          "items": [
-            {
-              "label": "Video — How to use this course & navigation",
-              "kind": "video",
-              "videoUrl": "/uploads/admin/1777973208786-i7jor0sf-1773913728What_is_Phishing__1080p_captio.mp4",
-              "about": "This course provides a comprehensive introduction to phishing, one of the most prevalent and dangerous cyber threats in today’s digital world. It explores how cyber attackers impersonate trusted organizations to deceive individuals into sharing sensitive information such as passwords, banking credentials, and personal data.\n\nThrough real-world examples and visual demonstrations, the course explains how phishing attacks are crafted to appear legitimate across emails, websites, and digital notifications. It also highlights the psychological manipulation techniques—such as urgency, fear, and enticing offers—that attackers use to exploit human behavior.\n\nDesigned for learners of all levels, this course builds essential awareness around phishing risks and equips individuals with the knowledge needed to recognize and respond to potential threats effectively.",
-              "learningOutcomes": [
-                "Understand the concept of phishing and how it operates in different forms.",
-                "Identify common characteristics of phishing emails, links, and fake websites.",
-                "Recognize psychological tactics used by attackers to manipulate users.",
-                "Analyze real-life phishing examples to distinguish between legitimate and fraudulent communications.",
-                "Understand the risks and consequences of falling victim to phishing attacks.",
-                "Apply best practices to detect, avoid, and respond to phishing attempts.",
-                "Develop safer online habits to protect personal and organizational data."
-              ]
-            },
-            {
-              "label": "Module examination (10 MCQs)",
-              "kind": "exam",
-              "description": "",
-              "examUploadUrl": "/uploads/admin/1778059992102-0q7un01d-Untitled_spreadsheet_-_moduoe_1.csv",
-              "examPassingScorePercent": 60,
-              "timedExam": false
-            }
-          ]
-        },
-        {
-          "title": "Module 2 : Anatomy of a Phishing Email",
-          "items": [
-            {
-              "label": "Video — Anatomy of a Phishing Email",
-              "kind": "video",
-              "videoUrl": "/uploads/admin/1777973357757-o57b7pmj-1773913793Anatomy_of_a_Phishing_Email_10.mp4",
-              "description": "",
-              "about": "This module focuses on the anatomy of a phishing email and explains how attackers carefully design fraudulent messages to appear legitimate and trustworthy. It breaks down the key components of phishing emails, including the sender’s address, subject line, greeting, message body, malicious links, and attachments.\n\nLearners will explore how each element is strategically crafted to manipulate recipients into taking actions such as clicking harmful links or sharing sensitive information. The module also highlights how attackers impersonate trusted organizations like banks, companies, and online platforms to gain credibility.\n\nIn addition, it explains the psychological techniques—such as urgency, fear, and curiosity—that are commonly used to influence user behavior. This module aims to build a deeper understanding of how phishing emails are structured, enabling users to detect threats more effectively.",
-              "learningOutcomes": [
-                "Understand the structure and key components of a phishing email.",
-                "Identify suspicious sender addresses and misleading subject lines.",
-                "Analyze email content to detect signs of fraud or manipulation.",
-                "Recognize malicious links and unsafe attachments.",
-                "Understand how attackers impersonate trusted organizations.",
-                "Identify psychological tactics used in phishing emails.",
-                "Evaluate emails critically before taking any action.",
-                "Improve ability to detect and prevent phishing attacks"
-              ]
-            },
-            {
-              "label": "Module examination (10 MCQs)",
-              "kind": "exam",
-              "description": "",
-              "examPassingScorePercent": 60,
-              "examUploadUrl": "/uploads/admin/1778062376529-4oiv5ver-Untitled_spreadsheet_-_module_2.csv"
-            }
-          ]
-        },
-        {
-          "title": "Module 3 : How to Identify Phishing Emails",
-          "items": [
-            {
-              "label": "Video — Scenario-based lesson",
-              "kind": "video",
-              "videoUrl": "/uploads/admin/1777974587519-eeoydmcw-1773913822How_to_Identify_Phishing_Email.mp4",
-              "about": "This module provides a practical approach to identifying phishing emails using five quick and effective verification checks. It focuses on simple yet powerful techniques that users can apply before interacting with any suspicious message.\n\nThe module emphasizes the importance of examining the sender’s email address, as attackers often disguise malicious domains behind familiar names. It also highlights the risks associated with unexpected attachments, particularly files like .zip, .exe, or unfamiliar documents from unknown sources.\n\nLearners will understand how phishing emails often contain spelling and grammatical errors, which can serve as warning signs. The module further explains how attackers use urgent or threatening language to pressure users into acting quickly without proper verification. Additionally, it introduces the practice of hovering over links to reveal their actual destination before clicking.\n\nOverall, this module is designed to equip users with quick, actionable checks that significantly reduce the risk of falling victim to phishing attacks.",
-              "learningOutcomes": [
-                "Apply five quick verification checks to assess suspicious emails.",
-                "Identify fake or misleading sender email addresses.",
-                "Recognize risks associated with unexpected or suspicious attachments.",
-                "Detect spelling and grammatical errors as potential red flags.",
-                "Understand how urgency and threats are used to manipulate users.",
-                "Safely inspect links by checking their actual destination before clicking.",
-                "Make informed decisions before interacting with email content.",
-                "Enhance overall email security awareness and reduce phishing risks."
-              ]
-            }
-          ]
-        },
-        {
-          "title": "Module 4 — Standards & compliance (Cyber Security Phishing Awareness Trainings)",
-          "items": [
-            {
-              "label": "Video — Regulatory and policy context",
-              "kind": "video",
-              "videoUrl": "/uploads/admin/1777974636698-4f0e92mv-1773914055Phishing_Attack_Response_Roles.mp4",
-              "about": "This module focuses on how organizations effectively respond to phishing attacks by establishing clear roles, responsibilities, and defense strategies across all levels. It presents phishing as a critical social engineering threat and highlights the importance of rapid detection, containment, and mitigation to safeguard sensitive information.\n\nThe module outlines the responsibilities of key stakeholders within an organization, including leadership, security teams, managers, employees, and support functions such as HR and legal. It explains how coordinated efforts ensure an efficient and timely response to phishing incidents.\n\nAdditionally, the module introduces the incident response lifecycle, covering stages such as identification, response, recovery, and continuous improvement. It also emphasizes preventive measures like security awareness training, email filtering systems, multi-factor authentication, and phishing simulations to strengthen organizational resilience.\n\nOverall, this module aims to build a proactive and well-coordinated cybersecurity approach to effectively manage and prevent phishing threats.",
-              "learningOutcomes": [
-                "Understand phishing as a social engineering threat at an organizational level.",
-                "Identify roles and responsibilities of key stakeholders in responding to phishing attacks.",
-                "Explain the incident response lifecycle for phishing incidents.",
-                "Recognize the importance of rapid detection, containment, and mitigation.",
-                "Understand the role of employees as the first line of defense.",
-                "Apply preventive measures such as awareness training, email filtering, and multi-factor authentication.",
-                "Evaluate how coordination across teams improves incident response effectiveness.",
-                "Contribute to building a proactive cybersecurity culture within an organization."
-              ]
-            },
-            {
-              "label": "Module examination (10 MCQs)",
-              "kind": "exam",
-              "description": "",
-              "examPassingScorePercent": 60,
-              "examUploadUrl": "/uploads/admin/1778064136115-ixcnd55p-Untitled_spreadsheet_-_Sheet5.csv"
-            }
-          ]
-        }
-      ],
-      "highlights": [],
-      "faqs": [],
-      "trainerCertifications": [],
-      "trainerWorkedWith": [],
-      "regionalPrices": [],
-      "certificateConfig": {
-        "enabled": true,
-        "provider": "n8n",
-        "showInLearnerDashboard": true,
-        "autoVisibleWhenReady": true,
-        "requireAdminApproval": false,
-        "badgeImage": "/badges/cybersecurity-certified.png"
-      }
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "food-safety-masterclass",
@@ -609,7 +482,8 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "cousers-esg-esg-management-development-training-program",
@@ -1047,7 +921,8 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "fssc-22000-v6-food-fraud-mitigation-auditing",
@@ -1526,7 +1401,403 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
-      }
+      },
+      "organizationSeatPricing": []
+    },
+    {
+      "slug": "cyber-security-phishing-awareness-training",
+      "title": "Cyber Security Phishing Awareness Trainings",
+      "subtitle": "Learn how to identify phishing emails, fake links, and online scams before they create risk. This course helps employees protect company data, avoid cyber threats, and follow safe digital practices at work.",
+      "category": "cyber-security",
+      "level": "Beginner",
+      "duration": "2h 00m",
+      "rating": "4.6",
+      "learners": "0",
+      "price": "$49.00",
+      "oldPrice": "$79.00",
+      "image": "/course-food-safety.png",
+      "published": true,
+      "learningFormat": "self-paced",
+      "instructorName": "Sustainable Futures Trainings Experts",
+      "pageBadge": "SELF-PACED",
+      "highlights": [
+        "Beginner-friendly learning approach",
+        "Practical phishing awareness examples",
+        "Workplace-focused cyber safety guidance",
+        "Simple language for non-technical learners",
+        "Email safety and suspicious link detection",
+        "Useful for employees across all departments",
+        "Certificate after successful completion"
+      ],
+      "faqs": [
+        {
+          "q": "Who should take this course?",
+          "a": "This course is suitable for employees, students, professionals, and workplace users who want to understand phishing risks and cyber safety basics."
+        },
+        {
+          "q": "Is prior cyber security knowledge required?",
+          "a": "No prior cyber security knowledge is required. The course is designed in simple language for beginners and non-technical learners."
+        },
+        {
+          "q": "Will I receive a certificate?",
+          "a": "Yes, learners will receive a course completion certificate after successfully completing the required lessons and assessments."
+        },
+        {
+          "q": "What topics are covered in this course?",
+          "a": "The course covers phishing awareness, email safety, suspicious link detection, password protection, safe browsing, data protection, and incident reporting."
+        },
+        {
+          "q": "Is this course useful for organizations?",
+          "a": "Yes, this course helps organizations improve employee cyber awareness and reduce risks related to phishing, data loss, and human error."
+        },
+        {
+          "q": "Can I access this course on mobile?",
+          "a": "Yes, learners can access this course on mobile, tablet, laptop, or desktop through the LMS, subject to internet connectivity and device compatibility."
+        }
+      ],
+      "trainerRole": "Senior Instructor",
+      "trainerExperience": "10+ years · 5,000+ learners trained",
+      "trainerBio": "Our senior instructor brings practical experience in corporate training, workplace risk awareness, compliance, and cyber security awareness education. The course is designed to help learners understand phishing risks in simple language and apply safe digital practices in daily workplace activities.",
+      "trainerCertifications": [
+        "Certified Trainer",
+        "Cyber Security Awareness Specialist",
+        "Information Security Awareness Trainer",
+        "Corporate Compliance Trainer"
+      ],
+      "trainerWorkedWith": [
+        "Certified Trainer",
+        "Cyber Security Awareness Specialist",
+        "Information Security Awareness Trainer",
+        "Corporate Compliance Trainer"
+      ],
+      "hero": {
+        "backgroundImage": "/api/media/serve/1781253798716-atvcawn4-ChatGPT_Image_Jun_12_2026_02_12_58_PM.png",
+        "previewImage": "/api/media/serve/1781254631095-f1cpai5f-ChatGPT_Image_Jun_12_2026_02_27_00_PM.png",
+        "previewLabel": "Preview this Course",
+        "ratingCount": "4.5",
+        "studentsLabel": "599",
+        "language": "English",
+        "captions": "English [Auto]",
+        "lectureCount": "4 lectures",
+        "projects": "Cybersecurity Project",
+        "certificate": "Yes",
+        "access": "Lifetime",
+        "shareable": "Yes",
+        "moneyBackGuarantee": "Money-back assurance as per course policy.",
+        "enrollButtonLabel": "Enroll Now",
+        "wishlistButtonLabel": "Add to Wishlist",
+        "certificatePreviewLabel": "Certificate of attainment",
+        "aboutText": "This course helps employees understand common cyber security risks, especially phishing emails, fake links, suspicious attachments, and online scams. It teaches learners how to identify phishing attempts, protect sensitive information, follow safe digital practices, and report suspicious activity on time. The course is designed to build practical cyber awareness and reduce the risk of data loss, fraud, and workplace security breaches.",
+        "courseIncludes": [
+          "Phishing awareness and prevention.",
+          "Email safety and suspicious link detection",
+          "Password protection and account security.",
+          "Safe internet browsing practices.",
+          "Data protection and confidentiality basics.",
+          "How to identify fake websites and online scams.",
+          "Reporting suspicious emails or cyber incidents.",
+          "Practical examples and real-life scenarios"
+        ]
+      },
+      "instructorSection": {
+        "headline": "Course developed by Sustainable Future Trainings Expert",
+        "teamImage": "/api/media/serve/1781255261840-w09iy3ix-Untitled_design_3_.png",
+        "introParagraphs": [
+          "This course has been developed by the expert team at Sustainable Futures Trainings, with a focus on practical cyber security awareness for workplace users.\nOur training content is designed by professionals with experience in management systems, compliance, risk awareness, and corporate training delivery.\nThe course uses simple explanations, real-life examples, and practical guidance to help learners identify phishing attempts, avoid online scams, and follow safe digital practices.\nWith a learner-focused approach, Sustainable Futures Trainings helps organizations build stronger cyber awareness and reduce the risk of security incidents."
+        ],
+        "sidebarInstructors": [
+          {
+            "name": "Sustainable Futures Trainings Expert Team",
+            "role": "Course Development Team"
+          },
+          {
+            "name": "Cyber Security Awareness Trainer",
+            "role": "Phishing Awareness & Email Safety Expert"
+          },
+          {
+            "name": "Information Security Training Specialist",
+            "role": "Workplace Cyber Risk & Data Protection Expert"
+          },
+          {
+            "name": "Compliance Training Specialist",
+            "role": "Corporate Awareness & Risk Management Trainer"
+          }
+        ]
+      },
+      "tabLabels": {
+        "overview": "Overview",
+        "curriculum": "Course Content",
+        "instructor": "Instructor",
+        "reviews": "Reviews",
+        "qa": "Q&A"
+      },
+      "overviewSection": {
+        "aboutTitle": "About this Course",
+        "youWillLearnTitle": "You will learn to:",
+        "learnOutcomes": [
+          "Identify common types of phishing attacks, including email, SMS, voice, and fake website scams.",
+          "Recognize suspicious links, attachments, sender details, and warning signs in phishing messages.",
+          "Understand how phishing attacks can lead to data theft, financial loss, and security breaches.",
+          "Apply safe email, browsing, and password practices in daily workplace activities.",
+          "Protect confidential company, customer, and personal information from cyber threats.",
+          "Respond correctly when a suspicious email, link, or cyber incident is identified.",
+          "Report phishing attempts and security concerns through the appropriate internal process.",
+          "Build stronger cyber awareness habits to reduce human-error-related security risks."
+        ],
+        "whatYouLearnTitle": "What you'll learn",
+        "whatYouLearn": [
+          {
+            "title": "Phishing Awareness",
+            "description": "Understand what phishing is and how attackers use fake emails, links, messages, and websites to mislead users."
+          },
+          {
+            "title": "Email Safety",
+            "description": "Learn how to identify suspicious senders, unsafe attachments, fake login pages, and warning signs in emails."
+          },
+          {
+            "title": "Safe Browsing",
+            "description": "Recognize unsafe websites, fake forms, and risky links before entering personal or company information."
+          },
+          {
+            "title": "Password Protection",
+            "description": "Follow good password habits and understand the importance of strong passwords and multi-factor authentication."
+          },
+          {
+            "title": "Data Protection",
+            "description": "Learn how to protect company, customer, and personal information from cyber threats and unauthorized access."
+          },
+          {
+            "title": "Incident Reporting",
+            "description": "Understand what steps to take when you receive a suspicious email or identify a possible phishing attempt."
+          },
+          {
+            "title": "Real-Life Scenarios",
+            "description": "Practice awareness through common workplace examples of phishing, online scams, and cyber fraud."
+          },
+          {
+            "title": "Cyber Safety Habits",
+            "description": "Build daily digital safety habits to reduce human-error-related security risks in the workplace."
+          }
+        ],
+        "requirementsTitle": "What you'll learn Requirements",
+        "requirements": [
+          "No prior cyber security knowledge is required.",
+          "Basic understanding of email, internet browsing, and workplace digital tools is helpful.",
+          "Learners should have access to a computer, laptop, tablet, or mobile device.",
+          "A stable internet connection is recommended for smooth course access.",
+          "Willingness to learn safe digital practices and apply them in daily work."
+        ],
+        "faqSectionTitle": "Frequently Asked Question"
+      },
+      "reviewsSection": {
+        "learnersLoveTitle": "Leaner Love this Course",
+        "highlyRatedItems": [
+          "Practical and easy-to-understand training content",
+          "Real-life phishing examples and workplace scenarios",
+          "Clear guidance on email safety and suspicious link detection",
+          "Useful for employees across all departments and roles",
+          "Helps build stronger cyber security awareness habits",
+          "Simple language suitable for beginners and non-technical learners",
+          "Supports safer handling of company and customer information",
+          "Designed to reduce phishing risks and human-error-related incidents"
+        ],
+        "writeReviewTitle": "Write a Review",
+        "writeReviewSubtitle": "Your feedback helps us improve the course and guides future learners in making the right choice."
+      },
+      "qaSection": {
+        "title": "Q&A title",
+        "subtitle": "Have questions about the course? Browse common learner queries or ask your own question to get the right guidance.",
+        "askButtonLabel": "Ask a question",
+        "guidelines": [
+          "Ask questions clearly and respectfully.",
+          "Use professional and polite language in all discussions.",
+          "Do not share personal passwords, login details, or confidential company information.",
+          "Avoid posting spam, promotional content, or unrelated messages.",
+          "Respect different opinions and learning levels of other participants.",
+          "Report suspicious links, unsafe content, or inappropriate comments.",
+          "Keep discussions focused on the course topic and learning objectives.",
+          "Support other learners by sharing helpful, accurate, and relevant responses."
+        ]
+      },
+      "learningSection": {
+        "brandLogoUrl": "/SF-WHITE-LOGO.PNG",
+        "accreditedBadgeLabel": "Accredited label",
+        "accreditedDescription": "Developed by Sustainable Futures Trainings to support practical workplace awareness and professional learning, with certification issued as per course policy.",
+        "certificationRuleText": "Learners will receive a course completion certificate after successfully completing all required lessons, assessments, and course activities as per the course completion criteria.",
+        "noVideoMessage": "Video not available for this lesson. Please continue with the provided learning content.",
+        "learningToolsTitle": "Learning tools",
+        "learningToolsHint": "Learning tools hint",
+        "markCompleteLabel": "Mark as complete",
+        "previousLabel": "Previous",
+        "nextLabel": "Next",
+        "defaultLessonAbout": "This lesson introduces the key concept of the topic in a simple and practical way. Learners will understand why it is important, how it applies in the workplace, and what actions they should follow to stay safe and responsible.",
+        "defaultLessonDescription": "In this lesson, learners will explore the main topic through simple explanations, practical examples, and workplace-focused guidance. The lesson is designed to help learners understand the risk, recognize safe and unsafe practices, and apply the correct actions in real-life situations.",
+        "defaultLearningOutcomes": [
+          "Understand the key concept covered in this lesson.",
+          "Recognize why the topic is important in the workplace.",
+          "Identify common risks, warning signs, and unsafe practices.",
+          "Apply the correct steps or actions in real-life work situations.",
+          "Follow safe, responsible, and professional practices related to the lesson topic.",
+          "Use the learning from this lesson to support better awareness and decision-making."
+        ]
+      },
+      "regionalPrices": [],
+      "organizationSeatPricing": [],
+      "curriculum": [
+        {
+          "title": "General Instructions for Candidate",
+          "items": [
+            {
+              "label": "Video — How to use this course & navigation",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Policies, attempts & certificate rules",
+              "kind": "reading"
+            },
+            {
+              "label": "Knowledge check",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 1 — Introduction & orientation (Cyber Security Phishing Awareness Trainings)",
+          "items": [
+            {
+              "label": "Video — Course overview and learning outcomes",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Handbook, glossary, and resources",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 2 — Core foundations (Cyber Security Phishing Awareness Trainings)",
+          "items": [
+            {
+              "label": "Video — Key principles and terminology",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Reference readings and frameworks",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 3 — Applied practices (Cyber Security Phishing Awareness Trainings)",
+          "items": [
+            {
+              "label": "Video — Scenario-based lesson",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Worksheets, templates, and examples",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 4 — Standards & compliance (Cyber Security Phishing Awareness Trainings)",
+          "items": [
+            {
+              "label": "Video — Regulatory and policy context",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Checklists and guidance notes",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 5 — Risk assessment & controls (Cyber Security Phishing Awareness Trainings)",
+          "items": [
+            {
+              "label": "Video — Identification and mitigation walkthrough",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Case studies and exercises",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 6 — Implementation (Cyber Security Phishing Awareness Trainings)",
+          "items": [
+            {
+              "label": "Video — Operational best practices on the job",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — SOP excerpts and job aids",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 7 — Review & assessment prep (Cyber Security Phishing Awareness Trainings)",
+          "items": [
+            {
+              "label": "Video — Summary and practice session",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Revision materials and sample questions",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam"
+            }
+          ]
+        },
+        {
+          "title": "Module 8 — Capstone & certification path (Cyber Security Phishing Awareness Trainings)",
+          "items": [
+            {
+              "label": "Video — Final wrap-up and next steps",
+              "kind": "video"
+            },
+            {
+              "label": "Reading — Completion requirements overview",
+              "kind": "reading"
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam"
+            }
+          ]
+        }
+      ]
     }
   ],
   "categories": [
@@ -2452,5 +2723,76 @@
     "templateImage": "/api/media/serve/1779901022545-gvx9lroc-advanced_food_fraud.pdf_1_-1.png",
     "badgeImage": "/api/media/serve/1779901040858-07mxz27u-Copy_of_badge_-_iso_45001_lv.png",
     "transcriptFile": "/api/media/serve/1779901026429-h89dhjll-advanced_food_fraud.pdf_1_-2.png"
+  },
+  "organizationTeam": {
+    "defaultPlanId": "monthly-premium",
+    "learningRuleTemplate": "{seats} employees can learn any course on your plan. Each employee may be assigned to more than one course.",
+    "plans": [
+      {
+        "id": "monthly-premium",
+        "name": "Monthly Premium",
+        "tagline": "Up to 20 employees — any course, billed monthly",
+        "defaultSeatLimit": 20,
+        "minSeatLimit": 1,
+        "maxSeatLimit": 50,
+        "seatLimitConfigurable": true,
+        "anyCourseAccess": true,
+        "billingLabel": "Monthly",
+        "priceLabel": "Per seat",
+        "billingSuffix": "/ month",
+        "priceNote": "20 employees · any course · multiple courses per person",
+        "features": [
+          "Up to 20 employees can learn (seat count adjustable in admin)",
+          "Full catalog — any self-paced or tutor-led course",
+          "Each employee may take multiple courses",
+          "Team progress, assignments, and certificates",
+          "Monthly billing"
+        ],
+        "published": true
+      },
+      {
+        "id": "early-program",
+        "name": "Early Program",
+        "tagline": "50+ employees — full catalog, annual early access",
+        "defaultSeatLimit": 50,
+        "minSeatLimit": 50,
+        "maxSeatLimit": 200,
+        "seatLimitConfigurable": true,
+        "anyCourseAccess": true,
+        "billingLabel": "Annual · Early access",
+        "priceLabel": "Annual early access",
+        "priceNote": "50+ employees · full catalog",
+        "features": [
+          "50+ employees (adjustable for larger teams)",
+          "Any course in the catalog for every seat",
+          "Each employee may enroll in multiple programs",
+          "Organisation reporting and compliance tracking",
+          "Priority onboarding support"
+        ],
+        "highlighted": true,
+        "published": true
+      },
+      {
+        "id": "premium-package",
+        "name": "Premium Package",
+        "tagline": "124 employees — unlimited catalog access",
+        "defaultSeatLimit": 124,
+        "minSeatLimit": 50,
+        "maxSeatLimit": 500,
+        "seatLimitConfigurable": true,
+        "anyCourseAccess": true,
+        "billingLabel": "Annual · Premium",
+        "priceLabel": "Annual premium",
+        "priceNote": "124 employees · any course in catalog",
+        "features": [
+          "Up to 124 employees can learn any course",
+          "Full catalog including specialist programs",
+          "Multiple courses per employee",
+          "Advanced team reports and calendar",
+          "Dedicated account support"
+        ],
+        "published": true
+      }
+    ]
   }
 }

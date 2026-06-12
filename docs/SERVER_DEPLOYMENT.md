@@ -52,6 +52,11 @@ SMTP_PASS=...
 N8N_CERTIFICATE_WEBHOOK_URL=https://your-n8n.com/webhook/certificate
 
 MEDIA_SIGNING_SECRET=long-random-string-at-least-32-chars
+
+# Payments — see docs/RAZORPAY_SETUP.md
+RAZORPAY_KEY_ID=rzp_live_xxxxxxxx
+RAZORPAY_KEY_SECRET=your_live_secret
+RAZORPAY_CURRENCY=INR
 ```
 
 **Google Cloud Console** → OAuth client → Authorized JavaScript origins:

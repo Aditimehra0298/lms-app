@@ -57,12 +57,9 @@ export function n8nWebhookAuthHint(): string {
   return "Set N8N_WEBHOOK_AUTH_MODE and credentials, or enable auth on the n8n Webhook node.";
 }
 
-/** JSON POST headers: Basic/Header Auth + optional secret header. */
-export function buildN8nWebhookHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-
+/** Auth headers only (GET webhooks — no Content-Type). */
+export function buildN8nWebhookAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
   const mode = n8nWebhookAuthMode();
   if (mode === "basic") {
     const user = readEnv("N8N_WEBHOOK_USER");
@@ -78,11 +75,19 @@ export function buildN8nWebhookHeaders(): Record<string, string> {
       headers[name] = value;
     }
   }
-
   const secret = readEnv("N8N_WEBHOOK_SECRET");
   if (secret) {
     headers["X-Webhook-Secret"] = secret;
   }
+  return headers;
+}
+
+/** JSON POST headers: Basic/Header Auth + optional secret header. */
+export function buildN8nWebhookHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...buildN8nWebhookAuthHeaders(),
+  };
 
   return headers;
 }

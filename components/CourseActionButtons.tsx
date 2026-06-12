@@ -63,14 +63,19 @@ export function PriceDescriptionButtonRow({
   /** Hide regional pricing / change region control (e.g. tutor-led landing). */
   hideKnowPrice?: boolean;
 }) {
+  const showKnowPrice = !hideKnowPrice;
   return (
     <div
       className={`flex w-full min-w-0 gap-2 ${className}`}
       onClick={stopBubble}
       onKeyDown={(e) => e.stopPropagation()}
     >
-      {!hideKnowPrice ? <KnowPriceButton /> : null}
-      <DescriptionButton href={descriptionHref} onClick={onDescriptionClick} />
+      {showKnowPrice ? <KnowPriceButton /> : null}
+      <DescriptionButton
+        href={descriptionHref}
+        onClick={onDescriptionClick}
+        className={showKnowPrice ? "" : "flex-1"}
+      />
     </div>
   );
 }

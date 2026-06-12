@@ -1,5 +1,5 @@
 import { emailAppName, emailAppUrl, emailLogoUrl, emailShortBrand } from "@/lib/email-brand-config";
-import { buildN8nWebhookHeaders, n8nWebhookAuthHint } from "@/lib/server/n8n-webhook-auth";
+import { buildN8nWebhookAuthHeaders, n8nWebhookAuthHint } from "@/lib/server/n8n-webhook-auth";
 
 export type AbandonedCartLine = {
   slug: string;
@@ -15,7 +15,26 @@ export type AbandonedCartN8nInput = {
   learnerName?: string | null;
   items: AbandonedCartLine[];
   trigger?: "timer" | "leave" | "manual";
+  accountType?: string | null;
 };
+
+function abandonedCartGetUrl(baseUrl: string, payload: Record<string, unknown>): string {
+  const params = new URLSearchParams();
+  params.set("event", String(payload.event ?? "abandoned_cart"));
+  params.set("source", String(payload.source ?? "lms"));
+  params.set("accountType", String(payload.accountType ?? "individual"));
+  params.set("email", String(payload.email ?? ""));
+  params.set("learnerName", String(payload.learnerName ?? ""));
+  params.set("trigger", String(payload.trigger ?? "timer"));
+  params.set("abandonedAt", String(payload.abandonedAt ?? ""));
+  params.set("items", JSON.stringify(payload.items ?? []));
+  params.set("cartSummary", JSON.stringify(payload.cartSummary ?? {}));
+  params.set("brand", JSON.stringify(payload.brand ?? {}));
+  params.set("links", JSON.stringify(payload.links ?? {}));
+  params.set("emailContent", JSON.stringify(payload.emailContent ?? {}));
+  const joiner = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${joiner}${params.toString()}`;
+}
 
 function abandonedCartWebhookUrl(): string | null {
   return process.env.N8N_ABANDONED_CART_WEBHOOK_URL?.trim() || null;
@@ -25,7 +44,7 @@ export function isAbandonedCartViaN8n(): boolean {
   return Boolean(abandonedCartWebhookUrl());
 }
 
-/** POST cart snapshot to n8n → workflow sends recovery email. */
+/** GET cart snapshot to n8n (query params) → workflow sends recovery email. */
 export async function sendAbandonedCartViaN8n(
   input: AbandonedCartN8nInput,
 ): Promise<{ ok: boolean; message?: string }> {
@@ -59,9 +78,12 @@ export async function sendAbandonedCartViaN8n(
   const learnerName =
     input.learnerName?.trim() || email.split("@")[0].replace(/[._-]+/g, " ").trim() || "Learner";
 
+  const accountType = input.accountType?.trim().toLowerCase() || "individual";
+
   const payload = {
     event: "abandoned_cart",
     source: "lms",
+    accountType,
     email,
     learnerName,
     trigger: input.trigger ?? "timer",
@@ -103,10 +125,9 @@ export async function sendAbandonedCartViaN8n(
   };
 
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: buildN8nWebhookHeaders(),
-      body: JSON.stringify(payload),
+    const res = await fetch(abandonedCartGetUrl(url, payload), {
+      method: "GET",
+      headers: buildN8nWebhookAuthHeaders(),
     });
 
     if (!res.ok) {

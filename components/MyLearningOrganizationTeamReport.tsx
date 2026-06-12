@@ -35,15 +35,21 @@ export function MyLearningOrganizationTeamReport({
   const seatTotal = seatsTotalProp ?? rosterSeatTotal(companySize);
   const displayCompany = companyName?.trim() || "Organisation";
   const [tick, setTick] = useState(0);
+  const [activePlan, setActivePlan] = useState(() => getActiveOrgPremiumPlan());
 
-  const refresh = useCallback(() => setTick((t) => t + 1), []);
+  const refresh = useCallback(() => {
+    setTick((t) => t + 1);
+    setActivePlan(getActiveOrgPremiumPlan());
+  }, []);
 
   useEffect(() => {
     window.addEventListener(ORG_COURSE_ASSIGNMENTS_EVENT, refresh);
     window.addEventListener(ORG_EMPLOYEE_ROSTER_EVENT, refresh);
+    window.addEventListener(ORG_PREMIUM_PLAN_EVENT, refresh);
     return () => {
       window.removeEventListener(ORG_COURSE_ASSIGNMENTS_EVENT, refresh);
       window.removeEventListener(ORG_EMPLOYEE_ROSTER_EVENT, refresh);
+      window.removeEventListener(ORG_PREMIUM_PLAN_EVENT, refresh);
     };
   }, [refresh]);
 

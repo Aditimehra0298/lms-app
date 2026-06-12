@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 type Body = {
   email?: string;
   learnerName?: string;
+  accountType?: string;
   items?: AbandonedCartLine[];
   trigger?: "timer" | "leave" | "manual";
 };
@@ -47,11 +48,14 @@ export async function POST(request: Request) {
     registration?.name?.trim() ||
     null;
 
+  const accountType = body.accountType?.trim() || registration?.accountType || "individual";
+
   const result = await sendAbandonedCartViaN8n({
     email,
     learnerName,
     items,
     trigger: body.trigger,
+    accountType,
   });
 
   if (!result.ok) {
@@ -61,5 +65,10 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true, message: "Abandoned cart sent to n8n." });
+  return NextResponse.json({
+    ok: true,
+    message: "Abandoned cart sent to n8n (GET).",
+    method: "GET",
+    accountType,
+  });
 }

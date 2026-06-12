@@ -60,6 +60,7 @@ Content is **hybrid**: shared marketing data in `data/admin-content.json`, learn
 | `MAIN_ADMIN_EMAIL` | Only this account may open `/admin` |
 | `ADMIN_PASSWORD` | Admin password login (optional) |
 | `SMTP_*` / `OTP_USE_SMTP` | Email OTP delivery |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Checkout payments — **`docs/RAZORPAY_SETUP.md`** |
 | `ZOOM_*` | Tutor-led Zoom meetings & recordings |
 
 **Security:** `.env.local`, `env`, and secrets are gitignored. Never commit credentials.
@@ -125,7 +126,7 @@ flowchart TB
 | `/tutor-led` | Tutor-led program list |
 | `/tutor-led/[slug]` | Tutor-led program detail + learner dashboard when enrolled |
 | `/cart` | Shopping cart |
-| `/checkout` | Payment/checkout (requires landing viewed + login for full flow) |
+| `/checkout` | Payment/checkout via **Razorpay** (or demo mode without keys) — requires landing viewed + login |
 | `/account` | Login, register, forgot password, Google sign-in |
 | `/profile` | Learner profile |
 | `/my-learning` | Learner hub (tabs: learning, exams, certificates, calendar) |

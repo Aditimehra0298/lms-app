@@ -65,12 +65,7 @@ import AdminPriceInput from "@/components/admin/AdminPriceInput";
 import { sanitizeRegionalPrices } from "@/lib/course-regional-pricing";
 import { sanitizeOrganizationSeatPricing } from "@/lib/organization-course-pricing";
 import { currencyDisplayForCountry, resolvePriceCurrency } from "@/lib/price-currency-detect";
-import {
-  FOOD_SAFETY_DIPLOMA_CURRICULUM,
-  buildGenericCurriculum,
-  getCurriculumForCourse,
-  totalCurriculumSteps,
-} from "@/lib/course-detail-template";
+import { getCurriculumForCourse, totalCurriculumSteps } from "@/lib/course-detail-template";
 
 /** Shared field chrome for the self-paced course editor */
 const spField =
@@ -607,19 +602,6 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     } finally {
       setSavingCurriculum(false);
     }
-  };
-
-  const applyFoodSafetyTemplate = () => {
-    setModules(cloneMods(FOOD_SAFETY_DIPLOMA_CURRICULUM));
-    setExpandedModuleIdx(0);
-    setSelectedLesson({ scope: "module", mi: 0, ri: 0 });
-  };
-
-  const applyGenericTemplate = () => {
-    if (!selectedCourse) return;
-    setModules(cloneMods(buildGenericCurriculum(selectedCourse.title)));
-    setExpandedModuleIdx(0);
-    setSelectedLesson({ scope: "module", mi: 0, ri: 0 });
   };
 
   const addModule = () => {
@@ -1940,37 +1922,6 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                 </header>
 
                 <div className="mt-4 space-y-4">
-                  <div className="rounded-xl border border-white/10 bg-[#0d1528] px-3 py-3">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                      Templates &amp; bulk actions
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={applyFoodSafetyTemplate}
-                        className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/20"
-                      >
-                        Load Food Safety diploma track
-                      </button>
-                      <button
-                        type="button"
-                        onClick={applyGenericTemplate}
-                        className="rounded-lg border border-violet-500/35 bg-violet-500/10 px-3 py-2 text-[11px] font-semibold text-violet-100 hover:bg-violet-500/20"
-                      >
-                        Load themed generic modules
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void saveCurriculumOnly()}
-                        disabled={savingCurriculum}
-                        className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/20 disabled:opacity-50"
-                      >
-                        {savingCurriculum ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                        Save curriculum to site
-                      </button>
-                    </div>
-                  </div>
-
                   <div className="grid gap-4 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
                 {/* Left — Course structure */}
                 <div className="rounded-xl border border-white/10 bg-[#0d1528] p-3">

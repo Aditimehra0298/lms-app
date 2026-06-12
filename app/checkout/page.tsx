@@ -3,42 +3,28 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, CreditCard, Landmark, ShieldCheck, Smartphone } from "lucide-react";
-import { appendEnrollmentsFromCheckout } from "@/lib/enrollment-storage";
-import { clearAbandonedCartSentFlag } from "@/lib/abandoned-cart-client";
-import { syncEnrollmentsToServer } from "@/lib/enrollment-sync-client";
-import { tutorLedLearnerJoinHref } from "@/lib/tutor-led-routes";
+import { CheckCircle2, CreditCard, ShieldCheck } from "lucide-react";
 import {
   applyTutorLedShopMeta,
   fetchTutorLedProgramsClient,
   type ShopCartItem,
   tutorLedProgramBySlug,
 } from "@/lib/shop-cart";
-import { syncWorkshopCalendarReminders } from "@/lib/learner-workshop-calendar";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
 import { hasViewedCourseLanding, prePaymentLandingHref } from "@/lib/course-landing";
 import { SignInToViewPrices } from "@/components/SignInToViewPrices";
 import type { ManagedCourse } from "@/lib/content-schema";
+import { completeCheckoutPurchase } from "@/lib/checkout-complete-client";
+import { openRazorpayCheckout, verifyRazorpayPaymentOnServer } from "@/lib/razorpay-client";
+import { getLearnerEmail } from "@/lib/learner-session-client";
+import { readLearnerProfileFromStorage } from "@/lib/auth-profile";
+import { computeCheckoutTotals } from "@/lib/checkout-totals";
 import {
-  countCurriculumModules,
-  deriveCourseProgress,
-  findCatalogCourse,
-} from "@/lib/learner-course-progress";
+  computeRegionalCheckoutTotals,
+  formatCheckoutMoney,
+} from "@/lib/checkout-regional-pricing";
 
 export const dynamic = "force-dynamic";
-
-type PurchasedLearningCourse = {
-  slug: string;
-  title: string;
-  modules: number;
-  duration: string;
-  completed: number;
-  status: string;
-  action: string;
-  tone: string;
-  deliveryKind?: "managed" | "tutor-led" | "workshop";
-  image?: string;
-};
 
 const fallbackCourseBySlug: Record<string, Omit<ShopCartItem, "qty">> = {
   "food-safety-masterclass": {
@@ -61,15 +47,31 @@ const fallbackCourseBySlug: Record<string, Omit<ShopCartItem, "qty">> = {
   },
 };
 
-const parsePrice = (value: string) => Number(value.replace(/[^0-9.]/g, "")) || 0;
+type RazorpayPublicConfig = {
+  configured: boolean;
+  keyId: string | null;
+  multiCurrency?: boolean;
+};
+
+type PaymentReceipt = {
+  orderId: string;
+  paymentId: string;
+  method: string;
+  currency: string;
+};
 
 export default function CheckoutPage() {
-  const { showPrices, formatPriceLabel, ready, openPricingPanel } = useLearnerPricing();
-  const [paymentMethod, setPaymentMethod] = useState<"upi" | "card" | "netbanking" | "wallet">("upi");
+  const { showPrices, ready, region, formatPriceLabel } = useLearnerPricing();
   const [isSuccess, setIsSuccess] = useState(false);
   const [items, setItems] = useState<ShopCartItem[]>([]);
+  const [catalog, setCatalog] = useState<ManagedCourse[]>([]);
   const [buyNowSlug, setBuyNowSlug] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [razorpayConfig, setRazorpayConfig] = useState<RazorpayPublicConfig | null>(null);
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState("");
+  const [paymentReceipt, setPaymentReceipt] = useState<PaymentReceipt | null>(null);
+  const [learnerInfo, setLearnerInfo] = useState({ name: "Learner", email: "", phone: "" });
 
   useEffect(() => {
     setIsHydrated(true);
@@ -84,6 +86,37 @@ export default function CheckoutPage() {
     if (buyNow && !hasViewedCourseLanding(buyNow)) {
       window.location.replace(prePaymentLandingHref(buyNow, null, true));
     }
+
+    const profile = readLearnerProfileFromStorage();
+    setLearnerInfo({
+      name: profile.name?.trim() || "Learner",
+      email: getLearnerEmail()?.trim() || profile.email?.trim() || "",
+      phone: profile.phone?.trim() || "",
+    });
+
+    void fetch("/api/payments/razorpay/config", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data: RazorpayPublicConfig & { ok?: boolean }) => {
+        if (data.ok) {
+          setRazorpayConfig({
+            configured: Boolean(data.configured),
+            keyId: data.keyId ?? null,
+            multiCurrency: Boolean(data.multiCurrency),
+          });
+        }
+      })
+      .catch(() => {
+        setRazorpayConfig({ configured: false, keyId: null });
+      });
+  }, []);
+
+  useEffect(() => {
+    void fetch("/api/courses", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data: { courses?: ManagedCourse[] }) => {
+        setCatalog(Array.isArray(data.courses) ? data.courses : []);
+      })
+      .catch(() => setCatalog([]));
   }, []);
 
   useEffect(() => {
@@ -183,7 +216,15 @@ export default function CheckoutPage() {
       ? "/my-learning?tab=live"
       : "/my-learning?tab=learning";
 
-  const subtotal = items.reduce((sum, item) => sum + parsePrice(item.price) * item.qty, 0);
+  const totals = useMemo(() => {
+    if (region) return computeRegionalCheckoutTotals(items, catalog, region);
+    return computeCheckoutTotals(items);
+  }, [items, catalog, region]);
+  const { subtotal, discount, gst, total } = totals;
+  const paymentCurrency = region?.currency ?? "INR";
+  const formatMoney = (value: number) =>
+    region ? formatCheckoutMoney(value, region) : `₹${value.toFixed(2)}`;
+  const razorpayReady = Boolean(razorpayConfig?.configured && razorpayConfig.keyId);
   if (!isHydrated) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -196,89 +237,108 @@ export default function CheckoutPage() {
     );
   }
 
-  const discount = items.length >= 2 ? subtotal * 0.1 : 0;
-  const gst = (subtotal - discount) * 0.18;
-  const total = subtotal - discount + gst;
+  const finalizePurchase = async (receipt?: PaymentReceipt) => {
+    const result = await completeCheckoutPurchase(items);
+    if (receipt) setPaymentReceipt(receipt);
+    if (result.redirectHref) {
+      window.location.replace(result.redirectHref);
+      return;
+    }
+    setIsSuccess(true);
+  };
 
   const completePurchase = async () => {
-    let catalog: ManagedCourse[] = [];
-    let tutorPrograms: Awaited<ReturnType<typeof fetchTutorLedProgramsClient>> = [];
-    try {
-      const [coursesRes, programs] = await Promise.all([
-        fetch("/api/courses", { cache: "no-store" }),
-        fetchTutorLedProgramsClient(),
-      ]);
-      tutorPrograms = programs;
-      if (coursesRes.ok) {
-        const data = (await coursesRes.json()) as { courses?: ManagedCourse[] };
-        catalog = Array.isArray(data.courses) ? data.courses : [];
-      }
-    } catch {
-      catalog = [];
-      tutorPrograms = [];
-    }
-
-    const normalizedItems = items.map((item) => applyTutorLedShopMeta(item, tutorPrograms));
-
-    const purchasedCourses: PurchasedLearningCourse[] = normalizedItems.map((item) => {
-      const managed = findCatalogCourse(item, catalog);
-      const modulesFromCatalog = managed ? countCurriculumModules(managed.curriculum) : 0;
-      const modules = item.learningModules ?? (modulesFromCatalog > 0 ? modulesFromCatalog : 1);
-      const duration = item.learningDuration ?? managed?.duration?.trim() ?? "—";
-      const { status, action } = deriveCourseProgress(
-        0,
-        modules,
-      );
-      return {
-        slug: item.slug,
-        title: managed?.title?.trim() || item.title,
-        modules,
-        duration,
-        completed: 0,
-        status:
-          item.deliveryKind === "tutor-led" || item.deliveryKind === "workshop" ? "In Progress" : status,
-        action: item.learningAction ?? action,
-        tone: item.learningTone ?? "violet",
-        deliveryKind: item.deliveryKind,
-        image: item.image ?? managed?.image?.trim(),
-      };
+    await finalizePurchase({
+      orderId: "DEMO",
+      paymentId: "—",
+      method: "demo",
+      currency: paymentCurrency,
     });
+  };
 
-    try {
-      const raw = window.localStorage.getItem("sft_purchased_courses");
-      const existing = raw ? (JSON.parse(raw) as PurchasedLearningCourse[]) : [];
-      const merged = [...purchasedCourses, ...existing].filter(
-        (course, index, all) => all.findIndex((item) => item.slug === course.slug) === index,
-      );
-      window.localStorage.setItem("sft_purchased_courses", JSON.stringify(merged));
-      window.localStorage.setItem("sft_cart", JSON.stringify([]));
-      clearAbandonedCartSentFlag();
-      window.dispatchEvent(new Event("sft_purchases_updated"));
-      window.dispatchEvent(new Event("sft_cart_updated"));
-      window.dispatchEvent(new Event("sft_purchased_courses_updated"));
-      syncWorkshopCalendarReminders(normalizedItems, tutorPrograms);
-    } catch {
-      // Keep UI flow even if local storage is unavailable.
-    }
-
-    try {
-      appendEnrollmentsFromCheckout(normalizedItems.map((item) => ({ slug: item.slug, title: item.title })));
-    } catch {
-      // Enrollment log is best-effort only.
-    }
-
-    const tutorLedItem =
-      normalizedItems.find((i) => i.deliveryKind === "tutor-led" || i.deliveryKind === "workshop") ??
-      normalizedItems.find((i) => tutorLedProgramBySlug(tutorPrograms, i.slug));
-    if (tutorLedItem?.slug) {
-      void syncEnrollmentsToServer();
-      window.location.replace(tutorLedLearnerJoinHref(tutorLedItem.slug));
+  const payWithRazorpay = async () => {
+    if (!razorpayReady || !razorpayConfig?.keyId) {
+      setPayError("Razorpay is not configured. Add API keys to .env.local and restart the server.");
       return;
     }
 
-    await syncEnrollmentsToServer();
+    if (!region) {
+      setPayError("Pricing for your country is still loading. Please refresh and try again.");
+      return;
+    }
 
-    setIsSuccess(true);
+    const learnerEmail = learnerInfo.email.trim().toLowerCase();
+    if (!learnerEmail) {
+      setPayError("Sign in with an email address before paying.");
+      return;
+    }
+
+    setPayLoading(true);
+    setPayError("");
+    try {
+      const orderRes = await fetch("/api/payments/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          learnerEmail,
+          countryCode: region.countryCode,
+          currency: region.currency,
+          items: items.map((item) => ({
+            slug: item.slug,
+            title: item.title,
+            price: item.price,
+            qty: item.qty,
+          })),
+        }),
+      });
+      const orderData = (await orderRes.json()) as {
+        ok?: boolean;
+        message?: string;
+        orderId?: string;
+        amount?: number;
+        currency?: string;
+        keyId?: string;
+      };
+      if (!orderRes.ok || !orderData.ok || !orderData.orderId || orderData.amount == null) {
+        throw new Error(orderData.message ?? "Could not start Razorpay checkout.");
+      }
+
+      const payment = await openRazorpayCheckout({
+        keyId: orderData.keyId ?? razorpayConfig.keyId,
+        orderId: orderData.orderId,
+        amount: orderData.amount,
+        currency: orderData.currency ?? region.currency,
+        name: "SF Trainings",
+        description: items.length === 1 ? items[0].title : `${items.length} courses`,
+        prefill: {
+          name: learnerInfo.name,
+          email: learnerEmail,
+          contact: learnerInfo.phone.replace(/\D/g, "").slice(-10) || undefined,
+        },
+        notes: { learnerEmail },
+      });
+
+      const verified = await verifyRazorpayPaymentOnServer({
+        learnerEmail,
+        razorpay_order_id: payment.razorpay_order_id,
+        razorpay_payment_id: payment.razorpay_payment_id,
+        razorpay_signature: payment.razorpay_signature,
+      });
+      if (!verified.ok) {
+        throw new Error(verified.message ?? "Payment verification failed.");
+      }
+
+      await finalizePurchase({
+        orderId: payment.razorpay_order_id,
+        paymentId: payment.razorpay_payment_id,
+        method: "razorpay",
+        currency: orderData.currency ?? region.currency,
+      });
+    } catch (err) {
+      setPayError(err instanceof Error ? err.message : "Payment could not be completed.");
+    } finally {
+      setPayLoading(false);
+    }
   };
 
   if (isSuccess) {
@@ -304,15 +364,17 @@ export default function CheckoutPage() {
             <div className="mx-auto mt-6 grid max-w-3xl gap-3 text-sm md:grid-cols-3">
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <p className="text-gray-400">Order ID</p>
-                <p className="font-semibold">ORD-2026-4127</p>
+                <p className="truncate font-semibold">{paymentReceipt?.orderId ?? "—"}</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <p className="text-gray-400">Payment Method</p>
-                <p className="font-semibold uppercase">{paymentMethod}</p>
+                <p className="font-semibold uppercase">
+                  {paymentReceipt?.method === "razorpay" ? "Razorpay" : paymentReceipt?.method ?? "Demo"}
+                </p>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <p className="text-gray-400">Amount Paid</p>
-                <p className="font-semibold text-amber-300">${total.toFixed(2)}</p>
+                <p className="font-semibold text-amber-300">{formatMoney(total)}</p>
               </div>
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -376,7 +438,7 @@ export default function CheckoutPage() {
                     <p className="text-xs text-gray-400">Qty {item.qty}</p>
                   </div>
                   <p className="text-sm font-semibold text-amber-200">
-                    {ready && showPrices ? item.price : "—"}
+                    {ready && showPrices ? formatPriceLabel(item.price) : "—"}
                   </p>
                 </div>
               ))}
@@ -388,12 +450,12 @@ export default function CheckoutPage() {
             </div>
             {ready && showPrices ? (
             <div className="mt-4 space-y-1.5 text-sm">
-              <div className="flex items-center justify-between text-gray-300"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-              <div className="flex items-center justify-between text-emerald-300"><span>Discount</span><span>- ${discount.toFixed(2)}</span></div>
-              <div className="flex items-center justify-between text-gray-300"><span>GST (18%)</span><span>${gst.toFixed(2)}</span></div>
+              <div className="flex items-center justify-between text-gray-300"><span>Subtotal</span><span>{formatMoney(subtotal)}</span></div>
+              <div className="flex items-center justify-between text-emerald-300"><span>Discount</span><span>- {formatMoney(discount)}</span></div>
+              <div className="flex items-center justify-between text-gray-300"><span>GST (18%)</span><span>{formatMoney(gst)}</span></div>
               <div className="mt-2 border-t border-white/10 pt-2 text-lg font-bold flex items-center justify-between">
                 <span>Total Amount</span>
-                <span className="text-amber-300">${total.toFixed(2)}</span>
+                <span className="text-amber-300">{formatMoney(total)}</span>
               </div>
             </div>
             ) : ready ? (
@@ -412,75 +474,84 @@ export default function CheckoutPage() {
               <div className="grid gap-2 text-sm md:grid-cols-2">
                 <div className="rounded-md border border-white/10 bg-black/25 p-2.5">
                   <p className="text-gray-400">Full Name</p>
-                  <p className="font-semibold">Aditi Sharma</p>
+                  <p className="font-semibold">{learnerInfo.name}</p>
                 </div>
                 <div className="rounded-md border border-white/10 bg-black/25 p-2.5">
                   <p className="text-gray-400">Email</p>
-                  <p className="font-semibold">aditi.sharma@gmail.com</p>
+                  <p className="truncate font-semibold">{learnerInfo.email || "—"}</p>
                 </div>
                 <div className="rounded-md border border-white/10 bg-black/25 p-2.5 md:col-span-2">
                   <p className="text-gray-400">Phone Number</p>
-                  <p className="font-semibold">+91 98765 43210</p>
+                  <p className="font-semibold">{learnerInfo.phone || "—"}</p>
                 </div>
               </div>
             </article>
 
             <article className="rounded-2xl border border-white/10 bg-white/3 p-4">
-              <h3 className="text-lg font-bold">Payment Method</h3>
-              <div className="mt-3 grid gap-2 sm:grid-cols-4">
-                {[
-                  ["upi", "UPI", Smartphone],
-                  ["card", "Card", CreditCard],
-                  ["netbanking", "Net Banking", Landmark],
-                  ["wallet", "Wallet", ShieldCheck],
-                ].map(([key, label, Icon]) => (
-                  <button
-                    key={String(key)}
-                    onClick={() => setPaymentMethod(key as "upi" | "card" | "netbanking" | "wallet")}
-                    className={`inline-flex items-center justify-center gap-1 rounded-md border px-3 py-2 text-sm ${
-                      paymentMethod === key
-                        ? "border-amber-300/40 bg-amber-500/15 text-amber-100"
-                        : "border-white/10 bg-black/25 text-gray-300"
-                    }`}
-                  >
-                    <Icon size={14} /> {String(label)}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-4 grid gap-3 md:grid-cols-[1.4fr_0.8fr]">
-                <div className="rounded-lg border border-white/10 bg-black/25 p-3">
-                  <p className="text-xs text-gray-400">
-                    {paymentMethod === "upi" ? "Pay using UPI ID" : "Payment details form"}
-                  </p>
-                  <input
-                    placeholder={paymentMethod === "upi" ? "Enter UPI ID (e.g. name@upi)" : "Card / Account details"}
-                    className="mt-2 w-full rounded-md border border-white/10 bg-black/35 px-3 py-2 text-sm"
-                  />
-                </div>
-                <div className="rounded-lg border border-white/10 bg-black/25 p-3 text-center">
-                  <div className="mx-auto h-24 w-24 rounded bg-white/90 p-1">
-                    <Image src="/next.svg" alt="QR placeholder" width={96} height={96} className="h-full w-full object-contain" />
+              <h3 className="text-lg font-bold">Payment</h3>
+              {razorpayReady ? (
+                <div className="mt-3 rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
+                    <div>
+                      <p className="font-semibold text-emerald-100">Pay securely with Razorpay</p>
+                      <p className="mt-1 text-sm text-gray-300">
+                        {region
+                          ? `Charged in ${region.currency} for ${region.countryName}. UPI, cards, net banking, and wallets are supported where available.`
+                          : "UPI, cards, net banking, and wallets are supported in the Razorpay checkout window."}
+                      </p>
+                    </div>
                   </div>
-                  <p className="mt-2 text-xs text-gray-400">Scan &amp; Pay</p>
                 </div>
-              </div>
+              ) : (
+                <div className="mt-3 rounded-lg border border-amber-400/25 bg-amber-500/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+                    <div>
+                      <p className="font-semibold text-amber-100">Demo checkout mode</p>
+                      <p className="mt-1 text-sm text-gray-300">
+                        Add <code className="text-amber-200">RAZORPAY_KEY_ID</code> and{" "}
+                        <code className="text-amber-200">RAZORPAY_KEY_SECRET</code> to{" "}
+                        <code className="text-amber-200">.env.local</code> to enable live Razorpay payments.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {payError ? (
+                <p className="mt-3 rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                  {payError}
+                </p>
+              ) : null}
 
               <button
-                disabled={items.length === 0}
+                disabled={items.length === 0 || payLoading}
                 onClick={() => {
                   if (ready && !showPrices) {
-                    openPricingPanel();
+                    window.location.href = `/account?mode=login&redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                    return;
+                  }
+                  if (razorpayReady) {
+                    void payWithRazorpay();
                     return;
                   }
                   void completePurchase();
                 }}
                 className="mt-4 w-full rounded-lg bg-amber-400 py-2.5 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {ready && showPrices ? `Pay Now $${total.toFixed(2)}` : "Price"}
+                {payLoading
+                  ? "Opening Razorpay…"
+                  : ready && showPrices
+                    ? razorpayReady
+                      ? `Pay ${formatMoney(total)} with Razorpay`
+                      : `Complete demo purchase (${formatMoney(total)})`
+                    : "Price"}
               </button>
               <p className="mt-2 text-xs text-gray-400">
-                Gateway integration will be added later. This button currently completes enrollment directly.
+                {razorpayReady
+                  ? "You will be redirected to Razorpay to complete payment. Enrollment unlocks after verification."
+                  : "Demo mode completes enrollment without charging a card."}
               </p>
             </article>
           </div>

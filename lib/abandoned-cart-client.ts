@@ -80,9 +80,17 @@ export async function notifyAbandonedCart(
     return { ok: true, skipped: true, message: "Already sent for this cart" };
   }
 
+  let accountType: string | undefined;
+  try {
+    accountType = window.localStorage.getItem("sft_account_type")?.trim() || undefined;
+  } catch {
+    accountType = undefined;
+  }
+
   const body = {
     email,
     learnerName: learnerDisplayName(email),
+    accountType,
     items: items.map((row: CartLineItem) => ({
       slug: row.slug,
       title: row.title,

@@ -239,9 +239,14 @@ SMTP_FROM="SF Trainings <your@gmail.com>"
 
 MEDIA_SIGNING_SECRET=random-string-min-32-chars
 N8N_CERTIFICATE_WEBHOOK_URL=https://your-n8n.example/webhook/certificate
+
+# Payments — see docs/RAZORPAY_SETUP.md
+RAZORPAY_KEY_ID=rzp_live_xxxxxxxx
+RAZORPAY_KEY_SECRET=your_live_secret
+RAZORPAY_CURRENCY=INR
 ```
 
-See `.env.example` for full list (Zoom, n8n callbacks, chatbot, etc.).
+See `.env.example` for full list (Zoom, n8n callbacks, chatbot, Razorpay, etc.).
 
 ### 6.7 VM — Database schema & build
 

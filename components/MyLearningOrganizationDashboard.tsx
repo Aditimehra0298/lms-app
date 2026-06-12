@@ -23,7 +23,6 @@ import {
   formatPlanDetailsParagraph,
   type OrganizationDashboardSnapshot,
 } from "@/lib/organization-dashboard";
-import { MyLearningOrganizationCompanyProfile } from "@/components/MyLearningOrganizationCompanyProfile";
 import { MyLearningOrganizationRecommendations } from "@/components/MyLearningOrganizationRecommendations";
 import type { LearnerAuthProfile } from "@/lib/auth-profile";
 import type { FeaturedCoursePick, ScoredCourse } from "@/lib/learner-course-recommendations";
@@ -53,7 +52,6 @@ type Props = {
   orgFeaturedCourse?: FeaturedCoursePick | null;
   orgRankedSelfPaced?: ScoredCourse[];
   orgRankedTutorLed?: TutorRanked[];
-  onProfileUpdated?: () => void;
 };
 
 const surface =
@@ -138,7 +136,6 @@ export function MyLearningOrganizationDashboard({
   orgFeaturedCourse = null,
   orgRankedSelfPaced = [],
   orgRankedTutorLed = [],
-  onProfileUpdated,
 }: Props) {
   const seatPercent = Math.round((snapshot.seatsUsed / Math.max(1, snapshot.seatsTotal)) * 100);
   const greetingName = adminDisplayName && adminDisplayName !== "there" ? adminDisplayName : snapshot.companyName;
@@ -294,16 +291,6 @@ export function MyLearningOrganizationDashboard({
           </div>
         </article>
       </div>
-
-      <MyLearningOrganizationCompanyProfile profile={learnerProfile} />
-
-      <MyLearningOrganizationRecommendations
-        profile={learnerProfile}
-        featured={orgFeaturedCourse}
-        rankedSelfPaced={orgRankedSelfPaced}
-        rankedTutorLed={orgRankedTutorLed}
-        onProfileUpdated={onProfileUpdated}
-      />
 
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -473,6 +460,13 @@ export function MyLearningOrganizationDashboard({
           </ul>
         </article>
       </div>
+
+      <MyLearningOrganizationRecommendations
+        profile={learnerProfile}
+        featured={orgFeaturedCourse}
+        rankedSelfPaced={orgRankedSelfPaced}
+        rankedTutorLed={orgRankedTutorLed}
+      />
     </section>
   );
 }

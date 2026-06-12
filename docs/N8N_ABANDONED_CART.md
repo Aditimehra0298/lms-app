@@ -1,6 +1,6 @@
 # n8n — abandoned cart email
 
-When a signed-in learner has items in the cart but does not complete checkout, the LMS sends a **POST** to your n8n workflow so you can email them a recovery link.
+When a signed-in learner has items in the cart but does not complete checkout, the LMS sends a **GET** request to your n8n workflow (query parameters) so you can email them a recovery link. This applies to **both** individual and organisation accounts (`accountType` is included in the query string).
 
 ---
 
@@ -39,7 +39,11 @@ Not sent when:
 ## 3. Test manually
 
 ```bash
-node --env-file=.env.local scripts/test-n8n-abandoned-cart.mjs
+# Individual (GET)
+node scripts/test-n8n-abandoned-cart.mjs
+
+# Organisation (GET, accountType=organisation)
+node scripts/test-n8n-abandoned-cart.mjs --org
 ```
 
 Or call the LMS API (while logged in):
@@ -60,12 +64,17 @@ Content-Type: application/json
 
 ---
 
-## 4. JSON payload (n8n receives)
+## 4. Query parameters (n8n receives via GET)
+
+The LMS calls your webhook with **GET**. Complex fields (`items`, `cartSummary`, `brand`, `links`, `emailContent`) are JSON-encoded strings in the query string. In n8n, parse with `JSON.parse()` where needed.
+
+Example decoded payload:
 
 ```json
 {
   "event": "abandoned_cart",
   "source": "lms",
+  "accountType": "individual",
   "email": "learner@example.com",
   "learnerName": "Aditi",
   "trigger": "timer",

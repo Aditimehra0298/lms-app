@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { MY_LEARNING_DASHBOARD_HREF } from "@/lib/my-learning-nav";
 import {
   AlertTriangle,
   Award,
@@ -163,6 +164,7 @@ function CoursePoster({ image, title }: { image?: string; title: string }) {
 }
 
 export default function MyLearningPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -267,12 +269,17 @@ export default function MyLearningPage() {
   }, []);
 
   useEffect(() => {
-    setActiveTab(searchParams.get("tab") ?? "dashboard");
+    const tab = searchParams.get("tab");
+    if (pathname === "/my-learning" && !tab) {
+      router.replace(MY_LEARNING_DASHBOARD_HREF);
+      return;
+    }
+    setActiveTab(tab ?? "dashboard");
     const progressFilter = searchParams.get("filter");
     if (progressFilter === "completed") setCourseFilter("completed");
     else if (progressFilter === "in-progress") setCourseFilter("in-progress");
     else if (progressFilter === "not-started") setCourseFilter("not-started");
-  }, [searchParams, pathname]);
+  }, [searchParams, pathname, router]);
   const [purchasedCourses, setPurchasedCourses] = useState<LearningCourseRow[]>([]);
   const [learnerCertificates, setLearnerCertificates] = useState<CertificateRowDto[]>([]);
 
@@ -721,7 +728,6 @@ export default function MyLearningPage() {
             orgFeaturedCourse={orgFeaturedCoursePick}
             orgRankedSelfPaced={rankedExploreSelfPaced}
             orgRankedTutorLed={rankedExploreTutorLed}
-            onProfileUpdated={() => setPrefsTick((n) => n + 1)}
             enrolledSummary={
               coursesForLearning.length > 0
                 ? `Your organisation is enrolled in ${selfPacedCoursesForDashboard.length} self-paced course${selfPacedCoursesForDashboard.length === 1 ? "" : "s"} and ${tutorLedCoursesForHub.length} tutor-led program${tutorLedCoursesForHub.length === 1 ? "" : "s"}.`
