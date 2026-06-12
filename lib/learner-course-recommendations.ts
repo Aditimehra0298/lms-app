@@ -291,6 +291,34 @@ export function rankTutorLedExplore(
     .sort((a, b) => b.score - a.score || a.card.title.localeCompare(b.card.title));
 }
 
+export function pickOrgFeaturedCourse(input: {
+  exploreRanked: ScoredCourse[];
+  companyName?: string | null;
+}): FeaturedCoursePick | null {
+  const top = input.exploreRanked.find((row) => row.course.slug?.trim());
+  if (!top) return null;
+  const slug = top.course.slug!.trim();
+  const company = input.companyName?.trim() || "your team";
+  const reason =
+    top.reasons.find((r) => /team|organization|industry|featured|popular/i.test(r)) ??
+    top.reasons[0] ??
+    `Top pick for ${company}`;
+
+  return {
+    kind: "recommended",
+    title: top.course.title,
+    slug,
+    image: top.course.image,
+    modules: top.course.modules?.length ?? 0,
+    duration: top.course.duration?.trim() || "Self-paced",
+    completed: 0,
+    status: "Ready to assign",
+    reason,
+    href: "/my-learning?tab=assign-courses",
+    cta: "Assign to team",
+  };
+}
+
 export function pickFeaturedCourse(input: {
   enrolled: PurchasedCourseRow[];
   exploreRanked: ScoredCourse[];

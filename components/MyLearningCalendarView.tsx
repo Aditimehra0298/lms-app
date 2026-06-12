@@ -12,8 +12,17 @@ import {
   removeLearnerCalendarReminder,
 } from "@/lib/learner-calendar-reminders";
 import {
+  addOrgCalendarReminder,
+  ORG_CALENDAR_REMINDERS_EVENT,
+  ORG_CALENDAR_SYMBOL_OPTIONS,
+  readOrgCalendarReminders,
+  removeOrgCalendarReminder,
+  type OrgCalendarReminderSymbol,
+} from "@/lib/organization-calendar-reminders";
+import {
   buildAdminReminderEvents,
   buildDashboardNotifications,
+  buildOrgUserReminderEvents,
   buildTutorLedCalendarEvents,
   buildUserReminderEvents,
   eventKindColor,
@@ -23,9 +32,12 @@ import {
   formatMonthYear,
   formatShortDate,
   getCalendarGrid,
+  isCustomReminderEvent,
+  isOrgUserReminderEvent,
   isSameDay,
   isUserReminderEvent,
   mergeCalendarEvents,
+  orgUserReminderIdFromEvent,
   primaryDayCellLabel,
   eventKindRing,
   primaryEventKindOnDay,
@@ -50,6 +62,7 @@ import {
   MessageSquare,
   Plus,
   Trash2,
+  Users,
   Video,
 } from "lucide-react";
 
@@ -83,9 +96,34 @@ export type MyLearningCalendarViewProps = {
   adminCalendarReminders?: DashboardCalendarReminder[];
   today?: Date;
   showPageHeader?: boolean;
+  variant?: "individual" | "organization";
+  defaultAddedByName?: string;
 };
 
-function notificationIcon(kind: CalendarEventKind | "course") {
+function symbolIcon(symbol?: OrgCalendarReminderSymbol | "bell") {
+  switch (symbol) {
+    case "video":
+      return Video;
+    case "users":
+      return Users;
+    case "mail":
+      return Mail;
+    case "calendar":
+      return CalendarDays;
+    case "award":
+      return Award;
+    case "exam":
+      return GraduationCap;
+    default:
+      return Bell;
+  }
+}
+
+function notificationIcon(
+  kind: CalendarEventKind | "course",
+  symbol?: OrgCalendarReminderSymbol | "bell",
+) {
+  if (symbol) return symbolIcon(symbol);
   switch (kind) {
     case "live":
     case "workshop":
@@ -108,20 +146,37 @@ export function MyLearningCalendarView({
   adminCalendarReminders = [],
   today = new Date(),
   showPageHeader = true,
+  variant = "individual",
+  defaultAddedByName = "",
 }: MyLearningCalendarViewProps) {
+  const isOrg = variant === "organization";
   const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selected, setSelected] = useState<Date>(() => startOfDay(today));
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   const [notifFilter, setNotifFilter] = useState<NotificationFilter>("all");
   const [userReminders, setUserReminders] = useState(() => readLearnerCalendarReminders());
+  const [orgReminders, setOrgReminders] = useState(() => readOrgCalendarReminders());
   const [newReminderTitle, setNewReminderTitle] = useState("");
+  const [orgAddedByName, setOrgAddedByName] = useState(defaultAddedByName);
+  const [orgMethodTitle, setOrgMethodTitle] = useState("");
+  const [orgSymbol, setOrgSymbol] = useState<OrgCalendarReminderSymbol>("bell");
   const [reminderError, setReminderError] = useState<string | null>(null);
 
   useEffect(() => {
-    const sync = () => setUserReminders(readLearnerCalendarReminders());
-    sync();
-    window.addEventListener(LEARNER_CALENDAR_REMINDERS_EVENT, sync);
-    return () => window.removeEventListener(LEARNER_CALENDAR_REMINDERS_EVENT, sync);
+    setOrgAddedByName((prev) => prev || defaultAddedByName);
+  }, [defaultAddedByName]);
+
+  useEffect(() => {
+    const syncLearner = () => setUserReminders(readLearnerCalendarReminders());
+    const syncOrg = () => setOrgReminders(readOrgCalendarReminders());
+    syncLearner();
+    syncOrg();
+    window.addEventListener(LEARNER_CALENDAR_REMINDERS_EVENT, syncLearner);
+    window.addEventListener(ORG_CALENDAR_REMINDERS_EVENT, syncOrg);
+    return () => {
+      window.removeEventListener(LEARNER_CALENDAR_REMINDERS_EVENT, syncLearner);
+      window.removeEventListener(ORG_CALENDAR_REMINDERS_EVENT, syncOrg);
+    };
   }, []);
 
   const calendarEvents = useMemo(
@@ -129,9 +184,9 @@ export function MyLearningCalendarView({
       mergeCalendarEvents(
         buildTutorLedCalendarEvents(tutorLedEnrollments, tutorLedPrograms),
         buildAdminReminderEvents(adminCalendarReminders),
-        buildUserReminderEvents(userReminders),
+        isOrg ? buildOrgUserReminderEvents(orgReminders) : buildUserReminderEvents(userReminders),
       ),
-    [tutorLedEnrollments, tutorLedPrograms, adminCalendarReminders, userReminders],
+    [tutorLedEnrollments, tutorLedPrograms, adminCalendarReminders, userReminders, orgReminders, isOrg],
   );
 
   const notifications = useMemo(
@@ -180,6 +235,33 @@ export function MyLearningCalendarView({
 
   const handleAddReminder = (e: FormEvent) => {
     e.preventDefault();
+    if (isOrg) {
+      const addedByName = orgAddedByName.trim();
+      const methodTitle = orgMethodTitle.trim();
+      if (!addedByName) {
+        setReminderError("Enter your name.");
+        return;
+      }
+      if (!methodTitle) {
+        setReminderError("Enter a method / notification title.");
+        return;
+      }
+      try {
+        addOrgCalendarReminder({
+          date: selected,
+          addedByName,
+          methodTitle,
+          symbol: orgSymbol,
+        });
+        setOrgMethodTitle("");
+        setReminderError(null);
+        setOrgReminders(readOrgCalendarReminders());
+      } catch {
+        setReminderError("Could not save team notification.");
+      }
+      return;
+    }
+
     const title = newReminderTitle.trim();
     if (!title) {
       setReminderError("Enter a reminder title.");
@@ -196,6 +278,13 @@ export function MyLearningCalendarView({
   };
 
   const handleRemoveReminder = (eventId: string) => {
+    if (isOrgUserReminderEvent(eventId)) {
+      const rid = orgUserReminderIdFromEvent(eventId);
+      if (!rid) return;
+      removeOrgCalendarReminder(rid);
+      setOrgReminders(readOrgCalendarReminders());
+      return;
+    }
     const rid = userReminderIdFromEvent(eventId);
     if (!rid) return;
     removeLearnerCalendarReminder(rid);
@@ -238,7 +327,7 @@ export function MyLearningCalendarView({
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
             <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
               <CalendarDays className="h-5 w-5 text-[#FFC107]" aria-hidden />
-              My calendar
+              {isOrg ? "Team calendar" : "My calendar"}
             </h2>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -441,7 +530,11 @@ export function MyLearningCalendarView({
               {selectedEvents.length === 0 ? (
                 <div className="mt-3 rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-5 text-center">
                   <CalendarDays className="mx-auto h-8 w-8 text-zinc-600" aria-hidden />
-                  <p className="mt-2 text-sm text-zinc-400">No sessions on this date — add a personal reminder below.</p>
+                  <p className="mt-2 text-sm text-zinc-400">
+                    {isOrg
+                      ? "No team sessions on this date — add a team notification below."
+                      : "No sessions on this date — add a personal reminder below."}
+                  </p>
                   {nextUpcoming && !isSameDay(nextUpcoming.date, selected) ? (
                     <button
                       type="button"
@@ -479,9 +572,12 @@ export function MyLearningCalendarView({
                           ? "Exam"
                           : ev.kind === "certificate"
                             ? "Certificate"
-                            : isUserReminderEvent(ev.id)
-                              ? "Your reminder"
-                              : "Reminder";
+                            : isOrgUserReminderEvent(ev.id)
+                              ? "Team notification"
+                              : isUserReminderEvent(ev.id)
+                                ? "Your reminder"
+                                : "Reminder";
+                    const EventSymbol = ev.symbol ? symbolIcon(ev.symbol) : null;
 
                     return (
                       <li
@@ -489,10 +585,16 @@ export function MyLearningCalendarView({
                         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/50 p-3"
                       >
                         <div className="flex min-w-0 items-start gap-3">
-                          <span
-                            className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${eventKindColor(ev.kind)}`}
-                            aria-hidden
-                          />
+                          {EventSymbol ? (
+                            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
+                              <EventSymbol className="h-3.5 w-3.5" aria-hidden />
+                            </span>
+                          ) : (
+                            <span
+                              className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${eventKindColor(ev.kind)}`}
+                              aria-hidden
+                            />
+                          )}
                           <div className="min-w-0">
                             <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-500">{kindLabel}</p>
                             {time ? <p className="text-xs font-semibold text-[#FFC107]">{time}</p> : null}
@@ -502,7 +604,7 @@ export function MyLearningCalendarView({
                             ) : null}
                           </div>
                         </div>
-                        {isUserReminderEvent(ev.id) ? (
+                        {isCustomReminderEvent(ev.id) ? (
                           <button
                             type="button"
                             onClick={() => handleRemoveReminder(ev.id)}
@@ -533,28 +635,87 @@ export function MyLearningCalendarView({
                 onSubmit={handleAddReminder}
                 className="mt-4 border-t border-white/10 pt-4"
               >
-                <p className="text-xs font-semibold text-white">Add personal reminder</p>
+                <p className="text-xs font-semibold text-white">
+                  {isOrg ? "Add team notification" : "Add personal reminder"}
+                </p>
                 <p className="mt-0.5 text-[10px] text-zinc-500">
                   For {formatCalendarDayHeading(selected)} — saved on this device only.
                 </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <input
-                    value={newReminderTitle}
-                    onChange={(e) => {
-                      setNewReminderTitle(e.target.value);
-                      if (reminderError) setReminderError(null);
-                    }}
-                    placeholder="e.g. Review module 2 notes"
-                    className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/50 px-3 py-2 text-sm text-white placeholder:text-zinc-600"
-                  />
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-4 py-2 text-xs font-bold text-emerald-200 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30"
-                  >
-                    <Plus className="h-3.5 w-3.5" aria-hidden />
-                    Add
-                  </button>
-                </div>
+                {isOrg ? (
+                  <div className="mt-2 space-y-2">
+                    <input
+                      value={orgAddedByName}
+                      onChange={(e) => {
+                        setOrgAddedByName(e.target.value);
+                        if (reminderError) setReminderError(null);
+                      }}
+                      placeholder="Your name"
+                      className="w-full rounded-lg border border-white/15 bg-black/50 px-3 py-2 text-sm text-white placeholder:text-zinc-600"
+                    />
+                    <input
+                      value={orgMethodTitle}
+                      onChange={(e) => {
+                        setOrgMethodTitle(e.target.value);
+                        if (reminderError) setReminderError(null);
+                      }}
+                      placeholder="Method / notification title (e.g. Zoom check-in)"
+                      className="w-full rounded-lg border border-white/15 bg-black/50 px-3 py-2 text-sm text-white placeholder:text-zinc-600"
+                    />
+                    <div>
+                      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                        Symbol
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ORG_CALENDAR_SYMBOL_OPTIONS.map((opt) => {
+                          const Icon = symbolIcon(opt.id);
+                          const active = orgSymbol === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              title={opt.label}
+                              onClick={() => setOrgSymbol(opt.id)}
+                              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold ${
+                                active
+                                  ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40"
+                                  : "border border-white/10 text-zinc-400 hover:text-white"
+                              }`}
+                            >
+                              <Icon className="h-3.5 w-3.5" aria-hidden />
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-500/20 px-4 py-2.5 text-xs font-bold text-emerald-200 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30"
+                    >
+                      <Plus className="h-3.5 w-3.5" aria-hidden />
+                      Add notification
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <input
+                      value={newReminderTitle}
+                      onChange={(e) => {
+                        setNewReminderTitle(e.target.value);
+                        if (reminderError) setReminderError(null);
+                      }}
+                      placeholder="e.g. Review module 2 notes"
+                      className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/50 px-3 py-2 text-sm text-white placeholder:text-zinc-600"
+                    />
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-4 py-2 text-xs font-bold text-emerald-200 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30"
+                    >
+                      <Plus className="h-3.5 w-3.5" aria-hidden />
+                      Add
+                    </button>
+                  </div>
+                )}
                 {reminderError ? (
                   <p className="mt-1.5 text-[10px] text-red-300">{reminderError}</p>
                 ) : null}
@@ -575,7 +736,9 @@ export function MyLearningCalendarView({
                 View all
               </Link>
             </div>
-            <p className="mt-0.5 text-xs text-zinc-500">Live sessions, exams, and certificates</p>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              {isOrg ? "Team sessions, exams, and custom notifications" : "Live sessions, exams, and certificates"}
+            </p>
 
             <div className="mt-3 flex flex-wrap gap-1.5">
               {(
@@ -609,7 +772,7 @@ export function MyLearningCalendarView({
                 </p>
               ) : (
                 filteredNotifications.map((n) => {
-                  const Icon = notificationIcon(n.kind);
+                  const Icon = notificationIcon(n.kind, n.symbol);
                   const iconBg =
                     n.tone === "violet"
                       ? "bg-violet-500/15 text-violet-300"

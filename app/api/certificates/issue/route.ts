@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
-import { issueCourseCertificate } from "@/lib/server/certificate-service";
+import {
+  issueCourseCertificate,
+  issueEmployeeCourseCertificate,
+} from "@/lib/server/certificate-service";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   let body: {
     learnerEmail?: string;
+    employeeEmail?: string;
+    organizationWorkEmail?: string;
     learnerName?: string;
+    employeeName?: string;
     courseSlug?: string;
     scorePercent?: number;
   };
@@ -17,12 +23,21 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await issueCourseCertificate({
-      learnerEmail: body.learnerEmail ?? "",
-      learnerName: body.learnerName,
-      courseSlug: body.courseSlug ?? "",
-      scorePercent: body.scorePercent,
-    });
+    const employeeEmail = body.employeeEmail?.trim();
+    const result = employeeEmail
+      ? await issueEmployeeCourseCertificate({
+          employeeEmail,
+          employeeName: body.employeeName ?? body.learnerName,
+          organizationWorkEmail: body.organizationWorkEmail,
+          courseSlug: body.courseSlug ?? "",
+          scorePercent: body.scorePercent,
+        })
+      : await issueCourseCertificate({
+          learnerEmail: body.learnerEmail ?? "",
+          learnerName: body.learnerName,
+          courseSlug: body.courseSlug ?? "",
+          scorePercent: body.scorePercent,
+        });
     if (!result.ok) {
       return NextResponse.json(result, { status: 400 });
     }

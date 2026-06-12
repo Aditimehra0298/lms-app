@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { isOrganisationLearner, readLearnerProfileFromStorage } from "@/lib/auth-profile";
 import { defaultAdminContent, type AdminContent } from "@/lib/content-schema";
 import { MyLearningCalendarView } from "@/components/MyLearningCalendarView";
 import { enrichTutorLedLiveHubRow, mergeTutorLedPrograms } from "@/lib/tutor-led-live-hub-enrich";
@@ -21,6 +22,27 @@ const toCourseSlug = (value: string) =>
 export function MyLearningCalendarPageClient() {
   const [adminContent, setAdminContent] = useState<AdminContent>(defaultAdminContent);
   const [purchased, setPurchased] = useState(readPurchasedCoursesFromStorage());
+  const [learnerProfile, setLearnerProfile] = useState(readLearnerProfileFromStorage);
+
+  const isOrgLearner = isOrganisationLearner(learnerProfile);
+  const defaultAddedByName = useMemo(() => {
+    const name = learnerProfile.name?.trim();
+    if (name) return name;
+    const email = learnerProfile.email?.trim();
+    if (email) return email.split("@")[0] ?? "";
+    return "";
+  }, [learnerProfile.name, learnerProfile.email]);
+
+  useEffect(() => {
+    const syncProfile = () => setLearnerProfile(readLearnerProfileFromStorage());
+    syncProfile();
+    window.addEventListener("storage", syncProfile);
+    window.addEventListener("sft_learner_profile_updated", syncProfile);
+    return () => {
+      window.removeEventListener("storage", syncProfile);
+      window.removeEventListener("sft_learner_profile_updated", syncProfile);
+    };
+  }, []);
 
   useEffect(() => {
     const load = () => setPurchased(readPurchasedCoursesFromStorage());
@@ -108,6 +130,8 @@ export function MyLearningCalendarPageClient() {
           certificateAlerts={[]}
           coursesNotStarted={coursesNotStarted}
           adminCalendarReminders={adminContent.dashboard?.calendarReminders ?? []}
+          variant={isOrgLearner ? "organization" : "individual"}
+          defaultAddedByName={defaultAddedByName}
         />
       </main>
     </div>

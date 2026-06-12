@@ -151,11 +151,9 @@ export function applyDbProfileToSession(profile: LmsUserProfilePayload): Learner
     }
   }
   const sessionChanged = prevEmail !== profile.email || prevRole !== nextRole;
-  if (sessionChanged) {
-    window.dispatchEvent(new Event("sft_auth_updated"));
-    if (profile.role !== "admin") {
-      void syncEnrollmentsToServer(profile.email);
-    }
+  window.dispatchEvent(new Event("sft_auth_updated"));
+  if (sessionChanged && profile.role !== "admin") {
+    void syncEnrollmentsToServer(profile.email);
   }
   return learner;
 }

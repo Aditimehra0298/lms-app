@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import type { FeaturedCoursePick } from "@/lib/learner-course-recommendations";
 import { displayRecommendationReason } from "@/lib/recommendation-display";
 
 const FALLBACK_BG =
@@ -10,6 +11,7 @@ const FALLBACK_BG =
 
 type Props = {
   featured: FeaturedCoursePick | null;
+  formatReason?: (reason: string | undefined) => string;
 };
 
 function splitTitle(title: string): { lead: string; accent: string } {
@@ -22,7 +24,9 @@ function splitTitle(title: string): { lead: string; accent: string } {
   };
 }
 
-export function MyLearningFeaturedCourse({ featured }: Props) {
+export function MyLearningFeaturedCourse({ featured, formatReason }: Props) {
+  const reasonLabel = (reason: string | undefined) =>
+    formatReason ? formatReason(reason) : displayRecommendationReason(reason);
   if (!featured) {
     return (
       <article className="relative min-h-[220px] overflow-hidden rounded-xl border border-white/10 p-4 md:min-h-[260px]">
@@ -74,7 +78,7 @@ export function MyLearningFeaturedCourse({ featured }: Props) {
           {isAi ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-100">
               <Sparkles size={11} />
-              {displayRecommendationReason(featured.reason)}
+              {reasonLabel(featured.reason)}
             </span>
           ) : null}
         </div>
@@ -92,7 +96,7 @@ export function MyLearningFeaturedCourse({ featured }: Props) {
         <p className="mt-2 max-w-lg text-sm text-gray-300">
           {featured.modules} modules • {featured.duration}
           {featured.kind === "enrolled" ? ` • ${featured.completed} completed` : ""}
-          {!isAi && featured.reason ? ` · ${featured.reason}` : isAi ? ` · ${displayRecommendationReason(featured.reason)}` : ""}
+          {!isAi && featured.reason ? ` · ${featured.reason}` : isAi ? ` · ${reasonLabel(featured.reason)}` : ""}
         </p>
 
         <Link

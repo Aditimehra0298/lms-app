@@ -12,6 +12,7 @@ import {
   defaultHomePageConfig,
   type AboutPageTeamLevel,
 } from "@/lib/content-schema";
+import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
 
 const contentFilePath = path.join(process.cwd(), "data", "admin-content.json");
 
@@ -114,6 +115,7 @@ async function readAdminContentFromDisk(): Promise<AdminContent> {
         parsed.globalCertificateAssets && typeof parsed.globalCertificateAssets === "object"
           ? parsed.globalCertificateAssets
           : undefined,
+      organizationTeam: mergeOrganizationTeamAdminConfig(parsed.organizationTeam),
     };
   } catch {
     return defaultAdminContent;

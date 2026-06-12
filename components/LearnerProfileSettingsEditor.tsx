@@ -149,6 +149,19 @@ export function LearnerProfileSettingsEditor({ initialProfile, compact = false, 
           {accountTypeLabel(accountType)} · {summary}
         </p>
         {email ? <p className="mt-1 text-xs text-gray-400">{email}</p> : null}
+        {initialProfile?.identificationNumber != null ? (
+          <p className="mt-1 font-mono text-xs text-amber-200/90">
+            User ID {initialProfile.identificationNumber}
+            {initialProfile.registrationCode ? ` · ${initialProfile.registrationCode}` : ""}
+            {initialProfile.registrationMonthYear
+              ? ` · registered ${initialProfile.registrationMonthYear}`
+              : ""}
+          </p>
+        ) : null}
+        <p className="mt-1 text-[10px] text-zinc-600">
+          Your ID and phone are stored in your account — signing in on another PC or phone loads the
+          same details from the server.
+        </p>
       </div>
 
       <div className={`grid gap-4 xl:gap-6 ${compact ? "grid-cols-1" : "grid-cols-1 xl:grid-cols-2"}`}>

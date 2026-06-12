@@ -47,6 +47,7 @@ import { sanitizeCourseHero } from "@/lib/course-hero-resolve";
 import { sanitizeInstructorSection } from "@/lib/course-instructor-section";
 import { sanitizeCoursePageContent } from "@/lib/course-page-content-sanitize";
 import AdminSelfPacedPageContentEditor from "@/components/admin/AdminSelfPacedPageContentEditor";
+import AdminOrganizationSeatPricingEditor from "@/components/admin/AdminOrganizationSeatPricingEditor";
 import AdminRegionalPricingEditor from "@/components/admin/AdminRegionalPricingEditor";
 import AdminCourseSettingsPanel from "@/components/admin/AdminCourseSettingsPanel";
 import AdminCourseSeoPanel from "@/components/admin/AdminCourseSeoPanel";
@@ -62,6 +63,7 @@ import { sanitizeCourseSeo, sanitizeCourseSettings } from "@/lib/course-workspac
 import AdminCurrencyBadge from "@/components/admin/AdminCurrencyBadge";
 import AdminPriceInput from "@/components/admin/AdminPriceInput";
 import { sanitizeRegionalPrices } from "@/lib/course-regional-pricing";
+import { sanitizeOrganizationSeatPricing } from "@/lib/organization-course-pricing";
 import { currencyDisplayForCountry, resolvePriceCurrency } from "@/lib/price-currency-detect";
 import {
   FOOD_SAFETY_DIPLOMA_CURRICULUM,
@@ -171,6 +173,7 @@ function sanitizeManagedCourse(c: ManagedCourse): ManagedCourse {
     hero: sanitizeCourseHero(c.hero),
     instructorSection: sanitizeInstructorSection(c.instructorSection),
     regionalPrices: sanitizeRegionalPrices(c.regionalPrices),
+    organizationSeatPricing: sanitizeOrganizationSeatPricing(c.organizationSeatPricing),
     settings: sanitizeCourseSettings(c.settings),
     seo: sanitizeCourseSeo(c.seo),
     certificateConfig: sanitizeCertificateConfig(c.certificateConfig),
@@ -2368,6 +2371,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
               <div className="mt-4">
                 <AdminRegionalPricingEditor draft={draft} setDraft={setDraft} />
+                <AdminOrganizationSeatPricingEditor draft={draft} setDraft={setDraft} />
               </div>
             </>
           )}

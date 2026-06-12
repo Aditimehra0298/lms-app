@@ -26,14 +26,23 @@ import {
   Sparkles,
   Trophy,
 } from "lucide-react";
-import { AdminContent, defaultAdminContent, type ManagedCourse } from "@/lib/content-schema";
+import {
+  AdminContent,
+  defaultAdminContent,
+  defaultHomePageConfig,
+  type ManagedCourse,
+} from "@/lib/content-schema";
 import { MyLearningCommunityHub } from "@/components/MyLearningCommunityHub";
+import { MyLearningOrganizationCommunityHub } from "@/components/MyLearningOrganizationCommunityHub";
 import { MyLearningDashboardCourses } from "@/components/MyLearningDashboardCourses";
 import { MyLearningFeaturedCourse } from "@/components/MyLearningFeaturedCourse";
 import { MyLearningIndividualSubscriptions } from "@/components/MyLearningIndividualSubscriptions";
+import { MyLearningOrganizationCourses } from "@/components/MyLearningOrganizationCourses";
+import { MyLearningOrganizationSubscriptions } from "@/components/MyLearningOrganizationSubscriptions";
 import { MyLearningLiveHub } from "@/components/MyLearningLiveHub";
 import MyCertificatesList from "@/components/MyCertificatesList";
 import { MyLearningAssignmentsTab } from "@/components/MyLearningAssignmentsTab";
+import { MyLearningOrganizationAssignmentsTab } from "@/components/MyLearningOrganizationAssignmentsTab";
 import {
   buildMyLearningAssignments,
   filterLearnerVisibleAssignments,
@@ -48,13 +57,27 @@ import {
   type TutorLedLiveHubRow,
 } from "@/lib/tutor-led-live-hub-enrich";
 import {
+  isOrganisationLearner,
   learnerDisplayFirstName,
   readLearnerProfileFromStorage,
   timeOfDayGreeting,
 } from "@/lib/auth-profile";
+import { buildOrganizationDashboardSnapshot } from "@/lib/organization-dashboard";
+import { ORG_PREMIUM_PLAN_EVENT } from "@/lib/organization-premium-plans";
+import {
+  ORG_TEAM_DATA_EVENT,
+  setOrganizationTeamAdminConfig,
+  syncOrganizationTeamFromServer,
+} from "@/lib/organization-team-sync-client";
+import { buildOrganizationTeamAssignments } from "@/lib/organization-team-assignments";
+import { MyLearningOrganizationDashboard } from "@/components/MyLearningOrganizationDashboard";
+import { MyLearningOrganizationCertificates } from "@/components/MyLearningOrganizationCertificates";
+import { MyLearningOrganizationLiveHub } from "@/components/MyLearningOrganizationLiveHub";
+import { MyLearningOrganizationTeamProgress } from "@/components/MyLearningOrganizationTeamProgress";
 import {
   buildRecommendationContext,
   pickFeaturedCourse,
+  pickOrgFeaturedCourse,
   rankExploreCourses,
   rankTutorLedExplore,
 } from "@/lib/learner-course-recommendations";
@@ -84,6 +107,10 @@ import {
 } from "@/lib/learner-course-progress";
 import { BADGES_UPDATED_EVENT, readLearnerBadges } from "@/lib/learner-badges";
 import { MyLearningAchievementsTab } from "@/components/MyLearningAchievementsTab";
+import { MyLearningOrganizationAchievementsTab } from "@/components/MyLearningOrganizationAchievementsTab";
+import { MyLearningOrganizationInviteEmployees } from "@/components/MyLearningOrganizationInviteEmployees";
+import { MyLearningOrganizationAssignCourses } from "@/components/MyLearningOrganizationAssignCourses";
+import { MyLearningOrganizationTeamReport } from "@/components/MyLearningOrganizationTeamReport";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
 
 export const dynamic = "force-dynamic";
@@ -148,6 +175,10 @@ export default function MyLearningPage() {
   const isCommunity = activeTab === "community";
   const isCertificates = activeTab === "certificates";
   const isSubscriptions = activeTab === "subscriptions";
+  const isOrgCourses = activeTab === "org-courses";
+  const isInviteEmployees = activeTab === "invite-employees";
+  const isAssignCourses = activeTab === "assign-courses";
+  const isOrgReport = activeTab === "org-report";
   const [adminContent, setAdminContent] = useState<AdminContent>(defaultAdminContent);
   const [learnerFirstName, setLearnerFirstName] = useState("there");
   const [dashboardNow] = useState(() => new Date());
@@ -157,6 +188,7 @@ export default function MyLearningPage() {
   const [earnedBadges, setEarnedBadges] = useState<ReturnType<typeof readLearnerBadges>>([]);
   const [learnerProfile, setLearnerProfile] = useState(readLearnerProfileFromStorage);
   const [prefsTick, setPrefsTick] = useState(0);
+  const [orgPlanTick, setOrgPlanTick] = useState(0);
 
   useEffect(() => {
     const applyProfile = () => {
@@ -191,6 +223,23 @@ export default function MyLearningPage() {
   }, []);
 
   useEffect(() => {
+    const onOrgPlan = () => setOrgPlanTick((n) => n + 1);
+    window.addEventListener(ORG_PREMIUM_PLAN_EVENT, onOrgPlan);
+    window.addEventListener(ORG_TEAM_DATA_EVENT, onOrgPlan);
+    return () => {
+      window.removeEventListener(ORG_PREMIUM_PLAN_EVENT, onOrgPlan);
+      window.removeEventListener(ORG_TEAM_DATA_EVENT, onOrgPlan);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLearnerLoggedIn()) return;
+    const profile = readLearnerProfileFromStorage();
+    if (!isOrganisationLearner(profile)) return;
+    void syncOrganizationTeamFromServer(getLearnerEmail() ?? undefined);
+  }, [learnerProfile.accountType, learnerProfile.email]);
+
+  useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
@@ -200,10 +249,9 @@ export default function MyLearningPage() {
         if (!res.ok) throw new Error("admin-content");
         const data = await readJsonResponse(res, defaultAdminContent);
         if (!cancelled) {
-          setAdminContent({
-            ...defaultAdminContent,
-            ...data,
-          });
+          const merged = { ...defaultAdminContent, ...data };
+          setAdminContent(merged);
+          setOrganizationTeamAdminConfig(merged.organizationTeam);
         }
       } catch {
         if (!cancelled) setAdminContent(defaultAdminContent);
@@ -543,6 +591,15 @@ export default function MyLearningPage() {
     ],
   );
 
+  const orgFeaturedCoursePick = useMemo(
+    () =>
+      pickOrgFeaturedCourse({
+        exploreRanked: rankedExploreSelfPaced,
+        companyName: learnerProfile.companyName ?? learnerProfile.name,
+      }),
+    [rankedExploreSelfPaced, learnerProfile.companyName, learnerProfile.name],
+  );
+
   const resumeCourse = coursesForLearning.find((c) => c.status === "In Progress") ?? coursesForLearning[0];
 
   const filteredCoursesForLearning = useMemo(() => {
@@ -587,6 +644,17 @@ export default function MyLearningPage() {
     [assignmentRows],
   );
 
+  const orgAssignmentRows = useMemo(
+    () =>
+      buildOrganizationTeamAssignments({
+        courses: effectiveCatalog,
+        tutorEnrollments: tutorLedCoursesForHub,
+        tutorExplore: tutorLedExploreCourses,
+        companySize: learnerProfile.companySize,
+      }),
+    [effectiveCatalog, tutorLedCoursesForHub, tutorLedExploreCourses, learnerProfile.companySize],
+  );
+
   const enrolledExamTasks = useMemo(
     () =>
       learnerAssignmentRows.map((row) => ({
@@ -607,6 +675,23 @@ export default function MyLearningPage() {
     [learnerAssignmentRows],
   );
 
+  const isOrgLearner = isOrganisationLearner(learnerProfile);
+  const orgDashboardSnapshot = useMemo(
+    () =>
+      buildOrganizationDashboardSnapshot({
+        companyName: learnerProfile.companyName ?? learnerProfile.name,
+        companySize: learnerProfile.companySize,
+        certificateCount: learnerCertificates.filter((c) => c.status === "ready").length || undefined,
+      }),
+    [
+      learnerProfile.companyName,
+      learnerProfile.companySize,
+      learnerProfile.name,
+      learnerCertificates,
+      orgPlanTick,
+    ],
+  );
+
   const quickActions = [
     { label: "Join Tutor-Led Session", icon: Rocket, cta: "View & Join", href: "/my-learning?tab=live" },
     { label: "View Calendar", icon: CalendarDays, cta: "See Schedule", href: "/my-learning/calendar" },
@@ -623,7 +708,27 @@ export default function MyLearningPage() {
           isSubscriptions ? "pb-2 pt-4" : "py-6"
         }`}
       >
-        {isDashboard ? (
+        {isDashboard && isOrgLearner ? (
+          <MyLearningOrganizationDashboard
+            snapshot={orgDashboardSnapshot}
+            adminDisplayName={learnerFirstName}
+            learnerProfile={learnerProfile}
+            dashboardNow={dashboardNow}
+            industryType={learnerProfile.industryType}
+            countryCode={learnerProfile.countryCode}
+            countryName={learnerProfile.countryName}
+            companySize={learnerProfile.companySize}
+            orgFeaturedCourse={orgFeaturedCoursePick}
+            orgRankedSelfPaced={rankedExploreSelfPaced}
+            orgRankedTutorLed={rankedExploreTutorLed}
+            onProfileUpdated={() => setPrefsTick((n) => n + 1)}
+            enrolledSummary={
+              coursesForLearning.length > 0
+                ? `Your organisation is enrolled in ${selfPacedCoursesForDashboard.length} self-paced course${selfPacedCoursesForDashboard.length === 1 ? "" : "s"} and ${tutorLedCoursesForHub.length} tutor-led program${tutorLedCoursesForHub.length === 1 ? "" : "s"}.`
+                : "Browse the catalog to assign courses and start team training."
+            }
+          />
+        ) : isDashboard ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
             <div className="grid gap-3 lg:grid-cols-[1fr_1.5fr]">
               <article className="rounded-xl border border-white/10 bg-linear-to-br from-violet-500/15 via-[#101933] to-[#0a1023] p-4">
@@ -850,18 +955,84 @@ export default function MyLearningPage() {
               </div>
             </div>
           </section>
+        ) : isLive && isOrgLearner ? (
+          <MyLearningOrganizationLiveHub
+            enrollments={tutorLedCoursesForHub}
+            exploreCourses={tutorLedExploreCourses}
+            companySize={learnerProfile.companySize}
+          />
         ) : isLive ? (
           <MyLearningLiveHub
             enrollments={tutorLedCoursesForHub}
             exploreCourses={tutorLedExploreCourses}
           />
+        ) : isOrgCourses && isOrgLearner ? (
+          <MyLearningOrganizationCourses courses={effectiveCatalog} />
+        ) : isInviteEmployees && isOrgLearner ? (
+          <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
+            <MyLearningOrganizationInviteEmployees
+              companyName={learnerProfile.companyName ?? orgDashboardSnapshot.companyName}
+              companySize={learnerProfile.companySize}
+              seatsTotal={orgDashboardSnapshot.seatsTotal}
+            />
+          </section>
+        ) : isAssignCourses && isOrgLearner ? (
+          <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
+            <MyLearningOrganizationAssignCourses
+              courses={effectiveCatalog}
+              companySize={learnerProfile.companySize}
+              seatsTotal={orgDashboardSnapshot.seatsTotal}
+            />
+          </section>
+        ) : isOrgReport && isOrgLearner ? (
+          <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
+            <MyLearningOrganizationTeamReport
+              companyName={learnerProfile.companyName ?? orgDashboardSnapshot.companyName}
+              companySize={learnerProfile.companySize}
+              courses={effectiveCatalog}
+              seatsTotal={orgDashboardSnapshot.seatsTotal}
+            />
+          </section>
+        ) : isCertificates && isOrgLearner ? (
+          <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
+            <MyLearningOrganizationCertificates
+              courses={effectiveCatalog}
+              tutorEnrollments={tutorLedCoursesForHub}
+              tutorExplore={tutorLedExploreCourses}
+              companySize={learnerProfile.companySize}
+            />
+          </section>
         ) : isCertificates ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
             <MyCertificatesList />
           </section>
         ) : isSubscriptions ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 pb-3 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
-            <MyLearningIndividualSubscriptions />
+            {isOrgLearner ? (
+              <MyLearningOrganizationSubscriptions
+                orgPlan={adminContent.homePage?.orgPlan ?? defaultHomePageConfig.orgPlan}
+              />
+            ) : (
+              <MyLearningIndividualSubscriptions />
+            )}
+          </section>
+        ) : isCommunity && isOrgLearner ? (
+          <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
+            <MyLearningOrganizationCommunityHub
+              enrolledSlugs={enrolledCourseSlugs}
+              courseTitles={enrolledCourseTitles}
+              focusCourseSlug={communityFocusCourse}
+              completedCourses={coursesForLearning.filter(
+                (c) => c.status.toLowerCase() === "completed" || c.completed >= c.modules,
+              )}
+              certificates={learnerCertificates}
+              earnedBadges={earnedBadges}
+              globalBadgeImage={adminContent.globalCertificateAssets?.badgeImage}
+              calendarReminders={adminContent.dashboard?.calendarReminders ?? []}
+              communityConnect={adminContent.dashboard?.communityConnect ?? []}
+              companyName={learnerProfile.companyName ?? orgDashboardSnapshot.companyName}
+              adminDisplayName={learnerFirstName}
+            />
           </section>
         ) : isCommunity ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
@@ -879,8 +1050,19 @@ export default function MyLearningPage() {
               communityConnect={adminContent.dashboard?.communityConnect ?? []}
             />
           </section>
+        ) : isAssignments && isOrgLearner ? (
+          <MyLearningOrganizationAssignmentsTab rows={orgAssignmentRows} />
         ) : isAssignments ? (
           <MyLearningAssignmentsTab rows={learnerAssignmentRows} />
+        ) : isLearning && isOrgLearner ? (
+          <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
+            <MyLearningOrganizationTeamProgress
+              courses={effectiveCatalog}
+              tutorEnrollments={tutorLedCoursesForHub}
+              tutorExplore={tutorLedExploreCourses}
+              companySize={learnerProfile.companySize}
+            />
+          </section>
         ) : isLearning ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
             <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
@@ -1104,6 +1286,15 @@ export default function MyLearningPage() {
               )}
             </article>
           </section>
+        ) : isAchievements && isOrgLearner ? (
+          <MyLearningOrganizationAchievementsTab
+            companyName={learnerProfile.companyName ?? orgDashboardSnapshot.companyName}
+            courses={effectiveCatalog}
+            tutorEnrollments={tutorLedCoursesForHub}
+            tutorExplore={tutorLedExploreCourses}
+            companySize={learnerProfile.companySize}
+            globalBadgeImage={adminContent.globalCertificateAssets?.badgeImage}
+          />
         ) : isAchievements ? (
           <MyLearningAchievementsTab
             learnerFirstName={learnerFirstName}

@@ -46,6 +46,18 @@ export function tutorLedLearnerLiveJoinHref(slug?: string | null): string {
   return `${tutorLedLearnerJoinHref(slug)}#zoom-live`;
 }
 
+/** Organisation admin opens live join for a specific team member (separate attendee context). */
+export function tutorLedOrgEmployeeJoinHref(
+  slug: string,
+  employeeId: string,
+  employeeName?: string | null,
+): string {
+  const params = new URLSearchParams({ orgEmployee: employeeId.trim() });
+  const name = employeeName?.trim();
+  if (name) params.set("as", name);
+  return `${tutorLedLearnerJoinHref(slug)}?${params.toString()}#zoom-live`;
+}
+
 /** Live join entry — opens the program hub Zoom classroom card (never a raw zoom.us bypass). */
 export function tutorLedLiveZoomHref(slug?: string | null): string {
   return `${tutorLedLearnerJoinHref(slug)}#zoom-live`;

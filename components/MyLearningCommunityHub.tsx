@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   Bell,
+  Building2,
   ChevronRight,
   FileQuestion,
   Headphones,
@@ -16,6 +17,7 @@ import {
   MessageSquare,
   Shield,
   Star,
+  Users,
 } from "lucide-react";
 import type { DashboardCalendarReminder } from "@/lib/content-schema";
 import type { CommunityConnectCard } from "@/lib/my-learning-community-defaults";
@@ -40,8 +42,19 @@ import { SocialBrandIcon, SOCIAL_BRAND_BUTTON_CLASS } from "@/components/SocialB
 import type { CommunityConnectIcon } from "@/lib/my-learning-community-defaults";
 import { SFT_EMAILS } from "@/lib/contact-site-data";
 import { readJsonResponse } from "@/lib/safe-json";
+import {
+  addOrgCommunityPost,
+  formatOrgPostTimeLabel,
+  mergeOrgCommunityPosts,
+  ORG_COMMUNITY_POSTS_EVENT,
+  readOrgCommunityPosts,
+  type OrgCommunityAudience,
+  type OrgCommunityPost,
+} from "@/lib/organization-community-posts";
+import { formatOrgEmployeeUserId } from "@/lib/organization-dashboard";
 
 type FeedKind = "review" | "question" | "suggestion" | "discussion";
+type OrgFeedScope = "all" | "employee" | "organization";
 
 type FeedItem = {
   id: string;
@@ -55,6 +68,8 @@ type FeedItem = {
   timeLabel: string;
   helpful?: number;
   href: string;
+  orgAudience?: OrgCommunityAudience;
+  authorUserId?: string;
 };
 
 type Props = {
@@ -73,6 +88,10 @@ type Props = {
   globalBadgeImage?: string;
   calendarReminders?: DashboardCalendarReminder[];
   communityConnect?: CommunityConnectCard[];
+  /** Team hub — employees and organisation share views both ways */
+  organizationMode?: boolean;
+  companyName?: string;
+  posterDisplayName?: string;
 };
 
 function kindMeta(kind: FeedKind) {
@@ -169,6 +188,9 @@ export function MyLearningCommunityHub({
   globalBadgeImage,
   calendarReminders = [],
   communityConnect,
+  organizationMode = false,
+  companyName,
+  posterDisplayName,
 }: Props) {
   const feedbackRef = useRef<HTMLDivElement>(null);
   const askQuestionRef = useRef<HTMLDivElement>(null);
@@ -184,6 +206,11 @@ export function MyLearningCommunityHub({
   const [feedbackAttachmentName, setFeedbackAttachmentName] = useState("");
   const [wallSubmissions, setWallSubmissions] = useState<CommunityWallSubmission[]>([]);
   const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [orgPosts, setOrgPosts] = useState<OrgCommunityPost[]>([]);
+  const [feedScope, setFeedScope] = useState<OrgFeedScope>("all");
+  const [shareAudience, setShareAudience] = useState<OrgCommunityAudience>("employee");
+
+  const displayCompany = companyName?.trim() || "Your organisation";
 
   const slugs = useMemo(
     () => Array.from(new Set(enrolledSlugs.map((s) => s.trim()).filter(Boolean))),
@@ -299,11 +326,63 @@ export function MyLearningCommunityHub({
     void loadWallSubmissions();
   }, [loadWallSubmissions]);
 
-  const visibleFeed = focusCourseSlug ? feed.filter((f) => f.courseSlug === focusCourseSlug) : feed;
+  const refreshOrgPosts = useCallback(() => {
+    if (!organizationMode) return;
+    setOrgPosts(mergeOrgCommunityPosts(readOrgCommunityPosts(), displayCompany));
+  }, [organizationMode, displayCompany]);
+
+  useEffect(() => {
+    refreshOrgPosts();
+    if (!organizationMode) return;
+    window.addEventListener(ORG_COMMUNITY_POSTS_EVENT, refreshOrgPosts);
+    return () => window.removeEventListener(ORG_COMMUNITY_POSTS_EVENT, refreshOrgPosts);
+  }, [organizationMode, refreshOrgPosts]);
+
+  const orgFeedItems = useMemo((): FeedItem[] => {
+    if (!organizationMode) return [];
+    return orgPosts.map((p) => ({
+      id: `org-${p.id}`,
+      kind: p.rating ? "review" : "discussion",
+      user: p.authorName,
+      courseTitle: p.courseTitle,
+      courseSlug: p.courseSlug,
+      title: p.title,
+      body: p.body,
+      rating: p.rating,
+      timeLabel: formatOrgPostTimeLabel(p.createdAt),
+      href: `/my-learning?tab=community`,
+      orgAudience: p.audience,
+      authorUserId: p.authorUserId,
+    }));
+  }, [organizationMode, orgPosts]);
+
+  const mergedFeed = useMemo(() => {
+    if (!organizationMode) return feed;
+    const apiIds = new Set(feed.map((f) => f.id));
+    const extra = orgFeedItems.filter((f) => !apiIds.has(f.id));
+    return [...feed, ...extra].sort((a, b) => {
+      const score = (item: FeedItem) =>
+        (item.orgAudience === "organization" ? 3 : item.orgAudience === "employee" ? 2 : 1) +
+        (item.kind === "review" ? 1 : 0);
+      return score(b) - score(a);
+    });
+  }, [organizationMode, feed, orgFeedItems]);
+
+  const scopedFeed = useMemo(() => {
+    if (!organizationMode || feedScope === "all") return mergedFeed;
+    if (feedScope === "organization") {
+      return mergedFeed.filter((f) => f.orgAudience === "organization");
+    }
+    return mergedFeed.filter((f) => f.orgAudience === "employee" || !f.orgAudience);
+  }, [organizationMode, feedScope, mergedFeed]);
+
+  const visibleFeed = focusCourseSlug
+    ? scopedFeed.filter((f) => f.courseSlug === focusCourseSlug)
+    : scopedFeed;
 
   const successTestimonials = useMemo(
     () =>
-      feed
+      (organizationMode ? mergedFeed : feed)
         .filter((f) => f.kind === "review" && f.rating && f.rating >= 4 && f.body.trim())
         .map((f) => ({
           id: f.id,
@@ -313,7 +392,7 @@ export function MyLearningCommunityHub({
           rating: f.rating!,
           courseSlug: f.courseSlug,
         })),
-    [feed],
+    [feed, mergedFeed, organizationMode],
   );
 
   const connectCards = useMemo(
@@ -370,7 +449,29 @@ export function MyLearningCommunityHub({
       setFeedbackRating(0);
       setFeedbackAttachmentUrl("");
       setFeedbackAttachmentName("");
-      setFeedbackMessage("Thank you — your feedback was shared with the community.");
+      if (organizationMode) {
+        const courseTitle = courseTitles[selectedCourse] ?? selectedCourse;
+        addOrgCommunityPost({
+          audience: shareAudience,
+          authorName:
+            shareAudience === "organization"
+              ? `${displayCompany} · ${posterDisplayName?.trim() || "Admin"}`
+              : posterDisplayName?.trim() || getLearnerDisplayName(),
+          authorUserId:
+            shareAudience === "employee" ? formatOrgEmployeeUserId("1") : undefined,
+          courseTitle,
+          courseSlug: selectedCourse,
+          title: shareAudience === "organization" ? "Organisation update" : "Team member share",
+          body: reviewWithAttachment,
+          rating: rating > 0 ? rating : undefined,
+        });
+        refreshOrgPosts();
+      }
+      setFeedbackMessage(
+        organizationMode
+          ? "Shared with the team — employees and organisation can both see this view."
+          : "Thank you — your feedback was shared with the community.",
+      );
       void loadFeed();
     } catch {
       setFeedbackMessage("Could not reach the server. Try again.");
@@ -400,9 +501,13 @@ export function MyLearningCommunityHub({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white md:text-4xl">Community Hub</h1>
+          <h1 className="text-3xl font-bold text-white md:text-4xl">
+            {organizationMode ? "Team Community Hub" : "Community Hub"}
+          </h1>
           <p className="mt-1 max-w-2xl text-sm text-zinc-400">
-            Share feedback, connect with learners, and stay updated with official community channels.
+            {organizationMode
+              ? `Employees and ${displayCompany} share views here — post as a team member or as the organisation. Everyone sees each other's updates.`
+              : "Share feedback, connect with learners, and stay updated with official community channels."}
           </p>
           {focusCourseSlug ? (
             <p className="mt-2 text-xs text-zinc-500">
@@ -461,8 +566,33 @@ export function MyLearningCommunityHub({
         <article className="rounded-2xl border border-white/10 bg-black/40 p-4">
           <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
             <MessageCircle className="h-5 w-5 text-violet-300" aria-hidden />
-            Learner Reviews &amp; Discussions
+            {organizationMode ? "Team & Organisation Views" : "Learner Reviews & Discussions"}
           </h2>
+          {organizationMode ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {(
+                [
+                  ["all", "All views", Users],
+                  ["employee", "Employees", Users],
+                  ["organization", "Organisation", Building2],
+                ] as const
+              ).map(([id, label, Icon]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setFeedScope(id)}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                    feedScope === id
+                      ? "bg-[#FFC107]/20 text-[#FFC107]"
+                      : "border border-white/10 text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <Icon className="h-3 w-3" aria-hidden />
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <div className="mt-4 space-y-3">
             {loadingFeed ? (
               <p className="text-sm text-zinc-500">Loading community posts…</p>
@@ -485,6 +615,27 @@ export function MyLearningCommunityHub({
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-semibold text-white">{item.user}</span>
+                          {item.authorUserId ? (
+                            <span className="font-mono text-[10px] text-amber-200/80">
+                              {item.authorUserId}
+                            </span>
+                          ) : null}
+                          {item.orgAudience ? (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                item.orgAudience === "organization"
+                                  ? "bg-amber-500/20 text-amber-200"
+                                  : "bg-sky-500/20 text-sky-200"
+                              }`}
+                            >
+                              {item.orgAudience === "organization" ? (
+                                <Building2 className="h-3 w-3" aria-hidden />
+                              ) : (
+                                <Users className="h-3 w-3" aria-hidden />
+                              )}
+                              {item.orgAudience === "organization" ? "Organisation" : "Employee"}
+                            </span>
+                          ) : null}
                           <span
                             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${meta.className}`}
                           >
@@ -586,7 +737,9 @@ export function MyLearningCommunityHub({
           <article className="rounded-2xl border border-white/10 bg-black/40 p-4">
             <h2 className="text-lg font-bold text-white">Course Proof &amp; Success Wall</h2>
             <p className="mt-0.5 text-[11px] text-zinc-500">
-              Your certificates, course badges, and completed programs
+              {organizationMode
+                ? "Team certificates, badges, and wins — share proof with the organisation"
+                : "Your certificates, course badges, and completed programs"}
             </p>
             <CommunitySuccessWall
               certificates={certificates}
@@ -610,12 +763,50 @@ export function MyLearningCommunityHub({
           >
             <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
               <MessageSquare className="h-5 w-5 text-violet-300" aria-hidden />
-              Feedback &amp; Suggestions
+              {organizationMode ? "Share a team or organisation view" : "Feedback & Suggestions"}
             </h2>
+            {organizationMode ? (
+              <p className="mt-1 text-[11px] text-zinc-400">
+                Post as an employee (team view) or as the organisation — both sides see shared posts.
+              </p>
+            ) : null}
             {slugs.length === 0 ? (
-              <p className="mt-3 text-sm text-zinc-500">Enroll in a course to leave feedback.</p>
+              <p className="mt-3 text-sm text-zinc-500">
+                {organizationMode
+                  ? "Assign a team course to start sharing views."
+                  : "Enroll in a course to leave feedback."}
+              </p>
             ) : (
               <div className="mt-3 space-y-3">
+                {organizationMode ? (
+                  <div>
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                      Share as
+                    </span>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {(
+                        [
+                          ["employee", "Employee view", Users],
+                          ["organization", "Organisation view", Building2],
+                        ] as const
+                      ).map(([id, label, Icon]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setShareAudience(id)}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${
+                            shareAudience === id
+                              ? "bg-violet-600 text-white"
+                              : "border border-white/15 text-zinc-300 hover:border-violet-400/40"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" aria-hidden />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <label className="block">
                   <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
                     Select course

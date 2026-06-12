@@ -555,7 +555,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
               )}
             </nav>
             <div className="flex flex-col gap-4 pt-6">
-              {isLoggedIn && !forceDarkChrome ? <PricingRegionBadge compact className="md:hidden" /> : null}
+              {isLoggedIn && !forceDarkChrome ? <PricingRegionBadge compact className="self-start md:hidden" /> : null}
               <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                 <div className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-200">
                   <Globe size={16} />

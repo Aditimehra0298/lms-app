@@ -6,6 +6,7 @@ import {
   type LearnerCalendarReminder,
   parseDateKey,
 } from "@/lib/learner-calendar-reminders";
+import type { OrgCalendarReminder, OrgCalendarReminderSymbol } from "@/lib/organization-calendar-reminders";
 export type CalendarEventKind = "live" | "workshop" | "exam" | "certificate" | "course" | "reminder";
 
 export type DashboardCalendarEvent = {
@@ -15,6 +16,9 @@ export type DashboardCalendarEvent = {
   subtitle?: string;
   href: string;
   kind: CalendarEventKind;
+  /** Custom icon for org / personal reminders */
+  symbol?: OrgCalendarReminderSymbol | "bell";
+  addedByName?: string;
 };
 
 export type DashboardNotification = {
@@ -25,6 +29,7 @@ export type DashboardNotification = {
   href: string;
   tone: "amber" | "emerald" | "sky" | "rose" | "violet";
   kind: CalendarEventKind | "course";
+  symbol?: OrgCalendarReminderSymbol | "bell";
 };
 
 export type NotificationFilter = "all" | "live" | "exam" | "certificate" | "reminder";
@@ -209,6 +214,24 @@ export function buildUserReminderEvents(
       subtitle: r.note?.trim() || "Your reminder",
       href: "/my-learning/calendar",
       kind: "reminder" as const,
+      symbol: "bell" as const,
+    }));
+}
+
+export function buildOrgUserReminderEvents(
+  reminders: OrgCalendarReminder[],
+): DashboardCalendarEvent[] {
+  return reminders
+    .filter((r) => r.methodTitle?.trim() && r.addedByName?.trim() && parseDateKey(r.date))
+    .map((r) => ({
+      id: `org-user-reminder-${r.id}`,
+      date: parseDateKey(r.date)!,
+      title: r.methodTitle.trim(),
+      subtitle: r.note?.trim() || `${r.addedByName.trim()} · Team notification`,
+      href: "/my-learning/calendar",
+      kind: "reminder" as const,
+      symbol: r.symbol,
+      addedByName: r.addedByName.trim(),
     }));
 }
 
@@ -245,8 +268,20 @@ export function isUserReminderEvent(id: string): boolean {
   return id.startsWith("user-reminder-");
 }
 
+export function isOrgUserReminderEvent(id: string): boolean {
+  return id.startsWith("org-user-reminder-");
+}
+
+export function isCustomReminderEvent(id: string): boolean {
+  return isUserReminderEvent(id) || isOrgUserReminderEvent(id);
+}
+
 export function userReminderIdFromEvent(id: string): string | null {
   return isUserReminderEvent(id) ? id.replace(/^user-reminder-/, "") : null;
+}
+
+export function orgUserReminderIdFromEvent(id: string): string | null {
+  return isOrgUserReminderEvent(id) ? id.replace(/^org-user-reminder-/, "") : null;
 }
 
 export function buildDashboardNotifications(input: {
@@ -338,15 +373,23 @@ export function buildDashboardNotifications(input: {
   for (const ev of input.calendarEvents) {
     if (ev.kind !== "reminder") continue;
     if (ev.date < startOfDay(now) || ev.date > inSevenDays) continue;
-    const isUser = ev.id.startsWith("user-reminder-");
+    const isUser = isUserReminderEvent(ev.id);
+    const isOrgUser = isOrgUserReminderEvent(ev.id);
     items.push({
       id: `n-${ev.id}`,
       title: ev.title,
-      body: ev.subtitle ?? (isUser ? "Your reminder" : "From SF Trainings"),
+      body:
+        ev.subtitle ??
+        (isOrgUser && ev.addedByName
+          ? `${ev.addedByName} · Team notification`
+          : isUser
+            ? "Your reminder"
+            : "From SF Trainings"),
       timeLabel: formatShortDate(ev.date),
       href: ev.href,
       tone: "emerald",
       kind: "reminder",
+      symbol: ev.symbol,
     });
   }
 

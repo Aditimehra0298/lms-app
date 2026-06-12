@@ -147,22 +147,29 @@ export async function POST(request: Request) {
             }
           : {}),
       },
-      update: {
-        name: userFields.name ?? undefined,
-        accountType: userFields.accountType ?? undefined,
-        avatarUrl: userFields.avatarUrl ?? undefined,
-        phone: userFields.phone ?? undefined,
-        companyName: userFields.companyName ?? undefined,
-        personalEmail: userFields.personalEmail ?? undefined,
-        industryType: userFields.industryType ?? undefined,
-        companySize: userFields.companySize ?? undefined,
-        ipv4: ips.ipv4 ?? undefined,
-        ipv6: ips.ipv6 ?? undefined,
-        ...countryFields,
-        ...(passwordHash ? { passwordHash } : {}),
-        lastLoginAt: new Date(),
-        emailVerifiedAt: action === "register" ? new Date() : undefined,
-      },
+      update:
+        action === "login"
+          ? {
+              ipv4: ips.ipv4 ?? undefined,
+              ipv6: ips.ipv6 ?? undefined,
+              lastLoginAt: new Date(),
+            }
+          : {
+              name: userFields.name ?? undefined,
+              accountType: userFields.accountType ?? undefined,
+              avatarUrl: userFields.avatarUrl ?? undefined,
+              phone: userFields.phone ?? undefined,
+              companyName: userFields.companyName ?? undefined,
+              personalEmail: userFields.personalEmail ?? undefined,
+              industryType: userFields.industryType ?? undefined,
+              companySize: userFields.companySize ?? undefined,
+              ipv4: ips.ipv4 ?? undefined,
+              ipv6: ips.ipv6 ?? undefined,
+              ...countryFields,
+              ...(passwordHash ? { passwordHash } : {}),
+              lastLoginAt: new Date(),
+              emailVerifiedAt: action === "register" ? new Date() : undefined,
+            },
     });
     dbSaved = true;
     if (action === "register" && registrationPeriod) {

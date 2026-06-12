@@ -56,6 +56,7 @@ export const dynamic = "force-dynamic";
 
 /** Learners land here after sign-in when no `redirect` query is provided. */
 const DEFAULT_LEARNER_AFTER_LOGIN = "/";
+const DEFAULT_ORG_AFTER_LOGIN = "/my-learning";
 
 /** New registrations go to checkout first (demo payment), then success links to My Learning. */
 const DEFAULT_REGISTER_CHECKOUT = "/checkout?buyNow=advanced-cyber-security-professional";
@@ -177,6 +178,23 @@ function authCountryInput(countryCode: string): AuthCountryInput | undefined {
   const code = countryCode.trim().toUpperCase();
   if (!code) return undefined;
   return { countryCode: code, countryName: countryDisplayName(code) };
+}
+
+function learnerDestinationAfterAuth(
+  accountType: AccountType,
+  redirectTo: string,
+  authView: AuthView,
+): string {
+  const r = redirectTo.trim();
+  const registerKeepsRedirect =
+    (r.startsWith("/checkout") && r.includes("buyNow=")) || r.startsWith("/tutor-led/");
+  if (authView === "register") {
+    return registerKeepsRedirect ? redirectTo : DEFAULT_REGISTER_CHECKOUT;
+  }
+  if (accountType === "organisation" && (r === "/" || r === DEFAULT_LEARNER_AFTER_LOGIN || !r)) {
+    return DEFAULT_ORG_AFTER_LOGIN;
+  }
+  return redirectTo;
 }
 
 function GoogleMark({ className = "h-4 w-4 shrink-0" }: { className?: string }) {
@@ -506,8 +524,8 @@ export default function AccountPage() {
     setAuthError("");
     window.localStorage.setItem("sft_logged_in", "true");
     window.localStorage.setItem("sft_learner_email", normalizedEmail);
-    cacheLearnerProfile(profile);
     if (authView === "register") {
+      cacheLearnerProfile(profile);
       markLearnerAuthProvider("email");
       seedPreferencesFromProfile({
         industryType: profile.industryType,
@@ -553,12 +571,7 @@ export default function AccountPage() {
     await syncLearnerProfileFromServer(normalizedEmail);
     window.dispatchEvent(new Event("sft_auth_updated"));
     window.localStorage.setItem("sft_user_role", "learner");
-    const r = redirectTo.trim();
-    const registerKeepsRedirect =
-      (r.startsWith("/checkout") && r.includes("buyNow=")) || r.startsWith("/tutor-led/");
-    const learnerDestination =
-      authView === "register" ? (registerKeepsRedirect ? redirectTo : DEFAULT_REGISTER_CHECKOUT) : redirectTo;
-    router.push(learnerDestination);
+    router.push(learnerDestinationAfterAuth(selectedAccountType, redirectTo, authView));
   };
 
   const resolveCountryForGoogle = async (): Promise<string | null> => {
@@ -634,12 +647,13 @@ export default function AccountPage() {
         router.push("/admin");
         return;
       }
-      const r = redirectTo.trim();
-      const registerKeepsRedirect =
-        (r.startsWith("/checkout") && r.includes("buyNow=")) || r.startsWith("/tutor-led/");
-      const learnerDestination =
-        authView === "register" ? (registerKeepsRedirect ? redirectTo : DEFAULT_REGISTER_CHECKOUT) : redirectTo;
-      router.push(learnerDestination);
+      router.push(
+        learnerDestinationAfterAuth(
+          result.accountType ?? selectedAccountType,
+          redirectTo,
+          selectedAccountType === "self" ? "login" : authView,
+        ),
+      );
     } catch {
       setAuthError("Could not reach the server. Check that the app is running.");
     } finally {

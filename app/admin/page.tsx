@@ -50,6 +50,7 @@ import AdminUsersWorkspace from "@/components/admin/AdminUsersWorkspace";
 import AdminRolesPermissionsWorkspace from "@/components/admin/AdminRolesPermissionsWorkspace";
 import { AdminCommunityConnectEditor } from "@/components/admin/AdminCommunityConnectEditor";
 import { AdminDashboardCalendarEditor } from "@/components/admin/AdminDashboardCalendarEditor";
+import { AdminOrganizationTeamEditor } from "@/components/admin/AdminOrganizationTeamEditor";
 import AdminCourseQAModeration from "@/components/admin/AdminCourseQAModeration";
 import AdminSupportTickets from "@/components/admin/AdminSupportTickets";
 import AdminFormSubmissions from "@/components/admin/AdminFormSubmissions";
@@ -94,7 +95,7 @@ const menuSections = [
   },
   {
     title: "Users & Access",
-    items: ["Users", "Certificates", "Roles & Permissions"],
+    items: ["Users", "Organization Team", "Certificates", "Roles & Permissions"],
   },
   {
     title: "Orders & Payments",
@@ -357,6 +358,7 @@ export default function AdminPage() {
   const showTestimonialsEditor = activeMenu === "Testimonials";
   const showCertificatesWorkspace = activeMenu === "Certificates";
   const showUsersWorkspace = activeMenu === "Users";
+  const showOrganizationTeam = activeMenu === "Organization Team";
   const showRolesWorkspace = activeMenu === "Roles & Permissions";
   const hasMainPanel =
     activeMenu === "Dashboard" ||
@@ -376,6 +378,7 @@ export default function AdminPage() {
     showTestimonialsEditor ||
     showCertificatesWorkspace ||
     showUsersWorkspace ||
+    showOrganizationTeam ||
     showRolesWorkspace ||
     activeMenu === "Categories";
 
@@ -845,6 +848,8 @@ export default function AdminPage() {
           {showCertificatesWorkspace && <AdminCertificatesWorkspace />}
 
           {showUsersWorkspace && <AdminUsersWorkspace />}
+
+          {showOrganizationTeam && <AdminOrganizationTeamEditor />}
 
           {showRolesWorkspace && <AdminRolesPermissionsWorkspace />}
 

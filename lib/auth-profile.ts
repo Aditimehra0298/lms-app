@@ -15,6 +15,10 @@ export type LearnerAuthProfile = {
   role?: string;
   countryCode?: string;
   countryName?: string;
+  /** Permanent MySQL learner/org ID (101, 102…) — same on every device after sign-in. */
+  identificationNumber?: number;
+  registrationCode?: string;
+  registrationMonthYear?: string;
 };
 
 export const AUTH_PROFILE_KEYS = {
@@ -27,6 +31,9 @@ export const AUTH_PROFILE_KEYS = {
   personalEmail: "sft_personal_email",
   industryType: "sft_industry_type",
   companySize: "sft_company_size",
+  identificationNumber: "sft_identification_number",
+  registrationCode: "sft_registration_code",
+  registrationMonthYear: "sft_registration_month_year",
 } as const;
 
 export function learnerProfileFromDb(profile: LmsUserProfilePayload): LearnerAuthProfile {
@@ -43,6 +50,9 @@ export function learnerProfileFromDb(profile: LmsUserProfilePayload): LearnerAut
     role: profile.role,
     countryCode: profile.countryCode ?? undefined,
     countryName: profile.countryName ?? undefined,
+    identificationNumber: profile.identificationNumber ?? undefined,
+    registrationCode: profile.registrationCode ?? undefined,
+    registrationMonthYear: profile.registrationMonthYear ?? undefined,
   };
 }
 
@@ -75,6 +85,25 @@ export function cacheLearnerProfile(profile: LearnerAuthProfile): void {
   if (profile.companySize?.trim()) {
     window.localStorage.setItem(AUTH_PROFILE_KEYS.companySize, profile.companySize.trim());
   }
+  if (profile.identificationNumber != null && Number.isFinite(profile.identificationNumber)) {
+    window.localStorage.setItem(
+      AUTH_PROFILE_KEYS.identificationNumber,
+      String(profile.identificationNumber),
+    );
+  }
+  if (profile.registrationCode?.trim()) {
+    window.localStorage.setItem(AUTH_PROFILE_KEYS.registrationCode, profile.registrationCode.trim());
+  }
+  if (profile.registrationMonthYear?.trim()) {
+    window.localStorage.setItem(
+      AUTH_PROFILE_KEYS.registrationMonthYear,
+      profile.registrationMonthYear.trim(),
+    );
+  }
+}
+
+export function isOrganisationLearner(profile?: LearnerAuthProfile | null): boolean {
+  return profile?.accountType === "organisation";
 }
 
 export function readLearnerProfileFromStorage(): LearnerAuthProfile {
@@ -95,6 +124,15 @@ export function readLearnerProfileFromStorage(): LearnerAuthProfile {
     personalEmail: window.localStorage.getItem(AUTH_PROFILE_KEYS.personalEmail) ?? undefined,
     industryType: window.localStorage.getItem(AUTH_PROFILE_KEYS.industryType) ?? undefined,
     companySize: window.localStorage.getItem(AUTH_PROFILE_KEYS.companySize) ?? undefined,
+    identificationNumber: (() => {
+      const raw = window.localStorage.getItem(AUTH_PROFILE_KEYS.identificationNumber);
+      if (!raw) return undefined;
+      const n = Number.parseInt(raw, 10);
+      return Number.isFinite(n) ? n : undefined;
+    })(),
+    registrationCode: window.localStorage.getItem(AUTH_PROFILE_KEYS.registrationCode) ?? undefined,
+    registrationMonthYear:
+      window.localStorage.getItem(AUTH_PROFILE_KEYS.registrationMonthYear) ?? undefined,
   };
 }
 

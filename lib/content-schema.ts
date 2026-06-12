@@ -1,4 +1,8 @@
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "./default-tutor-led-programs";
+import {
+  defaultOrganizationTeamAdminConfig,
+  type OrganizationTeamAdminConfig,
+} from "./organization-team-config";
 import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
 import type { CommunityConnectCard } from "./my-learning-community-defaults";
 
@@ -223,6 +227,16 @@ export type CourseRegionalPriceRow = {
   oldPrice?: string;
 };
 
+/** Organisation team purchase — price per country + employee seat band (admin Pricing tab). */
+export type OrganizationSeatBandId = "1-10" | "11-20" | "21-30" | "31-40" | "41-50" | "51+";
+
+export type OrganizationSeatBandPriceRow = {
+  countryCode: string;
+  bandId: OrganizationSeatBandId;
+  price: string;
+  oldPrice?: string;
+};
+
 export type ManagedCourse = {
   slug: string;
   title: string;
@@ -236,6 +250,8 @@ export type ManagedCourse = {
   oldPrice: string;
   /** Country-specific sale + list prices (ISO 3166-1 alpha-2). Falls back to global prices. */
   regionalPrices?: CourseRegionalPriceRow[];
+  /** Organisation team pricing by region + seat band (individual `regionalPrices` unchanged). */
+  organizationSeatPricing?: OrganizationSeatBandPriceRow[];
   image: string;
   published: boolean;
   /** Defaults to self-paced when omitted (legacy rows). */
@@ -945,8 +961,12 @@ export type GlobalCertificateAssets = {
   transcriptFile?: string;
 };
 
+export type { OrganizationTeamAdminConfig };
+
 export type AdminContent = {
   dashboard: DashboardContent;
+  /** Organisation premium tiers, seat limits, invite/assign rules — Admin → Organization Team */
+  organizationTeam?: OrganizationTeamAdminConfig;
   learningCourses: LearningCourseItem[];
   managedCourses: ManagedCourse[];
   /** Default certificate assets when a course/program has no per-item upload. */
@@ -967,6 +987,7 @@ export const defaultAdminContent: AdminContent = {
     streakDays: 0,
     calendarReminders: [],
   },
+  organizationTeam: defaultOrganizationTeamAdminConfig,
   learningCourses: [],
   managedCourses: [
     {

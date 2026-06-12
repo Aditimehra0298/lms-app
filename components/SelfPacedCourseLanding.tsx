@@ -35,7 +35,13 @@ import { KnowPriceButton } from "@/components/KnowPriceButton";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
 import { formatSimpleRichTextBlock } from "@/lib/simple-rich-text";
 import { useResolvedCoursePrice } from "@/lib/hooks/useResolvedCoursePrice";
+import { isOrganisationLearner, readLearnerProfileFromStorage } from "@/lib/auth-profile";
+import {
+  OrganizationSeatPricingBlock,
+  isOrganizationPurchaseReady,
+} from "@/components/OrganizationSeatPricingBlock";
 import { isLearnerLoggedIn, loginRedirectHref } from "@/lib/learner-session-client";
+import { resolveOrganizationCoursePriceBySeatCount } from "@/lib/organization-course-pricing";
 import { buildCredentialShareLinks } from "@/lib/share-credentials";
 import {
   Award,
@@ -223,6 +229,9 @@ function PurchaseCard({
   onEnroll,
   wishlisted,
   onToggleWishlist,
+  isOrganisation,
+  seatCount,
+  onSeatCountChange,
 }: {
   course: ManagedCourse;
   hero: ResolvedCourseHero;
@@ -232,8 +241,12 @@ function PurchaseCard({
   onEnroll: () => void;
   wishlisted: boolean;
   onToggleWishlist: () => void;
+  isOrganisation: boolean;
+  seatCount: number | "";
+  onSeatCountChange: (value: number | "") => void;
 }) {
-  const { showPrices, ready } = useLearnerPricing();
+  const { showPrices, ready, region } = useLearnerPricing();
+  const orgReady = isOrganisation && isOrganizationPurchaseReady(course, region, seatCount);
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-[#141414] shadow-[0_20px_60px_rgba(0,0,0,0.65)]">
@@ -255,7 +268,16 @@ function PurchaseCard({
         </p>
       </div>
       <div className="p-5">
-        {!ready ? (
+        {isOrganisation ? (
+          <div className="mb-4">
+            <OrganizationSeatPricingBlock
+              course={course}
+              seatCount={seatCount}
+              onSeatCountChange={onSeatCountChange}
+              variant="purchase-card"
+            />
+          </div>
+        ) : !ready ? (
           <div className="mb-4 h-9 animate-pulse rounded-lg bg-zinc-800" />
         ) : showPrices ? (
           <div className="mb-1 flex flex-wrap items-end gap-2">
@@ -278,8 +300,17 @@ function PurchaseCard({
           <Shield className="h-3.5 w-3.5 shrink-0 text-zinc-500" aria-hidden />
           {hero.moneyBackGuarantee}
         </p>
-        <button type="button" onClick={onEnroll} className={goldBtn}>
-          {hero.enrollButtonLabel}
+        <button
+          type="button"
+          onClick={onEnroll}
+          disabled={isOrganisation && !orgReady}
+          className={`${goldBtn} ${isOrganisation && !orgReady ? "cursor-not-allowed opacity-50" : ""}`}
+        >
+          {isOrganisation
+            ? orgReady
+              ? `Enroll ${seatCount} employees`
+              : "Enter number of employees"
+            : hero.enrollButtonLabel}
         </button>
         <button
           type="button"
@@ -348,6 +379,9 @@ export default function SelfPacedCourseLanding({ course }: Props) {
   const searchParams = useSearchParams();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [wishlisted, setWishlisted] = useState(false);
+  const [orgSeatCount, setOrgSeatCount] = useState<number | "">("");
+  const isOrganisation = isOrganisationLearner(readLearnerProfileFromStorage());
+  const { region } = useLearnerPricing();
 
   const allowQa = course.settings?.allowQa !== false;
   const initialTab = searchParams.get("tab");
@@ -403,6 +437,15 @@ export default function SelfPacedCourseLanding({ course }: Props) {
     markCourseLandingViewed(course.slug);
     if (!isLearnerLoggedIn()) {
       router.push(loginRedirectHref(courseLandingHref(course.slug, course.learningFormat, null, true)));
+      return;
+    }
+    if (isOrganisation) {
+      const seats = typeof orgSeatCount === "number" ? orgSeatCount : null;
+      const orgPrice = resolveOrganizationCoursePriceBySeatCount(course, region, seats);
+      if (!seats || !orgPrice.ready || !orgPrice.bandId) return;
+      router.push(
+        `/checkout?buyNow=${encodeURIComponent(course.slug)}&orgSeats=${seats}&orgBand=${encodeURIComponent(orgPrice.bandId)}`,
+      );
       return;
     }
     addItemToCart({
@@ -571,6 +614,9 @@ export default function SelfPacedCourseLanding({ course }: Props) {
                 onEnroll={enroll}
                 wishlisted={wishlisted}
                 onToggleWishlist={() => setWishlisted((w) => !w)}
+                isOrganisation={isOrganisation}
+                seatCount={orgSeatCount}
+                onSeatCountChange={setOrgSeatCount}
               />
             </aside>
           </div>

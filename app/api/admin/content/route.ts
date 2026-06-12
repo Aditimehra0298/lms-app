@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AdminContent, defaultAdminContent } from "@/lib/content-schema";
+import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
 import { syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
 import { syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
 import { readAdminContent, writeAdminContent } from "@/lib/server/content-store";
@@ -57,6 +58,9 @@ export async function PUT(request: Request) {
         body.globalCertificateAssets !== undefined
           ? body.globalCertificateAssets
           : existing.globalCertificateAssets,
+      organizationTeam: mergeOrganizationTeamAdminConfig(
+        body.organizationTeam ?? existing.organizationTeam,
+      ),
     };
 
     await writeAdminContent(nextContent);

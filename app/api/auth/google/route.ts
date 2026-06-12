@@ -151,17 +151,26 @@ export async function POST(request: Request) {
         lastLoginAt: new Date(),
         emailVerifiedAt: new Date(),
       },
-      update: {
-        name: name ?? undefined,
-        role: isAdminGoogleStep ? "admin" : undefined,
-        accountType: isAdminGoogleStep ? "self" : accountType,
-        avatarUrl: avatarUrl ?? undefined,
-        ipv4: ips.ipv4 ?? undefined,
-        ipv6: ips.ipv6 ?? undefined,
-        ...countryFields,
-        lastLoginAt: new Date(),
-        emailVerifiedAt: new Date(),
-      },
+      update:
+        action === "login" && existing && !isAdminGoogleStep
+          ? {
+              name: name ?? undefined,
+              avatarUrl: avatarUrl ?? undefined,
+              ipv4: ips.ipv4 ?? undefined,
+              ipv6: ips.ipv6 ?? undefined,
+              lastLoginAt: new Date(),
+            }
+          : {
+              name: name ?? undefined,
+              role: isAdminGoogleStep ? "admin" : undefined,
+              accountType: isAdminGoogleStep ? "self" : accountType,
+              avatarUrl: avatarUrl ?? undefined,
+              ipv4: ips.ipv4 ?? undefined,
+              ipv6: ips.ipv6 ?? undefined,
+              ...countryFields,
+              lastLoginAt: new Date(),
+              emailVerifiedAt: new Date(),
+            },
     });
     dbSaved = true;
 

@@ -19,6 +19,7 @@ import {
   getOrganizationByWorkEmail,
 } from "@/lib/server/organization-identification";
 import { ensureUserIdentificationNumber } from "@/lib/server/user-identification";
+import { allocateEmployeeCertificateNumbers } from "@/lib/server/organization-employee-certificate";
 
 import type { IssuedCertificateDto, SupplementaryDoc } from "@/lib/certificate-types";
 
@@ -165,6 +166,90 @@ export async function issueCourseCertificate(input: {
       delegateNumber,
       verifyNumber,
       identificationNumber,
+      issuedAt,
+      scorePercent: input.scorePercent ?? null,
+      templateImage: cfg.templateImage,
+      badgeImage: cfg.badgeImage || null,
+      supplementaryDocs: cfg.supplementaryDocs.length > 0 ? cfg.supplementaryDocs : undefined,
+    },
+  });
+
+  return { ok: true, certificate: await enrichCertificate(serializeCertificate(row, companyName)) };
+}
+
+/**
+ * Issue a certificate for an organisation employee — same number pattern as individual learners
+ * (`YYYY-MM-courseId-trainingId/userId` and `YYYY-verifyNumber-userId`, no `-org` suffix).
+ */
+export async function issueEmployeeCourseCertificate(input: {
+  employeeEmail: string;
+  employeeName?: string;
+  organizationWorkEmail?: string | null;
+  courseSlug: string;
+  scorePercent?: number;
+}): Promise<{ ok: true; certificate: IssuedCertificateDto } | { ok: false; message: string }> {
+  const employeeEmail = input.employeeEmail.trim().toLowerCase();
+  const slug = input.courseSlug.trim();
+  if (!employeeEmail || !slug) {
+    return { ok: false, message: "Employee email and course slug are required." };
+  }
+
+  const content = await readAdminContent();
+  const program = findCertificateProgram(content, slug);
+  if (!program) return { ok: false, message: "Course not found in catalog." };
+
+  const cfg = resolveCertificateConfig(program, content);
+  if (!cfg.enabled) return { ok: false, message: "Certificates are not enabled for this course." };
+
+  const courseRow = await prisma.lmsCourse.findUnique({ where: { slug } });
+  if (!courseRow) {
+    return { ok: false, message: "Course must be synced to MySQL before issuing a certificate." };
+  }
+
+  const existing = await prisma.lmsCertificate.findFirst({
+    where: { learnerEmail: employeeEmail, courseSlug: slug },
+  });
+  if (existing) {
+    return { ok: true, certificate: await enrichCertificate(serializeCertificate(existing)) };
+  }
+
+  const allocated = await allocateEmployeeCertificateNumbers({
+    employeeEmail,
+    organizationWorkEmail: input.organizationWorkEmail,
+    courseIdentificationNumber: courseRow.courseIdentificationNumber,
+  });
+  if (!allocated.ok) return allocated;
+
+  let companyName: string | null = null;
+  if (allocated.organizationId) {
+    const org = await prisma.lmsOrganization.findUnique({
+      where: { id: allocated.organizationId },
+      select: { companyName: true },
+    });
+    companyName = org?.companyName ?? null;
+  }
+
+  const displayName =
+    input.employeeName?.trim() ||
+    (await prisma.lmsUser.findUnique({ where: { email: employeeEmail }, select: { name: true } }))
+      ?.name?.trim() ||
+    employeeEmail.split("@")[0];
+
+  const issuedAt = new Date();
+  const row = await prisma.lmsCertificate.create({
+    data: {
+      userId: allocated.userId,
+      organizationId: allocated.organizationId,
+      holderType: "individual",
+      learnerEmail: employeeEmail,
+      learnerName: displayName,
+      courseSlug: slug,
+      courseId: courseRow.id,
+      courseTitle: program.title,
+      certificateNumber: allocated.certificateNumber,
+      delegateNumber: allocated.delegateNumber,
+      verifyNumber: allocated.verifyNumber,
+      identificationNumber: allocated.identificationNumber,
       issuedAt,
       scorePercent: input.scorePercent ?? null,
       templateImage: cfg.templateImage,

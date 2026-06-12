@@ -11,6 +11,7 @@ import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
 import type { PricingRegion } from "@/lib/country-pricing";
 import { markLearnerAuthProvider, applyGoogleRecommendationSignals } from "@/lib/learner-learning-preferences";
 import type { GoogleAccountRecommendationSignals } from "@/lib/google-account-recommendation-signals";
+import { setPricingRevealed } from "@/lib/pricing-reveal";
 
 export type GoogleAuthResult = AuthRecordResult & {
   email?: string;
