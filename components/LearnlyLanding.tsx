@@ -392,6 +392,11 @@ const faqs = [
   },
 ];
 
+const IRBA_ACCREDITATION_LOGO = {
+  src: "/partners/irba.png",
+  alt: "IRBA — Integrated Regulatory Board of Auditors",
+};
+
 const accreditationLogos = ["/e1.png", "/e2.png", "/e3.png", "/e4.png"];
 const exploreProgramImages = [
   "/p1.png",
@@ -403,6 +408,10 @@ const exploreProgramImages = [
   "/p7.png",
   "/p8.png",
 ];
+const HERO_VIDEO_DARK = "/learnly-hero.mp4";
+const HERO_VIDEO_LIGHT =
+  "https://res.cloudinary.com/dwnnakrrh/video/upload/v1781590252/video_1_xlnmvd.mp4";
+
 const heroHighlights = [
   "95% Learner Satisfaction Rate",
   "Industry-Aligned Certification Programs",
@@ -599,11 +608,12 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
     play();
     el.addEventListener("loadeddata", play);
     return () => el.removeEventListener("loadeddata", play);
-  }, []);
+  }, [isLightTheme]);
 
   const goldGradient = "bg-gradient-to-b from-[#f9b14d] to-[#eb9422]";
-  const goldText = isLightTheme ? "text-[#8a6412]" : "text-[#fde68a]";
+  const goldText = isLightTheme ? "lh-gold-text text-[#9a6812]" : "text-[#fde68a]";
   const brandDark = "bg-[#0a0a0a]";
+  const heroVideoSrc = isLightTheme ? HERO_VIDEO_LIGHT : HERO_VIDEO_DARK;
 
   const liveTestimonials = homeConfig.testimonials.length > 0
     ? homeConfig.testimonials.map((t) => ({
@@ -677,9 +687,11 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   );
 
   const sectionShell = "mx-auto max-w-[1760px] px-4 md:px-6 xl:px-8";
-  const sectionTitle =
-    "text-3xl font-extrabold tracking-tight text-white md:text-4xl lg:text-5xl";
-  const mutedP = "text-base leading-relaxed text-slate-400 md:text-lg";
+  const sectionTitle = "lh-section-title";
+  const cardTitle = "lh-card-title";
+  const mutedP = isLightTheme
+    ? "text-base leading-relaxed text-slate-600 md:text-lg"
+    : "text-base leading-relaxed text-slate-400 md:text-lg";
 
   return (
     <div
@@ -701,6 +713,12 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
       <main className="relative z-10">
         <div className="mx-auto flex max-w-[1760px] flex-col items-center gap-12 px-4 pb-20 pt-6 md:px-6 md:pt-8 lg:flex-row lg:items-start lg:gap-6 lg:pt-10 xl:gap-8 xl:px-8">
           <div className="w-full space-y-8 pt-2 text-center lg:max-w-none lg:shrink-0 lg:basis-[48%] lg:text-left xl:basis-[47%]">
+            {isLightTheme ? (
+              <span className="lh-premium-badge inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-amber-500">
+                <Sparkles size={14} className="text-amber-500" />
+                Premium accredited learning
+              </span>
+            ) : null}
             <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight text-white md:text-5xl lg:text-6xl">
               {homeConfig.hero.heading}
               <br />
@@ -721,9 +739,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               </Link>
               <button
                 type="button"
-                className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-6 py-3.5 font-bold text-slate-200 transition-all hover:border-amber-500/40 hover:bg-amber-500/10"
+                className={`lh-hero-secondary-btn flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-6 py-3.5 font-bold text-slate-200 transition-all hover:border-amber-500/40 hover:bg-amber-500/10`}
               >
-                <Play size={18} fill="currentColor" />
+                <Play size={18} fill="currentColor" className={isLightTheme ? "text-[#c47f0a]" : undefined} />
                 {homeConfig.hero.ctaSecondary}
               </button>
             </div>
@@ -735,9 +753,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               aria-hidden
             />
             <div className="relative z-20 w-full">
-              <div className="relative aspect-video w-full overflow-hidden rounded-2xl md:rounded-3xl">
+              <div className="lh-hero-video-shell relative aspect-video w-full overflow-hidden rounded-2xl md:rounded-3xl">
                 <video
-                  key="learnly-hero"
+                  key={heroVideoSrc}
                   ref={heroVideoRef}
                   className="absolute inset-0 z-0 h-full w-full object-cover object-center will-change-transform transform-[translateZ(0)]"
                   autoPlay
@@ -747,18 +765,18 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                   preload="auto"
                   aria-label="Collaborative learning preview"
                 >
-                  <source src="/learnly-hero.mp4" type="video/mp4" />
+                  <source src={heroVideoSrc} type="video/mp4" />
                 </video>
 
-                <div className="absolute bottom-4 right-4 z-20 flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 shadow-none backdrop-blur-xl md:bottom-5 md:right-5 md:gap-4 md:rounded-2xl md:px-5 md:py-3.5">
+                <div className="lh-hero-badge absolute bottom-4 right-4 z-20 flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 shadow-none backdrop-blur-xl md:bottom-5 md:right-5 md:gap-4 md:rounded-2xl md:px-5 md:py-3.5">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eb9422] shadow-[0_0_24px_rgba(235,148,34,0.35)] md:h-11 md:w-11">
-                    <Star fill="black" size={20} className="md:h-[22px] md:w-[22px]" />
+                    <Star fill={isLightTheme ? "#7c2d12" : "black"} size={20} className="md:h-[22px] md:w-[22px]" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-400/95 md:text-[10px]">
+                    <div className="lh-badge-label text-[9px] font-black uppercase tracking-[0.2em] text-amber-400/95 md:text-[10px]">
                       Trusted
                     </div>
-                    <div className="text-sm font-semibold leading-tight text-white md:text-base">
+                    <div className="lh-badge-title text-sm font-semibold leading-tight text-white md:text-base">
                       Accredited pathways
                     </div>
                   </div>
@@ -773,7 +791,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             {(homeConfig.stats.length > 0 ? homeConfig.stats.map(s => `${s.value} ${s.label}`) : heroHighlights).map((item) => (
               <div
                 key={item}
-                className="rounded-xl border border-amber-400/60 bg-amber-500/15 px-4 py-3 text-center text-sm font-semibold text-amber-100 shadow-[0_0_30px_rgba(249,177,77,0.25)]"
+                className="lh-stat-pill rounded-xl border border-amber-400/60 bg-amber-500/15 px-4 py-3 text-center text-sm font-semibold text-amber-100 shadow-[0_0_30px_rgba(249,177,77,0.25)]"
               >
                 {item}
               </div>
@@ -790,7 +808,17 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             We collaborate with recognized bodies and industry partners to keep programs current
             and credible.
           </p>
-          <div className="mx-auto mt-12 flex max-w-[1200px] items-center justify-center gap-4 overflow-x-auto pb-2 md:gap-6">
+          <div className="mx-auto mt-12 flex max-w-[1200px] flex-wrap items-center justify-center gap-4 md:gap-6">
+            <div className="flex h-40 w-48 shrink-0 items-center justify-center md:h-52 md:w-56">
+              <Image
+                unoptimized
+                src={IRBA_ACCREDITATION_LOGO.src}
+                alt={IRBA_ACCREDITATION_LOGO.alt}
+                width={320}
+                height={140}
+                className="lh-accreditation-logo--irba h-auto w-full max-w-[220px] object-contain md:max-w-[260px]"
+              />
+            </div>
             {accreditationLogos.map((logoSrc, index) => (
               <div key={logoSrc} className="group relative isolate h-40 w-40 shrink-0 md:h-52 md:w-52">
                 <div className="pointer-events-none absolute inset-1 rounded-full bg-amber-300/22 blur-xl transition-all duration-300 group-hover:bg-amber-300/35 group-hover:blur-2xl" />
@@ -853,16 +881,16 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                     <div className="absolute inset-0 bg-radial-[circle_at_20%_15%] from-amber-400/25 via-transparent to-transparent" />
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-300">
+                    <span className="lh-icon-chip inline-flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-300">
                       <Icon size={18} />
                     </span>
-                    <h3 className="text-xl font-bold text-white">{item.title}</h3>
+                    <h3 className={cardTitle}>{item.title}</h3>
                   </div>
                   <p className="mt-2 text-sm leading-relaxed text-gray-400">{item.desc}</p>
                   <ul className="mt-4 space-y-2 text-sm text-gray-300">
                     {item.keyPoints.map((point) => (
                       <li key={point} className="flex items-center gap-2">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+                        <span className="lh-bullet h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
                         {point}
                       </li>
                     ))}
@@ -896,9 +924,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           </div>
 
           <div className="mt-12 text-sm text-gray-200">
-            <h3 className="mb-4 text-center text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+            <h2 className={`${sectionTitle} mb-4 text-center`}>
               How It <span className={goldText}>Works</span>
-            </h3>
+            </h2>
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
               {[
                 {
@@ -919,10 +947,10 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               ].map((step) => (
                 <div key={step.num} className="space-y-2 md:flex-1">
                   <div className="inline-flex items-baseline gap-2">
-                    <span className="text-5xl font-black leading-none text-amber-300 drop-shadow-[0_0_20px_rgba(249,177,77,0.8)]">
+                    <span className="lh-step-num text-5xl font-black leading-none text-amber-300 drop-shadow-[0_0_20px_rgba(249,177,77,0.8)]">
                       {step.num}
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200/85">
+                    <span className="lh-step-label text-xs font-semibold uppercase tracking-[0.22em] text-amber-200/85">
                       Step
                     </span>
                   </div>
@@ -956,15 +984,15 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             ) : null}
           </div>
 
-          <h3 className={`${sectionTitle} mt-12 text-center text-2xl md:text-4xl lg:text-5xl`}>
+          <h2 className={`${sectionTitle} mt-12 text-center`}>
             Explore <span className={goldText}>Our Popular Courses</span>
-          </h3>
+          </h2>
 
           <div className="mt-8 flex flex-wrap justify-center gap-2 md:gap-3">
             <button
               type="button"
               onClick={() => setActiveCategory("All")}
-              className={`rounded-full px-4 py-2 text-sm font-bold transition-all md:px-5 ${
+              className={`lh-filter-pill rounded-full px-4 py-2 text-sm font-bold transition-all md:px-5 ${
                 activeCategory === "All"
                   ? `${goldGradient} text-black`
                   : "border border-white/10 bg-white/[0.04] text-gray-300 hover:border-amber-500/30 hover:text-amber-400"
@@ -977,7 +1005,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                 key={cat.slug}
                 type="button"
                 onClick={() => setActiveCategory(cat.title)}
-                className={`rounded-full px-4 py-2 text-sm font-bold transition-all md:px-5 ${
+                className={`lh-filter-pill rounded-full px-4 py-2 text-sm font-bold transition-all md:px-5 ${
                   activeCategory === cat.title
                     ? `${goldGradient} text-black`
                     : "border border-white/10 bg-white/[0.04] text-gray-300 hover:border-amber-500/30 hover:text-amber-400"
@@ -1005,10 +1033,10 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                     key={cat.slug}
                     className="lh-category-card flex flex-col rounded-2xl border border-amber-500/35 bg-linear-to-b from-[#1b1305] via-[#120c06] to-[#07070a] p-5 transition-all hover:border-amber-300/80 hover:shadow-[0_0_32px_rgba(249,177,77,0.3)]"
                   >
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400">
+                    <div className="lh-icon-chip mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400">
                       <Icon size={24} />
                     </div>
-                    <h3 className="text-lg font-bold text-white">{cat.title}</h3>
+                    <h3 className={cardTitle}>{cat.title}</h3>
                     {cat.subtitle ? (
                       <p className="mt-1 text-xs font-medium text-amber-200/80">{cat.subtitle}</p>
                     ) : null}
@@ -1036,9 +1064,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
 
           {(learningPath === "self-paced" || learningPath === "interactive" || learningPath === "live") && (
             <div className="mt-16 border-t border-white/10 pt-12">
-              <h4 className="text-center text-2xl font-extrabold tracking-tight text-white md:text-3xl">
+              <h2 className={`${sectionTitle} text-center`}>
                 📚 Explore <span className={goldText}>Professional Learning Programs</span>
-              </h4>
+              </h2>
               <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-gray-500">
                 Discover industry-focused courses designed to help you build practical skills
                 through videos, study materials, assessments, and certification-based learning.
@@ -1150,7 +1178,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
 
         <section className={`${sectionShell} py-12 md:py-16`}>
           <div className="lh-invest-shell rounded-3xl border border-amber-400/60 bg-linear-to-br from-[#221706] via-[#171006] to-[#0a0808] p-6 shadow-[0_0_58px_rgba(249,177,77,.3)] md:p-8">
-            <h2 className="text-center text-2xl font-bold text-white md:text-3xl">
+            <h2 className={`${sectionTitle} text-center`}>
               Invest in your <span className={goldText}>career</span>
             </h2>
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1159,7 +1187,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                   key={item.title}
                   className="lh-invest-card rounded-2xl border border-amber-400/55 bg-linear-to-b from-[#251807] via-[#1a1208] to-[#110d09] p-5 shadow-[0_0_34px_rgba(249,177,77,0.2)] transition-all hover:-translate-y-0.5 hover:border-amber-300/90 hover:shadow-[0_0_44px_rgba(249,177,77,0.35)]"
                 >
-                  <h3 className="text-base font-bold text-amber-100">{item.title}</h3>
+                  <h3 className={`${cardTitle} text-amber-100`}>{item.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-slate-300">{item.desc}</p>
                 </article>
               ))}
@@ -1290,7 +1318,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
         {/* Why Choose Us */}
         <section className={`${sectionShell} border-t border-white/5 py-16 md:py-20`}>
           <div className="mb-4 flex justify-center lg:justify-start">
-            <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-400">
+            <span className="lh-premium-badge inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-400">
               <Sparkles size={14} />
               Why choose us?
             </span>
@@ -1320,10 +1348,10 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                   key={title}
                   className="lh-why-card rounded-2xl border border-amber-500/35 bg-linear-to-b from-[#1b1306] via-[#120d07] to-[#0a0808] p-5 md:p-6 shadow-[0_0_24px_rgba(249,177,77,0.16)] transition-all hover:border-amber-300/70 hover:shadow-[0_0_32px_rgba(249,177,77,0.24)]"
                 >
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400">
+                  <div className="lh-icon-chip mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400">
                     <Icon size={20} />
                   </div>
-                  <h3 className="font-bold text-white">{title}</h3>
+                  <h3 className={cardTitle}>{title}</h3>
                   <p className="mt-2 text-sm text-gray-400">{desc}</p>
                 </div>
               ))}
@@ -1367,7 +1395,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
         {/* Mid CTA */}
         <section className={`${sectionShell} py-16 md:py-20`}>
           <div className="lh-unlock-shell rounded-3xl border border-amber-300/60 bg-linear-to-br from-amber-500/30 via-[#2a1b08] to-[#120c08] px-6 py-12 text-center shadow-[0_0_46px_rgba(249,177,77,.35)] md:px-12 md:py-16">
-            <h2 className="mx-auto max-w-3xl text-2xl font-bold leading-tight text-white md:text-3xl">
+            <h2 className={`${sectionTitle} mx-auto max-w-3xl text-center`}>
               Start Your Learning Journey Today!
             </h2>
             <p className={`mx-auto mt-4 max-w-2xl ${mutedP}`}>
@@ -1470,7 +1498,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                   <Mail size={18} />
                 </span>
                 <div>
-                  <h3 className="text-lg font-bold text-white md:text-xl">
+                  <h3 className={cardTitle}>
                     {homeConfig.newsletter?.heading ?? "Subscribe to Our Newsletter"}
                   </h3>
                   <p className="mt-1 text-sm text-gray-300">
@@ -1508,7 +1536,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                   />
                 </div>
                 <div className="text-center lg:text-left">
-                  <h2 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+                  <h2 className={`${sectionTitle} text-center lg:text-left`}>
                     Unlock Potential, <span className={goldText}>Achieve Success</span>
                   </h2>
                   <p className="mt-4 max-w-xl text-sm leading-relaxed text-gray-300 md:text-base">

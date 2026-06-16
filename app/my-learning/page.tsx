@@ -97,7 +97,7 @@ import {
 import type { CertificateRowDto } from "@/lib/certificate-types";
 import {
   COURSE_PROGRESS_UPDATED_EVENT,
-  countCurriculumModules,
+  countLearnerCurriculumModules,
   enrichPurchasedCourse,
   findCatalogCourse,
   mergeCertificatesIntoPurchasedCourses,
@@ -293,14 +293,19 @@ export default function MyLearningPage() {
         return parsed;
       });
     };
-    loadPurchasedCourses();
-
-    const email = getLearnerEmail();
-    if (email) {
+    const syncFromServer = () => {
+      const email = getLearnerEmail();
+      if (!email) return;
       void syncEnrollmentsFromServer(email).then((result) => {
-        if (result.ok && (result.added ?? 0) > 0) loadPurchasedCourses();
+        if (result.ok) loadPurchasedCourses();
       });
-      void fetch(`/api/certificates?email=${encodeURIComponent(email)}`, { cache: "no-store" })
+    };
+
+    loadPurchasedCourses();
+    syncFromServer();
+
+    if (getLearnerEmail()) {
+      void fetch(`/api/certificates?email=${encodeURIComponent(getLearnerEmail()!)}`, { cache: "no-store" })
         .then(async (res) =>
           readJsonResponse(res, {} as { ok?: boolean; certificates?: CertificateRowDto[] }),
         )
@@ -314,6 +319,8 @@ export default function MyLearningPage() {
     setEarnedBadges(readLearnerBadges());
     window.addEventListener("storage", loadPurchasedCourses);
     window.addEventListener("sft_purchases_updated", loadPurchasedCourses);
+    window.addEventListener("sft_auth_updated", syncFromServer);
+    window.addEventListener("focus", syncFromServer);
     const onProgress = () => setProgressTick((n) => n + 1);
     window.addEventListener(COURSE_PROGRESS_UPDATED_EVENT, onProgress);
     window.addEventListener("sft-exam-scores-updated", onProgress);
@@ -325,6 +332,8 @@ export default function MyLearningPage() {
     return () => {
       window.removeEventListener("storage", loadPurchasedCourses);
       window.removeEventListener("sft_purchases_updated", loadPurchasedCourses);
+      window.removeEventListener("sft_auth_updated", syncFromServer);
+      window.removeEventListener("focus", syncFromServer);
       window.removeEventListener(COURSE_PROGRESS_UPDATED_EVENT, onProgress);
       window.removeEventListener("sft-exam-scores-updated", onProgress);
       window.removeEventListener(PREVIEW_WATCH_UPDATED_EVENT, onProgress);
@@ -375,7 +384,7 @@ export default function MyLearningPage() {
       const slug = row.slug?.trim();
       if (!slug) continue;
       const catalog = findCatalogCourse(row, effectiveCatalog);
-      const modules = catalog ? countCurriculumModules(catalog.curriculum) : row.modules;
+      const modules = catalog ? countLearnerCurriculumModules(catalog.curriculum) : row.modules;
       syncPurchasedCourseProgress(slug, readCompletedModules(slug).length, modules || row.modules);
     }
   }, [effectiveCatalog, progressTick]);
@@ -460,6 +469,32 @@ export default function MyLearningPage() {
   const selfPacedCoursesForDashboard = useMemo(
     () => coursesForLearning.filter((c) => c.deliveryKind !== "tutor-led"),
     [coursesForLearning],
+  );
+
+  const isCourseCompleted = (course: PurchasedCourseRow) => {
+    const status = course.status?.toLowerCase() ?? "";
+    return (
+      status === "completed" ||
+      course.action === "View Certificate" ||
+      (course.modules > 0 && course.completed >= course.modules)
+    );
+  };
+
+  const activeSelfPacedForDashboard = useMemo(
+    () => selfPacedCoursesForDashboard.filter((c) => !isCourseCompleted(c)),
+    [selfPacedCoursesForDashboard],
+  );
+
+  const activeTutorLedForHub = useMemo(
+    () => tutorLedCoursesForHub.filter((c) => c.progressPercent < 100),
+    [tutorLedCoursesForHub],
+  );
+
+  const completedDashboardCount = useMemo(
+    () =>
+      selfPacedCoursesForDashboard.filter((c) => isCourseCompleted(c)).length +
+      tutorLedCoursesForHub.filter((c) => c.progressPercent >= 100).length,
+    [selfPacedCoursesForDashboard, tutorLedCoursesForHub],
   );
 
   const enrolledSlugSet = useMemo(() => {
@@ -756,9 +791,15 @@ export default function MyLearningPage() {
                   Elevate your professional skills with industry-led courses.
                 </p>
                 <p className="mt-3 text-sm text-gray-400">
-                  {coursesForLearning.length > 0
-                    ? `You are enrolled in ${selfPacedCoursesForDashboard.length} course${selfPacedCoursesForDashboard.length === 1 ? "" : "s"} and ${tutorLedCoursesForHub.length} tutor-led program${tutorLedCoursesForHub.length === 1 ? "" : "s"}.`
-                    : "Browse the catalog below to enroll and start learning."}
+                  {activeSelfPacedForDashboard.length > 0 || activeTutorLedForHub.length > 0
+                    ? `${activeSelfPacedForDashboard.length} course${activeSelfPacedForDashboard.length === 1 ? "" : "s"} ready to continue${
+                        activeTutorLedForHub.length > 0
+                          ? ` · ${activeTutorLedForHub.length} live program${activeTutorLedForHub.length === 1 ? "" : "s"}`
+                          : ""
+                      }.`
+                    : completedDashboardCount > 0
+                      ? "All enrolled courses are complete. Explore new programs below."
+                      : "Browse the catalog below to enroll and start learning."}
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -791,73 +832,15 @@ export default function MyLearningPage() {
             </div>
 
             <MyLearningDashboardCourses
-              selfPacedCourses={selfPacedCoursesForDashboard}
-              tutorLedCourses={tutorLedCoursesForHub}
+              selfPacedCourses={activeSelfPacedForDashboard}
+              tutorLedCourses={activeTutorLedForHub}
               exploreSelfPaced={sortedExploreSelfPaced}
               exploreTutorLed={sortedExploreTutorLed}
               recommendedSelfPacedSlugs={recommendedSelfPacedSlugs}
               recommendedTutorSlugs={recommendedTutorSlugs}
+              completedCount={completedDashboardCount}
               learningHrefFor={learningHrefFor}
             />
-
-            {completedCoursesWithCerts.length > 0 ? (
-              <article className="mt-4 rounded-xl border border-emerald-500/30 bg-linear-to-br from-emerald-500/10 to-black/30 p-4">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="inline-flex items-center gap-2 text-xl font-bold text-white">
-                    <CheckCircle2 size={20} className="text-emerald-300" />
-                    Completed courses
-                  </h3>
-                  <Link
-                    href="/my-learning?tab=certificates"
-                    className="text-xs font-semibold text-amber-200 hover:text-amber-100"
-                  >
-                    All certificates →
-                  </Link>
-                </div>
-                <p className="mb-3 text-xs text-gray-400">
-                  Finish all modules and pass exams → your certificate appears on the course page and here.
-                </p>
-                <div className="space-y-2">
-                  {completedCoursesWithCerts.map((course) => {
-                    const cert = learnerCertificates.find((c) => c.courseSlug === course.slug?.trim());
-                    return (
-                      <div
-                        key={`completed-${courseRowKey(course)}`}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/25 px-3 py-3"
-                      >
-                        <div className="min-w-0">
-                          <p className="font-semibold text-white">{course.title}</p>
-                          <p className="mt-0.5 text-xs text-gray-400">
-                            {course.completed}/{course.modules} modules complete
-                            {cert?.certificateNumber && !cert.certificateNumber.startsWith("TEMP-")
-                              ? ` · Cert ${cert.certificateNumber}`
-                              : ""}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            href={
-                              course.slug
-                                ? `/my-learning/course/${encodeURIComponent(course.slug)}#credentials`
-                                : "/my-learning?tab=certificates"
-                            }
-                            className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-bold text-black hover:bg-amber-400"
-                          >
-                            View certificate
-                          </Link>
-                          <Link
-                            href="/my-learning?tab=learning&filter=completed"
-                            className="rounded-md border border-white/15 px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5"
-                          >
-                            My progress
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </article>
-            ) : null}
 
             <article className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
               <h3 className="text-xl font-bold">Quick Actions</h3>

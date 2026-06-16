@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import { normalizeLearnerEmail } from "@/lib/learner-email";
 
 export type LearnerPurchaseRow = {
@@ -29,7 +30,7 @@ export async function getPurchasesForLearner(
 
   const bySlug = new Map<string, LearnerPurchaseRow>();
   for (const row of purchases) {
-    const slug = row.courseSlug.trim().toLowerCase();
+    const slug = canonicalCourseSlug(row.courseSlug);
     if (!slug || bySlug.has(slug)) continue;
     bySlug.set(slug, {
       slug,

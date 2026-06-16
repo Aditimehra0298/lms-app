@@ -1,5 +1,7 @@
 /** Client-side tutor-led enrollment (localStorage `sft_purchased_courses`). */
 
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
+
 export type PurchasedCourseRow = {
   slug?: string;
   title?: string;
@@ -50,7 +52,7 @@ export function subscribeTutorLedPurchases(onStoreChange: () => void): () => voi
 }
 
 export function isCoursePurchased(slug: string): boolean {
-  const key = slug.trim();
+  const key = canonicalCourseSlug(slug);
   if (!key) return false;
-  return readPurchasedCourses().some((row) => (row.slug ?? "").trim() === key);
+  return readPurchasedCourses().some((row) => canonicalCourseSlug(row.slug ?? "") === key);
 }

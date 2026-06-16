@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import { normalizeLearnerEmail } from "@/lib/learner-email";
 import {
   findExistingEnrollment,
@@ -18,7 +19,7 @@ export async function recordPurchasesForLearner(input: {
 
   const courses = input.courses
     .map((c) => ({
-      slug: c.slug.trim().toLowerCase(),
+      slug: canonicalCourseSlug(c.slug),
       title: c.title.trim(),
     }))
     .filter((c) => c.slug.length > 0);

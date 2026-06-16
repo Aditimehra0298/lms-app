@@ -1,4 +1,6 @@
 import { defaultAdminContent, type ManagedCourse } from "@/lib/content-schema";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
+import { curriculumModulesForLearner } from "@/lib/curriculum-learner-filter";
 import { getCourseContentFromMysql } from "@/lib/server/course-content-mysql-sync";
 import { readAdminContent } from "@/lib/server/content-store";
 
@@ -8,9 +10,14 @@ export async function getManagedCourses() {
     content.managedCourses && content.managedCourses.length > 0
       ? content.managedCourses
       : defaultAdminContent.managedCourses;
-  return courses.filter(
-    (course) => course.published && course.settings?.showInCatalog !== false,
-  );
+  return courses
+    .filter(
+      (course) => course.published && course.settings?.showInCatalog !== false,
+    )
+    .map((course) => ({
+      ...course,
+      curriculum: curriculumModulesForLearner(course.curriculum),
+    }));
 }
 
 function matchSlug(course: ManagedCourse, key: string, decoded: string): boolean {
@@ -32,7 +39,7 @@ export async function getManagedCourseBySlug(slug: string) {
 
 /** Learner player / exams — includes unpublished rows and MySQL backup. */
 export async function getManagedCourseForLearner(slug: string): Promise<ManagedCourse | null> {
-  const key = slug.trim();
+  const key = canonicalCourseSlug(slug.trim());
   let decoded = key;
   try {
     decoded = decodeURIComponent(key);
@@ -47,7 +54,26 @@ export async function getManagedCourseForLearner(slug: string): Promise<ManagedC
       : defaultAdminContent.managedCourses;
 
   const fromJson = all.find((course) => matchSlug(course, key, decoded));
-  if (fromJson) return fromJson;
+  if (fromJson) {
+    return {
+      ...fromJson,
+      curriculum: curriculumModulesForLearner(fromJson.curriculum),
+    };
+  }
 
-  return getCourseContentFromMysql(key) ?? getCourseContentFromMysql(decoded);
+  const fromMysql = await getCourseContentFromMysql(key);
+  if (fromMysql) {
+    return {
+      ...fromMysql,
+      curriculum: curriculumModulesForLearner(fromMysql.curriculum),
+    };
+  }
+  const fromMysqlDecoded = await getCourseContentFromMysql(decoded);
+  if (fromMysqlDecoded) {
+    return {
+      ...fromMysqlDecoded,
+      curriculum: curriculumModulesForLearner(fromMysqlDecoded.curriculum),
+    };
+  }
+  return null;
 }

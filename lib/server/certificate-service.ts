@@ -46,7 +46,7 @@ export function resolveCertificateConfig(
     templateImage: globalAssets?.templateImage || DEFAULT_TEMPLATE,
     badgeImage: globalAssets?.badgeImage || cfg.badgeImage?.trim() || "",
     title: cfg.title?.trim() || hero.certificatePreviewLabel?.trim() || "Certificate of Attainment",
-    nameTopPercent: cfg.nameTopPercent ?? 42,
+    nameTopPercent: cfg.nameTopPercent ?? 38,
     numberTopPercent: cfg.numberTopPercent ?? 52,
     dateTopPercent: cfg.dateTopPercent ?? 62,
     supplementaryDocs: globalAssets?.supplementaryDocs.length ? globalAssets.supplementaryDocs : [],

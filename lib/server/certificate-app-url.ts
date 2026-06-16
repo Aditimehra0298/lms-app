@@ -36,8 +36,10 @@ export function isPrivateOrLocalBaseUrl(url: string): boolean {
   }
 }
 
+/** @deprecated Use mayUseLocalCertificateFallback(n8nConfigured) from certificate-generation-policy. */
 export function shouldUseLocalCertificateFallback(): boolean {
-  if (process.env.CERTIFICATE_LOCAL_FALLBACK?.trim().toLowerCase() === "true") return true;
-  if (process.env.CERTIFICATE_LOCAL_FALLBACK?.trim().toLowerCase() === "false") return false;
+  const override = process.env.CERTIFICATE_LOCAL_FALLBACK?.trim().toLowerCase();
+  if (override === "true") return true;
+  if (override === "false") return false;
   return isPrivateOrLocalBaseUrl(n8nCallbackBaseUrl());
 }

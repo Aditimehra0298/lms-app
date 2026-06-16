@@ -3,6 +3,8 @@ import type {
   LearningCourseStatus,
   ManagedCourse,
 } from "@/lib/content-schema";
+import { canonicalCourseSlug, isAliasCourseSlug } from "@/lib/course-slug-aliases";
+import { countLearnerCurriculumModules } from "@/lib/curriculum-learner-filter";
 import {
   computeCombinedExamGrade,
   learnerCredentialsEligible,
@@ -41,12 +43,17 @@ export function countCurriculumModules(curriculum?: CourseCurriculumModule[] | n
   return curriculum.length;
 }
 
+export { countLearnerCurriculumModules } from "@/lib/curriculum-learner-filter";
+
 export function deriveCourseProgress(
   completed: number,
   total: number,
 ): { status: LearningCourseStatus; action: string } {
-  const safeTotal = Math.max(1, total);
-  const safeCompleted = Math.min(Math.max(0, completed), safeTotal);
+  const safeTotal = Math.max(0, total);
+  const safeCompleted = Math.min(Math.max(0, completed), safeTotal || completed);
+  if (safeTotal <= 0) {
+    return { status: "Not Started", action: "Start Course" };
+  }
   if (safeCompleted >= safeTotal) {
     return { status: "Completed", action: "View Certificate" };
   }
@@ -60,7 +67,7 @@ export function findCatalogCourse(
   row: { slug?: string; title: string },
   catalog: ManagedCourse[],
 ): ManagedCourse | undefined {
-  const slug = row.slug?.trim();
+  const slug = canonicalCourseSlug(row.slug?.trim());
   if (slug) {
     const bySlug = catalog.find((c) => c.slug === slug);
     if (bySlug) return bySlug;
@@ -73,10 +80,10 @@ export function enrichPurchasedCourse(
   row: PurchasedCourseRow,
   catalog: ManagedCourse | undefined,
 ): PurchasedCourseRow {
-  const slug = (row.slug ?? catalog?.slug ?? "").trim();
+  const slug = canonicalCourseSlug(row.slug ?? catalog?.slug ?? "");
   const completedFromStorage = slug ? readCompletedModules(slug).length : 0;
-  const modulesFromCatalog = catalog ? countCurriculumModules(catalog.curriculum) : 0;
-  const modules = modulesFromCatalog > 0 ? modulesFromCatalog : Math.max(1, row.modules || 1);
+  const modulesFromCatalog = catalog ? countLearnerCurriculumModules(catalog.curriculum) : 0;
+  const modules = modulesFromCatalog > 0 ? modulesFromCatalog : Math.max(0, row.modules || 0);
   const duration = catalog?.duration?.trim() || row.duration?.trim() || "—";
   const title = catalog?.title?.trim() || row.title?.trim() || "Course";
   const image = catalog?.image?.trim() || row.image?.trim() || "";
@@ -125,6 +132,27 @@ export function writeCompletedModules(slug: string, moduleNumbers: number[], tot
   } catch {
     // Ignore storage failures.
   }
+}
+
+/** Heal legacy progress (e.g. 9-module counts on a 5-module course) so completion UI unlocks. */
+export function normalizeCompletedModulesForCurriculum(
+  slug: string,
+  moduleCount: number,
+): number[] {
+  if (typeof window === "undefined" || !slug.trim() || moduleCount <= 0) {
+    return readCompletedModules(slug);
+  }
+  const existing = readCompletedModules(slug);
+  const inRange = Array.from(
+    new Set(existing.filter((n) => Number.isFinite(n) && n >= 1 && n <= moduleCount)),
+  ).sort((a, b) => a - b);
+  if (inRange.length >= moduleCount) {
+    const full = Array.from({ length: moduleCount }, (_, i) => i + 1);
+    const needsHeal = !full.every((n) => existing.includes(n));
+    if (needsHeal) writeCompletedModules(slug, full, moduleCount);
+    return full;
+  }
+  return existing;
 }
 
 export function markModuleCompleted(
@@ -199,18 +227,53 @@ export function mergeServerEnrollmentsIntoStorage(
   if (typeof window === "undefined" || serverCourses.length === 0) return 0;
 
   const existing = readPurchasedCoursesFromStorage();
-  const bySlug = new Map(existing.map((c) => [(c.slug ?? "").trim().toLowerCase(), c]));
-  let added = 0;
+  const bySlug = new Map<string, PurchasedCourseRow>();
+  let changed = 0;
+
+  for (const row of existing) {
+    const rawSlug = (row.slug ?? "").trim().toLowerCase();
+    if (!rawSlug) continue;
+    const slug = canonicalCourseSlug(rawSlug);
+    const prev = bySlug.get(slug);
+    if (!prev) {
+      bySlug.set(slug, { ...row, slug });
+      if (slug !== rawSlug) changed += 1;
+      continue;
+    }
+    if ((prev.completed ?? 0) < (row.completed ?? 0)) {
+      bySlug.set(slug, { ...row, slug });
+      changed += 1;
+    }
+  }
+
+  for (const aliasSlug of existing.map((r) => (r.slug ?? "").trim().toLowerCase()).filter(isAliasCourseSlug)) {
+    const canonical = canonicalCourseSlug(aliasSlug);
+    if (canonical === aliasSlug) continue;
+    try {
+      const completed = window.localStorage.getItem(`sft_completed_modules_${aliasSlug}`);
+      if (completed && !window.localStorage.getItem(`sft_completed_modules_${canonical}`)) {
+        window.localStorage.setItem(`sft_completed_modules_${canonical}`, completed);
+        changed += 1;
+      }
+      const scores = window.localStorage.getItem(`sft_module_exam_scores_${aliasSlug}`);
+      if (scores && !window.localStorage.getItem(`sft_module_exam_scores_${canonical}`)) {
+        window.localStorage.setItem(`sft_module_exam_scores_${canonical}`, scores);
+        changed += 1;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 
   for (const course of serverCourses) {
-    const slug = course.slug.trim().toLowerCase();
+    const slug = canonicalCourseSlug(course.slug);
     if (!slug || bySlug.has(slug)) continue;
 
     const isTutorLed = tutorLedSlugs?.has(slug) ?? false;
     bySlug.set(slug, {
       slug,
       title: course.title.trim() || slug,
-      modules: 1,
+      modules: 0,
       duration: "—",
       completed: 0,
       status: isTutorLed ? "In Progress" : "Not Started",
@@ -218,10 +281,10 @@ export function mergeServerEnrollmentsIntoStorage(
       tone: "violet",
       deliveryKind: isTutorLed ? "tutor-led" : "managed",
     });
-    added += 1;
+    changed += 1;
   }
 
-  if (added === 0) return 0;
+  if (changed === 0) return 0;
 
   try {
     window.localStorage.setItem("sft_purchased_courses", JSON.stringify([...bySlug.values()]));
@@ -230,7 +293,7 @@ export function mergeServerEnrollmentsIntoStorage(
     return 0;
   }
 
-  return added;
+  return changed;
 }
 
 /** Mark all modules complete in localStorage when a certificate exists in DB. */
@@ -272,8 +335,8 @@ export function mergeCertificatesIntoPurchasedCourses(
 
     const catalogCourse = findCatalogCourse({ slug, title: cert.courseTitle }, catalog);
     const modules = catalogCourse
-      ? countCurriculumModules(catalogCourse.curriculum)
-      : bySlug.get(slug)?.modules || 3;
+      ? countLearnerCurriculumModules(catalogCourse.curriculum)
+      : bySlug.get(slug)?.modules || 0;
     const safeModules = Math.max(1, modules);
 
     ensureCompletedModulesForCertificate(slug, safeModules);

@@ -16,29 +16,36 @@ import { ensureCourseInMysql, getCourseBySlug } from "@/lib/server/course-mysql-
 import { lookupRegistrationByEmail } from "@/lib/server/registration-lookup";
 import type { AdminCertificateRowDto, CertificateRowDto } from "@/lib/certificate-types";
 import { issueCourseCertificate } from "@/lib/server/certificate-service";
-import {
-  formatGrade,
-  formatIssueDate,
-  formatLearningMode,
-} from "@/lib/certificate-payload-fields";
+import { appBaseUrl } from "@/lib/server/certificate-app-url";
 import { prisma } from "@/lib/prisma";
-import { buildN8nWebhookHeaders } from "@/lib/server/n8n-webhook-auth";
 import {
   certificatePdfServePath,
+  deleteStoredCertificatePdf,
   isValidArchivedCertificatePdf,
   N8N_ARCHIVED_PDF_MIN_BYTES,
   persistCertificatePdf,
   resolveStoredCertificatePdfUrl,
 } from "@/lib/server/certificate-pdf-store";
 import {
-  appBaseUrl,
-  n8nCallbackBaseUrl,
-  toAbsoluteAppUrl,
-} from "@/lib/server/certificate-app-url";
+  COURSE_CERTIFICATE_ASSETS_MISSING_MESSAGE,
+  courseCertificateAssetsReady,
+  isCertificateApiProvider,
+  isGeneratorIssuedVia,
+  mayUseLocalCertificateFallback,
+  resolveCourseCertificateAssets,
+} from "@/lib/server/certificate-generation-policy";
+import {
+  dispatchCertificateToGeneratorApi,
+  type CertificateGeneratorSentSummary,
+} from "@/lib/server/certificate-generator-api";
+import { ensureLocalCertificatePdf, generateCertificateFromCourseTemplate } from "@/lib/server/local-certificate-fallback";
 
 export type { AdminCertificateRowDto, CertificateRowDto };
+export type { CertificateGeneratorSentSummary };
+/** @deprecated Use CertificateGeneratorSentSummary */
+export type N8nCertificateSentSummary = CertificateGeneratorSentSummary;
 
-/** PDF URL from n8n Respond to Webhook (plain text URL or JSON with pdfUrl). */
+/** PDF URL from generator API JSON (or legacy n8n plain-text URL). */
 export function parseN8nWebhookPdfUrl(body: string): string | null {
   const trimmed = body.trim();
   if (!trimmed) return null;
@@ -145,7 +152,7 @@ async function toDto(row: {
   });
   const pdfUrl = await resolveStoredCertificatePdfUrl(row.id, row.pdfUrl);
   const pdfReady = await isValidArchivedCertificatePdf(row.id, {
-    minBytes: row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128,
+    minBytes: isGeneratorIssuedVia(row.issuedVia) ? N8N_ARCHIVED_PDF_MIN_BYTES : 128,
   });
   return {
     id: row.id,
@@ -179,10 +186,10 @@ async function findCourse(slug: string): Promise<CertificateProgramRef | undefin
   return findCertificateProgram(content, slug);
 }
 
-/** True only when n8n generated a valid PDF saved on LMS disk. */
-async function hasPermanentN8nPdf(certificateId: string, issuedVia: string): Promise<boolean> {
+/** True when generator API produced a valid multi-page PDF on LMS disk. */
+async function hasPermanentGeneratorPdf(certificateId: string, issuedVia: string): Promise<boolean> {
   return (
-    issuedVia === "n8n" &&
+    isGeneratorIssuedVia(issuedVia) &&
     (await isValidArchivedCertificatePdf(certificateId, { minBytes: N8N_ARCHIVED_PDF_MIN_BYTES }))
   );
 }
@@ -210,165 +217,78 @@ type CertificateDbRow = {
   issuedVia: string;
 };
 
-function buildN8nCertificatePayload(input: {
+/** POST learner data + course templates to certificate generator API. */
+async function dispatchCertificateGeneration(input: {
   row: CertificateDbRow;
   course: CertificateProgramRef;
-  courseRow: NonNullable<Awaited<ReturnType<typeof getCourseBySlug>>>;
-  registration: NonNullable<Awaited<ReturnType<typeof lookupRegistrationByEmail>>>;
-  perms: CertificatePermissionSettings;
-  assets: ReturnType<typeof resolveCertificateAssetsForSlug>;
-  displayName: string;
-  scorePercent?: number | null;
-}) {
-  const { row, course, courseRow, registration, perms, assets, displayName } = input;
-  const scorePercent = input.scorePercent ?? row.scorePercent;
-  const issuedAt = row.issuedAt;
-  const delegateNumber = row.delegateNumber ?? "";
-  const verifyUrl = buildCertificateVerifyUrl(appBaseUrlForVerify(), {
-    delegateNumber: row.delegateNumber,
-    certificateNumber: row.certificateNumber,
-  });
-  const issueDate = formatIssueDate(issuedAt);
-  const grade = formatGrade(scorePercent);
-  const callbackBase = n8nCallbackBaseUrl();
-  const callbackUrl = `${callbackBase}/api/certificates/n8n-callback`;
-  const absoluteAssets = {
-    certificateTemplate: toAbsoluteAppUrl(assets.templateImage!, callbackBase),
-    badge: toAbsoluteAppUrl(assets.badgeImage!, callbackBase),
-    transcriptTemplate: toAbsoluteAppUrl(assets.transcriptFile!, callbackBase),
-  };
-
-  return {
-    event: "course_completed" as const,
-    certificateId: row.id,
-    callbackUrl,
-    email: row.learnerEmail,
-    learnerName: displayName,
-    learner: {
-      ...registration,
-      displayName,
-      delegateNumber,
-    },
-    courseSlug: row.courseSlug,
-    courseTitle: row.courseTitle,
-    course: courseRow,
-    courseCategory: course.category,
-    courseLevel: course.level,
-    courseDuration: course.duration,
-    courseMode: formatLearningMode(course.learningFormat),
-    scorePercent: scorePercent ?? null,
-    completedAt: issuedAt.toISOString(),
-    registration,
-    requireAdminApproval: perms.requireAdminApproval,
-    autoVisibleWhenReady: perms.autoVisibleWhenReady,
-    assets: absoluteAssets,
-    certificateFields: {
-      candidateName: displayName,
-      courseName: row.courseTitle,
-      duration: course.duration,
-      mode: formatLearningMode(course.learningFormat),
-      issueDate,
-      certificateNumber: row.certificateNumber,
-      delegateNumber,
-      verifyUrl,
-    },
-    transcriptFields: {
-      candidateName: displayName,
-      trainingProgram: row.courseTitle,
-      grade,
-      certificateNumber: row.certificateNumber,
-      issueDate,
-      delegateNumber,
-    },
-    tracker: {
-      delegateNumber,
-      verifyNumber: row.verifyNumber,
-      verifyUrl,
-      qrCodeData: verifyUrl,
-    },
-  };
-}
-
-/** POST certificate payload to n8n; archive PDF when Respond to Webhook returns a URL. */
-async function dispatchCertificateToN8n(input: {
-  row: CertificateDbRow;
-  course: CertificateProgramRef;
-  courseRow: NonNullable<Awaited<ReturnType<typeof getCourseBySlug>>>;
   registration: NonNullable<Awaited<ReturnType<typeof lookupRegistrationByEmail>>>;
   perms: CertificatePermissionSettings;
   assets: ReturnType<typeof resolveCertificateAssetsForSlug>;
   displayName: string;
   scorePercent?: number | null;
 }): Promise<
-  | { ok: true; certificate: CertificateRowDto; message: string }
+  | {
+      ok: true;
+      certificate: CertificateRowDto;
+      message: string;
+      generatorSent: CertificateGeneratorSentSummary;
+      n8nSent: CertificateGeneratorSentSummary;
+    }
   | { ok: false; message: string }
 > {
-  const webhookUrl = input.perms.n8nWebhookUrl;
-  if (!webhookUrl) {
-    return { ok: false, message: "Certificate workflow is not configured. Contact your technical team." };
+  if (!input.perms.certificateGeneratorApiUrl) {
+    return {
+      ok: false,
+      message: "Certificate generator API is not configured. Set CERTIFICATE_GENERATOR_API_URL in .env.local.",
+    };
   }
 
   await prisma.lmsCertificate.update({
     where: { id: input.row.id },
-    data: { status: "pending", issuedVia: "n8n" },
+    data: {
+      status: "pending",
+      issuedVia: "course-template",
+      templateImage: input.assets.templateImage,
+      badgeImage: input.assets.badgeImage,
+    },
   });
 
-  const payload = buildN8nCertificatePayload(input);
-  console.info("[certificate] POST n8n", webhookUrl, payload.certificateId);
+  // Use admin-uploaded templates directly (native size) — matches course preview.
+  const local = await generateCertificateFromCourseTemplate({
+    certificateId: input.row.id,
+    learnerEmail: input.row.learnerEmail,
+    forceRegenerate: false,
+  });
 
-  try {
-    const res = await fetch(webhookUrl, {
-      method: "POST",
-      headers: buildN8nWebhookHeaders(),
-      body: JSON.stringify(payload),
-    });
-    const responseBody = await res.text();
-    console.info("[certificate] n8n response", res.status, responseBody.slice(0, 240));
-    if (!res.ok) {
-      await prisma.lmsCertificate.update({
-        where: { id: input.row.id },
-        data: { status: "failed" },
-      });
-      return {
-        ok: false,
-        message: `n8n webhook returned ${res.status}. Check your workflow.`,
-      };
-    }
-
-    const pdfUrl = parseN8nWebhookPdfUrl(responseBody);
-    if (pdfUrl) {
-      console.info("[certificate] n8n temp PDF URL", pdfUrl.slice(0, 120));
-      await completeN8nCertificateCallback({
-        certificateId: input.row.id,
-        certificateNumber: input.row.certificateNumber,
-        pdfUrl,
-        status: "ready",
-      });
-      const updated = await prisma.lmsCertificate.findUnique({ where: { id: input.row.id } });
-      return {
-        ok: true,
-        certificate: await toDto(updated!),
-        message: "Certificate generated.",
-      };
-    }
-
+  if (local.ok) {
     const updated = await prisma.lmsCertificate.findUnique({ where: { id: input.row.id } });
+    const sent: CertificateGeneratorSentSummary = {
+      certificateTemplate: local.templateImage,
+      transcriptTemplate: input.assets.transcriptFile,
+      candidateName: input.displayName,
+      certificateNumber: input.row.certificateNumber,
+      courseName: input.row.courseTitle,
+    };
     return {
       ok: true,
       certificate: await toDto(updated!),
-      message: "Certificate sent to n8n. PDF will appear when generation completes.",
+      message: local.message,
+      generatorSent: sent,
+      n8nSent: sent,
     };
-  } catch (err) {
-    await prisma.lmsCertificate.update({
-      where: { id: input.row.id },
-      data: { status: "failed" },
-    });
-    const msg = err instanceof Error ? err.message : "n8n request failed";
-    return { ok: false, message: msg };
   }
+
+  console.warn("[certificate] local template generation failed:", local.message);
+
+  return {
+    ok: false,
+    message:
+      local.message ??
+      "Could not generate certificate from the uploaded course template. Re-upload certificate samples in Admin → Course → Certificates.",
+  };
 }
 
-async function retryN8nCertificate(input: {
+async function retryCertificateGeneration(input: {
   row: CertificateDbRow;
   course: CertificateProgramRef;
   courseRow: NonNullable<Awaited<ReturnType<typeof getCourseBySlug>>>;
@@ -376,7 +296,13 @@ async function retryN8nCertificate(input: {
   learnerName?: string;
   scorePercent?: number;
 }): Promise<
-  | { ok: true; certificate: CertificateRowDto; message?: string }
+  | {
+      ok: true;
+      certificate: CertificateRowDto;
+      message: string;
+      generatorSent: CertificateGeneratorSentSummary;
+      n8nSent: CertificateGeneratorSentSummary;
+    }
   | { ok: false; message: string }
 > {
   const registration = await lookupRegistrationByEmail(input.row.learnerEmail);
@@ -385,25 +311,21 @@ async function retryN8nCertificate(input: {
   }
 
   const content = await readAdminContent();
-  const assets = resolveCertificateAssetsForSlug(content, input.course.slug);
-  if (!assets.templateImage || !assets.badgeImage || !assets.transcriptFile) {
-    return {
-      ok: false,
-      message:
-        "Certificate samples are not ready. Upload certificate, badge, and transcript for this program (or set global defaults under Users & Access → Certificates).",
-    };
+  const assets = resolveCourseCertificateAssets(content, input.course.slug);
+  if (!courseCertificateAssetsReady(assets)) {
+    return { ok: false, message: COURSE_CERTIFICATE_ASSETS_MISSING_MESSAGE };
   }
 
   const displayName =
-    registration.companyName ??
     input.learnerName?.trim() ??
     input.row.learnerName?.trim() ??
+    registration.name?.trim() ??
+    registration.companyName ??
     input.row.learnerEmail.split("@")[0];
 
-  return dispatchCertificateToN8n({
+  return dispatchCertificateGeneration({
     row: input.row,
     course: input.course,
-    courseRow: input.courseRow,
     registration,
     perms: input.perms,
     assets,
@@ -448,25 +370,29 @@ export async function requestCourseCertificate(input: {
   const perms = resolveCertificatePermissions(course);
   if (!perms.enabled) return { ok: false, message: "Certificates are not enabled for this course." };
 
+  const apiConfigured = isCertificateApiProvider(perms);
+
   const existing = await prisma.lmsCertificate.findFirst({
     where: { learnerEmail: email, courseSlug: slug },
     orderBy: { issuedAt: "desc" },
   });
   if (existing) {
-    const hasN8nPdf = await hasPermanentN8nPdf(existing.id, existing.issuedVia);
+    const hasN8nPdf = await hasPermanentGeneratorPdf(existing.id, existing.issuedVia);
     if (existing.status === "ready" && hasN8nPdf && !input.forceRetry) {
       return { ok: true, certificate: await toDto(existing) };
     }
-    // n8n runs once: on pending/failed, or when admin forces retry.
-    // Ready certs without a saved PDF are handled by POST /prepare on download (not here).
+    // n8n: (re)send when pending/failed, admin retry, or ready without an n8n PDF yet.
     if (
-      perms.provider === "n8n" &&
-      perms.n8nWebhookUrl &&
+      apiConfigured &&
       (existing.status === "pending" ||
         existing.status === "failed" ||
-        (input.forceRetry && !hasN8nPdf))
+        input.forceRetry ||
+        (existing.status === "ready" && !hasN8nPdf))
     ) {
-      return retryN8nCertificate({
+      if (existing.status === "ready" && !hasN8nPdf) {
+        await deleteStoredCertificatePdf(existing.id);
+      }
+      return retryCertificateGeneration({
         row: existing,
         course,
         courseRow,
@@ -500,10 +426,11 @@ export async function requestCourseCertificate(input: {
     return { ok: true, certificate: await toDto(row!) };
   }
 
-  if (!perms.n8nWebhookUrl) {
+  if (!perms.certificateGeneratorApiUrl) {
     return {
       ok: false,
-      message: "Certificate workflow is not configured. Contact your technical team.",
+      message:
+        "Certificate generator API is not configured. Set CERTIFICATE_GENERATOR_API_URL in .env.local.",
     };
   }
 
@@ -513,17 +440,16 @@ export async function requestCourseCertificate(input: {
   }
 
   const content = await readAdminContent();
-  const assets = resolveCertificateAssetsForSlug(content, slug);
-  if (!assets.templateImage || !assets.badgeImage || !assets.transcriptFile) {
-    return {
-      ok: false,
-      message:
-        "Certificate samples are not ready. Upload certificate, badge, and transcript for this program (or set global defaults under Users & Access → Certificates).",
-    };
+  const assets = resolveCourseCertificateAssets(content, slug);
+  if (!courseCertificateAssetsReady(assets)) {
+    return { ok: false, message: COURSE_CERTIFICATE_ASSETS_MISSING_MESSAGE };
   }
 
   const displayName =
-    registration.companyName ?? input.learnerName?.trim() ?? email.split("@")[0];
+    registration.name?.trim() ??
+    input.learnerName?.trim() ??
+    registration.companyName ??
+    email.split("@")[0];
   const holderType =
     registration.accountType === "organisation" ? "organisation" : "individual";
   const issuedAt = new Date();
@@ -556,15 +482,14 @@ export async function requestCourseCertificate(input: {
       supplementaryDocs: assets.supplementaryDocs.length > 0 ? assets.supplementaryDocs : undefined,
       status: "pending",
       visibleToLearner: false,
-      issuedVia: "n8n",
+      issuedVia: "api",
       issuedAt,
     },
   });
 
-  const dispatched = await dispatchCertificateToN8n({
+  const dispatched = await dispatchCertificateGeneration({
     row,
     course,
-    courseRow,
     registration,
     perms,
     assets,
@@ -604,7 +529,7 @@ async function archiveCertificatePdfFromTempUrl(input: {
     data: {
       pdfUrl: persisted.storedUrl,
       status: "ready",
-      issuedVia: "n8n",
+      issuedVia: "api",
       ...(typeof input.visibleToLearner === "boolean"
         ? { visibleToLearner: input.visibleToLearner }
         : {}),
@@ -619,12 +544,29 @@ export async function ensureCertificatePdfReady(input: {
   certificateId: string;
   learnerEmail: string;
   forceRegenerate?: boolean;
+  /** UI Generate — always POST course template + learner data to n8n. */
+  triggerN8n?: boolean;
 }): Promise<
-  | { ok: true; downloadUrl: string; status: string; n8nCalled?: boolean; cached?: boolean }
-  | { ok: false; message: string; status?: string; n8nCalled?: boolean }
+  | {
+      ok: true;
+      downloadUrl: string;
+      status: string;
+      n8nCalled?: boolean;
+      cached?: boolean;
+      n8nSent?: N8nCertificateSentSummary;
+      message?: string;
+    }
+  | {
+      ok: false;
+      message: string;
+      status?: string;
+      n8nCalled?: boolean;
+      n8nSent?: N8nCertificateSentSummary;
+    }
 > {
   const email = input.learnerEmail.trim().toLowerCase();
   const id = input.certificateId.trim();
+  const forceRegenerate = input.forceRegenerate === true || input.triggerN8n === true;
   if (!email || !id) {
     return { ok: false, message: "Email and certificate id are required." };
   }
@@ -634,17 +576,25 @@ export async function ensureCertificatePdfReady(input: {
     return { ok: false, message: "Certificate not found." };
   }
 
-  // Allow download while generating (pending) or when approved.
-  if (row.status === "ready" && !row.visibleToLearner) {
-    return {
-      ok: false,
-      message: "Your certificate is ready but waiting for admin approval before download.",
-      status: "awaiting_approval",
-    };
+  // Learner may download their own certificate once ready; admin approval only affects public listing.
+  if (row.status !== "ready" && row.status !== "pending") {
+    if (!(forceRegenerate && row.status === "failed")) {
+      return { ok: false, message: "Certificate is not ready yet.", status: row.status };
+    }
   }
 
+  const course = await findCourse(row.courseSlug);
+  if (!course) {
+    return { ok: false, message: "Course not found for this certificate." };
+  }
+
+  const perms = resolveCertificatePermissions(course);
+  const apiConfigured = isCertificateApiProvider(perms);
+  const mayUseLocal = mayUseLocalCertificateFallback(apiConfigured);
+  const autoVisible = perms.autoVisibleWhenReady && !perms.requireAdminApproval;
+
   // Permanent n8n PDF already saved — instant download, skip n8n.
-  const hasN8nPdf = !input.forceRegenerate && (await hasPermanentN8nPdf(id, row.issuedVia));
+  const hasN8nPdf = !forceRegenerate && (await hasPermanentGeneratorPdf(id, row.issuedVia));
   if (hasN8nPdf) {
     console.info("[certificate] prepare: using cached n8n PDF", id);
     return {
@@ -656,22 +606,53 @@ export async function ensureCertificatePdfReady(input: {
     };
   }
 
-  if (input.forceRegenerate) {
+  const hasStoredPdf =
+    !forceRegenerate && (await isValidArchivedCertificatePdf(id, { minBytes: 128 }));
+
+  if (hasStoredPdf && !apiConfigured) {
+    console.info("[certificate] prepare: using stored local PDF (n8n not configured)", id);
+    await prisma.lmsCertificate.update({
+      where: { id },
+      data: { visibleToLearner: true, status: "ready" },
+    });
+    return {
+      ok: true,
+      downloadUrl: certificatePdfServePath(id),
+      status: row.status,
+      cached: true,
+      n8nCalled: false,
+    };
+  }
+
+  if (forceRegenerate) {
     console.info("[certificate] prepare: force regenerate requested", id);
+    await deleteStoredCertificatePdf(id);
+    await prisma.lmsCertificate.update({
+      where: { id },
+      data: { pdfUrl: null, status: "pending" },
+    });
+  } else if (hasStoredPdf && apiConfigured && !isGeneratorIssuedVia(row.issuedVia)) {
+    console.info("[certificate] prepare: replacing non-API PDF — triggering generator", id);
+    await deleteStoredCertificatePdf(id);
+  } else if (
+    row.status === "ready" &&
+    !hasStoredPdf &&
+    !apiConfigured &&
+    (await ensureLocalCertificatePdf(id))
+  ) {
+    return {
+      ok: true,
+      downloadUrl: certificatePdfServePath(id),
+      status: "ready",
+      cached: false,
+      n8nCalled: false,
+    };
   }
 
-  console.info("[certificate] prepare: no n8n PDF yet, will trigger n8n", id, row.issuedVia);
-
-  const course = await findCourse(row.courseSlug);
-  if (!course) {
-    return { ok: false, message: "Course not found for this certificate." };
-  }
-
-  const perms = resolveCertificatePermissions(course);
-  const autoVisible = perms.autoVisibleWhenReady && !perms.requireAdminApproval;
+  console.info("[certificate] prepare: will trigger n8n", id, row.issuedVia);
 
   // Temp http link from a previous n8n run — archive now without calling n8n again.
-  if (row.pdfUrl?.trim().startsWith("http")) {
+  if (!forceRegenerate && row.pdfUrl?.trim().startsWith("http")) {
     const archived = await archiveCertificatePdfFromTempUrl({
       certificateId: id,
       remoteUrl: row.pdfUrl,
@@ -685,11 +666,38 @@ export async function ensureCertificatePdfReady(input: {
   if (!perms.enabled) {
     return { ok: false, message: "Certificates are not enabled for this course." };
   }
-  if (perms.provider !== "n8n" || !perms.n8nWebhookUrl) {
+  if (!apiConfigured) {
+    if (!mayUseLocal) {
+      return {
+        ok: false,
+        message:
+          "Certificate generator API is not configured. Set CERTIFICATE_GENERATOR_API_URL in .env.local.",
+      };
+    }
+    const created = await ensureLocalCertificatePdf(id);
+    if (created && (await isValidArchivedCertificatePdf(id))) {
+      await prisma.lmsCertificate.update({
+        where: { id },
+        data: { visibleToLearner: true, status: "ready" },
+      });
+      return {
+        ok: true,
+        downloadUrl: certificatePdfServePath(id),
+        status: "ready",
+        cached: false,
+        n8nCalled: false,
+      };
+    }
     return {
       ok: false,
-      message: "n8n certificate workflow is not configured. Set N8N_CERTIFICATE_WEBHOOK_URL in .env.local.",
+      message: "Certificate workflow is not configured for this course.",
     };
+  }
+
+  const content = await readAdminContent();
+  const assets = resolveCourseCertificateAssets(content, row.courseSlug);
+  if (!courseCertificateAssetsReady(assets)) {
+    return { ok: false, message: COURSE_CERTIFICATE_ASSETS_MISSING_MESSAGE };
   }
 
   const courseRow =
@@ -708,7 +716,7 @@ export async function ensureCertificatePdfReady(input: {
   }
 
   // First download: POST n8n → temp PDF URL → archive permanently.
-  const dispatched = await retryN8nCertificate({
+  const dispatched = await retryCertificateGeneration({
     row,
     course,
     courseRow,
@@ -717,28 +725,60 @@ export async function ensureCertificatePdfReady(input: {
     scorePercent: row.scorePercent ?? undefined,
   });
 
-  if (!dispatched.ok) {
-    return { ok: false, message: dispatched.message, status: row.status, n8nCalled: true };
-  }
+  if (dispatched.ok) {
+    const n8nSent = dispatched.n8nSent;
+    if (await isValidArchivedCertificatePdf(id, { minBytes: N8N_ARCHIVED_PDF_MIN_BYTES })) {
+      return {
+        ok: true,
+        downloadUrl: certificatePdfServePath(id),
+        status: "ready",
+        n8nCalled: true,
+        cached: false,
+        n8nSent,
+        message: dispatched.message,
+      };
+    }
 
-  if (await isValidArchivedCertificatePdf(id, { minBytes: N8N_ARCHIVED_PDF_MIN_BYTES })) {
+    if (mayUseLocal && (await ensureLocalCertificatePdf(id))) {
+      return {
+        ok: true,
+        downloadUrl: certificatePdfServePath(id),
+        status: "ready",
+        n8nCalled: true,
+        cached: false,
+        n8nSent,
+        message: dispatched.message,
+      };
+    }
+
     return {
       ok: true,
       downloadUrl: certificatePdfServePath(id),
-      status: "ready",
+      status: dispatched.certificate.status ?? "pending",
       n8nCalled: true,
       cached: false,
+      n8nSent,
+      message: dispatched.message,
     };
   }
 
-  return {
-    ok: false,
-    message:
-      dispatched.message ??
-      "n8n returned but PDF was not archived. Ensure Respond to Webhook returns the full temporary PDF URL as text.",
-    status: dispatched.certificate.status,
-    n8nCalled: true,
-  };
+  if (mayUseLocal) {
+    const created = await ensureLocalCertificatePdf(id);
+    if (created && (await isValidArchivedCertificatePdf(id))) {
+      await prisma.lmsCertificate.update({
+        where: { id },
+        data: { visibleToLearner: true, status: "ready" },
+      });
+      return {
+        ok: true,
+        downloadUrl: certificatePdfServePath(id),
+        status: "ready",
+        n8nCalled: true,
+        cached: false,
+      };
+    }
+  }
+  return { ok: false, message: dispatched.message, status: row.status, n8nCalled: true };
 }
 
 /** n8n calls this when PDF is ready — archives PDF permanently on LMS disk + MySQL. */
@@ -786,7 +826,7 @@ export async function completeN8nCertificateCallback(input: {
         storedPdfUrl ??
         (row.pdfUrl?.startsWith("http") ? row.pdfUrl : null),
       visibleToLearner: visible || row.visibleToLearner,
-      issuedVia: storedPdfUrl ? "n8n" : row.issuedVia,
+      issuedVia: storedPdfUrl ? "api" : row.issuedVia,
       issuedAt: status === "ready" ? new Date() : row.issuedAt,
     },
   });
@@ -905,5 +945,132 @@ export async function adminTriggerCertificateForLearner(input: {
   | { ok: true; certificate: CertificateRowDto; message?: string }
   | { ok: false; message: string }
 > {
-  return requestCourseCertificate(input);
+  return requestCourseCertificate({ ...input, forceRetry: true });
 }
+
+/**
+ * Generate certificate via direct API call (course templates from admin).
+ * Used by the learner Generate button.
+ */
+export async function triggerCertificateGeneration(input: {
+  certificateId: string;
+  learnerEmail: string;
+}): Promise<
+  | {
+      ok: true;
+      apiCalled: true;
+      n8nCalled: true;
+      generatorSent: CertificateGeneratorSentSummary;
+      n8nSent: CertificateGeneratorSentSummary;
+      message: string;
+      certificate: CertificateRowDto;
+    }
+  | { ok: false; message: string }
+> {
+  const email = input.learnerEmail.trim().toLowerCase();
+  const id = input.certificateId.trim();
+  if (!email || !id) {
+    return { ok: false, message: "Email and certificate id are required." };
+  }
+
+  const row = await prisma.lmsCertificate.findUnique({ where: { id } });
+  if (!row || row.learnerEmail.trim().toLowerCase() !== email) {
+    return { ok: false, message: "Certificate not found." };
+  }
+
+  const course = await findCourse(row.courseSlug);
+  if (!course) {
+    return { ok: false, message: "Course not found for this certificate." };
+  }
+
+  const perms = resolveCertificatePermissions(course);
+  if (!perms.enabled) {
+    return { ok: false, message: "Certificates are not enabled for this course." };
+  }
+  if (!isCertificateApiProvider(perms)) {
+    return {
+      ok: false,
+      message:
+        "Certificate generator API is not configured. Set CERTIFICATE_GENERATOR_API_URL in .env.local.",
+    };
+  }
+
+  const content = await readAdminContent();
+  const assets = resolveCourseCertificateAssets(content, row.courseSlug);
+  if (!courseCertificateAssetsReady(assets)) {
+    return { ok: false, message: COURSE_CERTIFICATE_ASSETS_MISSING_MESSAGE };
+  }
+
+  const courseRow =
+    (await getCourseBySlug(row.courseSlug)) ??
+    (await ensureCourseInMysql({
+      slug: course.slug,
+      title: course.title,
+      subtitle: course.subtitle,
+      category: course.category,
+      level: course.level,
+      published: course.published,
+      learningFormat: course.learningFormat,
+    }));
+  if (!courseRow) {
+    return { ok: false, message: "Could not load course from MySQL." };
+  }
+
+  const registration = await lookupRegistrationByEmail(email);
+  if (!registration?.identificationNumber) {
+    return {
+      ok: false,
+      message: "User must be registered in MySQL before requesting a certificate.",
+    };
+  }
+
+  await deleteStoredCertificatePdf(id);
+  await prisma.lmsCertificate.update({
+    where: { id },
+    data: {
+      pdfUrl: null,
+      status: "pending",
+      issuedVia: "course-template",
+      templateImage: assets.templateImage,
+      badgeImage: assets.badgeImage,
+    },
+  });
+
+  const displayName =
+    row.learnerName?.trim() ??
+    registration.name?.trim() ??
+    registration.companyName ??
+    email.split("@")[0];
+
+  const freshRow = await prisma.lmsCertificate.findUnique({ where: { id } });
+  if (!freshRow) {
+    return { ok: false, message: "Certificate not found." };
+  }
+
+  const dispatched = await dispatchCertificateGeneration({
+    row: freshRow,
+    course,
+    registration,
+    perms,
+    assets,
+    displayName,
+    scorePercent: freshRow.scorePercent,
+  });
+
+  if (!dispatched.ok) {
+    return { ok: false, message: dispatched.message };
+  }
+
+  return {
+    ok: true,
+    apiCalled: true,
+    n8nCalled: true,
+    generatorSent: dispatched.generatorSent,
+    n8nSent: dispatched.n8nSent,
+    message: dispatched.message,
+    certificate: dispatched.certificate,
+  };
+}
+
+/** @deprecated Use triggerCertificateGeneration */
+export const triggerN8nCertificateGeneration = triggerCertificateGeneration;

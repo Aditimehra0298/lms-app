@@ -2,7 +2,7 @@ import type { AccountTypeId } from "@/lib/auth-profile";
 import {
   emailAppName,
   emailAppUrl,
-  emailLogoUrl,
+  emailLogoSrc,
   emailShortBrand,
 } from "@/lib/email-brand-config";
 import { buildWelcomeEmail, type WelcomeEmailMethod } from "@/lib/email-templates/welcome";
@@ -39,7 +39,7 @@ export async function sendWelcomeEmailViaN8n(
   const appName = emailAppName();
   const shortBrand = emailShortBrand();
   const appUrl = emailAppUrl().replace(/\/$/, "");
-  const logoUrl = emailLogoUrl();
+  const logoUrl = emailLogoSrc();
   const registration = input.registration ?? null;
 
   const learnerName =

@@ -12,8 +12,9 @@ export function sanitizeCertificateConfig(
         .filter((d) => d && typeof d === "object" && d.title?.trim() && d.url?.trim())
         .map((d) => ({ title: d.title.trim(), url: d.url.trim() }))
     : [];
-  /** One global n8n workflow (env URL) — admin never configures provider per course. */
-  const provider: ManagedCourseCertificateConfig["provider"] = "n8n";
+  /** Certificate generator API (env CERTIFICATE_GENERATOR_API_URL) — per-course templates from admin. */
+  const provider: ManagedCourseCertificateConfig["provider"] =
+    raw.provider === "builtin" ? "builtin" : "api";
   const out: ManagedCourseCertificateConfig = {
     enabled: raw.enabled !== false,
     provider,
@@ -27,6 +28,9 @@ export function sanitizeCertificateConfig(
     nameTopPercent: clampPercent(raw.nameTopPercent),
     numberTopPercent: clampPercent(raw.numberTopPercent),
     dateTopPercent: clampPercent(raw.dateTopPercent),
+    overlayCourseTitle: raw.overlayCourseTitle,
+    overlayScore: raw.overlayScore,
+    overlayBadge: raw.overlayBadge,
     supplementaryDocs: docs.length > 0 ? docs : undefined,
   };
   return Object.keys(out).some((k) => out[k as keyof ManagedCourseCertificateConfig] !== undefined)

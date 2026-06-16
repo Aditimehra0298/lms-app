@@ -1486,6 +1486,7 @@
         "moneyBackGuarantee": "Money-back assurance as per course policy.",
         "enrollButtonLabel": "Enroll Now",
         "wishlistButtonLabel": "Add to Wishlist",
+        "certificatePreviewImage": "/api/media/serve/1781500686146-ag5iq81x-Vikas_kaushal_page-0001.jpg",
         "certificatePreviewLabel": "Certificate of attainment",
         "aboutText": "This course helps employees understand common cyber security risks, especially phishing emails, fake links, suspicious attachments, and online scams. It teaches learners how to identify phishing attempts, protect sensitive information, follow safe digital practices, and report suspicious activity on time. The course is designed to build practical cyber awareness and reduce the risk of data loss, fraud, and workplace security breaches.",
         "courseIncludes": [
@@ -1641,163 +1642,171 @@
           "Use the learning from this lesson to support better awareness and decision-making."
         ]
       },
-      "regionalPrices": [],
+      "regionalPrices": [
+        {
+          "countryCode": "IN",
+          "price": "10,999",
+          "oldPrice": "9999"
+        }
+      ],
       "organizationSeatPricing": [],
       "curriculum": [
         {
           "title": "General Instructions for Candidate",
           "items": [
             {
-              "label": "Video — How to use this course & navigation",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Policies, attempts & certificate rules",
-              "kind": "reading"
-            },
-            {
-              "label": "Knowledge check",
-              "kind": "exam"
+              "label": "Video — How to Use This Course & Navigation",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1781497227704-hnpehrig-video_completion_guide.mp4",
+              "lessonVideoSizeMb": 11.5,
+              "previewLimitMinutes": 2,
+              "lessonDurationMinutes": 3,
+              "description": "This introductory lesson explains how to navigate the course, access learning materials, complete module examinations, and track your progress. It helps learners understand the course structure and get the best learning experience.",
+              "about": "In this lesson, learners will receive an overview of the course layout, module sequence, learning resources, assessments, and certification requirements. It also explains how to use the platform features and successfully complete the training.",
+              "learningOutcomes": [
+                "Understand the structure of the course.",
+                "Learn how to navigate between modules and lessons.",
+                "Know how to access learning materials and resources.",
+                "Understand how module examinations work.",
+                "Learn the course completion and certification requirements.",
+                "Track learning progress effectively.",
+                "Use the platform features with confidence.",
+                "Prepare for a smooth and successful learning experience."
+              ]
             }
           ]
         },
         {
-          "title": "Module 1 — Introduction & orientation (Cyber Security Phishing Awareness Trainings)",
+          "title": "Module 1:  What is Phishing?",
           "items": [
             {
-              "label": "Video — Course overview and learning outcomes",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Handbook, glossary, and resources",
-              "kind": "reading"
+              "label": "Video — What is Phishing? Course Overview and Learning Outcomes",
+              "kind": "video",
+              "previewLimitMinutes": 15,
+              "lessonDurationMinutes": 16,
+              "videoUrl": "/api/media/serve/1781497794695-0q32n87v-V1.mp4",
+              "lessonVideoSizeMb": 157.3,
+              "description": "This lesson introduces the concept of phishing and explains how attackers use fake emails, links, websites, and messages to trick users into sharing sensitive information. Learners will understand the purpose of the module, the key risks linked with phishing, and the learning outcomes they are expected to achieve.",
+              "about": "In this lesson, learners will understand what phishing means, how attackers use fake emails, links, websites, and messages to trick users, and why phishing awareness is important in the workplace. The lesson also introduces the learning outcomes of the module and prepares learners to recognize suspicious communication more confidently.",
+              "learningOutcomes": [
+                "Define phishing in simple terms.",
+                "Understand how phishing attacks are commonly carried out.",
+                "Recognize that attackers may impersonate trusted organizations or individuals.",
+                "Identify why phishing emails, links, and fake websites can look genuine.",
+                "Understand the role of urgency, fear, and attractive offers in phishing attempts.",
+                "Recognize the possible risks of falling for phishing attacks.",
+                "Understand the importance of careful online behavior.",
+                "Prepare for the upcoming lessons on phishing identification and prevention."
+              ]
             },
             {
               "label": "Module examination",
-              "kind": "exam"
+              "kind": "exam",
+              "examPassingScorePercent": 70,
+              "examUploadUrl": "/api/media/serve/1781497847113-e4d57962-Untitled_spreadsheet_-_moduoe_1.csv",
+              "description": "This module examination is designed to assess learners’ understanding of phishing basics, common phishing techniques, warning signs, and safe response practices. Learners must complete the exam and achieve the required passing score to successfully complete this module."
             }
           ]
         },
         {
-          "title": "Module 2 — Core foundations (Cyber Security Phishing Awareness Trainings)",
+          "title": "Anatomy of a Phishing Email",
           "items": [
             {
-              "label": "Video — Key principles and terminology",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Reference readings and frameworks",
-              "kind": "reading"
+              "label": "Video — Anatomy of a Phishing Email: Key Principles and Terminology",
+              "kind": "video",
+              "previewLimitMinutes": 14,
+              "lessonDurationMinutes": 15,
+              "videoUrl": "/api/media/serve/1781498103328-vbjanmd7-V2.mp4",
+              "lessonVideoSizeMb": 59.3,
+              "description": "This lesson explains the main parts of a phishing email and how attackers design messages to appear genuine. Learners will understand common phishing email elements such as sender details, subject lines, greetings, message content, suspicious links, attachments, and urgent calls to action.",
+              "about": "In this lesson, learners will explore the structure of a phishing email and understand how each part is used to mislead the recipient. The lesson explains how attackers impersonate trusted organizations, create urgency, and use fake links or attachments to make users click, respond, or share sensitive information.",
+              "learningOutcomes": [
+                "In this lesson, learners will explore the structure of a phishing email and understand how each part is used to mislead the recipient. The lesson explains how attackers impersonate trusted organizations, create urgency, and use fake links or attachments to make users click, respond, or share sensitive information."
+              ]
             },
             {
               "label": "Module examination",
-              "kind": "exam"
+              "kind": "exam",
+              "examPassingScorePercent": 70,
+              "examUploadUrl": "/api/media/serve/1781498151015-m27bjf3j-Untitled_spreadsheet_-_module_2.csv"
             }
           ]
         },
         {
-          "title": "Module 3 — Applied practices (Cyber Security Phishing Awareness Trainings)",
+          "title": "Scenario-based Lesson",
           "items": [
             {
-              "label": "Video — Scenario-based lesson",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Worksheets, templates, and examples",
-              "kind": "reading"
+              "label": "Scenario-based Lesson",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1781498214015-aouwrpwt-V3.mp4",
+              "lessonVideoSizeMb": 74.4,
+              "previewLimitMinutes": 14,
+              "lessonDurationMinutes": 15,
+              "description": "This lesson explains five quick verification checks that learners should follow before clicking links, opening attachments, or responding to suspicious emails. It helps learners identify phishing warning signs such as fake sender addresses, unexpected attachments, spelling errors, urgent language, and unsafe links.",
+              "about": "This lesson explains five quick verification checks that learners should follow before clicking links, opening attachments, or responding to suspicious emails. It helps learners identify phishing warning signs such as fake sender addresses, unexpected attachments, spelling errors, urgent language, and unsafe links.",
+              "learningOutcomes": [
+                "Identify suspicious sender names and email addresses.",
+                "Recognize unexpected or risky attachments from unknown sources.",
+                "Detect spelling mistakes, grammar errors, and unusual message formatting.",
+                "Understand how urgent or threatening language is used in phishing emails.",
+                "Learn how to hover over links to check the actual destination URL.",
+                "Apply five quick verification checks before clicking or responding.",
+                "Avoid opening suspicious links, files, or requests without confirmation.",
+                "Improve daily email security awareness and safe decision-making."
+              ]
             },
             {
               "label": "Module examination",
-              "kind": "exam"
+              "kind": "exam",
+              "examPassingScorePercent": 70,
+              "examUploadUrl": "/api/media/serve/1781498400864-pw5t1quo-module_phishing_quick_checks_questions_1.csv",
+              "description": "This module examination assesses learners’ understanding of the five quick checks used to identify phishing emails. It tests whether learners can verify sender details, identify suspicious attachments, recognize urgent or threatening language, check links safely, and take the correct action before clicking or responding."
             }
           ]
         },
         {
-          "title": "Module 4 — Standards & compliance (Cyber Security Phishing Awareness Trainings)",
+          "title": "Video Lesson Overview",
           "items": [
             {
-              "label": "Video — Regulatory and policy context",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Checklists and guidance notes",
-              "kind": "reading"
+              "label": "Video — Phishing Response: Roles, Responsibilities and Defence Strategies",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1781498478230-z6o1qhb7-V4.mp4",
+              "lessonVideoSizeMb": 58.7,
+              "lessonDurationMinutes": 16,
+              "previewLimitMinutes": 15,
+              "description": "This lesson explains how organizations should respond to phishing attacks through clear roles, responsibilities, and coordinated defence actions. Learners will understand how leadership, IT security teams, managers, employees, HR, and legal teams contribute to phishing detection, reporting, containment, communication, and prevention.",
+              "about": "In this lesson, learners will explore phishing as a social engineering threat and understand why a fast and organized response is important. The lesson explains the role of key stakeholders such as the CEO, CISO, IT security team, managers, employees, HR, and legal teams. It also introduces the incident response lifecycle and common preventive controls such as awareness training, email filtering, multi-factor authentication, and phishing simulations.",
+              "learningOutcomes": [
+                "Understand phishing as a social engineering and cyber security threat.",
+                "Recognize the importance of rapid detection, reporting, and containment.",
+                "Identify the role of leadership in phishing incident response.",
+                "Understand the responsibilities of the CISO and IT security team.",
+                "Recognize employees as the first line of defence against phishing.",
+                "Understand how managers support communication and coordination during incidents.",
+                "Identify the role of HR and legal teams in compliance and internal communication.",
+                "Understand the basic phishing incident response lifecycle.",
+                "Recognize preventive measures such as email filtering, MFA, awareness training, and simulations.",
+                "Apply coordinated response practices to reduce phishing-related risks."
+              ]
             },
             {
               "label": "Module examination",
-              "kind": "exam"
-            }
-          ]
-        },
-        {
-          "title": "Module 5 — Risk assessment & controls (Cyber Security Phishing Awareness Trainings)",
-          "items": [
-            {
-              "label": "Video — Identification and mitigation walkthrough",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Case studies and exercises",
-              "kind": "reading"
-            },
-            {
-              "label": "Module examination",
-              "kind": "exam"
-            }
-          ]
-        },
-        {
-          "title": "Module 6 — Implementation (Cyber Security Phishing Awareness Trainings)",
-          "items": [
-            {
-              "label": "Video — Operational best practices on the job",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — SOP excerpts and job aids",
-              "kind": "reading"
-            },
-            {
-              "label": "Module examination",
-              "kind": "exam"
-            }
-          ]
-        },
-        {
-          "title": "Module 7 — Review & assessment prep (Cyber Security Phishing Awareness Trainings)",
-          "items": [
-            {
-              "label": "Video — Summary and practice session",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Revision materials and sample questions",
-              "kind": "reading"
-            },
-            {
-              "label": "Module examination",
-              "kind": "exam"
-            }
-          ]
-        },
-        {
-          "title": "Module 8 — Capstone & certification path (Cyber Security Phishing Awareness Trainings)",
-          "items": [
-            {
-              "label": "Video — Final wrap-up and next steps",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Completion requirements overview",
-              "kind": "reading"
-            },
-            {
-              "label": "Module examination",
-              "kind": "exam"
+              "kind": "exam",
+              "examUploadUrl": "/api/media/serve/1781503520205-0o9z2q4q-module_phishing_quick_checks_questions.csv"
             }
           ]
         }
-      ]
+      ],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "api",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false,
+        "templateImage": "/api/media/serve/1781500493102-vyvhmj3x-A4.png",
+        "badgeImage": "/api/media/serve/1781500553481-nt52wht7-Copy_of_badge_-_iso_45001_lv_1_.png",
+        "transcriptFile": "/api/media/serve/1781500506185-3oqljd7i-A4_2_.png"
+      }
     }
   ],
   "categories": [

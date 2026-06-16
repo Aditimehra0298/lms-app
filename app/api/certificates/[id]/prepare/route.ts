@@ -12,7 +12,7 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ ok: false, message: "Missing certificate id" }, { status: 400 });
   }
 
-  let body: { email?: string; forceRegenerate?: boolean };
+  let body: { email?: string; forceRegenerate?: boolean; triggerN8n?: boolean; attachment?: boolean };
   try {
     body = (await request.json()) as { email?: string; forceRegenerate?: boolean };
   } catch {
@@ -29,6 +29,7 @@ export async function POST(request: Request, { params }: Params) {
       certificateId: id.trim(),
       learnerEmail: email,
       forceRegenerate: body.forceRegenerate === true,
+      triggerN8n: body.triggerN8n === true,
     });
     if (!result.ok) {
       return NextResponse.json(result, {

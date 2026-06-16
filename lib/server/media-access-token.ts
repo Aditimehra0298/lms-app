@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export type MediaAccessScope = "admin" | "learner" | "catalog";
+export type MediaAccessScope = "admin" | "learner" | "catalog" | "workflow";
 
 export type MediaAccessPayload = {
   f: string;

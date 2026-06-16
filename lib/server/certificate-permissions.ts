@@ -1,12 +1,13 @@
 import type { CertificateProgramRef } from "@/lib/certificate-program-resolve";
+import { resolveCertificateGeneratorApiUrl } from "@/lib/server/certificate-generator-api";
 
 export type CertificatePermissionSettings = {
   enabled: boolean;
-  provider: "builtin" | "n8n";
+  provider: "builtin" | "api";
   showInLearnerDashboard: boolean;
   autoVisibleWhenReady: boolean;
   requireAdminApproval: boolean;
-  n8nWebhookUrl: string | null;
+  certificateGeneratorApiUrl: string | null;
 };
 
 export function resolveCertificatePermissions(
@@ -16,13 +17,17 @@ export function resolveCertificatePermissions(
   const hero = program.hero ?? {};
   const enabled = cfg.enabled !== false && (hero.certificate ?? "").trim().toLowerCase() !== "no";
   const requireAdminApproval = cfg.requireAdminApproval === true;
+  const apiUrl =
+    cfg.certificateGeneratorApiUrl?.trim() ||
+    process.env.CERTIFICATE_GENERATOR_API_URL?.trim() ||
+    resolveCertificateGeneratorApiUrl();
   return {
     enabled,
-    provider: cfg.provider === "builtin" ? "builtin" : "n8n",
+    provider: cfg.provider === "builtin" ? "builtin" : "api",
     showInLearnerDashboard: cfg.showInLearnerDashboard !== false,
     autoVisibleWhenReady: !requireAdminApproval && cfg.autoVisibleWhenReady !== false,
     requireAdminApproval,
-    n8nWebhookUrl: cfg.n8nWebhookUrl?.trim() || process.env.N8N_CERTIFICATE_WEBHOOK_URL?.trim() || null,
+    certificateGeneratorApiUrl: apiUrl,
   };
 }
 

@@ -1,9 +1,11 @@
 import {
   EMAIL_BRAND,
+  emailOtpCodeBlock,
   escapeHtml,
   wrapEmailLayout,
   type EmailLayoutInput,
 } from "@/lib/email-templates/layout";
+import { DEFAULT_EMAIL_APP_NAME } from "@/lib/email-brand-config";
 export type OtpEmailKind = "register" | "reset_password";
 
 export type OtpTemplateInput = {
@@ -11,7 +13,7 @@ export type OtpTemplateInput = {
   kind: OtpEmailKind;
   appName: string;
   appUrl: string;
-  logoUrl?: string;
+  logoSrc?: string;
 };
 
 export function buildOtpEmail(input: OtpTemplateInput): {
@@ -19,51 +21,62 @@ export function buildOtpEmail(input: OtpTemplateInput): {
   text: string;
   html: string;
 } {
-  const appName = input.appName.trim() || "SF Trainings";
+  const appName = input.appName.trim() || DEFAULT_EMAIL_APP_NAME;
   const isReset = input.kind === "reset_password";
   const subject = isReset
-    ? `Reset your ${appName} password`
-    : `Verify your email — ${appName}`;
-  const heading = isReset ? "Password reset" : "Verify your email";
+    ? `${appName} — Password reset verification code`
+    : `${appName} — Email verification code`;
+  const heading = isReset ? "Password reset" : "Email verification";
+  const title = isReset
+    ? "Reset your account password"
+    : "Verify your email address";
   const intro = isReset
-    ? "Enter this code on the password reset page. It expires in 10 minutes."
-    : "Enter this code to finish creating your account. It expires in 10 minutes.";
+    ? `You requested a password reset for your ${appName} account. Enter the verification code below on the reset page. This code expires in 10 minutes.`
+    : `Thank you for registering with ${appName}. Enter the verification code below to confirm your email address and complete your registration. This code expires in 10 minutes.`;
   const preheader = isReset
-    ? `Your password reset code is ${input.code}`
-    : `Your verification code is ${input.code}`;
+    ? `Your ${appName} password reset code is ${input.code}`
+    : `Your ${appName} verification code is ${input.code}`;
+  const codeLabel = isReset ? "Password reset code" : "Email verification code";
 
   const text = [
-    `${heading} — ${appName}`,
+    appName,
+    heading,
     "",
     intro,
     "",
-    `Code: ${input.code}`,
+    `Verification code: ${input.code}`,
     "",
-    "If you did not request this, you can ignore this email.",
+    "If you did not request this email, you may safely ignore it.",
     "",
     `— ${appName}`,
   ].join("\n");
 
   const bodyHtml = `
-    <p style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:${EMAIL_BRAND.gold}">${escapeHtml(heading)}</p>
-    <h2 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#18181b">${isReset ? "Reset your password" : "Confirm it's you"}</h2>
-    <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:${EMAIL_BRAND.textBody}">${escapeHtml(intro)}</p>
-
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px">
       <tr>
-        <td align="center" style="padding:28px 20px;background:linear-gradient(180deg,#fffbeb,#fff7ed);border-radius:16px;border:2px dashed ${EMAIL_BRAND.gold}">
-          <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#92400e">Your code</p>
-          <p style="margin:0;font-size:40px;font-weight:800;letter-spacing:0.35em;color:#18181b;font-family:Consolas,Monaco,monospace">${escapeHtml(input.code)}</p>
+        <td style="padding:12px 16px;background:linear-gradient(90deg,${EMAIL_BRAND.greenSoft},rgba(249,177,77,0.12));
+          border-radius:12px;border-left:4px solid ${EMAIL_BRAND.greenMid}">
+          <p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${EMAIL_BRAND.greenMid}">
+            ${escapeHtml(heading)}
+          </p>
         </td>
       </tr>
     </table>
 
+    <h2 style="margin:0 0 12px;font-size:24px;font-weight:800;line-height:1.3;color:#1f2937">${escapeHtml(title)}</h2>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.65;color:${EMAIL_BRAND.textBody}">${escapeHtml(intro)}</p>
+
+    ${emailOtpCodeBlock(input.code, codeLabel)}
+
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td style="padding:14px 16px;background:${EMAIL_BRAND.surface};border-radius:10px;border:1px solid #e4e4e7">
-          <p style="margin:0;font-size:13px;line-height:1.5;color:#52525b">
-            <strong style="color:#18181b">Expires in 10 minutes.</strong>
-            Never share this code. ${appName} staff will never ask for it.
+        <td style="padding:16px 18px;background:${EMAIL_BRAND.surface};border-radius:12px;border:1px solid ${EMAIL_BRAND.borderSoft}">
+          <p style="margin:0 0 8px;font-size:13px;line-height:1.55;color:#4b5563">
+            <strong style="color:#14532d">Expires in 10 minutes.</strong>
+            Do not share this code with anyone.
+          </p>
+          <p style="margin:0;font-size:12px;line-height:1.5;color:${EMAIL_BRAND.greenMid}">
+            ${escapeHtml(appName)} will never ask you for this code by phone or message.
           </p>
         </td>
       </tr>
@@ -73,7 +86,7 @@ export function buildOtpEmail(input: OtpTemplateInput): {
   const layoutInput: EmailLayoutInput = {
     appName,
     appUrl: input.appUrl,
-    logoUrl: input.logoUrl,
+    logoSrc: input.logoSrc,
     preheader,
     bodyHtml,
   };

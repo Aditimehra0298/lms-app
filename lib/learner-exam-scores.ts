@@ -157,6 +157,20 @@ export function computeCombinedExamGrade(
   };
 }
 
+/** True when every module index is marked, or enough in-range completions exist (legacy progress). */
+export function areAllCurriculumModulesComplete(
+  curriculum: CourseCurriculumModule[],
+  completedModules: number[],
+): boolean {
+  const moduleCount = curriculum.length;
+  if (moduleCount <= 0) return false;
+  if (curriculum.every((_, idx) => completedModules.includes(idx + 1))) return true;
+  const inRange = new Set(
+    completedModules.filter((n) => Number.isFinite(n) && n >= 1 && n <= moduleCount),
+  );
+  return inRange.size >= moduleCount;
+}
+
 /** Certificate + transcript unlock: all modules done, and every module exam passed when exams exist. */
 export function learnerCredentialsEligible(
   curriculum: CourseCurriculumModule[],
@@ -167,8 +181,7 @@ export function learnerCredentialsEligible(
   examsRequired: boolean;
   eligible: boolean;
 } {
-  const allModulesDone =
-    curriculum.length > 0 && curriculum.every((_, idx) => completedModules.includes(idx + 1));
+  const allModulesDone = areAllCurriculumModulesComplete(curriculum, completedModules);
   const examsRequired = examModuleNumbers(curriculum).length > 0;
   const eligible = allModulesDone && (!examsRequired || allExamsPassed);
   return { allModulesDone, examsRequired, eligible };

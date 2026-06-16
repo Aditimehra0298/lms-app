@@ -130,27 +130,153 @@ body.tutor-led-marketing-body {
   letter-spacing: -0.01em;
 }
 
+/* Unified home page section headings */
+.learnly-home .lh-section-title {
+  font-size: 1.875rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+}
+
+@media (min-width: 768px) {
+  .learnly-home .lh-section-title {
+    font-size: 2.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .learnly-home .lh-section-title {
+    font-size: 3rem;
+  }
+}
+
+:root[data-theme="light"] .learnly-home .lh-section-title {
+  color: #0f172a !important;
+}
+
+.learnly-home .lh-card-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #ffffff;
+}
+
+@media (min-width: 768px) {
+  .learnly-home .lh-card-title {
+    font-size: 1.25rem;
+  }
+}
+
+:root[data-theme="light"] .learnly-home .lh-card-title {
+  color: #0f172a !important;
+}
+
 :root[data-theme="light"] .learnly-home .text-gray-300,
 :root[data-theme="light"] .learnly-home .text-gray-400,
 :root[data-theme="light"] .learnly-home .text-gray-500,
 :root[data-theme="light"] .learnly-home .text-slate-300,
 :root[data-theme="light"] .learnly-home .text-slate-400,
-:root[data-theme="light"] .learnly-home .text-neutral-400,
-:root[data-theme="light"] .learnly-home .text-amber-100,
-:root[data-theme="light"] .learnly-home .text-amber-200,
-:root[data-theme="light"] .learnly-home .text-amber-300,
-:root[data-theme="light"] .learnly-home .text-amber-400,
-:root[data-theme="light"] .learnly-home .text-yellow-200,
-:root[data-theme="light"] .learnly-home .text-yellow-300,
-:root[data-theme="light"] .learnly-home .text-yellow-400 {
+:root[data-theme="light"] .learnly-home .text-neutral-400 {
   color: #334155 !important;
 }
 
 :root[data-theme="light"] .learnly-home p,
 :root[data-theme="light"] .learnly-home li,
-:root[data-theme="light"] .learnly-home label,
-:root[data-theme="light"] .learnly-home span {
+:root[data-theme="light"] .learnly-home label {
   color: #1f2937;
+}
+
+/* Premium gold accents — keep warm icon & highlight colors in light theme */
+:root[data-theme="light"] .learnly-home .lh-gold-text {
+  color: #9a6812 !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-icon-chip {
+  background: linear-gradient(145deg, #fff9ee 0%, #fdecc8 100%) !important;
+  color: #b45309 !important;
+  border: 1px solid rgba(212, 160, 23, 0.38);
+  box-shadow:
+    0 2px 10px rgba(212, 160, 23, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+:root[data-theme="light"] .learnly-home .lh-icon-chip svg {
+  color: #c47f0a !important;
+  stroke: #c47f0a;
+}
+
+:root[data-theme="light"] .learnly-home .lh-premium-badge {
+  background: linear-gradient(135deg, rgba(255, 251, 240, 0.95), rgba(253, 236, 200, 0.9)) !important;
+  border-color: rgba(212, 160, 23, 0.4) !important;
+  color: #b45309 !important;
+  box-shadow: 0 4px 16px rgba(212, 160, 23, 0.12);
+}
+
+:root[data-theme="light"] .learnly-home .lh-premium-badge svg {
+  color: #d97706 !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-stat-pill {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(253, 244, 220, 0.88)) !important;
+  border-color: rgba(212, 160, 23, 0.42) !important;
+  color: #8a6412 !important;
+  box-shadow:
+    0 4px 18px rgba(212, 160, 23, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-hero-secondary-btn {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-color: rgba(212, 160, 23, 0.45) !important;
+  color: #8a6412 !important;
+  box-shadow: 0 4px 16px rgba(148, 118, 59, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+:root[data-theme="light"] .learnly-home .lh-hero-secondary-btn svg {
+  color: #c47f0a !important;
+  fill: #c47f0a;
+}
+
+:root[data-theme="light"] .learnly-home .lh-hero-secondary-btn:hover {
+  background: rgba(255, 249, 235, 0.95) !important;
+  border-color: rgba(212, 160, 23, 0.62) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-hero-video-shell {
+  border: 1px solid rgba(212, 160, 23, 0.28);
+  box-shadow:
+    0 16px 40px rgba(148, 118, 59, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+
+:root[data-theme="light"] .learnly-home .lh-hero-badge {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(212, 160, 23, 0.35) !important;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08) !important;
+  backdrop-filter: blur(12px);
+}
+
+:root[data-theme="light"] .learnly-home .lh-hero-badge .lh-badge-label {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-hero-badge .lh-badge-title {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-step-num {
+  color: #d97706 !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-step-label {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-bullet {
+  background-color: #d97706 !important;
 }
 
 :root[data-theme="light"] .learnly-home section[class*="border-t"] {
@@ -188,6 +314,21 @@ body.tutor-led-marketing-body {
   box-shadow:
     0 10px 24px rgba(212, 160, 23, 0.3),
     0 0 22px rgba(212, 160, 23, 0.22) !important;
+}
+
+:root[data-theme="dark"] .learnly-home .lh-accreditation-logo--irba {
+  filter: brightness(0) invert(1);
+}
+
+:root[data-theme="light"] .learnly-home .lh-filter-pill {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(212, 160, 23, 0.28) !important;
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-filter-pill:hover {
+  border-color: rgba(212, 160, 23, 0.5) !important;
+  color: #b45309 !important;
 }
 
 :root[data-theme="light"] .learnly-home .lh-gold-btn:hover,
@@ -302,6 +443,15 @@ body.tutor-led-marketing-body {
   :root[data-theme="light"] .about-page .about-who-list {
     grid-template-columns: 1fr;
   }
+}
+
+/* Account page light theme: warm brown canvas + brown galaxy; heading same as dark */
+:root[data-theme="light"] .account-page {
+  background:
+    radial-gradient(circle at 14% 12%, rgba(212, 160, 23, 0.14), transparent 34%),
+    radial-gradient(circle at 86% 20%, rgba(101, 67, 33, 0.2), transparent 30%),
+    linear-gradient(180deg, #3d2b14 0%, #2a1a0a 48%, #1a1008 100%) !important;
+  color: #ffffff;
 }
 
 @keyframes qmarkFloatA {

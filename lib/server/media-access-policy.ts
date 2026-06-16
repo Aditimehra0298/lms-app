@@ -1,3 +1,4 @@
+import { isCertificateWorkflowMediaFile } from "@/lib/server/certificate-workflow-media";
 import { readAdminContent } from "@/lib/server/content-store";
 import { isAdminEmail } from "@/lib/server/admin-emails";
 import { prisma } from "@/lib/prisma";
@@ -73,6 +74,10 @@ export async function mediaAccessAllowed(
 
     // Fallback (dev mode): allow based on configured admin emails list.
     return isAdminEmail(email);
+  }
+
+  if (payload.scope === "workflow") {
+    return isCertificateWorkflowMediaFile(fileName);
   }
 
   if (payload.scope === "catalog") {

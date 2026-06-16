@@ -31,6 +31,7 @@ export default function AdminCourseCertificateSettings({
   return (
     <AdminProgramCertificateAssetsEditor
       programLabel="course"
+      programTitle={draft.title}
       certificateEnabled={certEnabled}
       onCertificateEnabledChange={(on) => {
         setDraft((d) =>

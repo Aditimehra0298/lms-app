@@ -24,7 +24,8 @@ import {
   learnerCredentialsEligible,
   recordModuleExamAttempt,
 } from "@/lib/learner-exam-scores";
-import { markModuleCompleted, readCompletedModules } from "@/lib/learner-course-progress";
+import { markModuleCompleted, normalizeCompletedModulesForCurriculum, readCompletedModules } from "@/lib/learner-course-progress";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import {
   hasSeenCompletionCelebration,
   queueCompletionCelebration,
@@ -55,7 +56,8 @@ type CourseExamPayload = {
 function CourseExamPageInner() {
   const params = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
-  const slug = params?.slug ?? "course";
+  const paramSlug = params?.slug ?? "course";
+  const slug = canonicalCourseSlug(paramSlug);
   const moduleParam = searchParams.get("module");
   const isFinalExam = searchParams.get("final") === "1" || moduleParam === "final";
   const moduleNumber = isFinalExam
@@ -100,6 +102,7 @@ function CourseExamPageInner() {
         if (cancelled) return;
         setCourseMeta(data);
         if (data.curriculum?.length) {
+          normalizeCompletedModulesForCurriculum(slug, data.curriculum.length);
           const priorWatch = readModuleWatchedSeconds(slug);
           let healed = priorWatch;
           let watchChanged = false;
@@ -336,6 +339,16 @@ function CourseExamPageInner() {
     }
   }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug, questions.length, courseMeta?.curriculum]);
 
+  const courseCredentialsUnlocked = useMemo(() => {
+    if (!isSubmitted || !courseMeta?.curriculum?.length || !examRuntime) return false;
+    const percentage = questions.length ? Math.round((score / questions.length) * 100) : 0;
+    const passed = percentage >= examRuntime.passingScorePercent;
+    if (!passed) return false;
+    const completed = readCompletedModules(slug);
+    const { allExamsPassed } = computeCombinedExamGrade(slug, courseMeta.curriculum);
+    return learnerCredentialsEligible(courseMeta.curriculum, completed, allExamsPassed).eligible;
+  }, [isSubmitted, courseMeta, examRuntime, questions.length, score, slug]);
+
   if (courseMeta === undefined) {
     return (
       <div className="min-h-screen bg-[#060b17] text-white">
@@ -478,10 +491,17 @@ function CourseExamPageInner() {
               </div>
             </div>
             {passed ? (
-              <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                You passed this exam ({percentage}%). When you have passed every module exam, your combined
-                percentage is used for your certificate grade.
-              </p>
+              courseCredentialsUnlocked ? (
+                <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                  Congratulations — you have finished the course! Your certificate and completion summary are
+                  ready. Open them below to generate or download your official certificate.
+                </p>
+              ) : (
+                <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                  You passed this exam ({percentage}%). When you have passed every module exam, your combined
+                  percentage is used for your certificate grade.
+                </p>
+              )
             ) : (
               <p className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
                 You need {examRuntime.passingScorePercent}% to pass (your score: {percentage}%). You can retake
@@ -489,15 +509,30 @@ function CourseExamPageInner() {
               </p>
             )}
             <div className="mt-5 flex flex-wrap gap-2">
-              <Link href={`/my-learning/course/${slug}`} className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold">
-                Back to course
-              </Link>
-              {passed ? (
+              {passed && courseCredentialsUnlocked ? (
                 <Link
                   href={`/my-learning/course/${slug}#credentials`}
                   className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold"
                 >
-                  View certificate & badges
+                  View certificate & completion
+                </Link>
+              ) : null}
+              <Link
+                href={`/my-learning/course/${slug}${passed && courseCredentialsUnlocked ? "#credentials" : ""}`}
+                className={`rounded-md px-4 py-2 text-sm font-semibold ${
+                  passed && courseCredentialsUnlocked
+                    ? "border border-white/15 bg-black/25"
+                    : "bg-violet-600"
+                }`}
+              >
+                {passed && courseCredentialsUnlocked ? "Back to course lessons" : "Back to course"}
+              </Link>
+              {passed && !courseCredentialsUnlocked ? (
+                <Link
+                  href={`/my-learning/course/${slug}#credentials`}
+                  className="rounded-md border border-emerald-300/35 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-100"
+                >
+                  View progress & credentials
                 </Link>
               ) : null}
               <button
@@ -542,13 +577,11 @@ function CourseExamPageInner() {
                 ["Modules", ListChecks, `/my-learning/course/${slug}`],
                 ["Assignments", FileText, `/my-learning?tab=assignments`],
                 ["Exams", ShieldCheck, null],
-                ["Results", ListChecks, `/my-learning/course/${slug}`],
-                ["Certificate", ShieldCheck, `/my-learning/course/${slug}#credentials`],
                 ["Discussion", CircleHelp, `/my-learning?tab=community`],
                 ["Resources", FileText, `/my-learning/course/${slug}`],
                 ["Help & Support", Headset, "/contact"],
               ] as const
-            ).map(([label, Icon, href], idx) =>
+            ).map(([label, Icon, href]) =>
               href ? (
                 <Link
                   key={label}

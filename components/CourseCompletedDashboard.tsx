@@ -51,8 +51,12 @@ import {
   savePdfBlob,
 } from "@/lib/certificate-pdf-client";
 import { CompletionSuggestedCourses } from "@/components/CompletionSuggestedCourses";
+import { syncLearnerCourseProgressFromServer } from "@/lib/learner-progress-sync-client";
+import { resolveProtectedMediaUrl } from "@/lib/media-client";
 import { ShareCredentialButtons } from "@/components/ShareCredentialButtons";
 import { ShareableBadgeCard } from "@/components/ShareableBadgeCard";
+import { CertificateTemplatePreview } from "@/components/CertificateTemplatePreview";
+import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
 
 type Props = {
   courseSlug: string;
@@ -64,7 +68,17 @@ type Props = {
   allExamsPassed: boolean;
   templateImageUrl?: string;
   badgeImageUrl?: string;
+  certificateLayout?: Pick<
+    ManagedCourseCertificateConfig,
+    | "nameTopPercent"
+    | "numberTopPercent"
+    | "dateTopPercent"
+    | "overlayCourseTitle"
+    | "overlayScore"
+    | "overlayBadge"
+  >;
   certRequested: boolean;
+  hasFinalExam?: boolean;
 };
 
 const CARD = "rounded-xl border border-white/[0.08] bg-[#141820]";
@@ -166,7 +180,9 @@ export function CourseCompletedDashboard({
   allExamsPassed,
   templateImageUrl,
   badgeImageUrl,
+  certificateLayout,
   certRequested,
+  hasFinalExam = false,
 }: Props) {
   const [phase, setPhase] = useState<"loading" | "ready">("loading");
   const [certificate, setCertificate] = useState<CertificateRowDto | null>(null);
@@ -176,6 +192,7 @@ export function CourseCompletedDashboard({
   const [pdfPreviewLoading, setPdfPreviewLoading] = useState(false);
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
   const [moduleExamScores, setModuleExamScores] = useState<Record<string, ModuleExamScore>>({});
+  const [resolvedTemplateImage, setResolvedTemplateImage] = useState("");
 
   const { examsRequired, eligible } = learnerCredentialsEligible(
     curriculum,
@@ -193,6 +210,7 @@ export function CourseCompletedDashboard({
   useEffect(() => {
     const refreshScores = () => setModuleExamScores(readModuleExamScores(courseSlug));
     refreshScores();
+    void syncLearnerCourseProgressFromServer(courseSlug).then(() => refreshScores());
     const onUpdate = (event: Event) => {
       const detail = (event as CustomEvent<{ courseSlug?: string }>).detail;
       if (!detail?.courseSlug || detail.courseSlug === courseSlug) refreshScores();
@@ -209,7 +227,46 @@ export function CourseCompletedDashboard({
     return examModules.filter((n) => moduleExamScores[String(n)]?.passed).length;
   }, [examModules, moduleExamScores]);
 
+  const pendingExams = useMemo(() => {
+    return examModules
+      .filter((moduleNumber) => !moduleExamScores[String(moduleNumber)]?.passed)
+      .map((moduleNumber) => {
+        const mod = curriculum[moduleNumber - 1];
+        const examRow = getFirstExamRowInModule(mod);
+        return {
+          moduleNumber,
+          title: moduleTitle(mod, moduleNumber - 1),
+          label: learnerExamDisplayLabel(examRow?.label, `Module ${moduleNumber} assessment`),
+          href: `/my-learning/course/${encodeURIComponent(courseSlug)}/exam?module=${moduleNumber}`,
+          score: moduleExamScores[String(moduleNumber)],
+        };
+      });
+  }, [courseSlug, curriculum, examModules, moduleExamScores]);
+
+  const overallProgressPercent = useMemo(() => {
+    const moduleRatio =
+      curriculum.length > 0
+        ? Math.min(1, completedModules.length / curriculum.length)
+        : 0;
+    const examRatio =
+      examModules.length > 0 ? Math.min(1, passedExams / examModules.length) : 1;
+    if (eligible) return 100;
+    if (examModules.length === 0) return Math.round(moduleRatio * 100);
+    return Math.round(((moduleRatio + examRatio) / 2) * 100);
+  }, [curriculum.length, completedModules.length, examModules.length, passedExams, eligible]);
+
+  const effectiveEmail =
+    certificate?.learnerEmail?.trim().toLowerCase() || getLearnerEmail()?.trim().toLowerCase() || "";
+
   const scorePercent = certificate?.scorePercent ?? combinedExamPercent ?? 100;
+  const learnerName =
+    certificate?.learnerName?.trim() ||
+    readLearnerProfileFromStorage()?.name?.trim() ||
+    effectiveEmail ||
+    "Learner";
+  const certificateNumber =
+    certificate?.certificateNumber ?? `SFT-${courseSlug.toUpperCase().slice(0, 8)}`;
+  const issuedAt = certificate?.issuedAt ?? new Date().toISOString();
   const completedOn = certificate?.issuedAt
     ? new Date(certificate.issuedAt).toLocaleDateString("en-GB", {
         day: "2-digit",
@@ -222,9 +279,6 @@ export function CourseCompletedDashboard({
         year: "numeric",
       });
 
-  const effectiveEmail =
-    certificate?.learnerEmail?.trim().toLowerCase() || getLearnerEmail()?.trim().toLowerCase() || "";
-
   const hasSavedPdf = Boolean(
     certificate?.pdfReady ||
       certificate?.pdfUrl?.trim().startsWith("/api/certificates/") ||
@@ -232,9 +286,33 @@ export function CourseCompletedDashboard({
   );
 
   const templateImage =
+    resolvedTemplateImage ||
     templateImageUrl ||
     certificate?.templateImage ||
     "/certificates/haccp-certificate-template.jpg";
+
+  useEffect(() => {
+    const raw = (templateImageUrl || certificate?.templateImage || "").trim();
+    if (!raw) {
+      setResolvedTemplateImage("");
+      return;
+    }
+    const needsToken =
+      raw.startsWith("/api/media/serve/") ||
+      raw.startsWith("/uploads/admin/") ||
+      raw.startsWith("/storage/private/");
+    if (!needsToken) {
+      setResolvedTemplateImage(raw);
+      return;
+    }
+    let cancelled = false;
+    void resolveProtectedMediaUrl(raw, { scope: "catalog" }).then((resolved) => {
+      if (!cancelled) setResolvedTemplateImage(resolved || raw);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [templateImageUrl, certificate?.templateImage]);
 
   const reloadCertificate = useCallback(async () => {
     const email = getLearnerEmail();
@@ -423,7 +501,7 @@ export function CourseCompletedDashboard({
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-white md:text-[1.65rem]">{courseTitle}</h1>
         <span className="inline-flex items-center gap-1 rounded-md bg-emerald-600/90 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-          <CheckCircle2 size={12} /> Completed
+          <CheckCircle2 size={12} /> {eligible ? "Completed" : "Lessons complete"}
         </span>
       </div>
 
@@ -444,8 +522,14 @@ export function CourseCompletedDashboard({
                 <Trophy className="h-9 w-9 text-amber-400" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-base font-bold text-amber-400">Congratulations!</p>
-                <p className="mt-0.5 text-sm text-gray-300">You have successfully completed</p>
+                <p className="text-base font-bold text-amber-400">
+                  {eligible ? "Congratulations!" : "Almost there!"}
+                </p>
+                <p className="mt-0.5 text-sm text-gray-300">
+                  {eligible
+                    ? "You have successfully completed"
+                    : "You finished all lessons for"}
+                </p>
                 <p className="mt-1 text-lg font-bold text-white">{courseTitle}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
                   <span className="text-gray-400">
@@ -500,11 +584,30 @@ export function CourseCompletedDashboard({
                 ) : null}
               </div>
             ) : (
-              <div className="relative mt-5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-4 py-3">
+              <div className="relative mt-5 space-y-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-4 py-3">
                 <p className="flex items-center gap-2 text-sm text-amber-100">
                   <Lock size={15} />
                   Pass all module exams at {DEFAULT_MODULE_EXAM_PASS_PERCENT}%+ to unlock your certificate.
                 </p>
+                <p className="text-xs text-amber-100/80">
+                  {passedExams}/{examModules.length} assessments passed — {pendingExams.length} remaining.
+                </p>
+                {pendingExams.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {pendingExams.map((exam) => (
+                      <Link
+                        key={exam.moduleNumber}
+                        href={exam.href}
+                        className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500"
+                      >
+                        <FileText size={14} />
+                        {exam.score && !exam.score.passed
+                          ? `Retake: ${exam.label}`
+                          : `Take: ${exam.label}`}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
@@ -583,24 +686,28 @@ export function CourseCompletedDashboard({
                     className="absolute inset-0 h-full w-full border-0 bg-white"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-white">
-                    <Image
-                      src={templateImage}
-                      alt="Certificate template preview"
-                      fill
-                      unoptimized
-                      className="object-cover opacity-95"
-                    />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 p-4 text-center">
-                      <p className="text-sm font-semibold text-white">
-                        Generate your official certificate
-                      </p>
-                      <p className="mt-1 text-xs text-gray-300">
-                        First time only (~15 seconds). Then it appears here and in Certificate
-                        Records.
-                      </p>
-                    </div>
-                  </div>
+                  <CertificateTemplatePreview
+                    templateImage={templateImage}
+                    badgeImage={courseBadgeUrl || undefined}
+                    learnerName={learnerName}
+                    certificateNumber={certificateNumber}
+                    courseTitle={courseTitle}
+                    issuedAt={issuedAt}
+                    scorePercent={scorePercent}
+                    layout={certificateLayout}
+                    className="absolute inset-0 h-full w-full"
+                    overlay={
+                      <div className="absolute inset-x-0 bottom-0 border-t border-black/10 bg-black/55 px-4 py-3 text-center backdrop-blur-[2px]">
+                        <p className="text-sm font-semibold text-white">
+                          Generate your official certificate
+                        </p>
+                        <p className="mt-0.5 text-xs text-gray-200">
+                          First time only (~15 seconds). Your name and details are placed on the
+                          template above.
+                        </p>
+                      </div>
+                    }
+                  />
                 )}
                 {pdfPreviewError ? (
                   <p className="absolute inset-x-0 bottom-0 border-t border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
@@ -651,6 +758,7 @@ export function CourseCompletedDashboard({
                     scorePercent={scorePercent}
                     pdfReady={certificate?.pdfReady}
                     pdfUrl={certificate?.pdfUrl}
+                    templateImageUrl={templateImage}
                     onComplete={() => void reloadCertificate()}
                   />
                 )}
@@ -661,8 +769,23 @@ export function CourseCompletedDashboard({
               <Lock className="h-10 w-10 text-gray-500" />
               <p className="mt-3 text-sm font-semibold text-gray-300">Certificate locked</p>
               <p className="mt-1 text-xs text-gray-500">
-                {passedExams}/{examModules.length} assessments passed
+                {passedExams}/{examModules.length} assessments passed at {DEFAULT_MODULE_EXAM_PASS_PERCENT}%+
               </p>
+              {pendingExams.length > 0 ? (
+                <div className="mt-4 flex w-full max-w-md flex-col gap-2">
+                  {pendingExams.map((exam) => (
+                    <Link
+                      key={exam.moduleNumber}
+                      href={exam.href}
+                      className="rounded-lg border border-violet-400/35 bg-violet-500/15 px-4 py-2.5 text-left text-sm font-semibold text-violet-100 hover:bg-violet-500/25"
+                    >
+                      {exam.score && !exam.score.passed
+                        ? `Retake assessment (${exam.score.percent}%) — ${exam.title}`
+                        : `Take assessment — ${exam.title}`}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
             </div>
           )}
         </article>
@@ -672,34 +795,58 @@ export function CourseCompletedDashboard({
           <article className={`${CARD} p-4`}>
             <h3 className="text-sm font-bold text-white">Your Progress</h3>
             <div className="mt-3 flex items-center gap-5">
-              <ProgressRing percent={100} />
+              <ProgressRing percent={overallProgressPercent} />
               <ul className="min-w-0 flex-1 space-y-2.5 text-sm">
                 <li className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-gray-400">
-                    <CheckCircle2 size={14} className="text-emerald-500" /> Modules
+                    <CheckCircle2
+                      size={14}
+                      className={
+                        completedModules.length >= curriculum.length
+                          ? "text-emerald-500"
+                          : "text-amber-400"
+                      }
+                    />{" "}
+                    Modules
                   </span>
-                  <span className="font-semibold text-emerald-400">
+                  <span
+                    className={`font-semibold ${
+                      completedModules.length >= curriculum.length
+                        ? "text-emerald-400"
+                        : "text-amber-300"
+                    }`}
+                  >
                     {completedModules.length}/{curriculum.length}
                   </span>
                 </li>
                 {examModules.length > 0 ? (
                   <li className="flex items-center justify-between gap-2">
                     <span className="flex items-center gap-2 text-gray-400">
-                      <CheckCircle2 size={14} className="text-emerald-500" /> Assessments
+                      <CheckCircle2
+                        size={14}
+                        className={passedExams >= examModules.length ? "text-emerald-500" : "text-amber-400"}
+                      />{" "}
+                      Assessments
                     </span>
-                    <span className="font-semibold text-emerald-400">
+                    <span
+                      className={`font-semibold ${
+                        passedExams >= examModules.length ? "text-emerald-400" : "text-amber-300"
+                      }`}
+                    >
                       {passedExams}/{examModules.length}
                     </span>
                   </li>
                 ) : null}
-                <li className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 text-gray-400">
-                    <CheckCircle2 size={14} className="text-emerald-500" /> Final Exam
-                  </span>
-                  <span className="font-semibold text-emerald-400">
-                    {eligible ? "Passed" : "Pending"}
-                  </span>
-                </li>
+                {hasFinalExam ? (
+                  <li className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-gray-400">
+                      <CheckCircle2 size={14} className="text-emerald-500" /> Final Exam
+                    </span>
+                    <span className="font-semibold text-emerald-400">
+                      {eligible ? "Passed" : "Pending"}
+                    </span>
+                  </li>
+                ) : null}
               </ul>
             </div>
           </article>
@@ -947,6 +1094,15 @@ export function CourseCompletedDashboard({
                         ? ` (pass mark ${DEFAULT_MODULE_EXAM_PASS_PERCENT}%)`
                         : null}
                     </p>
+                    {!examScore?.passed ? (
+                      <Link
+                        href={`/my-learning/course/${encodeURIComponent(courseSlug)}/exam?module=${moduleNumber}`}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500"
+                      >
+                        <FileText size={12} />
+                        {examScore ? "Retake assessment" : "Take assessment"}
+                      </Link>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="mt-3 text-xs text-gray-500">No assessment for this module.</p>

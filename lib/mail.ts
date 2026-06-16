@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { buildOtpEmail } from "@/lib/email-templates/otp";
-import { emailAppName, emailAppUrl, emailLogoUrl } from "@/lib/email-brand-config";
+import { emailAppName, emailAppUrl, emailLogoSrc } from "@/lib/email-brand-config";
 
 export type { OtpEmailKind } from "@/lib/email-templates/otp";
 
@@ -131,7 +131,7 @@ export async function sendOtpEmail(
     kind,
     appName: emailAppName(),
     appUrl: emailAppUrl(),
-    logoUrl: emailLogoUrl(),
+    logoSrc: emailLogoSrc(),
   });
 
   return sendTransactionalEmail({ to, subject, text, html });

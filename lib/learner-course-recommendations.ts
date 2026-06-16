@@ -325,40 +325,52 @@ export function pickFeaturedCourse(input: {
   ctx: RecommendationContext;
   learningHrefFor: (course: PurchasedCourseRow) => string;
 }): FeaturedCoursePick | null {
-  const inProgress =
-    input.enrolled.find((c) => c.status === "In Progress") ??
-    input.enrolled.find((c) => !c.status.toLowerCase().includes("completed"));
+  const isCompleted = (c: PurchasedCourseRow) =>
+    c.status.toLowerCase() === "completed" ||
+    c.action === "View Certificate" ||
+    (c.modules > 0 && c.completed >= c.modules);
 
-  if (inProgress?.slug?.trim()) {
+  const active = input.enrolled.filter((c) => !isCompleted(c));
+
+  const inProgress = active.find((c) => c.status === "In Progress");
+  const notStarted = active.find((c) => c.status.toLowerCase().includes("not started"));
+  const pick = inProgress ?? notStarted ?? active[0];
+
+  if (pick?.slug?.trim()) {
     return {
       kind: "enrolled",
-      title: inProgress.title,
-      slug: inProgress.slug.trim(),
-      image: inProgress.image,
-      modules: inProgress.modules,
-      duration: inProgress.duration,
-      completed: inProgress.completed,
-      status: inProgress.status,
-      reason: "Continue where you left off",
-      href: input.learningHrefFor(inProgress),
-      cta: inProgress.action || "Continue Learning",
+      title: pick.title,
+      slug: pick.slug.trim(),
+      image: pick.image,
+      modules: pick.modules,
+      duration: pick.duration,
+      completed: pick.completed,
+      status: pick.status,
+      reason: inProgress
+        ? "Continue where you left off"
+        : notStarted
+          ? "Start your next course"
+          : "Your enrolled course",
+      href: input.learningHrefFor(pick),
+      cta: pick.action || (notStarted ? "Start Course" : "Continue Learning"),
     };
   }
 
-  const anyEnrolled = input.enrolled[0];
-  if (anyEnrolled?.slug?.trim()) {
+  const topExplore = input.exploreRanked[0];
+  if (topExplore?.course.slug?.trim()) {
+    const c = topExplore.course;
     return {
-      kind: "enrolled",
-      title: anyEnrolled.title,
-      slug: anyEnrolled.slug.trim(),
-      image: anyEnrolled.image,
-      modules: anyEnrolled.modules,
-      duration: anyEnrolled.duration,
-      completed: anyEnrolled.completed,
-      status: anyEnrolled.status,
-      reason: "Your enrolled course",
-      href: input.learningHrefFor(anyEnrolled),
-      cta: anyEnrolled.action || "Open Course",
+      kind: "recommended",
+      title: c.title,
+      slug: c.slug.trim(),
+      image: c.image,
+      modules: 0,
+      duration: c.duration ?? "",
+      completed: 0,
+      status: "Explore",
+      reason: topExplore.reason,
+      href: `/courses/${encodeURIComponent(c.slug)}`,
+      cta: "View & enroll",
     };
   }
 

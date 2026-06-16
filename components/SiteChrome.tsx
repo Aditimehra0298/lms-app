@@ -11,10 +11,9 @@ import DeferredChatbots from "@/components/DeferredChatbots";
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const isAdmin = pathname.startsWith("/admin");
-  const accountPage = pathname === "/account";
   const myLearningPage = pathname.startsWith("/my-learning");
   const tutorLedMarketing = pathname.startsWith("/tutor-led");
-  const compactMainChrome = accountPage || myLearningPage;
+  const compactMainChrome = myLearningPage;
 
   useEffect(() => {
     if (!tutorLedMarketing) return;

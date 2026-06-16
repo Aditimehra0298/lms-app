@@ -15,10 +15,7 @@ import { normalizeLearnerEmail } from "@/lib/learner-email";
 import type { AccountTypeId, LearnerAuthProfile } from "@/lib/auth-profile";
 import { cacheLearnerProfile } from "@/lib/auth-profile";
 import {
-  LEARNING_GOAL_OPTIONS,
-  LEARNING_INTEREST_OPTIONS,
   markLearnerAuthProvider,
-  seedPreferencesFromProfile,
 } from "@/lib/learner-learning-preferences";
 import {
   PROFILE_COMPANY_SIZE_OPTIONS,
@@ -62,7 +59,7 @@ const DEFAULT_LEARNER_AFTER_LOGIN = MY_LEARNING_DASHBOARD_HREF;
 const DEFAULT_REGISTER_CHECKOUT = "/checkout?buyNow=advanced-cyber-security-professional";
 
 /** Stable props so Galaxy WebGL is not re-initialized on every keystroke. */
-const ACCOUNT_GALAXY_PROPS = {
+const ACCOUNT_GALAXY_PROPS_DARK = {
   mouseRepulsion: false,
   mouseInteraction: false,
   density: 1.2,
@@ -70,6 +67,23 @@ const ACCOUNT_GALAXY_PROPS = {
   saturation: 0.15,
   hueShift: 140,
   twinkleIntensity: 0.35,
+  rotationSpeed: 0.1,
+  repulsionStrength: 2,
+  autoCenterRepulsion: 0,
+  starSpeed: 0.5,
+  speed: 1,
+  transparent: true,
+} as const;
+
+/** Golden starfield for light theme — brown page bg, gold galaxy particles. */
+const ACCOUNT_GALAXY_PROPS_LIGHT = {
+  mouseRepulsion: false,
+  mouseInteraction: false,
+  density: 1.2,
+  glowIntensity: 0.68,
+  saturation: 0.72,
+  hueShift: 46,
+  twinkleIntensity: 0.4,
   rotationSpeed: 0.1,
   repulsionStrength: 2,
   autoCenterRepulsion: 0,
@@ -254,6 +268,7 @@ export default function AccountPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [loginNotice, setLoginNotice] = useState("");
   const [adminSetupHint, setAdminSetupHint] = useState<string | null>(null);
+  const [isLightTheme, setIsLightTheme] = useState(false);
   const googleConfigured = Boolean(getGoogleClientId());
 
   useEffect(() => {
@@ -271,6 +286,16 @@ export default function AccountPage() {
 
   useEffect(() => {
     setBrowserOrigin(getBrowserOrigin());
+  }, []);
+
+  useEffect(() => {
+    const syncTheme = () => {
+      setIsLightTheme(document.documentElement.dataset.theme === "light");
+    };
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -536,11 +561,6 @@ export default function AccountPage() {
     if (authView === "register") {
       cacheLearnerProfile(profile);
       markLearnerAuthProvider("email");
-      seedPreferencesFromProfile({
-        industryType: profile.industryType,
-        learningInterest: String(formData.get("learning_interest") ?? "").trim(),
-        learningGoal: String(formData.get("learning_goal") ?? "").trim(),
-      });
       if (profile.companyName) {
         cacheLearnerProfile({ ...profile, companyName: profile.companyName });
       }
@@ -746,9 +766,10 @@ export default function AccountPage() {
   };
 
   const goldGradient = "bg-gradient-to-b from-[#f9b14d] to-[#eb9422]";
+  const accountGalaxyProps = isLightTheme ? ACCOUNT_GALAXY_PROPS_LIGHT : ACCOUNT_GALAXY_PROPS_DARK;
 
   return (
-    <div className="relative isolate overflow-x-hidden bg-[#070707] text-white">
+    <div className="account-page relative isolate flex w-full flex-1 flex-col bg-[#070707] text-white">
       {googleConfigured && (
         <Script
           src={GOOGLE_GSI_SCRIPT}
@@ -767,24 +788,25 @@ export default function AccountPage() {
         />
       )}
       <Galaxy
-        className="pointer-events-none absolute inset-0 z-0 min-h-full w-full"
+        key={isLightTheme ? "account-galaxy-light" : "account-galaxy-dark"}
+        className="account-galaxy pointer-events-none absolute inset-0 z-0 min-h-full w-full"
         aria-hidden
-        {...ACCOUNT_GALAXY_PROPS}
+        {...accountGalaxyProps}
       />
-      <main className="relative z-10 w-full px-4 pt-4 pb-6 sm:px-6 lg:px-8 xl:px-10">
+      <main className="relative z-10 w-full flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
         <div className="mx-auto w-full max-w-[1760px]">
-        {!showAuthStep && (
-          <>
+          {!showAuthStep && (
+            <div className="mx-auto flex w-full max-w-6xl flex-col py-4 md:py-8">
             <div className="text-center">
-              <h2 className="bg-linear-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
+              <h2 className="account-hero-title bg-linear-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
                 Choose your avatar and account type
               </h2>
-              <p className="mt-1 text-sm text-gray-300">
+              <p className="mt-2 text-sm text-gray-300">
                 Pick one profile to continue with a futuristic access experience.
               </p>
             </div>
-            <div className="mt-4">
-              <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-5 sm:grid-cols-2 lg:max-w-none lg:grid-cols-3 xl:gap-6">
+            <div className="mt-6">
+              <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
                 {accountTypes.map((type) => {
                   const active = selectedAccountType === type.id;
                   return (
@@ -792,7 +814,7 @@ export default function AccountPage() {
                       key={type.id}
                       type="button"
                       onClick={() => handleAccountTypeChange(type.id)}
-                      className={`relative w-full overflow-hidden rounded-3xl border p-3 text-left transition-all duration-300 ${
+                      className={`account-type-card relative w-full overflow-hidden rounded-3xl border p-3 text-left transition-all duration-300 ${
                         active
                           ? "border-amber-300/90 bg-amber-500/15 shadow-[0_0_45px_rgba(235,148,34,0.45)]"
                           : "border-white/15 bg-white/5 hover:border-amber-500/40 hover:shadow-[0_0_30px_rgba(235,148,34,0.2)]"
@@ -802,7 +824,7 @@ export default function AccountPage() {
                         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(235,148,34,0.35),rgba(235,148,34,0.08)_35%,transparent_70%)]"
                         aria-hidden
                       />
-                      <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-black/40 p-2">
+                      <div className="relative flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-amber-500/20 bg-black/40 p-2 sm:h-48 lg:h-52">
                         <div
                           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(249,177,77,0.25),transparent_70%)]"
                           aria-hidden
@@ -812,7 +834,7 @@ export default function AccountPage() {
                           alt={`${type.title} avatar`}
                           width={420}
                           height={300}
-                          className="relative h-56 w-full object-cover"
+                          className="relative h-full w-full object-contain"
                         />
                       </div>
                       <div className="relative mt-3 text-center">
@@ -824,7 +846,7 @@ export default function AccountPage() {
                 })}
               </div>
             </div>
-            <div className="mt-4 flex justify-center pb-1">
+            <div className="mt-8 flex justify-center">
               <button
                 type="button"
                 onClick={handleContinue}
@@ -833,11 +855,11 @@ export default function AccountPage() {
                 Continue
               </button>
             </div>
-          </>
-        )}
+            </div>
+          )}
 
-        {showAuthStep && (
-          <div className="mx-auto w-full overflow-visible rounded-3xl border border-white/15 bg-black/65 p-5 shadow-[0_0_45px_rgba(0,0,0,0.45)] sm:p-6 md:p-8 xl:p-10">
+          {showAuthStep && (
+          <div className="account-auth-panel mx-auto w-full overflow-visible rounded-3xl border border-white/15 bg-black/65 p-5 shadow-[0_0_45px_rgba(0,0,0,0.45)] sm:p-6 md:p-8 xl:p-10">
             <div className="mb-6 flex items-center gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4">
               <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-amber-500/30">
                 <Image
@@ -1016,54 +1038,6 @@ export default function AccountPage() {
                     />
                   </div>
 
-                  <RegisterSection
-                    title="Work & learning profile"
-                    description="Optional — we use this to recommend the right LMS courses on your dashboard."
-                  />
-                  <label className="block">
-                    <span className={profileLabelClass}>Industry</span>
-                    <select name="industry_type" className={profileFieldClass}>
-                      <option value="">Select industry</option>
-                      {REGISTRATION_INDUSTRY_OPTIONS.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className={profileLabelClass}>Organisation you work for</span>
-                    <input
-                      name="company_name"
-                      type="text"
-                      placeholder="Company or employer name"
-                      className={profileFieldClass}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className={profileLabelClass}>Primary learning interest</span>
-                    <select name="learning_interest" className={profileFieldClass}>
-                      <option value="">Select interest</option>
-                      {LEARNING_INTEREST_OPTIONS.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className={profileLabelClass}>Learning goal</span>
-                    <select name="learning_goal" className={profileFieldClass}>
-                      <option value="">Select goal</option>
-                      {LEARNING_GOAL_OPTIONS.map((g) => (
-                        <option key={g} value={g}>
-                          {g}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <RegisterSection title="Security" description="Choose a strong password for your account." />
                   <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
                     <PasswordConfirmFields />
                   </div>
@@ -1166,7 +1140,6 @@ export default function AccountPage() {
                     </select>
                   </label>
 
-                  <RegisterSection title="Security" />
                   <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
                     <PasswordConfirmFields />
                   </div>

@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
+import { findCertificateProgram } from "@/lib/certificate-program-resolve";
 import { normalizeLearnerEmail } from "@/lib/learner-email";
 import { prisma } from "@/lib/prisma";
 import { issueCourseCertificate } from "@/lib/server/certificate-service";
+import { readAdminContent } from "@/lib/server/content-store";
 import {
   findExistingEnrollment,
   reconcileEnrollmentIdentity,
 } from "@/lib/server/enrollment-lookup";
+import { isCertificateApiProvider } from "@/lib/server/certificate-generation-policy";
+import { resolveCertificatePermissions } from "@/lib/server/certificate-permissions";
+import { requestCourseCertificate } from "@/lib/server/n8n-certificate-service";
 import { recordPurchasesForLearner } from "@/lib/server/record-purchase";
 
 export const dynamic = "force-dynamic";
@@ -70,6 +75,30 @@ export async function POST(
     }
 
     // manual-certificate-pass
+    const content = await readAdminContent();
+    const program = findCertificateProgram(content, courseSlug);
+    const perms = program ? resolveCertificatePermissions(program) : null;
+
+    if (perms && isCertificateApiProvider(perms)) {
+      const apiResult = await requestCourseCertificate({
+        learnerEmail,
+        courseSlug,
+        forceRetry: true,
+      });
+      if (!apiResult.ok) {
+        return NextResponse.json({ ok: false, message: apiResult.message }, { status: 400 });
+      }
+      await prisma.lmsCertificate.update({
+        where: { id: apiResult.certificate.id },
+        data: { visibleToLearner: true },
+      });
+      return NextResponse.json({
+        ok: true,
+        message:
+          "Certificate generated using this course's uploaded templates.",
+      });
+    }
+
     let cert = await prisma.lmsCertificate.findFirst({
       where: { learnerEmail, courseSlug },
       orderBy: { issuedAt: "desc" },
@@ -94,6 +123,9 @@ export async function POST(
         visibleToLearner: true,
       },
     });
+
+    const { ensureLocalCertificatePdf } = await import("@/lib/server/local-certificate-fallback");
+    await ensureLocalCertificatePdf(cert.id);
 
     return NextResponse.json({
       ok: true,

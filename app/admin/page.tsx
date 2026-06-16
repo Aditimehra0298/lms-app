@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
 import {
@@ -156,7 +156,31 @@ type AdminAccessState = {
   mainAdminMasked?: string;
 };
 
-export default function AdminPage() {
+const MENU_PANEL_QUERY: Record<string, string> = {
+  "Self-paced courses": "self-paced",
+  Lessons: "lessons",
+  "Course Q&A": "course-qa",
+  Batches: "batches",
+  "Tutor Led": "tutor-led",
+  Workshops: "workshops",
+  Users: "users",
+  Certificates: "certificates",
+  "Roles & Permissions": "roles",
+};
+
+const PANEL_MENU_QUERY: Record<string, string> = Object.fromEntries(
+  Object.entries(MENU_PANEL_QUERY).map(([menu, panel]) => [panel, menu]),
+);
+
+function AdminAccessLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-zinc-400">
+      Checking administrator permission…
+    </div>
+  );
+}
+
+function AdminPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeMenu, setActiveMenu] = useState("Dashboard");
@@ -179,48 +203,37 @@ export default function AdminPage() {
   const [categoriesReady, setCategoriesReady] = useState(false);
   const [categoriesLoadError, setCategoriesLoadError] = useState<string | null>(null);
 
+  const panelQuery = searchParams.get("panel");
+
   const selectMenu = useCallback(
     (item: string) => {
       setActiveMenu(item);
-      if (item === "Self-paced courses") {
-        router.replace("/admin?panel=self-paced", { scroll: false });
-      } else if (item === "Lessons") {
-        router.replace("/admin?panel=lessons", { scroll: false });
-      } else if (item === "Course Q&A") {
-        router.replace("/admin?panel=course-qa", { scroll: false });
-      } else if (item === "Batches") {
-        router.replace("/admin?panel=batches", { scroll: false });
-      } else if (item === "Tutor Led") {
-        router.replace("/admin?panel=tutor-led", { scroll: false });
-      } else if (item === "Workshops") {
-        router.replace("/admin?panel=workshops", { scroll: false });
-      } else if (item === "Users") {
-        router.replace("/admin?panel=users", { scroll: false });
-      } else if (item === "Certificates") {
-        router.replace("/admin?panel=certificates", { scroll: false });
-      } else if (item === "Roles & Permissions") {
-        router.replace("/admin?panel=roles", { scroll: false });
-      } else if (searchParams.get("panel")) {
+      const nextPanel = MENU_PANEL_QUERY[item] ?? null;
+      if (nextPanel) {
+        if (panelQuery !== nextPanel) {
+          router.replace(`/admin?panel=${nextPanel}`, { scroll: false });
+        }
+        return;
+      }
+      if (panelQuery) {
         router.replace("/admin", { scroll: false });
       }
     },
-    [router, searchParams],
+    [router, panelQuery],
   );
 
   useEffect(() => {
-    const panel = searchParams.get("panel");
-    if (panel === "self-paced") setActiveMenu("Self-paced courses");
-    if (panel === "lessons") setActiveMenu("Lessons");
-    if (panel === "course-qa") setActiveMenu("Course Q&A");
-    if (panel === "batches") setActiveMenu("Batches");
-    if (panel === "tutor-led") setActiveMenu("Tutor Led");
-    if (panel === "workshops") setActiveMenu("Workshops");
-    if (panel === "users") setActiveMenu("Users");
-    if (panel === "certificates") setActiveMenu("Certificates");
-    if (panel === "roles") setActiveMenu("Roles & Permissions");
-  }, [searchParams]);
+    if (!panelQuery) return;
+    const menu = PANEL_MENU_QUERY[panelQuery];
+    if (menu) setActiveMenu(menu);
+  }, [panelQuery]);
+
+  const authCheckStarted = useRef(false);
 
   useEffect(() => {
+    if (authCheckStarted.current) return;
+    authCheckStarted.current = true;
+
     if (!isLearnerLoggedIn()) {
       router.replace("/account?admin=1");
       return;
@@ -230,6 +243,16 @@ export default function AdminPage() {
       router.replace("/account?admin=1");
       return;
     }
+
+    const cached =
+      typeof window !== "undefined"
+        ? window.sessionStorage.getItem("sft_admin_access_email")
+        : null;
+    if (cached === email) {
+      setAccess({ status: "allowed" });
+      return;
+    }
+
     let cancelled = false;
     fetch(`/api/auth/admin-access?email=${encodeURIComponent(email)}`, { cache: "no-store" })
       .then((r) => r.json())
@@ -237,10 +260,12 @@ export default function AdminPage() {
         if (cancelled) return;
         if (data.allowed) {
           window.localStorage.setItem("sft_user_role", "admin");
+          window.sessionStorage.setItem("sft_admin_access_email", email);
           setAccess({ status: "allowed" });
           return;
         }
         window.localStorage.setItem("sft_user_role", "learner");
+        window.sessionStorage.removeItem("sft_admin_access_email");
         setAccess({
           status: "denied",
           message: data.message,
@@ -258,7 +283,7 @@ export default function AdminPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
   const toSlug = (value: string) =>
     value
@@ -323,11 +348,7 @@ export default function AdminPage() {
   }, [access.status]);
 
   if (access.status === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-zinc-400">
-        Checking administrator permission…
-      </div>
-    );
+    return <AdminAccessLoading />;
   }
 
   if (access.status === "denied") {
@@ -732,21 +753,21 @@ export default function AdminPage() {
               <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-300">
                 <button
                   type="button"
-                  onClick={() => setActiveMenu("Home Page")}
+                  onClick={() => selectMenu("Home Page")}
                   className="rounded-md bg-[#6f55ff]/30 px-2 py-1 hover:bg-[#6f55ff]/45"
                 >
                   Home Page
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveMenu("About Page")}
+                  onClick={() => selectMenu("About Page")}
                   className="rounded-md border border-white/10 px-2 py-1 hover:bg-white/10"
                 >
                   About Page
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveMenu("Courses Page")}
+                  onClick={() => selectMenu("Courses Page")}
                   className="rounded-md border border-white/10 px-2 py-1 hover:bg-white/10"
                 >
                   Courses Page
@@ -1157,5 +1178,13 @@ export default function AdminPage() {
         />
       ) : null}
     </main>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<AdminAccessLoading />}>
+      <AdminPageInner />
+    </Suspense>
   );
 }

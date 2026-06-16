@@ -1752,6 +1752,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
             <div className={activeTab === "certificate" ? "space-y-4" : "hidden"}>
               <AdminProgramCertificateAssetsEditor
                 programLabel="program"
+                programTitle={draft.title}
                 certificateEnabled={draft.certificateConfig?.enabled !== false}
                 onCertificateEnabledChange={(on) => {
                   setDraft((d) => (d ? patchProgramCertificateConfig(d, { enabled: on }) : d));

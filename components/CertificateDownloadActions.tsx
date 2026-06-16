@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -17,10 +17,13 @@ import {
   syncLearnerEmailCookie,
 } from "@/lib/learner-session-client";
 import {
-  downloadCertificatePdf,
   fetchSavedCertificatePdf,
   savePdfBlob,
 } from "@/lib/certificate-pdf-client";
+import {
+  generateCertificateFromTemplate,
+} from "@/lib/certificate-generator-client";
+import { requestCourseCertificateClient } from "@/lib/request-course-certificate-client";
 
 export type CertificateDownloadActionsProps = {
   certificateId?: string;
@@ -30,6 +33,7 @@ export type CertificateDownloadActionsProps = {
   scorePercent?: number | null;
   pdfReady?: boolean;
   pdfUrl?: string | null;
+  templateImageUrl?: string;
   disabled?: boolean;
   disabledReason?: string;
   size?: "sm" | "md";
@@ -44,6 +48,7 @@ export function CertificateDownloadActions({
   scorePercent,
   pdfReady = false,
   pdfUrl,
+  templateImageUrl,
   disabled = false,
   disabledReason,
   size = "md",
@@ -115,26 +120,58 @@ export function CertificateDownloadActions({
     setError(null);
     setSuccess(false);
     setBusy(true);
-    setMessage("Generating your certificate — first time takes about 10–15 seconds…");
+    setMessage(
+      templateImageUrl
+        ? "Generating your certificate using this course's uploaded templates…"
+        : "Generating your certificate…",
+    );
 
     try {
-      const result = await downloadCertificatePdf({
-        certificateId,
-        courseSlug,
-        scorePercent,
-        pdfReady: false,
-        email: effectiveEmail,
-        filename: `${courseSlug}-certificate-and-transcript.pdf`,
-        openInNewTab: false,
-      });
+      let certId = certificateId?.trim() ?? "";
 
+      if (!certId) {
+        const requested = await requestCourseCertificateClient({
+          learnerEmail: effectiveEmail,
+          courseSlug,
+          scorePercent: scorePercent ?? undefined,
+          forceRetry: true,
+        });
+        if (!requested.ok || !requested.certificateId) {
+          setError(
+            requested.message ??
+              "Could not create certificate record. Complete the course and upload certificate samples in admin.",
+          );
+          return;
+        }
+        certId = requested.certificateId;
+      }
+
+      const generated = await generateCertificateFromTemplate(certId, effectiveEmail, {
+        forceRegenerate: true,
+      });
+      if (!generated.ok) {
+        setError(
+          generated.message ??
+            "Could not build certificate from your uploaded template. Re-upload the certificate sample in Admin → Course → Certificates, then try again.",
+        );
+        return;
+      }
+      if (generated.templateImage) {
+        setMessage("Certificate built from your uploaded course template. Saving PDF…");
+      }
+
+      setMessage("Saving your certificate PDF…");
+      const result = await fetchSavedCertificatePdf(certId, effectiveEmail, {
+        attachment: true,
+      });
       if (!result.ok) {
         setError(result.message);
         return;
       }
+      savePdfBlob(result.blob, `${courseSlug}-certificate-and-transcript.pdf`);
 
       setSuccess(true);
-      setMessage("Certificate saved! Use the buttons below to download or view.");
+      setMessage("Certificate ready! Use Download or View below.");
       onComplete?.();
       window.setTimeout(() => {
         setSuccess(false);
@@ -145,7 +182,14 @@ export function CertificateDownloadActions({
     } finally {
       setBusy(false);
     }
-  }, [certificateId, courseSlug, scorePercent, effectiveEmail, onComplete]);
+  }, [
+    certificateId,
+    courseSlug,
+    scorePercent,
+    effectiveEmail,
+    onComplete,
+    templateImageUrl,
+  ]);
 
   const pad = size === "sm" ? "px-3 py-2 text-xs" : "px-4 py-2.5 text-sm";
   const btnClass = `inline-flex items-center gap-2 rounded-lg font-bold ${pad}`;
@@ -161,164 +205,129 @@ export function CertificateDownloadActions({
       ) : null}
 
       {!effectiveEmail ? (
-        <p className="text-xs text-amber-200">Sign in to download your certificate.</p>
+        <p className="text-xs text-amber-300">Sign in to generate or download your certificate.</p>
       ) : null}
 
-      {(busy || success) && message ? (
-        <div
-          className={`rounded-lg border px-3 py-3 ${
-            success
-              ? "border-emerald-500/30 bg-emerald-500/10"
-              : "border-amber-500/25 bg-amber-500/5"
-          }`}
-          role="status"
-          aria-live="polite"
-        >
-          <p
-            className={`flex items-center gap-2 text-xs ${
-              success ? "text-emerald-200" : "text-amber-100"
-            }`}
-          >
-            {busy ? (
-              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
-            ) : (
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            )}
-            {message}
-          </p>
-        </div>
+      {message ? (
+        <p className="flex items-center gap-2 rounded-lg border border-violet-400/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-100">
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+          {message}
+        </p>
       ) : null}
 
       {error ? (
-        <div
-          className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5"
-          role="alert"
-        >
-          <p className="flex items-start gap-2 text-xs text-red-200">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-            <span>{error}</span>
-          </p>
-          <button
-            type="button"
-            disabled={busy || disabled}
-            onClick={() => (hasDirectLinks ? void handleDownload() : void runGenerate())}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-red-500/20 px-3 py-1.5 text-[11px] font-semibold text-red-100 hover:bg-red-500/30 disabled:opacity-50"
-          >
-            <RotateCcw className="h-3 w-3" aria-hidden />
-            Try again
-          </button>
-        </div>
+        <p className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {error}
+        </p>
       ) : null}
 
-      {hasDirectLinks ? (
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={downloading}
-            onClick={() => void handleDownload()}
-            className={downloadBtnClass}
-          >
-            {downloading ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <Download className="h-4 w-4" aria-hidden />
-            )}
-            {downloading ? "Downloading…" : "Download PDF"}
-          </button>
-          {viewPageHref ? (
-            <Link
-              href={viewPageHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={viewBtnClass}
-            >
-              <ExternalLink className="h-4 w-4" aria-hidden />
-              View in browser
-            </Link>
-          ) : null}
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={disabled || busy || !effectiveEmail}
-            onClick={() => void runGenerate()}
-            className={`${downloadBtnClass} disabled:cursor-not-allowed disabled:opacity-50`}
-          >
-            {busy ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <Download className="h-4 w-4" aria-hidden />
-            )}
-            {busy ? "Generating…" : "Generate & save certificate"}
-          </button>
-          {certificateId && !pdfReady ? (
-            <p className="w-full text-[10px] text-gray-500">
-              After generation completes, Download and View buttons will appear here instantly.
-            </p>
-          ) : null}
-        </div>
-      )}
+      {success ? (
+        <p className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+          {message}
+        </p>
+      ) : null}
 
-      <p className="text-[10px] leading-relaxed text-gray-500">
+      <div className="flex flex-wrap gap-2">
         {hasDirectLinks ? (
           <>
-            <FileText className="mr-1 inline h-3 w-3 text-emerald-400" aria-hidden />
-            Certificate saved on server — download or view anytime.
+            <button
+              type="button"
+              disabled={downloading}
+              onClick={() => void handleDownload()}
+              className={downloadBtnClass}
+            >
+              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Download PDF
+            </button>
+            {viewPageHref ? (
+              <Link href={viewPageHref} target="_blank" rel="noopener noreferrer" className={viewBtnClass}>
+                <ExternalLink className="h-4 w-4" /> View PDF
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void runGenerate()}
+              className={`${btnClass} border border-white/15 text-gray-300 hover:bg-white/5 disabled:opacity-50`}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+              Regenerate
+            </button>
           </>
         ) : (
-          "First time: click Generate & save (~10–15s). Then use Download / View buttons."
+          <button
+            type="button"
+            disabled={busy || disabled || !effectiveEmail}
+            onClick={() => void runGenerate()}
+            className={downloadBtnClass}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+            Generate certificate
+          </button>
         )}
-      </p>
+      </div>
+
+      {!hasDirectLinks && !disabled ? (
+        <p className="text-[11px] leading-relaxed text-gray-500">
+          Uses certificate + transcript templates uploaded for this course in admin. First generation takes about
+          10–15 seconds.
+        </p>
+      ) : null}
     </div>
   );
 }
 
-export function CertificateStatusBadge({
-  status,
-  visibleToLearner,
-  pdfReady,
-}: {
+export type CertificateStatusBadgeProps = {
   status?: string;
   visibleToLearner?: boolean;
   pdfReady?: boolean;
-}) {
-  if (status === "ready" && visibleToLearner && pdfReady) {
+};
+
+/** Small status chip for certificate rows (ready / pending / failed). */
+export function CertificateStatusBadge({
+  status,
+  visibleToLearner = true,
+  pdfReady = false,
+}: CertificateStatusBadgeProps) {
+  const normalized = (status ?? "pending").toLowerCase();
+
+  if (normalized === "ready" && pdfReady && visibleToLearner) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
-        <CheckCircle2 className="h-3 w-3" aria-hidden />
+      <span className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
         Ready
       </span>
     );
   }
-  if (status === "ready" && visibleToLearner) {
+
+  if (normalized === "ready" && !visibleToLearner) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
-        Generate to unlock download
-      </span>
-    );
-  }
-  if (status === "pending") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
-        <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-        Processing
-      </span>
-    );
-  }
-  if (status === "failed") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-300">
-        Needs retry
-      </span>
-    );
-  }
-  if (status === "ready" && !visibleToLearner) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+      <span className="inline-flex items-center rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
         Awaiting approval
       </span>
     );
   }
-  return null;
+
+  if (normalized === "ready") {
+    return (
+      <span className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+        Issued
+      </span>
+    );
+  }
+
+  if (normalized === "failed") {
+    return (
+      <span className="inline-flex items-center rounded-full border border-red-500/35 bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-200">
+        Failed
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center rounded-full border border-violet-500/35 bg-violet-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-200">
+      Generating…
+    </span>
+  );
 }

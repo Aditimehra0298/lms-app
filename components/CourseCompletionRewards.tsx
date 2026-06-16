@@ -312,6 +312,7 @@ export function CourseCompletionRewards({
               scorePercent={certificate?.scorePercent ?? combinedExamPercent}
               pdfReady={certificate?.pdfReady}
               pdfUrl={certificate?.pdfUrl}
+              templateImageUrl={templateImageUrl}
               disabled={downloadBlocked}
               disabledReason={
                 downloadBlocked

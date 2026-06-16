@@ -3,7 +3,8 @@
  * all other courses reuse the same visual pattern with generic module labels tied to the course title.
  */
 
-import type { CourseCurriculumItem, CourseCurriculumModule } from "./content-schema";
+import type { CourseCurriculumModule } from "./content-schema";
+import { curriculumModulesForLearner } from "./curriculum-learner-filter";
 
 export type CurriculumRow = CourseCurriculumItem;
 
@@ -173,7 +174,7 @@ export function getCurriculumForCourse(
   persisted?: CourseCurriculumModule[] | null,
 ): CurriculumModule[] {
   if (persisted && persisted.length > 0) {
-    return normalizeCurriculumModules(persisted);
+    return curriculumModulesForLearner(normalizeCurriculumModules(persisted));
   }
   if (slug === "food-safety-masterclass") {
     return FOOD_SAFETY_DIPLOMA_CURRICULUM;

@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 /** Permanent certificate PDFs — not temporary n8n / Drive links. */
@@ -72,6 +72,17 @@ export async function resolveCertificatePdfPath(certificateId: string): Promise<
     return filePath;
   } catch {
     return null;
+  }
+}
+
+/** Remove on-disk PDF so n8n or a fresh local build can replace it. */
+export async function deleteStoredCertificatePdf(certificateId: string): Promise<void> {
+  const filePath = await resolveCertificatePdfPath(certificateId);
+  if (!filePath) return;
+  try {
+    await unlink(filePath);
+  } catch {
+    /* already gone */
   }
 }
 

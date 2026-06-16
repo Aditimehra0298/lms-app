@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
 import { AdminPanelSection, adminToggleRow } from "@/components/admin/AdminCourseTabShell";
 import AdminCertificateFileUpload from "@/components/admin/AdminCertificateFileUpload";
+import { CertificateTemplatePreview } from "@/components/CertificateTemplatePreview";
+import { resolveCertificateTemplateLayout } from "@/lib/certificate-template-layout";
+import { resolveProtectedMediaUrl } from "@/lib/media-client";
 
 async function uploadAdminFile(file: File): Promise<string> {
   const fd = new FormData();
@@ -19,6 +22,7 @@ type UploadField = "templateImage" | "badgeImage" | "transcriptFile";
 type Props = {
   step?: number;
   programLabel?: string;
+  programTitle?: string;
   certificateEnabled: boolean;
   onCertificateEnabledChange: (enabled: boolean) => void;
   config: ManagedCourseCertificateConfig;
@@ -27,9 +31,38 @@ type Props = {
   onGoContent?: () => void;
 };
 
+function LayoutSlider({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="block text-[11px] text-gray-300">
+      <span className="mb-1 flex items-center justify-between gap-2">
+        <span>{label}</span>
+        <span className="font-mono text-amber-200">{value}%</span>
+      </span>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full accent-amber-500"
+      />
+    </label>
+  );
+}
+
 export function AdminProgramCertificateAssetsEditor({
   step = 3,
   programLabel = "course",
+  programTitle = "Sample Course Title",
   certificateEnabled,
   onCertificateEnabledChange,
   config,
@@ -39,6 +72,28 @@ export function AdminProgramCertificateAssetsEditor({
 }: Props) {
   const [uploading, setUploading] = useState<Partial<Record<UploadField, boolean>>>({});
   const [uploadError, setUploadError] = useState<Partial<Record<UploadField, string>>>({});
+  const [resolvedTemplate, setResolvedTemplate] = useState("");
+  const [resolvedBadge, setResolvedBadge] = useState("");
+
+  const layout = resolveCertificateTemplateLayout(config);
+
+  useEffect(() => {
+    const template = config.templateImage?.trim() ?? "";
+    if (!template) {
+      setResolvedTemplate("");
+      return;
+    }
+    void resolveProtectedMediaUrl(template, { scope: "admin" }).then(setResolvedTemplate);
+  }, [config.templateImage]);
+
+  useEffect(() => {
+    const badge = config.badgeImage?.trim() ?? "";
+    if (!badge) {
+      setResolvedBadge("");
+      return;
+    }
+    void resolveProtectedMediaUrl(badge, { scope: "admin" }).then(setResolvedBadge);
+  }, [config.badgeImage]);
 
   const runUpload = async (field: UploadField, file: File) => {
     setUploadError((e) => ({ ...e, [field]: undefined }));
@@ -60,9 +115,8 @@ export function AdminProgramCertificateAssetsEditor({
     <AdminPanelSection title={`Certificate, badge & transcript for this ${programLabel}`} step={step}>
       <p className="mb-3 text-[11px] text-violet-200/90">
         Upload a <strong className="text-violet-100">unique sample</strong> for this {programLabel}: certificate
-        background, transcript, and badge. Each {programLabel} can look different. Global defaults under{" "}
-        <strong className="text-violet-100">Users &amp; Access → Certificates</strong> apply only when a field is
-        left empty here. Issued certificates still personalize name, number, and date per learner.
+        background, transcript, and badge. Learner name, certificate number, and issue date are placed on your
+        template when they generate the PDF. Use the position sliders below to align text with your design.
       </p>
 
       <label className={adminToggleRow}>
@@ -139,6 +193,81 @@ export function AdminProgramCertificateAssetsEditor({
               onUpload={(file) => runUpload("transcriptFile", file)}
             />
           </div>
+
+          {config.templateImage?.trim() && resolvedTemplate ? (
+            <div className="mt-6 rounded-xl border border-white/10 bg-black/20 p-4">
+              <h4 className="text-sm font-semibold text-white">Adjust text on certificate</h4>
+              <p className="mt-1 text-[11px] text-gray-400">
+                Move the sliders until the sample text sits on your template blanks. Save the {programLabel} to
+                apply — learners must click <strong className="text-gray-300">Generate certificate</strong> again
+                to refresh an existing PDF.
+              </p>
+
+              <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,280px)_1fr]">
+                <div className="space-y-4">
+                  <LayoutSlider
+                    label="Learner name (from top)"
+                    value={layout.nameTopPercent}
+                    onChange={(nameTopPercent) => onPatch({ nameTopPercent })}
+                  />
+                  <LayoutSlider
+                    label="Certificate number (from top)"
+                    value={layout.numberTopPercent}
+                    onChange={(numberTopPercent) => onPatch({ numberTopPercent })}
+                  />
+                  <LayoutSlider
+                    label="Issue date block (from top)"
+                    value={layout.dateTopPercent}
+                    onChange={(dateTopPercent) => onPatch({ dateTopPercent })}
+                  />
+
+                  <div className="space-y-2 border-t border-white/10 pt-3">
+                    <label className="flex items-center gap-2 text-[11px] text-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={layout.overlayCourseTitle}
+                        onChange={(e) => onPatch({ overlayCourseTitle: e.target.checked })}
+                        className="accent-amber-500"
+                      />
+                      Show course title on certificate
+                    </label>
+                    <label className="flex items-center gap-2 text-[11px] text-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={layout.overlayScore}
+                        onChange={(e) => onPatch({ overlayScore: e.target.checked })}
+                        className="accent-amber-500"
+                      />
+                      Show final grade / score
+                    </label>
+                    <label className="flex items-center gap-2 text-[11px] text-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={layout.overlayBadge}
+                        onChange={(e) => onPatch({ overlayBadge: e.target.checked })}
+                        className="accent-amber-500"
+                      />
+                      Show badge on certificate
+                    </label>
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <CertificateTemplatePreview
+                    templateImage={resolvedTemplate}
+                    badgeImage={resolvedBadge || undefined}
+                    learnerName="Sample Learner"
+                    certificateNumber="SFT-2026-00001"
+                    courseTitle={programTitle}
+                    issuedAt={new Date().toISOString()}
+                    scorePercent={92}
+                    layout={config}
+                    className="rounded-lg border border-white/10 shadow-lg"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-3 flex flex-wrap gap-3 text-[10px]">
             {config.templateImage?.trim() ? (

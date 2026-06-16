@@ -98,10 +98,10 @@ export function buildWelcomeEmail(input: WelcomeEmailTemplateInput): {
       </tr>
     </table>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;background:#f4f4f5;border-radius:12px;border:1px solid #e4e4e7">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;background:${EMAIL_BRAND.surface};border-radius:14px;border:1px solid ${EMAIL_BRAND.borderSoft}">
       <tr>
         <td style="padding:16px 18px">
-          <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#71717a">Quick links</p>
+          <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9a6812">Quick links</p>
           <p style="margin:0;font-size:14px;line-height:1.6">
             <a href="${escapeHtml(dashboardUrl)}" style="color:${EMAIL_BRAND.goldDark};font-weight:600;text-decoration:none">Dashboard</a>
             &nbsp;·&nbsp;
@@ -121,7 +121,7 @@ export function buildWelcomeEmail(input: WelcomeEmailTemplateInput): {
   const html = wrapEmailLayout({
     appName,
     appUrl: base,
-    logoUrl: input.logoUrl,
+    logoSrc: input.logoUrl,
     preheader: `Welcome to ${sft}! Open your dashboard and explore courses.`,
     bodyHtml,
   });

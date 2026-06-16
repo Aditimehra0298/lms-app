@@ -21,7 +21,7 @@ export default function CertificatePrintView({ certificate, showActions = true }
     <div className="space-y-6">
       <div className="certificate-print-root mx-auto max-w-4xl">
         <div className="relative aspect-[297/210] w-full overflow-hidden rounded-lg border border-amber-500/30 bg-white shadow-2xl print:rounded-none print:border-0 print:shadow-none">
-          <Image src={template} alt="" fill unoptimized className="object-cover" priority />
+          <Image src={template} alt="" fill unoptimized className="object-contain" priority />
           {certificate.badgeImage ? (
             <div className="absolute right-[8%] top-[8%] aspect-square h-[14%] overflow-hidden rounded-full border-2 border-amber-400/50 bg-white shadow-lg">
               <Image

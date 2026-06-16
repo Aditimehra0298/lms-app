@@ -1,4 +1,4 @@
-import { emailAppName, emailAppUrl, emailLogoUrl, emailShortBrand } from "@/lib/email-brand-config";
+import { emailAppName, emailAppUrl, emailLogoSrc, emailShortBrand } from "@/lib/email-brand-config";
 import { buildN8nWebhookAuthHeaders, n8nWebhookAuthHint } from "@/lib/server/n8n-webhook-auth";
 
 export type AbandonedCartLine = {
@@ -66,7 +66,7 @@ export async function sendAbandonedCartViaN8n(
   const appName = emailAppName();
   const shortBrand = emailShortBrand();
   const appUrl = emailAppUrl().replace(/\/$/, "");
-  const logoUrl = emailLogoUrl();
+  const logoUrl = emailLogoSrc();
 
   const subtotal = items.reduce((sum, row) => {
     const n = Number(String(row.price).replace(/[^0-9.]/g, ""));

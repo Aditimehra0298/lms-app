@@ -1,5 +1,5 @@
 import type { AccountTypeId } from "@/lib/auth-profile";
-import { emailAppName, emailAppUrl, emailLogoUrl, emailShortBrand } from "@/lib/email-brand-config";
+import { emailAppName, emailAppUrl, emailLogoSrc, emailShortBrand } from "@/lib/email-brand-config";
 import { buildWelcomeEmail, type WelcomeEmailMethod } from "@/lib/email-templates/welcome";
 import { sendTransactionalEmail } from "@/lib/mail";
 import {
@@ -62,7 +62,7 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> 
     appUrl: emailAppUrl(),
     appName: emailAppName(),
     shortBrand: emailShortBrand(),
-    logoUrl: emailLogoUrl(),
+    logoUrl: emailLogoSrc(),
     registration,
   });
 

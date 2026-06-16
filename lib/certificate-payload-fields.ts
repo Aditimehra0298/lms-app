@@ -30,8 +30,8 @@ export function formatIssueDate(date: Date): string {
 export function formatLearningMode(format?: CourseLearningFormat | string): string {
   const f = (format ?? "self-paced").toLowerCase();
   if (f === "live" || f === "interactive") return "Live Online";
-  if (f === "self-paced") return "Self-Paced";
-  return "Self-Paced";
+  if (f === "self-paced") return "E-Learning, Video-based, Self-paced";
+  return "E-Learning, Video-based, Self-paced";
 }
 
 export function formatGrade(scorePercent?: number | null): string {
