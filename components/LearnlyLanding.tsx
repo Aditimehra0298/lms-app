@@ -392,12 +392,17 @@ const faqs = [
   },
 ];
 
-const IRBA_ACCREDITATION_LOGO = {
-  src: "/partners/irba.png",
-  alt: "IRBA — Integrated Regulatory Board of Auditors",
-};
-
-const accreditationLogos = ["/e1.png", "/e2.png", "/e3.png", "/e4.png"];
+const accreditationLogos = [
+  { src: "/e1.png", alt: "Accreditation partner 1" },
+  { src: "/e2.png", alt: "Accreditation partner 2" },
+  { src: "/e3.png", alt: "Accreditation partner 3" },
+  { src: "/e4.png", alt: "Accreditation partner 4" },
+  {
+    src: "https://res.cloudinary.com/dwnnakrrh/image/upload/v1781673765/Untitled_1520_x_1080_px_15_ij8nxg.png",
+    alt: "IRBA — Integrated Regulatory Board of Auditors",
+    large: true,
+  },
+];
 const exploreProgramImages = [
   "/p1.png",
   "/p2.png",
@@ -808,43 +813,52 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             We collaborate with recognized bodies and industry partners to keep programs current
             and credible.
           </p>
-          <div className="mx-auto mt-12 flex max-w-[1200px] flex-wrap items-center justify-center gap-4 md:gap-6">
-            <div className="flex h-40 w-48 shrink-0 items-center justify-center md:h-52 md:w-56">
-              <Image
-                unoptimized
-                src={IRBA_ACCREDITATION_LOGO.src}
-                alt={IRBA_ACCREDITATION_LOGO.alt}
-                width={320}
-                height={140}
-                className="lh-accreditation-logo--irba h-auto w-full max-w-[220px] object-contain md:max-w-[260px]"
-              />
-            </div>
-            {accreditationLogos.map((logoSrc, index) => (
-              <div key={logoSrc} className="group relative isolate h-40 w-40 shrink-0 md:h-52 md:w-52">
-                <div className="pointer-events-none absolute inset-1 rounded-full bg-amber-300/22 blur-xl transition-all duration-300 group-hover:bg-amber-300/35 group-hover:blur-2xl" />
+          <div className="mx-auto mt-12 flex max-w-[1400px] flex-nowrap items-center justify-center gap-2 overflow-x-hidden px-2 sm:gap-3 md:gap-5 lg:gap-6">
+            {accreditationLogos.map((logo, index) =>
+              logo.large ? (
                 <div
-                  className="absolute inset-0 border-2 border-amber-400/75 bg-transparent shadow-[0_0_22px_rgba(249,177,77,0.28)] transition-all duration-300 group-hover:border-amber-300 group-hover:shadow-[0_0_44px_rgba(249,177,77,0.5)]"
-                  style={{ clipPath: "polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%)" }}
-                />
-                <div className="pointer-events-none absolute inset-0 opacity-60 transition-opacity duration-300 group-hover:opacity-100">
-                  <div className="absolute -inset-x-8 top-1/2 h-12 -translate-y-1/2 rotate-6 bg-linear-to-r from-transparent via-amber-200/40 to-transparent blur-lg" />
-                  <div className="absolute inset-0 bg-radial-[circle_at_50%_50%] from-amber-300/20 via-transparent to-transparent" />
-                </div>
-                <div className="absolute inset-[8px] flex items-center justify-center overflow-hidden bg-transparent">
-                  {index < 3 && (
-                    <div className="absolute h-36 w-36 rounded-full bg-white/95 md:h-40 md:w-40" />
-                  )}
+                  key={logo.src}
+                  className="flex h-[3.75rem] shrink-0 items-center sm:h-40 md:h-52"
+                >
                   <Image
                     unoptimized
-                    src={logoSrc}
-                    alt={`Accreditation logo ${index + 1}`}
-                    width={208}
-                    height={208}
-                    className="relative z-10 h-full w-full object-contain p-1 opacity-100"
+                    src={logo.src}
+                    alt={logo.alt}
+                    width={560}
+                    height={200}
+                    className="h-full w-auto max-w-none object-contain object-center"
                   />
                 </div>
-              </div>
-            ))}
+              ) : (
+                <div
+                  key={logo.src}
+                  className="group relative isolate h-[3.75rem] w-[3.75rem] shrink-0 sm:h-40 sm:w-40 md:h-52 md:w-52"
+                >
+                  <div className="pointer-events-none absolute inset-1 rounded-full bg-amber-300/22 blur-xl transition-all duration-300 group-hover:bg-amber-300/35 group-hover:blur-2xl" />
+                  <div
+                    className="absolute inset-0 border-2 border-amber-400/75 bg-transparent shadow-[0_0_22px_rgba(249,177,77,0.28)] transition-all duration-300 group-hover:border-amber-300 group-hover:shadow-[0_0_44px_rgba(249,177,77,0.5)]"
+                    style={{ clipPath: "polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%)" }}
+                  />
+                  <div className="pointer-events-none absolute inset-0 opacity-60 transition-opacity duration-300 group-hover:opacity-100">
+                    <div className="absolute -inset-x-8 top-1/2 h-12 -translate-y-1/2 rotate-6 bg-linear-to-r from-transparent via-amber-200/40 to-transparent blur-lg" />
+                    <div className="absolute inset-0 bg-radial-[circle_at_50%_50%] from-amber-300/20 via-transparent to-transparent" />
+                  </div>
+                  <div className="absolute inset-[8px] flex items-center justify-center overflow-hidden bg-transparent">
+                    {index < 3 && (
+                      <div className="absolute h-[3rem] w-[3rem] rounded-full bg-white/95 sm:h-32 sm:w-32 md:h-40 md:w-40" />
+                    )}
+                    <Image
+                      unoptimized
+                      src={logo.src}
+                      alt={logo.alt}
+                      width={224}
+                      height={224}
+                      className="relative z-10 h-full w-full object-contain p-1 opacity-100"
+                    />
+                  </div>
+                </div>
+              ),
+            )}
           </div>
         </section>
 

@@ -478,6 +478,7 @@ Data architecture reference: `docs/DATA_STORAGE_AND_CONNECTIONS.md`
 | Document | Purpose |
 |----------|---------|
 | **This file** | Production deploy plan (GCP + Cloudflare) |
+| `LMS_DEPLOYMENT_GUIDE_NON_TECHNICAL_INR.md` | Simple overview + full budget in ₹ for non-technical stakeholders |
 | `SERVER_DEPLOYMENT.md` | Generic Linux VPS deploy (same app steps) |
 | `SENIOR_PROJECT_DOCUMENTATION.md` | Full technical product overview |
 | `DATA_STORAGE_AND_CONNECTIONS.md` | JSON vs localStorage vs MySQL |
