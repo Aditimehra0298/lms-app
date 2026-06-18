@@ -10,7 +10,7 @@ export default async function WorkshopsIndexPage() {
   const workshops = programs.map(mapProgramToWorkshopCard);
 
   return (
-    <div className="min-h-screen bg-[#060b16] text-white">
+    <div className="workshops-page min-h-screen bg-[#060b16] text-white">
       <main className="mx-auto max-w-6xl px-4 py-10 md:px-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Live workshops</p>
         <h1 className="mt-2 text-3xl font-bold md:text-4xl">One-day expert sessions</h1>

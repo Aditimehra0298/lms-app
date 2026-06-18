@@ -306,7 +306,7 @@ export default function AdminHomePageEditor() {
 
   const setTestimonial = (i: number, patch: Partial<HomePageTestimonial>) => setConfig((p) => ({ ...p, testimonials: p.testimonials.map((t, idx) => (idx === i ? { ...t, ...patch } : t)) }));
   const addTestimonial = () =>
-    setConfig((p) => ({ ...p, testimonials: [...p.testimonials, { quote: "", name: "", role: "", photo: "" }] }));
+    setConfig((p) => ({ ...p, testimonials: [...p.testimonials, { quote: "", name: "", role: "", courseBadge: "", photo: "" }] }));
   const removeTestimonial = (i: number) => setConfig((p) => ({ ...p, testimonials: p.testimonials.filter((_, idx) => idx !== i) }));
 
   const setIndPlan = (i: number, patch: Partial<HomePagePlan>) => setConfig((p) => ({ ...p, individualPlans: p.individualPlans.map((pl, idx) => (idx === i ? { ...pl, ...patch } : pl)) }));
@@ -432,6 +432,12 @@ export default function AdminHomePageEditor() {
               <input className={`${inputCls} flex-1`} value={t.role} onChange={(e) => setTestimonial(idx, { role: e.target.value })} placeholder="Role" />
               <button type="button" onClick={() => removeTestimonial(idx)} className={btnDanger}><Trash2 size={13} /></button>
             </div>
+            <input
+              className={inputCls}
+              value={t.courseBadge ?? ""}
+              onChange={(e) => setTestimonial(idx, { courseBadge: e.target.value })}
+              placeholder="Course badge (e.g. HACCP Food Safety Level 2)"
+            />
             <AdminTestimonialPhotoField
               value={t.photo ?? ""}
               onChange={(url) => setTestimonial(idx, { photo: url })}

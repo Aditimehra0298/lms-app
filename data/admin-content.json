@@ -2134,32 +2134,38 @@
       {
         "quote": "The content is practical and easy to follow. I could apply what I learned immediately in daily work.",
         "name": "Rohan Verma",
-        "role": "Security Professional"
+        "role": "Security Professional",
+        "courseBadge": "Cyber Security Essentials"
       },
       {
         "quote": "Live sessions and assignments helped me build confidence with real scenarios, not just theory.",
         "name": "Priya Rao",
-        "role": "Data Analyst"
+        "role": "Data Analyst",
+        "courseBadge": "ESG Reporting & Compliance"
       },
       {
         "quote": "Great mentorship and structured learning path. The certification gave my profile a strong boost.",
         "name": "Aman Kumar",
-        "role": "Cloud Engineer"
+        "role": "Cloud Engineer",
+        "courseBadge": "Advanced Cyber Security Professional"
       },
       {
         "quote": "Clear modules, supportive trainers, and strong outcomes. One of the best learning platforms I used.",
         "name": "Neha Sharma",
-        "role": "Program Coordinator"
+        "role": "Program Coordinator",
+        "courseBadge": "ESG Management Development"
       },
       {
         "quote": "The trainer-led sessions were highly practical. I improved my process audit skills and could apply them at work immediately.",
         "name": "Vikram Singh",
-        "role": "Quality Specialist"
+        "role": "Quality Specialist",
+        "courseBadge": "HACCP Food Safety (Level 2)"
       },
       {
         "quote": "Excellent balance of self-paced modules and live expert guidance. The certifications added real value to my profile.",
         "name": "Sneha Iyer",
-        "role": "Compliance Analyst"
+        "role": "Compliance Analyst",
+        "courseBadge": "Workplace Compliance Program"
       }
     ],
     "individualPlans": [

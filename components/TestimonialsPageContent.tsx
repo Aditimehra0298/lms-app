@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import TestimonialAvatar from "@/components/TestimonialAvatar";
+import TestimonialCourseBadge from "@/components/TestimonialCourseBadge";
 import type { HomePageSectionMeta, HomePageTestimonial } from "@/lib/content-schema";
 
 type Props = {
@@ -14,7 +15,7 @@ export default function TestimonialsPageContent({ meta, testimonials }: Props) {
   const items = testimonials.filter((t) => t.quote.trim() && t.name.trim());
 
   return (
-    <div className="min-h-screen bg-[#06080f] text-white">
+    <div className="testimonials-page min-h-screen bg-[#06080f] text-white">
       <main className="mx-auto w-full max-w-[1200px] px-4 py-8 md:px-6 md:py-12">
         <p className="inline-flex rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200">
           {meta.badge}
@@ -31,6 +32,9 @@ export default function TestimonialsPageContent({ meta, testimonials }: Props) {
                   key={key}
                   className="flex flex-col rounded-2xl border border-amber-500/35 bg-linear-to-b from-[#1b1306] via-[#120d07] to-[#0a0808] p-6 shadow-[0_0_24px_rgba(249,177,77,0.16)]"
                 >
+                  {t.courseBadge?.trim() ? (
+                    <TestimonialCourseBadge label={t.courseBadge} className="mb-4 self-start" />
+                  ) : null}
                   <div className="mb-4 flex items-center gap-3">
                     <TestimonialAvatar testimonial={t} size={56} />
                     <div>

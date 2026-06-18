@@ -26,7 +26,7 @@ export default function FaqPageContent({ meta, groups, faqImage }: Props) {
   const total = visibleGroups.reduce((n, g) => n + g.items.length, 0);
 
   return (
-    <div className="min-h-screen bg-[#06080f] text-white">
+    <div className="faq-page min-h-screen bg-[#06080f] text-white">
       <main className="mx-auto w-full max-w-[1200px] px-4 py-8 md:px-6 md:py-12">
         <p className="inline-flex rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200">
           {meta.badge}

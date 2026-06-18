@@ -127,13 +127,13 @@ export default async function AboutPage() {
           </div>
         </section>
 
-        <section className="mt-4 overflow-hidden rounded-2xl border border-amber-300/20 bg-linear-to-br from-[#1d1408] via-[#120d08] to-[#090808] p-6 md:p-8">
+        <section className="about-mission-section mt-4 overflow-hidden rounded-2xl border border-amber-300/20 bg-linear-to-br from-[#1d1408] via-[#120d08] to-[#090808] p-6 md:p-8">
           <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-            <article className="rounded-2xl border border-amber-400/25 bg-black/25 p-5 md:p-6">
-              <p className="inline-flex rounded-full border border-amber-300/35 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-200">
+            <article className="about-mission-card rounded-2xl border border-amber-400/25 bg-black/25 p-5 md:p-6">
+              <p className="about-mission-badge about-mission-badge-amber inline-flex rounded-full border border-amber-300/35 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-200">
                 Our Mission
               </p>
-              <h3 className="mt-3 text-2xl font-bold leading-tight md:text-3xl">
+              <h3 className="about-mission-heading mt-3 text-2xl font-bold leading-tight md:text-3xl">
                 {missionData.heading} <span className="text-amber-300">{missionData.headingHighlight}</span>
               </h3>
               <p className="mt-3 text-sm leading-7 text-gray-300">
@@ -144,8 +144,8 @@ export default async function AboutPage() {
               </p>
             </article>
 
-            <article className="rounded-2xl border border-amber-400/25 bg-black/25 p-5 md:p-6">
-              <p className="inline-flex rounded-full border border-violet-300/35 bg-violet-500/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-200">
+            <article className="about-mission-card rounded-2xl border border-amber-400/25 bg-black/25 p-5 md:p-6">
+              <p className="about-mission-badge about-mission-badge-violet inline-flex rounded-full border border-violet-300/35 bg-violet-500/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-200">
                 Our Training Technologies
               </p>
               <p className="mt-3 text-sm leading-7 text-gray-300">
@@ -155,8 +155,8 @@ export default async function AboutPage() {
               </p>
               <ul className="mt-4 space-y-2 text-sm text-gray-200">
                 {trainingTechnologyPoints.map((point) => (
-                  <li key={point} className="flex items-start gap-2">
-                    <Sparkles size={14} className="mt-0.5 shrink-0 text-amber-300" />
+                  <li key={point} className="about-mission-list-item flex items-start gap-2">
+                    <Sparkles size={14} className="about-mission-icon mt-0.5 shrink-0 text-amber-300" />
                     <span>{point}</span>
                   </li>
                 ))}

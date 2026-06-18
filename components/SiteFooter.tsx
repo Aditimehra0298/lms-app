@@ -29,6 +29,7 @@ import {
   SOCIAL_BRAND_BUTTON_CLASS,
   SOCIAL_BRAND_LABEL,
 } from "@/components/SocialBrandIcon";
+import { CountryFlagImg } from "@/components/CountryFlagImg";
 
 export default function SiteFooter({ forceDarkChrome = false }: { forceDarkChrome?: boolean }) {
   const [isLightTheme, setIsLightTheme] = useState(false);
@@ -160,7 +161,14 @@ export default function SiteFooter({ forceDarkChrome = false }: { forceDarkChrom
               <div className={`mt-4 space-y-4 text-sm ${textTone}`}>
                 {SFT_OFFICES.map((office) => (
                   <div key={office.country} className={`border-b ${dividerTone} pb-3 last:border-b-0 last:pb-0`}>
-                    <p className="font-semibold text-white">{office.country}</p>
+                    <p className={`flex items-center gap-2.5 font-semibold ${useLightTheme ? "text-slate-800" : "text-white"}`}>
+                      <CountryFlagImg
+                        code={office.countryCode}
+                        width={48}
+                        className="h-5 w-7 rounded-sm border border-black/10 object-cover shadow-sm"
+                      />
+                      {office.country}
+                    </p>
                     <p className="mt-1 flex items-start gap-2 text-xs leading-relaxed">
                       <MapPin size={14} className={`mt-0.5 shrink-0 ${headingTone}`} />
                       <span>{office.address}</span>

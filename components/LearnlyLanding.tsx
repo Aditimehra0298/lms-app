@@ -13,6 +13,7 @@ import CourseCardActions from "@/components/CourseCardActions";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
 import { NewsletterSubscribeForm } from "@/components/NewsletterSubscribeForm";
 import TestimonialAvatar from "@/components/TestimonialAvatar";
+import TestimonialCourseBadge from "@/components/TestimonialCourseBadge";
 import {
   Play,
   Star,
@@ -250,6 +251,7 @@ const testimonials = [
       "The content is practical and easy to follow. I could apply what I learned immediately in daily work.",
     name: "Rohan Verma",
     role: "Security Professional",
+    courseBadge: "Cyber Security Essentials",
     seed: "rohan-verma",
   },
   {
@@ -257,6 +259,7 @@ const testimonials = [
       "Tutor-led sessions and assignments helped me build confidence with real scenarios, not just theory.",
     name: "Priya Rao",
     role: "Data Analyst",
+    courseBadge: "ESG Reporting & Compliance",
     seed: "priya-rao",
   },
   {
@@ -264,6 +267,7 @@ const testimonials = [
       "Great mentorship and structured learning path. The certification gave my profile a strong boost.",
     name: "Aman Kumar",
     role: "Cloud Engineer",
+    courseBadge: "Advanced Cyber Security Professional",
     seed: "aman-kumar",
   },
   {
@@ -271,6 +275,7 @@ const testimonials = [
       "Clear modules, supportive trainers, and strong outcomes. One of the best learning platforms I used.",
     name: "Neha Sharma",
     role: "Program Coordinator",
+    courseBadge: "ESG Management Development",
     seed: "neha-sharma",
   },
   {
@@ -278,6 +283,7 @@ const testimonials = [
       "The trainer-led sessions were highly practical. I improved my process audit skills and could apply them at work immediately.",
     name: "Vikram Singh",
     role: "Quality Specialist",
+    courseBadge: "HACCP Food Safety (Level 2)",
     seed: "vikram-singh",
   },
   {
@@ -285,6 +291,7 @@ const testimonials = [
       "Excellent balance of self-paced modules and live expert guidance. The certifications added real value to my profile.",
     name: "Sneha Iyer",
     role: "Compliance Analyst",
+    courseBadge: "Workplace Compliance Program",
     seed: "sneha-iyer",
   },
 ];
@@ -625,6 +632,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
         quote: t.quote,
         name: t.name,
         role: t.role,
+        courseBadge: t.courseBadge,
         photo: t.photo,
         seed: t.name.toLowerCase().replace(/\s+/g, "-"),
       }))
@@ -834,9 +842,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                   key={logo.src}
                   className="group relative isolate h-[3.75rem] w-[3.75rem] shrink-0 sm:h-40 sm:w-40 md:h-52 md:w-52"
                 >
-                  <div className="pointer-events-none absolute inset-1 rounded-full bg-amber-300/22 blur-xl transition-all duration-300 group-hover:bg-amber-300/35 group-hover:blur-2xl" />
+                  <div className="pointer-events-none absolute inset-1 rounded-full lh-accreditation-glow bg-amber-300/22 blur-xl transition-all duration-300 group-hover:bg-amber-300/35 group-hover:blur-2xl" />
                   <div
-                    className="absolute inset-0 border-2 border-amber-400/75 bg-transparent shadow-[0_0_22px_rgba(249,177,77,0.28)] transition-all duration-300 group-hover:border-amber-300 group-hover:shadow-[0_0_44px_rgba(249,177,77,0.5)]"
+                    className="lh-accreditation-hex absolute inset-0 border-2 border-amber-400/75 bg-transparent shadow-[0_0_22px_rgba(249,177,77,0.28)] transition-all duration-300 group-hover:border-amber-300 group-hover:shadow-[0_0_44px_rgba(249,177,77,0.5)]"
                     style={{ clipPath: "polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%)" }}
                   />
                   <div className="pointer-events-none absolute inset-0 opacity-60 transition-opacity duration-300 group-hover:opacity-100">
@@ -1078,8 +1086,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
 
           {(learningPath === "self-paced" || learningPath === "interactive" || learningPath === "live") && (
             <div className="mt-16 border-t border-white/10 pt-12">
-              <h2 className={`${sectionTitle} text-center`}>
-                📚 Explore <span className={goldText}>Professional Learning Programs</span>
+              <h2 className={`${sectionTitle} flex items-center justify-center gap-2 text-center`}>
+                <BookOpen className="lh-section-emoji shrink-0 text-amber-400" size={28} aria-hidden />
+                Explore <span className={goldText}>Professional Learning Programs</span>
               </h2>
               <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-gray-500">
                 Discover industry-focused courses designed to help you build practical skills
@@ -1157,7 +1166,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                             {course.title}
                           </h5>
                           <div className="mt-2 flex items-center gap-1 text-xs text-amber-200/90">
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" size={14} />
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 lh-section-emoji" size={14} />
                             {course.rating}
                           </div>
                           <CourseResolvedCardActions
@@ -1269,7 +1278,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               </div>
               <div className="lh-help-card mx-auto mt-6 max-w-6xl rounded-2xl border border-amber-500/45 bg-linear-to-r from-amber-500/16 via-amber-400/10 to-amber-500/16 p-5">
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-300/70 bg-amber-400/20 text-amber-100 shadow-[0_0_20px_rgba(249,177,77,0.35)]">
+                  <span className="lh-symbol-chip inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-300/70 bg-amber-400/20 text-amber-100 shadow-[0_0_20px_rgba(249,177,77,0.35)]">
                     <CircleHelp size={20} />
                   </span>
                   <p className="text-sm font-semibold text-amber-100 md:text-base">
@@ -1310,7 +1319,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               </article>
               <div className="lh-help-card mt-6 rounded-2xl border border-amber-500/45 bg-linear-to-r from-amber-500/16 via-amber-400/10 to-amber-500/16 p-5">
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-300/70 bg-amber-400/20 text-amber-100 shadow-[0_0_20px_rgba(249,177,77,0.35)]">
+                  <span className="lh-symbol-chip inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-300/70 bg-amber-400/20 text-amber-100 shadow-[0_0_20px_rgba(249,177,77,0.35)]">
                     <CircleHelp size={20} />
                   </span>
                   <p className="text-sm font-semibold text-amber-100 md:text-base">
@@ -1393,6 +1402,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                 key={t.seed}
                 className="lh-testimonial-card flex flex-col rounded-2xl border border-amber-500/35 bg-linear-to-b from-[#1b1306] via-[#120d07] to-[#0a0808] p-6 shadow-[0_0_24px_rgba(249,177,77,0.16)] transition-all hover:border-amber-300/70 hover:shadow-[0_0_32px_rgba(249,177,77,0.24)]"
               >
+                {t.courseBadge ? (
+                  <TestimonialCourseBadge label={t.courseBadge} className="mb-4 self-start" />
+                ) : null}
                 <p className="flex-1 text-sm leading-relaxed text-gray-300">&ldquo;{t.quote}&rdquo;</p>
                 <footer className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4">
                   <TestimonialAvatar testimonial={{ name: t.name, photo: "photo" in t ? t.photo : undefined }} size={44} />
@@ -1508,7 +1520,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           <div className="lh-newsletter-shell rounded-2xl border border-amber-500/35 bg-linear-to-r from-[#1b1306] via-[#120d07] to-[#0a0808] p-5 shadow-[0_0_32px_rgba(249,177,77,0.18)] md:p-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-400/60 bg-amber-500/15 text-amber-200">
+                <span className="lh-symbol-chip mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-400/60 bg-amber-500/15 text-amber-200">
                   <Mail size={18} />
                 </span>
                 <div>

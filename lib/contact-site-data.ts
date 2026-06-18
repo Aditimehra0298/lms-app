@@ -33,6 +33,8 @@ export const SFT_QUICK_LINKS = [
 export type SftOffice = {
   title: string;
   country: string;
+  /** ISO 3166-1 alpha-2 for real flag image (e.g. IN, CA, AE). */
+  countryCode: string;
   address: string;
   phone: string;
   phoneHref: string;
@@ -44,6 +46,7 @@ export const SFT_OFFICES: SftOffice[] = [
   {
     title: "Head Office — India",
     country: "India",
+    countryCode: "IN",
     address: "146, Sector 82, Mohali, Punjab-160062",
     phone: "+91 9056742783",
     phoneHref: "tel:+919056742783",
@@ -53,6 +56,7 @@ export const SFT_OFFICES: SftOffice[] = [
   {
     title: "Office — Canada",
     country: "Canada",
+    countryCode: "CA",
     address: "8449, 116 A Street, Delta - V4C7N7, Greater Vancouver",
     phone: "+1 (778) 798-9624",
     phoneHref: "tel:+17787989624",
@@ -62,6 +66,7 @@ export const SFT_OFFICES: SftOffice[] = [
   {
     title: "Office — Dubai",
     country: "Dubai",
+    countryCode: "AE",
     address: "Suite No 2902 and 2903, The Prism Tower, Business Bay, Dubai, UAE",
     phone: "+91 9056742783",
     phoneHref: "tel:+919056742783",
@@ -71,6 +76,7 @@ export const SFT_OFFICES: SftOffice[] = [
   {
     title: "Office — UK",
     country: "UK",
+    countryCode: "GB",
     address: "20-22 Wenlock Road, Hoxton, London N1 7GU",
     phone: "+91 9056742783",
     phoneHref: "tel:+919056742783",
@@ -80,6 +86,7 @@ export const SFT_OFFICES: SftOffice[] = [
   {
     title: "Office — USA",
     country: "USA",
+    countryCode: "US",
     address: "616 Corporate Way Suite 2, Valley Cottage, NY 10989",
     phone: "+91 9056742783",
     phoneHref: "tel:+919056742783",

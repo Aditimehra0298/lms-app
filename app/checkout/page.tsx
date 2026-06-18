@@ -227,7 +227,7 @@ export default function CheckoutPage() {
   const razorpayReady = Boolean(razorpayConfig?.configured && razorpayConfig.keyId);
   if (!isHydrated) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white">
+      <div className="checkout-page min-h-screen bg-[#0a0a0a] text-white">
         <main className="mx-auto max-w-[1760px] px-4 py-6 md:px-6 xl:px-8">
           <div className="rounded-xl border border-white/10 bg-white/3 p-6 text-sm text-gray-300">
             Loading checkout...
@@ -343,7 +343,7 @@ export default function CheckoutPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white">
+      <div className="checkout-page min-h-screen bg-[#0a0a0a] text-white">
         <main className="mx-auto max-w-[1760px] px-4 py-6 md:px-6 xl:px-8">
           <section className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-white/3 p-6 text-center">
             <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-300" />
@@ -403,7 +403,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="checkout-page min-h-screen bg-[#0a0a0a] text-white">
       <main className="mx-auto max-w-[1760px] px-4 py-6 md:px-6 xl:px-8">
         <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-gray-300">
           {["Cart", "Checkout", "Payment", "Success"].map((step, idx) => (

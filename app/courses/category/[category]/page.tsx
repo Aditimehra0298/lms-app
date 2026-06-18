@@ -269,7 +269,7 @@ export default async function CourseCategoryPage({
   ];
 
   return (
-    <div className="min-h-screen bg-[#070707] text-white">
+    <div className="category-page min-h-screen bg-[#070707] text-white">
 
       <main className="mx-auto max-w-[1760px] px-4 pb-16 pt-4 md:px-6 xl:px-8">
         {/* Breadcrumbs */}
@@ -286,7 +286,7 @@ export default async function CourseCategoryPage({
         </nav>
 
         {/* Hero */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f0f0f] shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+        <section className="category-hero relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f0f0f] shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
           <div className="relative min-h-[440px] lg:min-h-[500px]">
             <Image
               src={heroImage}
@@ -296,8 +296,8 @@ export default async function CourseCategoryPage({
               unoptimized={heroImage.startsWith("http")}
               className="object-cover object-[center_30%]"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/88 to-black/25 lg:to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40 lg:bg-gradient-to-t lg:from-black/50" />
+            <div className="category-hero-overlay absolute inset-0 bg-gradient-to-r from-black via-black/88 to-black/25 lg:to-transparent" />
+            <div className="category-hero-overlay-b absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40 lg:bg-gradient-to-t lg:from-black/50" />
 
             <div className="relative z-10 grid gap-8 px-5 py-10 md:px-10 lg:grid-cols-[1.15fr_380px] lg:items-center lg:py-14">
               <div>

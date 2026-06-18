@@ -18,11 +18,21 @@ import {
 } from "lucide-react";
 import { readLearnerProfileFromStorage } from "@/lib/auth-profile";
 import { COMPANY_DISPLAY_NAME, SFT_EMAILS, SFT_OFFICES } from "@/lib/contact-site-data";
+import { CountryFlagImg } from "@/components/CountryFlagImg";
 import { getLearnerEmail, isLearnerLoggedIn } from "@/lib/learner-session-client";
 import type { HomePageFaq } from "@/lib/content-schema";
 import { defaultHomePageConfig } from "@/lib/content-schema";
 
-const CONTACT_CHANNELS = [
+const CONTACT_CHANNELS: Array<{
+  title: string;
+  detail: string;
+  icon: typeof Mail;
+  accent: string;
+  href?: string;
+  action?: "chat";
+  /** ISO country code when this channel is tied to a region */
+  countryCode?: string;
+}> = [
   {
     title: "Email Support",
     detail: SFT_EMAILS.info,
@@ -43,6 +53,7 @@ const CONTACT_CHANNELS = [
     href: "tel:+919056742783",
     icon: Phone,
     accent: "text-amber-300",
+    countryCode: "IN",
   },
   {
     title: "Phone Support (Canada)",
@@ -50,11 +61,12 @@ const CONTACT_CHANNELS = [
     href: "tel:+17787989624",
     icon: Phone,
     accent: "text-amber-300",
+    countryCode: "CA",
   },
   {
     title: "Live Chat",
     detail: "Chat with our support team",
-    action: "chat" as const,
+    action: "chat",
     icon: MessageCircle,
     accent: "text-amber-300",
   },
@@ -64,12 +76,14 @@ const CONTACT_CHANNELS = [
     href: "https://wa.me/919056742783",
     icon: MessageCircle,
     accent: "text-emerald-400",
+    countryCode: "IN",
   },
   {
     title: "Working Hours",
     detail: "Mon – Sat: 9:00 AM – 8:00 PM (IST)",
     icon: Clock,
     accent: "text-sky-300",
+    countryCode: "IN",
   },
 ];
 
@@ -177,13 +191,13 @@ export default function ContactPageContent() {
   };
 
   const inputClass =
-    "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none focus:ring-1 focus:ring-amber-400/30";
+    "contact-input w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none focus:ring-1 focus:ring-amber-400/30";
 
   return (
-    <div className="min-h-screen bg-[#06080f] text-white">
+    <div className="contact-page min-h-screen bg-[#06080f] text-white">
       <main className="mx-auto w-full max-w-[1760px] px-4 py-2 md:px-6 md:py-3 xl:px-8">
         {/* Hero */}
-        <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#05070d]">
+        <section className="contact-hero overflow-hidden rounded-2xl border border-white/10 bg-[#05070d]">
           <div className="grid items-center gap-4 p-4 md:gap-5 md:p-5 lg:grid-cols-[1fr_1.05fr] lg:gap-6 lg:p-5">
             <article className="order-2 flex min-w-0 flex-col gap-3 lg:order-1 lg:gap-3.5">
               <div className="space-y-1.5">
@@ -202,7 +216,7 @@ export default function ContactPageContent() {
                   { icon: UserSearch, title: "Expert Guidance", desc: "Get help from our learning experts." },
                   { icon: MessageCircle, title: "Multiple Channels", desc: "Reach us via email, phone, or live chat." },
                 ].map((item) => (
-                  <li key={item.title} className="flex min-w-0 items-start gap-2.5 sm:flex-col sm:gap-2">
+                  <li key={item.title} className="contact-hero-pill flex min-w-0 items-start gap-2.5 sm:flex-col sm:gap-2">
                     <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/12 text-amber-300 ring-1 ring-amber-400/15">
                       <item.icon size={17} strokeWidth={1.75} />
                     </span>
@@ -236,7 +250,7 @@ export default function ContactPageContent() {
 
         {/* Form + channels */}
         <section className="mt-4 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-          <article className="rounded-2xl border border-white/10 bg-[#0a0f1a]/80 p-6 md:p-8">
+          <article className="contact-form-panel rounded-2xl border border-white/10 bg-[#0a0f1a]/80 p-6 md:p-8">
             <p className="inline-flex rounded-full border border-amber-300/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200">
               Contact form
             </p>
@@ -311,7 +325,7 @@ export default function ContactPageContent() {
                   Security check (captcha)
                 </label>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <span className="inline-flex min-w-[88px] items-center justify-center rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-sm font-semibold text-amber-200">
+                  <span className="contact-captcha-pill inline-flex min-w-[88px] items-center justify-center rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-sm font-semibold text-amber-200">
                     {captchaQuestion || "…"}
                   </span>
                   <input
@@ -358,7 +372,7 @@ export default function ContactPageContent() {
             </form>
           </article>
 
-          <article className="rounded-2xl border border-white/10 bg-[#0a0f1a]/80 p-6 md:p-8">
+          <article className="contact-channels-panel rounded-2xl border border-white/10 bg-[#0a0f1a]/80 p-6 md:p-8">
             <h2 className="text-2xl font-bold">Other Ways to Reach Us</h2>
             <p className="mt-1 text-sm text-gray-400">Choose the channel that works best for you.</p>
             <ul className="mt-6 space-y-3">
@@ -372,8 +386,17 @@ export default function ContactPageContent() {
                       >
                         <Icon size={18} />
                       </span>
-                      <div>
-                        <p className="text-sm font-semibold text-white">{channel.title}</p>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                          {channel.countryCode ? (
+                            <CountryFlagImg
+                              code={channel.countryCode}
+                              width={48}
+                              className="contact-channel-flag h-4 w-6 shrink-0 rounded-sm border border-white/15 object-cover shadow-sm"
+                            />
+                          ) : null}
+                          <span>{channel.title}</span>
+                        </p>
                         <p className="text-xs text-gray-400">{channel.detail}</p>
                       </div>
                     </div>
@@ -389,7 +412,7 @@ export default function ContactPageContent() {
                       <button
                         type="button"
                         onClick={openLiveChat}
-                        className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-left transition hover:border-amber-400/30 hover:bg-white/5"
+                        className="contact-channel-row flex w-full items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-left transition hover:border-amber-400/30 hover:bg-white/5"
                       >
                         {inner}
                       </button>
@@ -404,7 +427,7 @@ export default function ContactPageContent() {
                         href={channel.href}
                         target={channel.href.startsWith("http") ? "_blank" : undefined}
                         rel={channel.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                        className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3 transition hover:border-amber-400/30 hover:bg-white/5"
+                        className="contact-channel-row flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3 transition hover:border-amber-400/30 hover:bg-white/5"
                       >
                         {inner}
                       </a>
@@ -415,7 +438,7 @@ export default function ContactPageContent() {
                 return (
                   <li
                     key={channel.title}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3"
+                    className="contact-channel-row flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3"
                   >
                     {inner}
                   </li>
@@ -437,7 +460,7 @@ export default function ContactPageContent() {
               {SFT_OFFICES.map((office, idx) => (
                 <article
                   key={office.title}
-                  className={`col-span-6 flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0a0e16] sm:col-span-3 lg:col-span-2 ${
+                  className={`contact-office-card col-span-6 flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0a0e16] sm:col-span-3 lg:col-span-2 ${
                     idx === 3 ? "lg:col-start-2" : ""
                   }`}
                 >
@@ -449,11 +472,28 @@ export default function ContactPageContent() {
                       className="object-cover object-center"
                       sizes="(max-width: 640px) 100vw, 360px"
                     />
+                    <div
+                      className="contact-office-photo-flag absolute bottom-2 left-2 z-10 flex items-center gap-1.5 rounded-md border border-white/20 bg-black/60 px-2 py-1 shadow-md backdrop-blur-sm"
+                      aria-label={`${office.country} office`}
+                    >
+                      <CountryFlagImg
+                        code={office.countryCode}
+                        width={48}
+                        className="h-4 w-6 shrink-0 rounded-sm object-cover shadow-sm"
+                      />
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-white">
+                        {office.country}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex flex-1 flex-col p-3.5">
-                    <p className="inline-flex items-start gap-1.5 text-[13px] font-semibold leading-snug text-white">
-                      <MapPin size={14} className="mt-0.5 shrink-0 text-amber-400" aria-hidden />
-                      <span>{office.country}</span>
+                    <p className="contact-office-country inline-flex items-center gap-2 text-[13px] font-semibold leading-snug text-white">
+                      <CountryFlagImg
+                        code={office.countryCode}
+                        width={48}
+                        className="h-5 w-7 rounded-sm border border-white/15 object-cover shadow-sm"
+                      />
+                      <span>{office.title}</span>
                     </p>
                     <p className="mt-2 flex-1 text-[11px] leading-4 text-gray-500">{office.address}</p>
                     <a
@@ -487,12 +527,12 @@ export default function ContactPageContent() {
                 return (
                   <div
                     key={faq.q}
-                    className="overflow-hidden rounded-xl border border-white/10 bg-[#0a0e16]"
+                    className="contact-faq-item overflow-hidden rounded-xl border border-white/10 bg-[#0a0e16]"
                   >
                     <button
                       type="button"
                       onClick={() => setOpenFaq(isOpen ? null : idx)}
-                      className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
+                      className="contact-faq-trigger flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
                       aria-expanded={isOpen}
                     >
                       <span className="text-[13px] font-medium leading-snug text-gray-100">{faq.q}</span>
@@ -521,7 +561,7 @@ export default function ContactPageContent() {
         </section>
 
         {/* Bottom CTA */}
-        <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-r from-[#140f08] via-[#0c1018] to-[#0a0d14]">
+        <section className="contact-bottom-cta mt-4 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-r from-[#140f08] via-[#0c1018] to-[#0a0d14]">
           <div className="grid items-center gap-6 p-5 md:grid-cols-[minmax(0,220px)_1fr_auto] md:gap-8 md:p-7 lg:p-8">
             <div className="relative mx-auto h-[150px] w-full max-w-[220px] shrink-0 md:mx-0 md:h-[170px]">
               <Image

@@ -101,7 +101,8 @@ const learnIconPalette = [
   { icon: Users, tone: "text-fuchsia-400", bg: "bg-fuchsia-500/15" },
 ];
 
-const cardClass = "rounded-xl border border-white/10 bg-[#141414] p-5";
+const cardClass =
+  "sp-surface-card rounded-xl border border-white/10 bg-[#141414] p-5";
 
 function SocialShareRow({ courseTitle }: { courseTitle: string }) {
   const [copied, setCopied] = useState(false);
@@ -194,7 +195,7 @@ function CertificatePreviewCard({
           </div>
         </div>
       ) : (
-        <div className="mt-3 overflow-hidden rounded-lg border border-amber-500/25 bg-gradient-to-b from-[#1e1e24] via-[#141418] to-[#0a0a0c] p-5 shadow-inner">
+        <div className="sp-cert-preview-mock mt-3 overflow-hidden rounded-lg border border-amber-500/25 bg-gradient-to-b from-[#1e1e24] via-[#141418] to-[#0a0a0c] p-5 shadow-inner">
           <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-amber-200/70">
             SF Trainings
           </p>
@@ -249,7 +250,7 @@ function PurchaseCard({
   const orgReady = isOrganisation && isOrganizationPurchaseReady(course, region, seatCount);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#141414] shadow-[0_20px_60px_rgba(0,0,0,0.65)]">
+    <div className="sp-purchase-card overflow-hidden rounded-xl border border-white/10 bg-[#141414] shadow-[0_20px_60px_rgba(0,0,0,0.65)]">
       <div className="relative aspect-video bg-zinc-900">
         <CatalogMediaImage
           storedSrc={hero.previewImage}
@@ -525,7 +526,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
   return (
     <div className="self-paced-course-page min-h-screen bg-[#0a0a0a] text-white">
       {/* Hero — two-column info + enroll card + integrated stats bar */}
-      <section className="relative overflow-hidden border-b border-white/10 bg-[#0a0a0a]">
+      <section className="relative overflow-hidden border-b border-white/10 bg-[#0a0a0a] self-paced-hero">
         <div className="absolute inset-0">
           <CatalogMediaImage
             storedSrc={heroResolved.backgroundImage}
@@ -535,7 +536,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
             className="object-cover object-[72%_center] opacity-55"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/88 to-[#0a0a0a]/35" />
+          <div className="self-paced-hero-overlay absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/88 to-[#0a0a0a]/35" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_75%_45%,rgba(34,211,238,0.14),transparent_55%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_20%_80%,rgba(106,90,205,0.12),transparent_50%)]" />
         </div>
@@ -621,8 +622,8 @@ export default function SelfPacedCourseLanding({ course }: Props) {
             </aside>
           </div>
 
-          <div className="relative z-10 mt-8 rounded-2xl border border-white/10 bg-[#121212]/92 p-3 shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-md md:mt-10 md:p-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7 lg:gap-0 lg:divide-x lg:divide-white/10">
+          <div className="sp-stats-bar relative z-10 mt-8 rounded-2xl border border-white/10 bg-[#121212]/92 p-3 shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-md md:mt-10 md:p-4">
+            <div className="sp-stats-grid grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7 lg:gap-0 lg:divide-x lg:divide-white/10">
               {heroStats.map((s) => (
                 <div
                   key={s.label}
@@ -637,7 +638,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
                     <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
                       {s.label}
                     </p>
-                    <p className="mt-0.5 text-sm font-bold leading-tight text-white">{s.value}</p>
+                    <p className="sp-stat-value mt-0.5 text-sm font-bold leading-tight text-white">{s.value}</p>
                   </div>
                 </div>
               ))}
@@ -647,14 +648,14 @@ export default function SelfPacedCourseLanding({ course }: Props) {
       </section>
 
       {/* Sticky section nav */}
-      <div className="sticky top-[52px] z-40 border-b border-white/10 bg-[#0a0a0a]/98 backdrop-blur-md md:top-[88px]">
+      <div className="sp-sticky-nav sticky top-[52px] z-40 border-b border-white/10 bg-[#0a0a0a]/98 backdrop-blur-md md:top-[88px]">
         <div className={`${shell} flex gap-0 overflow-x-auto`}>
           {navTabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => selectTab(tab.id)}
-              className={`shrink-0 border-b-[3px] px-5 py-4 text-sm font-semibold transition ${
+              className={`sp-nav-tab shrink-0 border-b-[3px] px-5 py-4 text-sm font-semibold transition ${
                 activeSection === tab.id
                   ? "border-[#f4c150] text-white"
                   : "border-transparent text-zinc-500 hover:text-zinc-300"
@@ -707,7 +708,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
                     return (
                       <div
                         key={title}
-                        className="flex gap-3 rounded-xl border border-white/10 bg-[#141414] p-4"
+                        className="sp-learn-card flex gap-3 rounded-xl border border-white/10 bg-[#141414] p-4"
                       >
                         <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${meta.bg}`}>
                           <Icon className={`h-5 w-5 ${meta.tone}`} />
@@ -738,11 +739,11 @@ export default function SelfPacedCourseLanding({ course }: Props) {
                 <h2 className="text-2xl font-bold tracking-tight text-white">{overview.faqSectionTitle}</h2>
                 <div className="mt-4 space-y-2">
                   {faqs.map((faq, i) => (
-                    <div key={faq.q} className="overflow-hidden rounded-lg border border-white/10 bg-[#161616]">
+                    <div key={faq.q} className="sp-faq-item overflow-hidden rounded-lg border border-white/10 bg-[#161616]">
                       <button
                         type="button"
                         onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left text-sm font-medium text-zinc-100"
+                        className="sp-faq-trigger flex w-full items-center justify-between gap-3 px-4 py-4 text-left text-sm font-medium text-zinc-100"
                       >
                         {faq.q}
                         <ChevronDown
@@ -799,10 +800,10 @@ export default function SelfPacedCourseLanding({ course }: Props) {
       </section>
 
       {/* Bottom CTA */}
-      <section className="border-t border-amber-900/20 bg-gradient-to-r from-[#1c1608] via-[#141008] to-[#0a0a0a]">
+      <section className="sp-bottom-cta border-t border-amber-900/20 bg-gradient-to-r from-[#1c1608] via-[#141008] to-[#0a0a0a]">
         <div className={`${shell} flex flex-col items-center justify-between gap-6 py-10 md:flex-row md:py-12`}>
           <div className="flex items-center gap-4">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
+            <div className="sp-cta-icon grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
               <Cog className="h-5 w-5" aria-hidden />
             </div>
             <div>

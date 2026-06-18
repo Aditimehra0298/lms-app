@@ -339,6 +339,109 @@ body.tutor-led-marketing-body {
     0 0 28px rgba(139, 92, 246, 0.2) !important;
 }
 
+/* Light theme: pale amber/violet/gray text is invisible on cream — use vivid accents */
+:root[data-theme="light"] .learnly-home .text-gray-200 {
+  color: #1e293b !important;
+}
+
+:root[data-theme="light"] .learnly-home [class*="text-amber-100"] {
+  color: #92400e !important;
+}
+
+:root[data-theme="light"] .learnly-home [class*="text-amber-200"] {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .learnly-home .text-amber-300 {
+  color: #c2410c !important;
+}
+
+:root[data-theme="light"] .learnly-home [class*="text-amber-400"] {
+  color: #d97706 !important;
+}
+
+:root[data-theme="light"] .learnly-home .text-amber-500 {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .learnly-home [class*="text-violet-100"],
+:root[data-theme="light"] .learnly-home [class*="text-violet-200"] {
+  color: #6d28d9 !important;
+}
+
+:root[data-theme="light"] .learnly-home .fill-amber-400 {
+  fill: #f59e0b !important;
+}
+
+:root[data-theme="light"] .learnly-home .text-\[\#fde68a\] {
+  color: #b45309 !important;
+  border-color: rgba(212, 160, 23, 0.55) !important;
+  background: rgba(255, 255, 255, 0.65) !important;
+}
+
+:root[data-theme="light"] .learnly-home .text-\[\#fde68a\]:hover {
+  background: rgba(255, 249, 235, 0.95) !important;
+  border-color: rgba(212, 160, 23, 0.7) !important;
+}
+
+/* Colorful symbol icons (help, mail, chevrons, stars) */
+:root[data-theme="light"] .learnly-home .lh-symbol-chip {
+  background: linear-gradient(145deg, #fff9ee 0%, #fdecc8 100%) !important;
+  border-color: rgba(212, 160, 23, 0.55) !important;
+  color: #c2410c !important;
+  box-shadow:
+    0 4px 14px rgba(212, 160, 23, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-symbol-chip svg {
+  color: #ea580c !important;
+  stroke: #ea580c !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-icon-chip svg,
+:root[data-theme="light"] .learnly-home a[class*="lh-gold"] svg,
+:root[data-theme="light"] .learnly-home .lh-gold-text svg {
+  color: #c2410c !important;
+  stroke: #c2410c !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-path-card button:not([class*="text-black"]) svg,
+:root[data-theme="light"] .learnly-home button[class*="text-amber"] svg {
+  color: #c2410c !important;
+  stroke: #c2410c !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-accreditation-hex {
+  border-color: rgba(217, 119, 6, 0.85) !important;
+  box-shadow:
+    0 0 24px rgba(249, 177, 77, 0.35),
+    inset 0 0 12px rgba(255, 251, 235, 0.5) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-accreditation-glow {
+  background-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-section-emoji {
+  color: #d97706 !important;
+  filter: none !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-testimonial-course-badge {
+  background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(253, 230, 178, 0.92)) !important;
+  border-color: rgba(217, 119, 6, 0.45) !important;
+  color: #92400e !important;
+  box-shadow:
+    0 4px 14px rgba(212, 160, 23, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+:root[data-theme="light"] .learnly-home .lh-testimonial-course-badge svg {
+  color: #ea580c !important;
+  stroke: #ea580c !important;
+}
+
 /* About page: premium light theme treatment (same feel as home) */
 :root[data-theme="light"] .about-page {
   background:
@@ -401,11 +504,35 @@ body.tutor-led-marketing-body {
 
 /* About "More Than Learning" section light-theme polish */
 :root[data-theme="light"] .about-page .about-who-overlay-x {
-  background: linear-gradient(90deg, rgba(248, 244, 236, 0.95), rgba(243, 237, 227, 0.72), rgba(243, 237, 227, 0.35)) !important;
+  background: linear-gradient(
+    90deg,
+    rgba(248, 244, 236, 0.9) 0%,
+    rgba(195, 178, 145, 0.52) 45%,
+    rgba(70, 58, 40, 0.32) 100%
+  ) !important;
 }
 
 :root[data-theme="light"] .about-page .about-who-overlay-y {
-  background: linear-gradient(180deg, rgba(248, 244, 236, 0.78), transparent 46%, rgba(243, 237, 227, 0.82)) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 244, 236, 0.55) 0%,
+    transparent 42%,
+    rgba(50, 42, 30, 0.45) 100%
+  ) !important;
+}
+
+:root[data-theme="light"] .about-page .about-who-we-are img.object-cover {
+  opacity: 0.72 !important;
+  filter: contrast(1.06) saturate(1.1);
+}
+
+:root[data-theme="light"] .about-page section:first-of-type article img.object-cover {
+  opacity: 0.88 !important;
+  filter: contrast(1.05) saturate(1.08);
+}
+
+:root[data-theme="light"] .about-page section:first-of-type article [class*="from-[#06080f]"] {
+  background: linear-gradient(to top, rgba(50, 42, 30, 0.5), transparent 55%) !important;
 }
 
 :root[data-theme="light"] .about-page .about-who-badge {
@@ -443,6 +570,953 @@ body.tutor-led-marketing-body {
   :root[data-theme="light"] .about-page .about-who-list {
     grid-template-columns: 1fr;
   }
+}
+
+/* About — Mission & Training Technologies (light theme) */
+:root[data-theme="light"] .about-page .about-mission-section {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(212, 160, 23, 0.14), transparent 36%),
+    radial-gradient(circle at 92% 100%, rgba(139, 92, 246, 0.08), transparent 32%),
+    linear-gradient(135deg, rgba(248, 244, 236, 0.98), rgba(243, 237, 227, 0.94)) !important;
+  border-color: rgba(180, 150, 90, 0.28) !important;
+  box-shadow:
+    0 14px 32px rgba(148, 118, 59, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+}
+
+:root[data-theme="light"] .about-page .about-mission-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(253, 244, 220, 0.9)) !important;
+  border-color: rgba(212, 160, 23, 0.28) !important;
+  box-shadow:
+    0 8px 22px rgba(148, 118, 59, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+:root[data-theme="light"] .about-page .about-mission-heading,
+:root[data-theme="light"] .about-page .about-mission-heading .text-amber-300 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .about-page .about-mission-heading .text-amber-300 {
+  color: #9a6812 !important;
+}
+
+:root[data-theme="light"] .about-page .about-mission-badge-amber {
+  border-color: rgba(212, 160, 23, 0.42) !important;
+  background: linear-gradient(135deg, #fff9ee, #fdecc8) !important;
+  color: #92400e !important;
+}
+
+:root[data-theme="light"] .about-page .about-mission-badge-violet {
+  border-color: rgba(139, 92, 246, 0.32) !important;
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe) !important;
+  color: #5b21b6 !important;
+}
+
+:root[data-theme="light"] .about-page .about-mission-list-item {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .about-page .about-mission-icon {
+  color: #d97706 !important;
+  stroke: #d97706 !important;
+}
+
+/* Courses catalog page light theme */
+:root[data-theme="light"] .courses-page {
+  color: #1f2937;
+  background:
+    radial-gradient(circle at 10% 8%, rgba(212, 160, 23, 0.18), transparent 28%),
+    radial-gradient(circle at 88% 14%, rgba(139, 92, 246, 0.08), transparent 24%),
+    linear-gradient(180deg, #f8f4ec 0%, #f3ede3 48%, #efe7da 100%);
+}
+
+:root[data-theme="light"] .courses-page .courses-surface,
+:root[data-theme="light"] .courses-page .courses-hero-card,
+:root[data-theme="light"] .courses-page .courses-course-card,
+:root[data-theme="light"] .courses-page .courses-category-card {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(212, 160, 23, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(253, 244, 220, 0.9)) !important;
+  border-color: rgba(180, 150, 90, 0.24) !important;
+  box-shadow:
+    0 10px 28px rgba(148, 118, 59, 0.1),
+    0 0 0 1px rgba(212, 160, 23, 0.08) inset !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-inner-card,
+:root[data-theme="light"] .courses-page .courses-faq-item {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(248, 244, 236, 0.88)) !important;
+  border-color: rgba(180, 150, 90, 0.2) !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-inner-card:hover,
+:root[data-theme="light"] .courses-page .courses-course-card:hover,
+:root[data-theme="light"] .courses-page .courses-category-card:hover {
+  border-color: rgba(212, 160, 23, 0.42) !important;
+  box-shadow: 0 12px 30px rgba(148, 118, 59, 0.14) !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-hero-overlay {
+  background: linear-gradient(
+    90deg,
+    rgba(248, 244, 236, 0.9) 0%,
+    rgba(195, 178, 145, 0.55) 38%,
+    rgba(75, 62, 42, 0.38) 72%,
+    rgba(40, 32, 22, 0.22) 100%
+  ) !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-hero-card img.object-cover {
+  opacity: 0.58 !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-hero-badge {
+  border-color: rgba(212, 160, 23, 0.42) !important;
+  background: linear-gradient(135deg, #fff9ee, #fdecc8) !important;
+  color: #92400e !important;
+}
+
+:root[data-theme="light"] .courses-page h1,
+:root[data-theme="light"] .courses-page h2,
+:root[data-theme="light"] .courses-page h3,
+:root[data-theme="light"] .courses-page .text-white {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .courses-page p,
+:root[data-theme="light"] .courses-page li,
+:root[data-theme="light"] .courses-page label,
+:root[data-theme="light"] .courses-page .text-gray-100,
+:root[data-theme="light"] .courses-page .text-gray-200,
+:root[data-theme="light"] .courses-page .text-gray-300,
+:root[data-theme="light"] .courses-page .text-gray-400 {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .courses-page .text-amber-100,
+:root[data-theme="light"] .courses-page .text-amber-200,
+:root[data-theme="light"] .courses-page .text-amber-300,
+:root[data-theme="light"] .courses-page [class*="text-amber-50"] {
+  color: #9a6812 !important;
+}
+
+:root[data-theme="light"] .courses-page h1 .text-amber-300 {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-secondary-btn {
+  border-color: rgba(180, 150, 90, 0.35) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-secondary-btn:hover {
+  border-color: rgba(212, 160, 23, 0.5) !important;
+  background: #fff9ee !important;
+  color: #7a5610 !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-filter-input,
+:root[data-theme="light"] .courses-page .courses-filter-btn,
+:root[data-theme="light"] .courses-page .courses-level-filter select {
+  border-color: rgba(180, 150, 90, 0.28) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-filter-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-level-filter select option {
+  background: #fff;
+  color: #1f2937;
+}
+
+:root[data-theme="light"] .courses-page .courses-featured-panel {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(212, 160, 23, 0.2), transparent 36%),
+    radial-gradient(circle at 92% 100%, rgba(139, 92, 246, 0.1), transparent 32%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(253, 244, 220, 0.92)) !important;
+  border-color: rgba(212, 160, 23, 0.35) !important;
+  box-shadow:
+    0 14px 32px rgba(148, 118, 59, 0.14),
+    0 0 24px rgba(212, 160, 23, 0.12) !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-featured-panel h3,
+:root[data-theme="light"] .courses-page .courses-featured-panel .text-amber-100 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-featured-panel p {
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-expert-tooltip {
+  background: #fff9ee !important;
+  border-color: rgba(212, 160, 23, 0.4) !important;
+  color: #7a5610 !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-recommended-thumb {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(212, 160, 23, 0.28) !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-recommended-thumb:hover {
+  border-color: rgba(212, 160, 23, 0.48) !important;
+  box-shadow: 0 8px 20px rgba(148, 118, 59, 0.12) !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-cta-banner {
+  background:
+    radial-gradient(circle at 12% 50%, rgba(212, 160, 23, 0.22), transparent 40%),
+    radial-gradient(circle at 88% 50%, rgba(212, 160, 23, 0.16), transparent 38%),
+    linear-gradient(90deg, #fff9ee, #fdecc8, #fff9ee) !important;
+  border-color: rgba(212, 160, 23, 0.38) !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-cta-banner h2 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-cta-banner p {
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-thumb-frame {
+  border-color: rgba(180, 150, 90, 0.22) !important;
+  background: rgba(248, 244, 236, 0.9) !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-category-badge {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(180, 150, 90, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(148, 118, 59, 0.12);
+}
+
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-sky-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-sky-300 svg { color: #0369a1 !important; stroke: #0369a1 !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-orange-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-orange-300 svg { color: #c2410c !important; stroke: #c2410c !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-indigo-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-indigo-300 svg { color: #4338ca !important; stroke: #4338ca !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-cyan-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-cyan-300 svg { color: #0e7490 !important; stroke: #0e7490 !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-rose-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-rose-300 svg { color: #be123c !important; stroke: #be123c !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-blue-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-blue-300 svg { color: #1d4ed8 !important; stroke: #1d4ed8 !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-fuchsia-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-fuchsia-300 svg { color: #a21caf !important; stroke: #a21caf !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-lime-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-lime-300 svg { color: #4d7c0f !important; stroke: #4d7c0f !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-emerald-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-emerald-300 svg { color: #047857 !important; stroke: #047857 !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-violet-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-violet-300 svg { color: #6d28d9 !important; stroke: #6d28d9 !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-green-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-green-300 svg { color: #15803d !important; stroke: #15803d !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-amber-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-amber-300 svg { color: #b45309 !important; stroke: #b45309 !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-teal-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-teal-300 svg { color: #0f766e !important; stroke: #0f766e !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-pink-300,
+:root[data-theme="light"] .courses-page .courses-icon-chip.text-pink-300 svg { color: #db2777 !important; stroke: #db2777 !important; }
+
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-sky-500\/20 { background: rgba(14, 165, 233, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-orange-500\/20 { background: rgba(249, 115, 22, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-indigo-500\/20 { background: rgba(99, 102, 241, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-cyan-500\/20 { background: rgba(6, 182, 212, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-rose-500\/20 { background: rgba(244, 63, 94, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-blue-500\/20 { background: rgba(59, 130, 246, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-fuchsia-500\/20 { background: rgba(217, 70, 239, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-lime-500\/20 { background: rgba(132, 204, 22, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-emerald-500\/20 { background: rgba(16, 185, 129, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-violet-500\/20 { background: rgba(139, 92, 246, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-green-500\/20 { background: rgba(34, 197, 94, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-amber-500\/20 { background: rgba(245, 158, 11, 0.16) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-teal-500\/20 { background: rgba(20, 184, 166, 0.14) !important; }
+:root[data-theme="light"] .courses-page .courses-icon-chip.bg-pink-500\/20 { background: rgba(236, 72, 153, 0.14) !important; }
+
+:root[data-theme="light"] .courses-page .text-blue-200 {
+  color: #1d4ed8 !important;
+}
+
+:root[data-theme="light"] .courses-page .border-blue-300\/40 {
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  background: rgba(239, 246, 255, 0.9) !important;
+}
+
+:root[data-theme="light"] .courses-page .courses-course-card .group-hover\:text-amber-200:hover,
+:root[data-theme="light"] .courses-page .courses-course-card:hover .group-hover\:text-amber-200 {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .courses-page .border-t {
+  border-color: rgba(180, 150, 90, 0.18) !important;
+}
+
+:root[data-theme="light"] .courses-page .bg-zinc-800\/80 {
+  background: rgba(226, 232, 240, 0.8) !important;
+}
+
+:root[data-theme="light"] .courses-page .text-zinc-500 {
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .courses-page .bg-zinc-900\/80 {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(180, 150, 90, 0.28) !important;
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .courses-page .bg-zinc-900\/80:hover {
+  border-color: rgba(212, 160, 23, 0.45) !important;
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .courses-page .qmark-hero {
+  color: #d97706 !important;
+}
+
+:root[data-theme="light"] .courses-page button[class*="bg-amber-500/10"],
+:root[data-theme="light"] .courses-page a[class*="bg-amber-500/10"] {
+  background: rgba(253, 230, 138, 0.35) !important;
+  border-color: rgba(212, 160, 23, 0.35) !important;
+  color: #92400e !important;
+}
+
+:root[data-theme="light"] .courses-page button[class*="bg-amber-500/10"]:hover,
+:root[data-theme="light"] .courses-page a[class*="bg-amber-500/10"]:hover {
+  background: rgba(253, 230, 138, 0.55) !important;
+  border-color: rgba(212, 160, 23, 0.5) !important;
+}
+
+/* ── Shared catalog/marketing pages — cream canvas, dark text (no white copy) ── */
+:root[data-theme="light"] .category-page,
+:root[data-theme="light"] .self-paced-course-page,
+:root[data-theme="light"] .contact-page,
+:root[data-theme="light"] .faq-page,
+:root[data-theme="light"] .testimonials-page,
+:root[data-theme="light"] .workshops-page,
+:root[data-theme="light"] .cart-page,
+:root[data-theme="light"] .checkout-page,
+:root[data-theme="light"] .tutor-led-marketing {
+  color: #334155;
+  background:
+    radial-gradient(circle at 10% 8%, rgba(212, 160, 23, 0.18), transparent 28%),
+    radial-gradient(circle at 88% 14%, rgba(139, 92, 246, 0.08), transparent 24%),
+    linear-gradient(180deg, #f8f4ec 0%, #f3ede3 48%, #efe7da 100%);
+}
+
+:root[data-theme="light"] .category-page h1,
+:root[data-theme="light"] .category-page h2,
+:root[data-theme="light"] .category-page h3,
+:root[data-theme="light"] .self-paced-course-page h1,
+:root[data-theme="light"] .self-paced-course-page h2,
+:root[data-theme="light"] .self-paced-course-page h3,
+:root[data-theme="light"] .contact-page h1,
+:root[data-theme="light"] .contact-page h2,
+:root[data-theme="light"] .contact-page h3,
+:root[data-theme="light"] .faq-page h1,
+:root[data-theme="light"] .faq-page h2,
+:root[data-theme="light"] .faq-page h3,
+:root[data-theme="light"] .testimonials-page h1,
+:root[data-theme="light"] .testimonials-page h2,
+:root[data-theme="light"] .testimonials-page h3,
+:root[data-theme="light"] .workshops-page h1,
+:root[data-theme="light"] .workshops-page h2,
+:root[data-theme="light"] .workshops-page h3,
+:root[data-theme="light"] .cart-page h1,
+:root[data-theme="light"] .cart-page h2,
+:root[data-theme="light"] .cart-page h3,
+:root[data-theme="light"] .checkout-page h1,
+:root[data-theme="light"] .checkout-page h2,
+:root[data-theme="light"] .checkout-page h3,
+:root[data-theme="light"] .tutor-led-marketing h1,
+:root[data-theme="light"] .tutor-led-marketing h2,
+:root[data-theme="light"] .tutor-led-marketing h3 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .category-page .text-white,
+:root[data-theme="light"] .self-paced-course-page .text-white,
+:root[data-theme="light"] .contact-page .text-white,
+:root[data-theme="light"] .faq-page .text-white,
+:root[data-theme="light"] .testimonials-page .text-white,
+:root[data-theme="light"] .workshops-page .text-white,
+:root[data-theme="light"] .cart-page .text-white,
+:root[data-theme="light"] .checkout-page .text-white,
+:root[data-theme="light"] .tutor-led-marketing .text-white {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .category-page [class*="bg-red-6"].text-white,
+:root[data-theme="light"] .category-page [class*="bg-rose-6"].text-white,
+:root[data-theme="light"] .workshops-page [class*="bg-rose-6"].text-white,
+:root[data-theme="light"] .self-paced-course-page [class*="bg-amber-6"].text-white,
+:root[data-theme="light"] .self-paced-course-page [class*="bg-violet-6"].text-white,
+:root[data-theme="light"] .self-paced-course-page [class*="bg-[#6a5acd]"].text-white,
+:root[data-theme="light"] .tutor-led-marketing [class*="bg-violet-6"].text-white,
+:root[data-theme="light"] .tutor-led-marketing [class*="bg-amber-6"].text-white {
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .category-page p,
+:root[data-theme="light"] .category-page li,
+:root[data-theme="light"] .category-page label,
+:root[data-theme="light"] .self-paced-course-page p,
+:root[data-theme="light"] .self-paced-course-page li,
+:root[data-theme="light"] .self-paced-course-page label,
+:root[data-theme="light"] .contact-page p,
+:root[data-theme="light"] .contact-page li,
+:root[data-theme="light"] .contact-page label,
+:root[data-theme="light"] .faq-page p,
+:root[data-theme="light"] .faq-page li,
+:root[data-theme="light"] .testimonials-page p,
+:root[data-theme="light"] .testimonials-page li,
+:root[data-theme="light"] .workshops-page p,
+:root[data-theme="light"] .workshops-page li,
+:root[data-theme="light"] .cart-page p,
+:root[data-theme="light"] .cart-page li,
+:root[data-theme="light"] .checkout-page p,
+:root[data-theme="light"] .checkout-page li,
+:root[data-theme="light"] .tutor-led-marketing p,
+:root[data-theme="light"] .tutor-led-marketing li {
+  color: #334155;
+}
+
+:root[data-theme="light"] .category-page .text-gray-100,
+:root[data-theme="light"] .category-page .text-gray-200,
+:root[data-theme="light"] .category-page .text-gray-300,
+:root[data-theme="light"] .category-page .text-gray-400,
+:root[data-theme="light"] .category-page .text-gray-500,
+:root[data-theme="light"] .category-page .text-zinc-200,
+:root[data-theme="light"] .category-page .text-zinc-300,
+:root[data-theme="light"] .category-page .text-zinc-400,
+:root[data-theme="light"] .category-page .text-zinc-500,
+:root[data-theme="light"] .self-paced-course-page .text-gray-100,
+:root[data-theme="light"] .self-paced-course-page .text-gray-200,
+:root[data-theme="light"] .self-paced-course-page .text-gray-300,
+:root[data-theme="light"] .self-paced-course-page .text-gray-400,
+:root[data-theme="light"] .self-paced-course-page .text-gray-500,
+:root[data-theme="light"] .self-paced-course-page .text-zinc-200,
+:root[data-theme="light"] .self-paced-course-page .text-zinc-300,
+:root[data-theme="light"] .self-paced-course-page .text-zinc-400,
+:root[data-theme="light"] .self-paced-course-page .text-zinc-500,
+:root[data-theme="light"] .self-paced-course-page .text-zinc-600,
+:root[data-theme="light"] .contact-page .text-gray-300,
+:root[data-theme="light"] .contact-page .text-gray-400,
+:root[data-theme="light"] .contact-page .text-gray-500,
+:root[data-theme="light"] .faq-page .text-gray-400,
+:root[data-theme="light"] .faq-page .text-gray-500,
+:root[data-theme="light"] .testimonials-page .text-gray-300,
+:root[data-theme="light"] .testimonials-page .text-gray-400,
+:root[data-theme="light"] .testimonials-page .text-gray-500,
+:root[data-theme="light"] .workshops-page .text-gray-400,
+:root[data-theme="light"] .workshops-page .text-gray-500,
+:root[data-theme="light"] .cart-page .text-gray-300,
+:root[data-theme="light"] .cart-page .text-gray-400,
+:root[data-theme="light"] .checkout-page .text-gray-300,
+:root[data-theme="light"] .checkout-page .text-gray-400,
+:root[data-theme="light"] .tutor-led-marketing .text-gray-300,
+:root[data-theme="light"] .tutor-led-marketing .text-gray-400,
+:root[data-theme="light"] .tutor-led-marketing .text-gray-500 {
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] .category-page .text-amber-100,
+:root[data-theme="light"] .category-page .text-amber-200,
+:root[data-theme="light"] .category-page .text-amber-300,
+:root[data-theme="light"] .category-page .text-amber-400,
+:root[data-theme="light"] .category-page [class*="text-amber-50"],
+:root[data-theme="light"] .category-page .text-emerald-100,
+:root[data-theme="light"] .category-page .text-emerald-200,
+:root[data-theme="light"] .self-paced-course-page .text-amber-200,
+:root[data-theme="light"] .self-paced-course-page .text-amber-300,
+:root[data-theme="light"] .self-paced-course-page .text-amber-400,
+:root[data-theme="light"] .self-paced-course-page .text-violet-200,
+:root[data-theme="light"] .self-paced-course-page .text-violet-300,
+:root[data-theme="light"] .contact-page .text-amber-200,
+:root[data-theme="light"] .contact-page .text-amber-300,
+:root[data-theme="light"] .faq-page .text-amber-100,
+:root[data-theme="light"] .faq-page .text-amber-200,
+:root[data-theme="light"] .workshops-page .text-amber-300,
+:root[data-theme="light"] .cart-page .text-amber-300,
+:root[data-theme="light"] .checkout-page .text-amber-300,
+:root[data-theme="light"] .tutor-led-marketing .text-amber-200,
+:root[data-theme="light"] .tutor-led-marketing .text-amber-300 {
+  color: #9a6812 !important;
+}
+
+:root[data-theme="light"] .category-page .category-hero-overlay {
+  background: linear-gradient(
+    90deg,
+    rgba(248, 244, 236, 0.9) 0%,
+    rgba(195, 178, 145, 0.55) 40%,
+    rgba(75, 62, 42, 0.36) 75%,
+    rgba(40, 32, 22, 0.2) 100%
+  ) !important;
+}
+
+:root[data-theme="light"] .category-page .category-hero-overlay-b {
+  background: linear-gradient(
+    180deg,
+    rgba(248, 244, 236, 0.5) 0%,
+    transparent 42%,
+    rgba(50, 42, 30, 0.48) 100%
+  ) !important;
+}
+
+:root[data-theme="light"] .category-page .category-hero img.object-cover {
+  opacity: 0.56 !important;
+}
+
+:root[data-theme="light"] .category-page .category-hero,
+:root[data-theme="light"] .category-page article[class*="bg-[#"],
+:root[data-theme="light"] .category-page section[class*="bg-[#"],
+:root[data-theme="light"] .category-page [class*="bg-black/"],
+:root[data-theme="light"] .workshops-page article,
+:root[data-theme="light"] .cart-page article,
+:root[data-theme="light"] .cart-page section,
+:root[data-theme="light"] .checkout-page section,
+:root[data-theme="light"] .checkout-page article,
+:root[data-theme="light"] .contact-page section,
+:root[data-theme="light"] .faq-page article,
+:root[data-theme="light"] .testimonials-page blockquote {
+  border-color: rgba(180, 150, 90, 0.24) !important;
+}
+
+:root[data-theme="light"] .category-page article[class*="bg-[#"],
+:root[data-theme="light"] .category-page section[class*="bg-[#"],
+:root[data-theme="light"] .category-page [class*="bg-black/"],
+:root[data-theme="light"] .workshops-page article,
+:root[data-theme="light"] .cart-page [class*="bg-white/"],
+:root[data-theme="light"] .cart-page [class*="bg-black/"],
+:root[data-theme="light"] .checkout-page [class*="bg-white/"],
+:root[data-theme="light"] .checkout-page [class*="bg-black/"],
+:root[data-theme="light"] .contact-page section[class*="bg-[#"],
+:root[data-theme="light"] .contact-page [class*="bg-black/"],
+:root[data-theme="light"] .faq-page [class*="bg-white/"],
+:root[data-theme="light"] .faq-page [class*="bg-black/"],
+:root[data-theme="light"] .testimonials-page blockquote,
+:root[data-theme="light"] .category-page .category-faq-item {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(212, 160, 23, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(253, 244, 220, 0.9)) !important;
+  box-shadow: 0 10px 28px rgba(148, 118, 59, 0.1) !important;
+}
+
+:root[data-theme="light"] .category-page input,
+:root[data-theme="light"] .category-page select,
+:root[data-theme="light"] .contact-page input,
+:root[data-theme="light"] .contact-page select,
+:root[data-theme="light"] .contact-page textarea,
+:root[data-theme="light"] .cart-page input,
+:root[data-theme="light"] .checkout-page input,
+:root[data-theme="light"] .checkout-page select {
+  border-color: rgba(180, 150, 90, 0.28) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: #1f2937 !important;
+}
+
+:root[data-theme="light"] .category-page input::placeholder,
+:root[data-theme="light"] .contact-page input::placeholder,
+:root[data-theme="light"] .contact-page textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Contact page — cohesive light theme (no dark blocks / black grids) */
+:root[data-theme="light"] .contact-page {
+  background:
+    radial-gradient(circle at 12% 6%, rgba(212, 160, 23, 0.16), transparent 30%),
+    radial-gradient(circle at 88% 12%, rgba(139, 92, 246, 0.06), transparent 26%),
+    linear-gradient(180deg, #ebe3d3 0%, #e3d9c6 46%, #ddd2bc 100%) !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-hero,
+:root[data-theme="light"] .contact-page .contact-form-panel,
+:root[data-theme="light"] .contact-page .contact-channels-panel,
+:root[data-theme="light"] .contact-page .contact-office-card,
+:root[data-theme="light"] .contact-page .contact-faq-item {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(212, 160, 23, 0.12), transparent 36%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(252, 245, 228, 0.95)) !important;
+  border-color: rgba(168, 138, 78, 0.3) !important;
+  box-shadow:
+    0 10px 28px rgba(120, 95, 55, 0.12),
+    0 0 0 1px rgba(212, 160, 23, 0.08) inset !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-channel-row {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(168, 138, 78, 0.26) !important;
+  box-shadow: 0 4px 14px rgba(120, 95, 55, 0.08) !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-channel-row:hover {
+  background: #fffdf8 !important;
+  border-color: rgba(212, 160, 23, 0.38) !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-faq-trigger,
+:root[data-theme="light"] .contact-page .contact-faq-trigger .text-gray-100 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-faq-item [class*="border-t"] {
+  border-color: rgba(168, 138, 78, 0.18) !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-faq-item p {
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-bottom-cta {
+  background:
+    radial-gradient(circle at 14% 50%, rgba(212, 160, 23, 0.22), transparent 44%),
+    radial-gradient(circle at 86% 50%, rgba(212, 160, 23, 0.14), transparent 42%),
+    linear-gradient(90deg, #fff8eb, #fdecc8, #fff8eb) !important;
+  border-color: rgba(212, 160, 23, 0.34) !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-bottom-cta h3 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-bottom-cta p {
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-hero-pill [class*="text-white"] {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-hero-pill [class*="bg-amber-500"] {
+  background: rgba(253, 230, 138, 0.35) !important;
+  color: #b45309 !important;
+  box-shadow: 0 0 0 1px rgba(212, 160, 23, 0.22);
+}
+
+:root[data-theme="light"] .contact-page .contact-hero-pill [class*="text-amber-300"] {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-captcha-pill {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(168, 138, 78, 0.28) !important;
+  color: #92400e !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-input {
+  background: #ffffff !important;
+  border-color: rgba(168, 138, 78, 0.32) !important;
+  color: #1f2937 !important;
+  box-shadow: inset 0 1px 2px rgba(120, 95, 55, 0.06);
+}
+
+:root[data-theme="light"] .contact-page .contact-input:focus {
+  border-color: rgba(212, 160, 23, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.14);
+}
+
+:root[data-theme="light"] .contact-page .contact-form-panel [class*="bg-amber-500/10"],
+:root[data-theme="light"] .contact-page .contact-channels-panel [class*="bg-amber-500/10"] {
+  background: rgba(253, 230, 138, 0.38) !important;
+  border-color: rgba(212, 160, 23, 0.35) !important;
+  color: #92400e !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-channels-panel [class*="bg-amber-500/10"] {
+  background: rgba(253, 230, 138, 0.28) !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-office-card .text-gray-500,
+:root[data-theme="light"] .contact-page .contact-office-card .text-gray-400 {
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-office-photo-flag {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(168, 138, 78, 0.32) !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-office-photo-flag span {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .contact-page .contact-office-country,
+:root[data-theme="light"] .contact-page .contact-channel-flag {
+  border-color: rgba(168, 138, 78, 0.22) !important;
+}
+
+:root[data-theme="light"] .contact-page article[class*="bg-[#"],
+:root[data-theme="light"] .contact-page [class*="bg-[#0a0e16]"],
+:root[data-theme="light"] .contact-page [class*="bg-[#0a0f1a]"] {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(212, 160, 23, 0.12), transparent 36%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(252, 245, 228, 0.95)) !important;
+  border-color: rgba(168, 138, 78, 0.3) !important;
+}
+
+:root[data-theme="light"] .contact-page [class*="from-[#140f08]"],
+:root[data-theme="light"] .contact-page [class*="via-[#0c1018]"] {
+  background:
+    radial-gradient(circle at 14% 50%, rgba(212, 160, 23, 0.22), transparent 44%),
+    linear-gradient(90deg, #fff8eb, #fdecc8, #fff8eb) !important;
+}
+
+:root[data-theme="light"] .contact-page .text-gray-100 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .contact-page .text-emerald-300 {
+  color: #047857 !important;
+}
+
+:root[data-theme="light"] .contact-page .text-red-300 {
+  color: #b91c1c !important;
+}
+
+:root[data-theme="light"] .category-page button[class*="bg-black/"],
+:root[data-theme="light"] .category-page a[class*="bg-black/"] {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(180, 150, 90, 0.3) !important;
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .category-page section[class*="from-[#1a1408]"] {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(212, 160, 23, 0.18), transparent 38%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(253, 244, 220, 0.92)) !important;
+}
+
+:root[data-theme="light"] .category-page section[class*="from-emerald-9"] {
+  background:
+    radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.16), transparent 42%),
+    linear-gradient(90deg, #ecfdf5, #d1fae5, #ecfdf5) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+:root[data-theme="light"] .category-page section[class*="from-emerald-9"] h2,
+:root[data-theme="light"] .category-page section[class*="from-emerald-9"] p {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .category-page .category-faq-trigger {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .self-paced-hero-overlay {
+  background: linear-gradient(
+    90deg,
+    rgba(248, 244, 236, 0.9) 0%,
+    rgba(195, 178, 145, 0.56) 40%,
+    rgba(75, 62, 42, 0.36) 72%,
+    rgba(40, 32, 22, 0.2) 100%
+  ) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .self-paced-hero img {
+  opacity: 0.55 !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .self-paced-hero [class*="from-black/80"] {
+  background: linear-gradient(
+    to top,
+    rgba(45, 38, 28, 0.5),
+    rgba(45, 38, 28, 0.18),
+    rgba(45, 38, 28, 0.22)
+  ) !important;
+}
+
+:root[data-theme="light"] .tutor-led-marketing section.relative img.object-cover {
+  opacity: 1 !important;
+}
+
+:root[data-theme="light"] .tutor-led-marketing [class*="from-black/80"] {
+  background: linear-gradient(
+    to top,
+    rgba(45, 38, 28, 0.52),
+    rgba(45, 38, 28, 0.16),
+    rgba(45, 38, 28, 0.24)
+  ) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page section.self-paced-hero {
+  background: #f3ede3 !important;
+  border-color: rgba(180, 150, 90, 0.2) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-stats-bar,
+:root[data-theme="light"] .self-paced-course-page .sp-sticky-nav,
+:root[data-theme="light"] .self-paced-course-page .sp-surface-card,
+:root[data-theme="light"] .self-paced-course-page .sp-purchase-card,
+:root[data-theme="light"] .self-paced-course-page .sp-learn-card,
+:root[data-theme="light"] .self-paced-course-page .sp-faq-item {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(212, 160, 23, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(253, 244, 220, 0.94)) !important;
+  border-color: rgba(180, 150, 90, 0.26) !important;
+  box-shadow: 0 8px 24px rgba(148, 118, 59, 0.1) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-stats-bar {
+  backdrop-filter: blur(10px);
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-sticky-nav {
+  background: rgba(253, 248, 238, 0.96) !important;
+  border-color: rgba(180, 150, 90, 0.22) !important;
+  box-shadow: 0 4px 16px rgba(148, 118, 59, 0.08) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-nav-tab {
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-nav-tab[class*="border-[#f4c150]"] {
+  color: #0f172a !important;
+  border-color: #d97706 !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-nav-tab:hover {
+  color: #334155 !important;
+}
+
+@media (min-width: 1024px) {
+  :root[data-theme="light"] .self-paced-course-page .sp-stats-grid > :not(:first-child) {
+    border-left-color: rgba(180, 150, 90, 0.22) !important;
+  }
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-stat-value {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-faq-trigger {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-faq-item [class*="border-t"] {
+  border-color: rgba(180, 150, 90, 0.16) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-bottom-cta {
+  background:
+    radial-gradient(circle at 12% 50%, rgba(212, 160, 23, 0.2), transparent 42%),
+    radial-gradient(circle at 88% 50%, rgba(212, 160, 23, 0.14), transparent 40%),
+    linear-gradient(90deg, #fff9ee, #fdecc8, #fff9ee) !important;
+  border-color: rgba(212, 160, 23, 0.32) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-cta-icon {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(180, 150, 90, 0.28) !important;
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-purchase-card .bg-zinc-900 {
+  background: rgba(241, 233, 218, 0.65) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-purchase-card [class*="bg-black/35"] {
+  background: rgba(45, 38, 28, 0.22) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page section,
+:root[data-theme="light"] .self-paced-course-page article,
+:root[data-theme="light"] .self-paced-course-page [class*="bg-black/"],
+:root[data-theme="light"] .self-paced-course-page [class*="bg-zinc-9"] {
+  border-color: rgba(180, 150, 90, 0.22) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page [class*="bg-[#141414]"],
+:root[data-theme="light"] .self-paced-course-page [class*="bg-[#121212]"],
+:root[data-theme="light"] .self-paced-course-page [class*="bg-[#161616]"],
+:root[data-theme="light"] .self-paced-course-page [class*="bg-[#0a0a0a]"],
+:root[data-theme="light"] .self-paced-course-page [class*="bg-zinc-9"],
+:root[data-theme="light"] .self-paced-course-page [class*="bg-black/"] {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(212, 160, 23, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(253, 244, 220, 0.9)) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page [class*="from-[#1c1608]"],
+:root[data-theme="light"] .self-paced-course-page [class*="via-[#141008]"] {
+  background:
+    radial-gradient(circle at 12% 50%, rgba(212, 160, 23, 0.2), transparent 42%),
+    linear-gradient(90deg, #fff9ee, #fdecc8, #fff9ee) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .bg-zinc-900\/80,
+:root[data-theme="light"] .self-paced-course-page button[class*="border-white/20"] {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(180, 150, 90, 0.28) !important;
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .bg-zinc-800 {
+  background: rgba(226, 232, 240, 0.75) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-surface-card svg[class*="text-white"] {
+  color: #475569 !important;
+  stroke: #475569 !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-learn-card [class*="text-violet-4"],
+:root[data-theme="light"] .self-paced-course-page .sp-learn-card [class*="text-sky-4"],
+:root[data-theme="light"] .self-paced-course-page .sp-learn-card [class*="text-rose-4"],
+:root[data-theme="light"] .self-paced-course-page .sp-learn-card [class*="text-orange-4"],
+:root[data-theme="light"] .self-paced-course-page .sp-learn-card [class*="text-teal-4"],
+:root[data-theme="light"] .self-paced-course-page .sp-learn-card [class*="text-fuchsia-4"] {
+  filter: saturate(1.15);
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-cert-preview-mock {
+  background: linear-gradient(180deg, #fffdf8, #fdecc8, #f8f4ec) !important;
+  border-color: rgba(212, 160, 23, 0.32) !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-cert-preview-mock .text-white,
+:root[data-theme="light"] .self-paced-course-page .sp-cert-preview-mock .text-zinc-200 {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page .sp-cert-preview-mock .text-zinc-400,
+:root[data-theme="light"] .self-paced-course-page .sp-cert-preview-mock .text-zinc-600,
+:root[data-theme="light"] .self-paced-course-page .sp-cert-preview-mock [class*="text-amber-200"] {
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] .self-paced-course-page #course-details [class*="bg-[#"],
+:root[data-theme="light"] .self-paced-course-page #sp-curriculum [class*="bg-[#"],
+:root[data-theme="light"] .self-paced-course-page #sp-overview [class*="bg-[#"] {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(212, 160, 23, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(253, 244, 220, 0.9)) !important;
+  border-color: rgba(180, 150, 90, 0.24) !important;
+}
+
+:root[data-theme="light"] .tutor-led-marketing section,
+:root[data-theme="light"] .tutor-led-marketing article,
+:root[data-theme="light"] .tutor-led-marketing [class*="bg-[#"],
+:root[data-theme="light"] .tutor-led-marketing [class*="bg-black/"] {
+  border-color: rgba(180, 150, 90, 0.22) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(212, 160, 23, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(253, 244, 220, 0.9)) !important;
+}
+
+:root[data-theme="light"] .tutor-led-marketing [class*="from-[#"] {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(212, 160, 23, 0.16), transparent 36%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(253, 244, 220, 0.92)) !important;
 }
 
 /* Account page light theme: warm brown canvas + brown galaxy; heading same as dark */

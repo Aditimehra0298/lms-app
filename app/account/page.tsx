@@ -52,11 +52,12 @@ import { MY_LEARNING_DASHBOARD_HREF } from "@/lib/my-learning-nav";
 
 export const dynamic = "force-dynamic";
 
-/** Learners land on the dashboard after sign-in when no purchase/enrollment redirect applies. */
-const DEFAULT_LEARNER_AFTER_LOGIN = MY_LEARNING_DASHBOARD_HREF;
+/** Learners always land on the dashboard after sign-in or registration. */
 
-/** New registrations go to checkout first (demo payment), then success links to My Learning. */
-const DEFAULT_REGISTER_CHECKOUT = "/checkout?buyNow=advanced-cyber-security-professional";
+function learnerDestinationAfterAuth(accountType: AccountType): string {
+  if (accountType === "self") return "/admin";
+  return MY_LEARNING_DASHBOARD_HREF;
+}
 
 /** Stable props so Galaxy WebGL is not re-initialized on every keystroke. */
 const ACCOUNT_GALAXY_PROPS_DARK = {
@@ -194,32 +195,6 @@ function authCountryInput(countryCode: string): AuthCountryInput | undefined {
   return { countryCode: code, countryName: countryDisplayName(code) };
 }
 
-/** Keep checkout, enrollment, and course-player redirects after login; otherwise open the dashboard. */
-function shouldPreserveLoginRedirect(redirectTo: string): boolean {
-  const r = redirectTo.trim();
-  if (!r) return false;
-  const path = r.split("?")[0];
-  if (r.startsWith("/checkout")) return true;
-  if (path.startsWith("/tutor-led/") || path.startsWith("/workshops/")) return true;
-  if (path.startsWith("/my-learning/course/")) return true;
-  return /^\/courses\/[^/?#]+/.test(path);
-}
-
-function learnerDestinationAfterAuth(
-  _accountType: AccountType,
-  redirectTo: string,
-  authView: AuthView,
-): string {
-  const r = redirectTo.trim();
-  const registerKeepsRedirect =
-    (r.startsWith("/checkout") && r.includes("buyNow=")) || r.startsWith("/tutor-led/");
-  if (authView === "register") {
-    return registerKeepsRedirect ? redirectTo : DEFAULT_REGISTER_CHECKOUT;
-  }
-  if (shouldPreserveLoginRedirect(r)) return redirectTo;
-  return MY_LEARNING_DASHBOARD_HREF;
-}
-
 function GoogleMark({ className = "h-4 w-4 shrink-0" }: { className?: string }) {
   return (
     <svg aria-hidden className={className} viewBox="0 0 24 24">
@@ -246,7 +221,6 @@ function GoogleMark({ className = "h-4 w-4 shrink-0" }: { className?: string }) 
 export default function AccountPage() {
   const router = useRouter();
   const [mode, setMode] = useState<string | null>(null);
-  const [redirectTo, setRedirectTo] = useState<string>(DEFAULT_LEARNER_AFTER_LOGIN);
 
   const [selectedAccountType, setSelectedAccountType] = useState<AccountType>("individual");
   const [authView, setAuthView] = useState<AuthView>(mode === "login" ? "login" : "register");
@@ -274,15 +248,19 @@ export default function AccountPage() {
   useEffect(() => {
     const search = new URLSearchParams(window.location.search);
     const nextMode = search.get("mode");
-    const nextRedirect = search.get("redirect");
     setMode(nextMode);
-    setRedirectTo(nextRedirect?.trim() || DEFAULT_LEARNER_AFTER_LOGIN);
     if (search.get("admin") === "1" || search.get("admin") === "true") {
       setSelectedAccountType("self");
       setAuthView("login");
       setShowAuthStep(true);
+      return;
     }
-  }, []);
+    const loggedIn = window.localStorage.getItem("sft_logged_in") === "true";
+    const learnerEmail = window.localStorage.getItem("sft_learner_email")?.trim();
+    if (loggedIn && learnerEmail) {
+      router.replace(MY_LEARNING_DASHBOARD_HREF);
+    }
+  }, [router]);
 
   useEffect(() => {
     setBrowserOrigin(getBrowserOrigin());
@@ -600,7 +578,7 @@ export default function AccountPage() {
     await syncLearnerProfileFromServer(normalizedEmail);
     window.dispatchEvent(new Event("sft_auth_updated"));
     window.localStorage.setItem("sft_user_role", "learner");
-    router.push(learnerDestinationAfterAuth(selectedAccountType, redirectTo, authView));
+    router.push(learnerDestinationAfterAuth(selectedAccountType));
   };
 
   const resolveCountryForGoogle = async (): Promise<string | null> => {
@@ -676,13 +654,7 @@ export default function AccountPage() {
         router.push("/admin");
         return;
       }
-      router.push(
-        learnerDestinationAfterAuth(
-          result.accountType ?? selectedAccountType,
-          redirectTo,
-          selectedAccountType === "self" ? "login" : authView,
-        ),
-      );
+      router.push(learnerDestinationAfterAuth(result.accountType ?? selectedAccountType));
     } catch {
       setAuthError("Could not reach the server. Check that the app is running.");
     } finally {
