@@ -1,7 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
+import {
+  SocialBrandIcon,
+  SOCIAL_BRAND_BUTTON_CLASS,
+  SOCIAL_BRAND_LABEL,
+} from "@/components/SocialBrandIcon";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ManagedCourse } from "@/lib/content-schema";
@@ -30,7 +35,14 @@ import { KnowPriceButton } from "@/components/KnowPriceButton";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
 import { formatSimpleRichTextBlock } from "@/lib/simple-rich-text";
 import { useResolvedCoursePrice } from "@/lib/hooks/useResolvedCoursePrice";
+import { isOrganisationLearner, readLearnerProfileFromStorage } from "@/lib/auth-profile";
+import {
+  OrganizationSeatPricingBlock,
+  isOrganizationPurchaseReady,
+} from "@/components/OrganizationSeatPricingBlock";
 import { isLearnerLoggedIn, loginRedirectHref } from "@/lib/learner-session-client";
+import { resolveOrganizationCoursePriceBySeatCount } from "@/lib/organization-course-pricing";
+import { buildCredentialShareLinks } from "@/lib/share-credentials";
 import {
   Award,
   BarChart3,
@@ -89,47 +101,70 @@ const learnIconPalette = [
   { icon: Users, tone: "text-fuchsia-400", bg: "bg-fuchsia-500/15" },
 ];
 
-const cardClass = "rounded-xl border border-white/10 bg-[#141414] p-5";
+const cardClass =
+  "sp-surface-card rounded-xl border border-white/10 bg-[#141414] p-5";
 
 function SocialShareRow({ courseTitle }: { courseTitle: string }) {
-  const share = () => {
+  const [copied, setCopied] = useState(false);
+
+  const getShareLinks = () => {
+    if (typeof window === "undefined") return null;
+    const url = window.location.href;
+    return buildCredentialShareLinks({
+      url,
+      title: courseTitle,
+      text: `Check out ${courseTitle} on SF Trainings`,
+    });
+  };
+
+  const copyLink = () => {
     if (typeof window === "undefined") return;
     const url = window.location.href;
-    if (navigator.share) {
-      void navigator.share({ title: courseTitle, url });
-      return;
-    }
-    void navigator.clipboard.writeText(url);
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    });
   };
+
+  const openPlatform = (platform: "facebook" | "twitter" | "linkedin") => {
+    const links = getShareLinks();
+    if (!links) return;
+    window.open(links[platform], "_blank", "noopener,noreferrer");
+  };
+
+  const platforms: Array<{ brand: "facebook" | "twitter" | "linkedin"; id: "facebook" | "twitter" | "linkedin" }> = [
+    { brand: "facebook", id: "facebook" },
+    { brand: "twitter", id: "twitter" },
+    { brand: "linkedin", id: "linkedin" },
+  ];
 
   return (
     <div className={cardClass}>
       <h3 className="text-sm font-bold text-white">Share this course</h3>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={share}
+          onClick={copyLink}
           className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-zinc-900 text-zinc-300 transition hover:border-[#f4c150]/40 hover:text-white"
           aria-label="Copy link"
+          title={copied ? "Link copied!" : "Copy link"}
         >
           <Link2 className="h-4 w-4" />
         </button>
-        {[
-          { label: "Facebook", letter: "f" },
-          { label: "Twitter", letter: "𝕏" },
-          { label: "LinkedIn", letter: "in" },
-        ].map((s) => (
+        {platforms.map((platform) => (
           <button
-            key={s.label}
+            key={platform.id}
             type="button"
-            onClick={share}
-            className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-zinc-900 text-[11px] font-bold text-zinc-300 transition hover:border-[#f4c150]/40 hover:text-white"
-            aria-label={`Share on ${s.label}`}
+            onClick={() => openPlatform(platform.id)}
+            className={`grid h-9 w-9 place-items-center rounded-full text-white shadow-md transition ${SOCIAL_BRAND_BUTTON_CLASS[platform.brand]}`}
+            aria-label={`Share on ${SOCIAL_BRAND_LABEL[platform.brand]}`}
+            title={SOCIAL_BRAND_LABEL[platform.brand]}
           >
-            {s.letter}
+            <SocialBrandIcon brand={platform.brand} size={16} />
           </button>
         ))}
       </div>
+      {copied ? <p className="mt-2 text-[10px] text-emerald-300">Course link copied</p> : null}
     </div>
   );
 }
@@ -137,28 +172,30 @@ function SocialShareRow({ courseTitle }: { courseTitle: string }) {
 function CertificatePreviewCard({
   hero,
   courseTitle,
+  courseSlug,
 }: {
   hero: ResolvedCourseHero;
   courseTitle: string;
+  courseSlug: string;
 }) {
   return (
     <div className={cardClass}>
       <h3 className="text-sm font-bold text-white">Certificate Preview</h3>
       {hero.certificatePreviewImage ? (
-        <div className="relative mt-3 overflow-hidden rounded-lg border border-white/10 bg-white">
-          <div className="relative aspect-[1/1.35] w-full">
-            <Image
-              src={hero.certificatePreviewImage}
+        <div className="mt-3 flex justify-center rounded-lg border border-white/10 bg-white p-2">
+          <div className="relative aspect-[1/1.35] w-full max-w-[280px]">
+            <CatalogMediaImage
+              storedSrc={hero.certificatePreviewImage}
+              courseSlug={courseSlug}
               alt={hero.certificatePreviewLabel}
               fill
-              className="object-contain p-1"
-              unoptimized
-              sizes="360px"
+              className="object-contain"
+              sizes="280px"
             />
           </div>
         </div>
       ) : (
-        <div className="mt-3 overflow-hidden rounded-lg border border-amber-500/25 bg-gradient-to-b from-[#1e1e24] via-[#141418] to-[#0a0a0c] p-5 shadow-inner">
+        <div className="sp-cert-preview-mock mt-3 overflow-hidden rounded-lg border border-amber-500/25 bg-gradient-to-b from-[#1e1e24] via-[#141418] to-[#0a0a0c] p-5 shadow-inner">
           <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-amber-200/70">
             SF Trainings
           </p>
@@ -193,6 +230,9 @@ function PurchaseCard({
   onEnroll,
   wishlisted,
   onToggleWishlist,
+  isOrganisation,
+  seatCount,
+  onSeatCountChange,
 }: {
   course: ManagedCourse;
   hero: ResolvedCourseHero;
@@ -202,18 +242,22 @@ function PurchaseCard({
   onEnroll: () => void;
   wishlisted: boolean;
   onToggleWishlist: () => void;
+  isOrganisation: boolean;
+  seatCount: number | "";
+  onSeatCountChange: (value: number | "") => void;
 }) {
-  const { showPrices, ready } = useLearnerPricing();
+  const { showPrices, ready, region } = useLearnerPricing();
+  const orgReady = isOrganisation && isOrganizationPurchaseReady(course, region, seatCount);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#141414] shadow-[0_20px_60px_rgba(0,0,0,0.65)]">
+    <div className="sp-purchase-card overflow-hidden rounded-xl border border-white/10 bg-[#141414] shadow-[0_20px_60px_rgba(0,0,0,0.65)]">
       <div className="relative aspect-video bg-zinc-900">
-        <Image
-          src={hero.previewImage}
+        <CatalogMediaImage
+          storedSrc={hero.previewImage}
+          courseSlug={course.slug}
           alt=""
           fill
           className="object-cover"
-          unoptimized
         />
         <div className="absolute inset-0 flex items-center justify-center bg-black/35">
           <span className="grid h-14 w-14 place-items-center rounded-full bg-white/95 text-black shadow-lg">
@@ -225,7 +269,16 @@ function PurchaseCard({
         </p>
       </div>
       <div className="p-5">
-        {!ready ? (
+        {isOrganisation ? (
+          <div className="mb-4">
+            <OrganizationSeatPricingBlock
+              course={course}
+              seatCount={seatCount}
+              onSeatCountChange={onSeatCountChange}
+              variant="purchase-card"
+            />
+          </div>
+        ) : !ready ? (
           <div className="mb-4 h-9 animate-pulse rounded-lg bg-zinc-800" />
         ) : showPrices ? (
           <div className="mb-1 flex flex-wrap items-end gap-2">
@@ -248,8 +301,17 @@ function PurchaseCard({
           <Shield className="h-3.5 w-3.5 shrink-0 text-zinc-500" aria-hidden />
           {hero.moneyBackGuarantee}
         </p>
-        <button type="button" onClick={onEnroll} className={goldBtn}>
-          {hero.enrollButtonLabel}
+        <button
+          type="button"
+          onClick={onEnroll}
+          disabled={isOrganisation && !orgReady}
+          className={`${goldBtn} ${isOrganisation && !orgReady ? "cursor-not-allowed opacity-50" : ""}`}
+        >
+          {isOrganisation
+            ? orgReady
+              ? `Enroll ${seatCount} employees`
+              : "Enter number of employees"
+            : hero.enrollButtonLabel}
         </button>
         <button
           type="button"
@@ -306,7 +368,7 @@ function CourseSidebar({
         </Link>
       </div>
 
-      <CertificatePreviewCard hero={hero} courseTitle={course.title} />
+      <CertificatePreviewCard hero={hero} courseTitle={course.title} courseSlug={course.slug} />
     </aside>
   );
 }
@@ -318,6 +380,9 @@ export default function SelfPacedCourseLanding({ course }: Props) {
   const searchParams = useSearchParams();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [wishlisted, setWishlisted] = useState(false);
+  const [orgSeatCount, setOrgSeatCount] = useState<number | "">("");
+  const isOrganisation = isOrganisationLearner(readLearnerProfileFromStorage());
+  const { region } = useLearnerPricing();
 
   const allowQa = course.settings?.allowQa !== false;
   const initialTab = searchParams.get("tab");
@@ -373,6 +438,15 @@ export default function SelfPacedCourseLanding({ course }: Props) {
     markCourseLandingViewed(course.slug);
     if (!isLearnerLoggedIn()) {
       router.push(loginRedirectHref(courseLandingHref(course.slug, course.learningFormat, null, true)));
+      return;
+    }
+    if (isOrganisation) {
+      const seats = typeof orgSeatCount === "number" ? orgSeatCount : null;
+      const orgPrice = resolveOrganizationCoursePriceBySeatCount(course, region, seats);
+      if (!seats || !orgPrice.ready || !orgPrice.bandId) return;
+      router.push(
+        `/checkout?buyNow=${encodeURIComponent(course.slug)}&orgSeats=${seats}&orgBand=${encodeURIComponent(orgPrice.bandId)}`,
+      );
       return;
     }
     addItemToCart({
@@ -452,17 +526,17 @@ export default function SelfPacedCourseLanding({ course }: Props) {
   return (
     <div className="self-paced-course-page min-h-screen bg-[#0a0a0a] text-white">
       {/* Hero — two-column info + enroll card + integrated stats bar */}
-      <section className="relative overflow-hidden border-b border-white/10 bg-[#0a0a0a]">
+      <section className="relative overflow-hidden border-b border-white/10 bg-[#0a0a0a] self-paced-hero">
         <div className="absolute inset-0">
-          <Image
-            src={heroResolved.backgroundImage}
+          <CatalogMediaImage
+            storedSrc={heroResolved.backgroundImage}
+            courseSlug={course.slug}
             alt=""
             fill
             className="object-cover object-[72%_center] opacity-55"
             priority
-            unoptimized
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/88 to-[#0a0a0a]/35" />
+          <div className="self-paced-hero-overlay absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/88 to-[#0a0a0a]/35" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_75%_45%,rgba(34,211,238,0.14),transparent_55%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_20%_80%,rgba(106,90,205,0.12),transparent_50%)]" />
         </div>
@@ -541,12 +615,15 @@ export default function SelfPacedCourseLanding({ course }: Props) {
                 onEnroll={enroll}
                 wishlisted={wishlisted}
                 onToggleWishlist={() => setWishlisted((w) => !w)}
+                isOrganisation={isOrganisation}
+                seatCount={orgSeatCount}
+                onSeatCountChange={setOrgSeatCount}
               />
             </aside>
           </div>
 
-          <div className="relative z-10 mt-8 rounded-2xl border border-white/10 bg-[#121212]/92 p-3 shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-md md:mt-10 md:p-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7 lg:gap-0 lg:divide-x lg:divide-white/10">
+          <div className="sp-stats-bar relative z-10 mt-8 rounded-2xl border border-white/10 bg-[#121212]/92 p-3 shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-md md:mt-10 md:p-4">
+            <div className="sp-stats-grid grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7 lg:gap-0 lg:divide-x lg:divide-white/10">
               {heroStats.map((s) => (
                 <div
                   key={s.label}
@@ -561,7 +638,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
                     <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
                       {s.label}
                     </p>
-                    <p className="mt-0.5 text-sm font-bold leading-tight text-white">{s.value}</p>
+                    <p className="sp-stat-value mt-0.5 text-sm font-bold leading-tight text-white">{s.value}</p>
                   </div>
                 </div>
               ))}
@@ -571,14 +648,14 @@ export default function SelfPacedCourseLanding({ course }: Props) {
       </section>
 
       {/* Sticky section nav */}
-      <div className="sticky top-[52px] z-40 border-b border-white/10 bg-[#0a0a0a]/98 backdrop-blur-md md:top-[88px]">
+      <div className="sp-sticky-nav sticky top-[52px] z-40 border-b border-white/10 bg-[#0a0a0a]/98 backdrop-blur-md md:top-[88px]">
         <div className={`${shell} flex gap-0 overflow-x-auto`}>
           {navTabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => selectTab(tab.id)}
-              className={`shrink-0 border-b-[3px] px-5 py-4 text-sm font-semibold transition ${
+              className={`sp-nav-tab shrink-0 border-b-[3px] px-5 py-4 text-sm font-semibold transition ${
                 activeSection === tab.id
                   ? "border-[#f4c150] text-white"
                   : "border-transparent text-zinc-500 hover:text-zinc-300"
@@ -631,7 +708,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
                     return (
                       <div
                         key={title}
-                        className="flex gap-3 rounded-xl border border-white/10 bg-[#141414] p-4"
+                        className="sp-learn-card flex gap-3 rounded-xl border border-white/10 bg-[#141414] p-4"
                       >
                         <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${meta.bg}`}>
                           <Icon className={`h-5 w-5 ${meta.tone}`} />
@@ -662,11 +739,11 @@ export default function SelfPacedCourseLanding({ course }: Props) {
                 <h2 className="text-2xl font-bold tracking-tight text-white">{overview.faqSectionTitle}</h2>
                 <div className="mt-4 space-y-2">
                   {faqs.map((faq, i) => (
-                    <div key={faq.q} className="overflow-hidden rounded-lg border border-white/10 bg-[#161616]">
+                    <div key={faq.q} className="sp-faq-item overflow-hidden rounded-lg border border-white/10 bg-[#161616]">
                       <button
                         type="button"
                         onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left text-sm font-medium text-zinc-100"
+                        className="sp-faq-trigger flex w-full items-center justify-between gap-3 px-4 py-4 text-left text-sm font-medium text-zinc-100"
                       >
                         {faq.q}
                         <ChevronDown
@@ -723,10 +800,10 @@ export default function SelfPacedCourseLanding({ course }: Props) {
       </section>
 
       {/* Bottom CTA */}
-      <section className="border-t border-amber-900/20 bg-gradient-to-r from-[#1c1608] via-[#141008] to-[#0a0a0a]">
+      <section className="sp-bottom-cta border-t border-amber-900/20 bg-gradient-to-r from-[#1c1608] via-[#141008] to-[#0a0a0a]">
         <div className={`${shell} flex flex-col items-center justify-between gap-6 py-10 md:flex-row md:py-12`}>
           <div className="flex items-center gap-4">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
+            <div className="sp-cta-icon grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-white">
               <Cog className="h-5 w-5" aria-hidden />
             </div>
             <div>

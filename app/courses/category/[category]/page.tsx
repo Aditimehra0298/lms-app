@@ -20,13 +20,14 @@ import LevelFilterSelect from "@/components/LevelFilterSelect";
 import type { CategoryWhyTone, CourseLearningFormat } from "@/lib/content-schema";
 import {
   canonicalCategorySlug,
-  getCategoryWorkshopPlaceholders,
   mergeCategoryPageConfig,
   whyLearnToRows,
 } from "@/lib/category-page-resolve";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { getManagedCourses } from "@/lib/server/course-catalog";
-import { getPublishedTutorLedPrograms } from "@/lib/server/tutor-led-catalog";
+import { getPublishedTutorLedPrograms, getPublishedWorkshopPrograms } from "@/lib/server/tutor-led-catalog";
+import { getCategoryWorkshopPlaceholders } from "@/lib/category-page-resolve";
+import { mapProgramToWorkshopCard } from "@/lib/workshop-program";
 import { readAdminContent } from "@/lib/server/content-store";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 
@@ -191,10 +192,11 @@ export default async function CourseCategoryPage({
 }) {
   const { category } = await params;
   const categoryKey = canonicalCategorySlug(category);
-  const [managedCourses, adminContent, tutorLedPrograms] = await Promise.all([
+  const [managedCourses, adminContent, tutorLedPrograms, workshopPrograms] = await Promise.all([
     getManagedCourses(),
     readAdminContent(),
     getPublishedTutorLedPrograms(),
+    getPublishedWorkshopPrograms(),
   ]);
   const tutorLedSlugs = new Set(tutorLedPrograms.map((p) => p.slug));
   const pageCfg = mergeCategoryPageConfig(categoryKey, adminContent);
@@ -231,8 +233,11 @@ export default async function CourseCategoryPage({
 
   if (!title) notFound();
 
-  const workshopRegisterHref = liveTutorCourseHref();
-  const workshops = getCategoryWorkshopPlaceholders(title, workshopRegisterHref);
+  const workshopCards = workshopPrograms.map(mapProgramToWorkshopCard);
+  const workshops =
+    workshopCards.length > 0
+      ? workshopCards
+      : getCategoryWorkshopPlaceholders(title, "/workshops");
 
   const instructors = pageCfg.instructors;
   const whyLearnItems = whyLearnToRows(pageCfg.whyLearn);
@@ -264,7 +269,7 @@ export default async function CourseCategoryPage({
   ];
 
   return (
-    <div className="min-h-screen bg-[#070707] text-white">
+    <div className="category-page min-h-screen bg-[#070707] text-white">
 
       <main className="mx-auto max-w-[1760px] px-4 pb-16 pt-4 md:px-6 xl:px-8">
         {/* Breadcrumbs */}
@@ -281,7 +286,7 @@ export default async function CourseCategoryPage({
         </nav>
 
         {/* Hero */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f0f0f] shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+        <section className="category-hero relative overflow-hidden rounded-3xl border border-white/10 bg-[#0f0f0f] shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
           <div className="relative min-h-[440px] lg:min-h-[500px]">
             <Image
               src={heroImage}
@@ -291,8 +296,8 @@ export default async function CourseCategoryPage({
               unoptimized={heroImage.startsWith("http")}
               className="object-cover object-[center_30%]"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/88 to-black/25 lg:to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40 lg:bg-gradient-to-t lg:from-black/50" />
+            <div className="category-hero-overlay absolute inset-0 bg-gradient-to-r from-black via-black/88 to-black/25 lg:to-transparent" />
+            <div className="category-hero-overlay-b absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40 lg:bg-gradient-to-t lg:from-black/50" />
 
             <div className="relative z-10 grid gap-8 px-5 py-10 md:px-10 lg:grid-cols-[1.15fr_380px] lg:items-center lg:py-14">
               <div>
@@ -490,7 +495,7 @@ export default async function CourseCategoryPage({
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-2xl font-bold md:text-3xl">Upcoming Live Workshops</h2>
             <Link
-              href="/my-learning?tab=live"
+              href="/workshops"
               className="text-sm font-semibold text-amber-300 hover:text-amber-200"
             >
               View All Workshops →
@@ -499,7 +504,7 @@ export default async function CourseCategoryPage({
           <div className="grid gap-4 md:grid-cols-3">
             {workshops.map((w) => (
               <article
-                key={w.title}
+                key={w.slug ?? w.title}
                 className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f0f]"
               >
                 <div className="relative aspect-[16/9]">

@@ -16,7 +16,6 @@ export type OtpSendResult = {
   ok: boolean;
   message?: string;
   devLogged?: boolean;
-  devCode?: string;
   expiresInMinutes?: number;
 };
 
@@ -69,9 +68,8 @@ export async function sendOtpForPurpose(email: string, purpose: OtpPurpose): Pro
       ok: true,
       devLogged: mail.devLogged,
       expiresInMinutes: 10,
-      ...(devMode ? { devCode: code } : {}),
       message: devMode
-        ? `Your code: ${code} (dev only — no email sent). Check terminal if needed.`
+        ? "SMTP is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS in .env.local (see .env.example)."
         : `Code sent to ${email}. Check inbox and spam.`,
     };
   } catch (err) {

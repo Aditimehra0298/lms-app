@@ -9,6 +9,8 @@ import {
 } from "@/lib/learner-session-client";
 import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
 import type { PricingRegion } from "@/lib/country-pricing";
+import { markLearnerAuthProvider, applyGoogleRecommendationSignals } from "@/lib/learner-learning-preferences";
+import type { GoogleAccountRecommendationSignals } from "@/lib/google-account-recommendation-signals";
 import { setPricingRevealed } from "@/lib/pricing-reveal";
 
 export type GoogleAuthResult = AuthRecordResult & {
@@ -19,6 +21,7 @@ export type GoogleAuthResult = AuthRecordResult & {
   role?: string;
   region?: PricingRegion;
   profile?: LmsUserProfilePayload;
+  googleRecommendationSignals?: GoogleAccountRecommendationSignals;
 };
 
 export async function signInWithGoogleAccessToken(
@@ -61,6 +64,12 @@ export async function signInWithGoogleAccessToken(
       avatarUrl: data.avatarUrl ?? undefined,
     });
   }
+  if (data.ok && accountType !== "self") {
+    markLearnerAuthProvider("google");
+    if (data.googleRecommendationSignals) {
+      applyGoogleRecommendationSignals(data.googleRecommendationSignals);
+    }
+  }
   return data;
 }
 
@@ -71,6 +80,11 @@ export function applyGoogleSession(
   if (!data.ok || !data.email) return null;
 
   window.localStorage.setItem(AUTH_KEYS.loggedIn, "true");
+
+  if (data.region) {
+    cachePricingRegion(data.region);
+    setPricingRevealed(true);
+  }
 
   const profile: LearnerAuthProfile = data.profile
     ? learnerProfileFromDb(data.profile)

@@ -1,15 +1,35 @@
-/** Call LMS API to start n8n certificate generation after course completion. */
+import { readJsonResponse } from "@/lib/safe-json";
+import type { CertificateRowDto } from "@/lib/certificate-types";
+
+/** Create certificate row (if needed) and start n8n with course template assets. */
 export async function requestCourseCertificateClient(input: {
   learnerEmail: string;
   courseSlug: string;
   scorePercent?: number;
   learnerName?: string;
-}): Promise<{ ok: boolean; message?: string }> {
+  forceRetry?: boolean;
+}): Promise<{
+  ok: boolean;
+  message?: string;
+  certificate?: CertificateRowDto;
+  certificateId?: string;
+}> {
   const res = await fetch("/api/certificates/request", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    cache: "no-store",
     body: JSON.stringify(input),
   });
-  const data = (await res.json()) as { ok?: boolean; message?: string };
-  return { ok: Boolean(data.ok), message: data.message };
+  const data = await readJsonResponse(res, {} as {
+    ok?: boolean;
+    message?: string;
+    certificate?: CertificateRowDto;
+  });
+  return {
+    ok: Boolean(data.ok),
+    message: data.message,
+    certificate: data.certificate,
+    certificateId: data.certificate?.id,
+  };
 }

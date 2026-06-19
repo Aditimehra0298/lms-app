@@ -161,8 +161,10 @@ model LmsPurchase {
   user   LmsUser?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   course LmsCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
+  @@unique([learnerEmail, courseSlug], map: "lms_purchase_learner_course_unique")
   @@index([learnerEmail])
   @@index([courseSlug])
+  @@index([userId, courseSlug])
   @@map("lms_purchase")
 }
 /// Issued completion certificate — unique number per holder per course.
@@ -177,8 +179,12 @@ model LmsCertificate {
   courseSlug          String   @db.VarChar(191)
   courseId            String?
   courseTitle         String   @db.VarChar(512)
-  /// Individual: 101/05-2026/001 — Organisation: 101-org/05-2026/001 (TEMP-{id} until n8n returns final)
+  /// SFT format: YYYY-MM-courseId-trainingId/userId
   certificateNumber   String   @unique @db.VarChar(64)
+  /// Public tracker / QR: YYYY-verifyNumber-userId e.g. 2026-0042-123
+  delegateNumber      String?  @unique @db.VarChar(32)
+  /// Global verify sequence within issue year
+  verifyNumber        Int?
   identificationNumber Int
   issuedAt            DateTime @default(now())
   scorePercent        Int?
@@ -202,6 +208,8 @@ model LmsCertificate {
   @@index([courseSlug])
   @@index([courseId])
   @@index([identificationNumber])
+  @@index([delegateNumber])
+  @@index([verifyNumber])
   @@index([organizationId])
   @@index([holderType])
   @@map("lms_certificate")
@@ -223,4 +231,26 @@ model LmsIssue {
   @@index([issueStatus])
   @@index([createdAt])
   @@map("lms_issue")
+}
+
+/// Public website form submissions (contact, newsletter, etc.).
+model LmsFormSubmission {
+  id        String   @id @default(cuid())
+  formType  String   @db.VarChar(32)
+  status    String   @default("new") @db.VarChar(32)
+  name      String?  @db.VarChar(255)
+  email     String   @db.VarChar(255)
+  phone     String?  @db.VarChar(64)
+  subject   String?  @db.VarChar(255)
+  category  String?  @db.VarChar(64)
+  message   String?  @db.Text
+  pagePath  String?  @db.VarChar(512)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([formType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("lms_form_submission")
 }

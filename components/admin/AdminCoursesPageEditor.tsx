@@ -516,9 +516,10 @@ export default function AdminCoursesPageEditor() {
   const removeExpert = (idx: number) =>
     setConfig((p) => ({ ...p, featuredExperts: p.featuredExperts.filter((_, i) => i !== idx) }));
 
-  const setFaq = (idx: number, q: string) =>
-    setConfig((p) => ({ ...p, faqs: p.faqs.map((f, i) => (i === idx ? { question: q } : f)) }));
-  const addFaq = () => setConfig((p) => ({ ...p, faqs: [...p.faqs, { question: "New question?" }] }));
+  const setFaq = (idx: number, patch: Partial<{ question: string; answer?: string }>) =>
+    setConfig((p) => ({ ...p, faqs: p.faqs.map((f, i) => (i === idx ? { ...f, ...patch } : f)) }));
+  const addFaq = () =>
+    setConfig((p) => ({ ...p, faqs: [...p.faqs, { question: "New question?", answer: "" }] }));
   const removeFaq = (idx: number) => setConfig((p) => ({ ...p, faqs: p.faqs.filter((_, i) => i !== idx) }));
 
   if (loading) {
@@ -805,10 +806,24 @@ export default function AdminCoursesPageEditor() {
         {expanded.faqs && (
           <div className="mt-4 space-y-2">
             {config.faqs.map((faq, idx) => (
-              <div key={idx} className="flex items-center gap-2.5">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#6366f1]/20 text-[10px] font-bold text-[#a5b4fc]">{idx + 1}</span>
-                <input className={`${inputCls} flex-1`} value={faq.question} onChange={(e) => setFaq(idx, e.target.value)} />
-                <button type="button" onClick={() => removeFaq(idx)} className={btnDanger}><Trash2 size={12} /></button>
+              <div key={idx} className={`space-y-2 ${itemCls}`}>
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#6366f1]/20 text-[10px] font-bold text-[#a5b4fc]">{idx + 1}</span>
+                  <input
+                    className={`${inputCls} flex-1`}
+                    value={faq.question}
+                    onChange={(e) => setFaq(idx, { question: e.target.value })}
+                    placeholder="Question"
+                  />
+                  <button type="button" onClick={() => removeFaq(idx)} className={btnDanger}><Trash2 size={12} /></button>
+                </div>
+                <textarea
+                  className={inputCls}
+                  rows={2}
+                  value={faq.answer ?? ""}
+                  onChange={(e) => setFaq(idx, { answer: e.target.value })}
+                  placeholder="Answer (shown on /faq)"
+                />
               </div>
             ))}
             <button type="button" onClick={addFaq} className={btnAdd}><Plus size={14} /> Add FAQ</button>

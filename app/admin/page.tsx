@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
 import {
@@ -15,9 +15,11 @@ import {
   FileText,
   Filter,
   Home,
+  Inbox,
   LayoutGrid,
   Layers,
   Leaf,
+  Images,
   LogOut,
   Menu,
   MessageSquare,
@@ -31,14 +33,30 @@ import {
   Trash2,
   Users,
   Video,
+  Award,
+  HelpCircle,
+  Shield,
 } from "lucide-react";
 import AdminCoursesWorkspace from "@/components/admin/AdminCoursesWorkspace";
+import AdminCertificatesWorkspace from "@/components/admin/AdminCertificatesWorkspace";
 import AdminCoursesPageEditor from "@/components/admin/AdminCoursesPageEditor";
 import AdminHomePageEditor from "@/components/admin/AdminHomePageEditor";
 import AdminAboutPageEditor from "@/components/admin/AdminAboutPageEditor";
 import AdminTutorLedWorkspace from "@/components/admin/AdminTutorLedWorkspace";
+import AdminWorkshopsWorkspace from "@/components/admin/AdminWorkshopsWorkspace";
+import AdminLessonsWorkspace from "@/components/admin/AdminLessonsWorkspace";
+import AdminBatchesWorkspace from "@/components/admin/AdminBatchesWorkspace";
+import AdminUsersWorkspace from "@/components/admin/AdminUsersWorkspace";
+import AdminRolesPermissionsWorkspace from "@/components/admin/AdminRolesPermissionsWorkspace";
+import { AdminCommunityConnectEditor } from "@/components/admin/AdminCommunityConnectEditor";
+import { AdminDashboardCalendarEditor } from "@/components/admin/AdminDashboardCalendarEditor";
+import { AdminOrganizationTeamEditor } from "@/components/admin/AdminOrganizationTeamEditor";
 import AdminCourseQAModeration from "@/components/admin/AdminCourseQAModeration";
 import AdminSupportTickets from "@/components/admin/AdminSupportTickets";
+import AdminFormSubmissions from "@/components/admin/AdminFormSubmissions";
+import AdminWebsiteImageGuide from "@/components/admin/AdminWebsiteImageGuide";
+import AdminFaqPageEditor from "@/components/admin/AdminFaqPageEditor";
+import AdminTestimonialsPageEditor from "@/components/admin/AdminTestimonialsPageEditor";
 import CategoryPageEditorModal from "@/components/admin/CategoryPageEditorModal";
 import CategoryPreviewIframe from "@/components/admin/CategoryPreviewIframe";
 import type { AdminContent, ManagedCategory } from "@/lib/content-schema";
@@ -53,7 +71,15 @@ const menuSections = [
   },
   {
     title: "Website Management",
-    items: ["Home Page", "About Page", "Courses Page", "Contact Page", "FAQ Page", "Testimonials"],
+    items: [
+      "Home Page",
+      "About Page",
+      "Courses Page",
+      "Website Form Data",
+      "Image Upload Guide",
+      "FAQ Page",
+      "Testimonials",
+    ],
   },
   {
     title: "Course Management",
@@ -69,7 +95,7 @@ const menuSections = [
   },
   {
     title: "Users & Access",
-    items: ["Users", "Roles & Permissions"],
+    items: ["Users", "Organization Team", "Certificates", "Roles & Permissions"],
   },
   {
     title: "Orders & Payments",
@@ -81,7 +107,7 @@ const menuSections = [
   },
   {
     title: "Other",
-    items: ["Settings", "Newsletter", "Analytics", "Reports"],
+    items: ["Settings", "Analytics", "Reports"],
   },
 ];
 
@@ -103,6 +129,8 @@ const quickActions = [
 
 const menuIcons: Record<string, typeof Home> = {
   Dashboard: Home,
+  "Website Form Data": Inbox,
+  "Image Upload Guide": Images,
   "Home Page": LayoutGrid,
   "About Page": FileText,
   "Courses Page": BookOpen,
@@ -114,8 +142,12 @@ const menuIcons: Record<string, typeof Home> = {
   Workshops: Calendar,
   Batches: Users,
   Users: Users,
+  Certificates: Award,
+  "Roles & Permissions": Shield,
   Settings: Settings,
   "Support Tickets": TicketCheck,
+  "FAQ Page": HelpCircle,
+  Testimonials: Star,
 };
 
 type AdminAccessState = {
@@ -124,7 +156,31 @@ type AdminAccessState = {
   mainAdminMasked?: string;
 };
 
-export default function AdminPage() {
+const MENU_PANEL_QUERY: Record<string, string> = {
+  "Self-paced courses": "self-paced",
+  Lessons: "lessons",
+  "Course Q&A": "course-qa",
+  Batches: "batches",
+  "Tutor Led": "tutor-led",
+  Workshops: "workshops",
+  Users: "users",
+  Certificates: "certificates",
+  "Roles & Permissions": "roles",
+};
+
+const PANEL_MENU_QUERY: Record<string, string> = Object.fromEntries(
+  Object.entries(MENU_PANEL_QUERY).map(([menu, panel]) => [panel, menu]),
+);
+
+function AdminAccessLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-zinc-400">
+      Checking administrator permission…
+    </div>
+  );
+}
+
+function AdminPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeMenu, setActiveMenu] = useState("Dashboard");
@@ -147,24 +203,37 @@ export default function AdminPage() {
   const [categoriesReady, setCategoriesReady] = useState(false);
   const [categoriesLoadError, setCategoriesLoadError] = useState<string | null>(null);
 
+  const panelQuery = searchParams.get("panel");
+
   const selectMenu = useCallback(
     (item: string) => {
       setActiveMenu(item);
-      if (item === "Tutor Led") {
-        router.replace("/admin?panel=tutor-led", { scroll: false });
-      } else if (searchParams.get("panel") === "tutor-led") {
+      const nextPanel = MENU_PANEL_QUERY[item] ?? null;
+      if (nextPanel) {
+        if (panelQuery !== nextPanel) {
+          router.replace(`/admin?panel=${nextPanel}`, { scroll: false });
+        }
+        return;
+      }
+      if (panelQuery) {
         router.replace("/admin", { scroll: false });
       }
     },
-    [router, searchParams],
+    [router, panelQuery],
   );
 
   useEffect(() => {
-    const panel = searchParams.get("panel");
-    if (panel === "tutor-led") setActiveMenu("Tutor Led");
-  }, [searchParams]);
+    if (!panelQuery) return;
+    const menu = PANEL_MENU_QUERY[panelQuery];
+    if (menu) setActiveMenu(menu);
+  }, [panelQuery]);
+
+  const authCheckStarted = useRef(false);
 
   useEffect(() => {
+    if (authCheckStarted.current) return;
+    authCheckStarted.current = true;
+
     if (!isLearnerLoggedIn()) {
       router.replace("/account?admin=1");
       return;
@@ -174,6 +243,16 @@ export default function AdminPage() {
       router.replace("/account?admin=1");
       return;
     }
+
+    const cached =
+      typeof window !== "undefined"
+        ? window.sessionStorage.getItem("sft_admin_access_email")
+        : null;
+    if (cached === email) {
+      setAccess({ status: "allowed" });
+      return;
+    }
+
     let cancelled = false;
     fetch(`/api/auth/admin-access?email=${encodeURIComponent(email)}`, { cache: "no-store" })
       .then((r) => r.json())
@@ -181,10 +260,12 @@ export default function AdminPage() {
         if (cancelled) return;
         if (data.allowed) {
           window.localStorage.setItem("sft_user_role", "admin");
+          window.sessionStorage.setItem("sft_admin_access_email", email);
           setAccess({ status: "allowed" });
           return;
         }
         window.localStorage.setItem("sft_user_role", "learner");
+        window.sessionStorage.removeItem("sft_admin_access_email");
         setAccess({
           status: "denied",
           message: data.message,
@@ -202,7 +283,7 @@ export default function AdminPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
   const toSlug = (value: string) =>
     value
@@ -267,11 +348,7 @@ export default function AdminPage() {
   }, [access.status]);
 
   if (access.status === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-zinc-400">
-        Checking administrator permission…
-      </div>
-    );
+    return <AdminAccessLoading />;
   }
 
   if (access.status === "denied") {
@@ -287,21 +364,43 @@ export default function AdminPage() {
   }
 
   const showCoursesWorkspace = activeMenu === "Self-paced courses";
+  const showLessonsWorkspace = activeMenu === "Lessons";
   const showCourseQAModeration = activeMenu === "Course Q&A";
+  const showBatchesWorkspace = activeMenu === "Batches";
   const showCoursesPageEditor = activeMenu === "Courses Page";
   const showHomePageEditor = activeMenu === "Home Page";
   const showAboutPageEditor = activeMenu === "About Page";
   const showTutorLedWorkspace = activeMenu === "Tutor Led";
+  const showWorkshopsWorkspace = activeMenu === "Workshops";
   const showSupportTickets = activeMenu === "Support Tickets";
+  const showFormSubmissions = activeMenu === "Website Form Data";
+  const showImageUploadGuide = activeMenu === "Image Upload Guide";
+  const showFaqPageEditor = activeMenu === "FAQ Page";
+  const showTestimonialsEditor = activeMenu === "Testimonials";
+  const showCertificatesWorkspace = activeMenu === "Certificates";
+  const showUsersWorkspace = activeMenu === "Users";
+  const showOrganizationTeam = activeMenu === "Organization Team";
+  const showRolesWorkspace = activeMenu === "Roles & Permissions";
   const hasMainPanel =
     activeMenu === "Dashboard" ||
     showCoursesWorkspace ||
+    showLessonsWorkspace ||
     showCourseQAModeration ||
+    showBatchesWorkspace ||
     showCoursesPageEditor ||
     showHomePageEditor ||
     showAboutPageEditor ||
     showTutorLedWorkspace ||
+    showWorkshopsWorkspace ||
     showSupportTickets ||
+    showFormSubmissions ||
+    showImageUploadGuide ||
+    showFaqPageEditor ||
+    showTestimonialsEditor ||
+    showCertificatesWorkspace ||
+    showUsersWorkspace ||
+    showOrganizationTeam ||
+    showRolesWorkspace ||
     activeMenu === "Categories";
 
   const persistCategories = async (rows: string[][]) => {
@@ -417,34 +516,44 @@ export default function AdminPage() {
           </div>
         </aside>
 
-        <section className="p-4 md:p-5">
+        <section className="min-w-0 overflow-x-hidden p-4 md:p-5">
           <header className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#0b1224] px-3 py-2">
             <div className="flex items-center gap-2">
               <button className="rounded-md p-1.5 text-gray-300 hover:bg-white/5">
                 <Menu size={16} />
               </button>
-              <div className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs">
+              <div className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs">
                 <Search size={13} className="text-gray-500" />
                 <input
-                  className="w-56 bg-transparent text-sm outline-none placeholder:text-gray-500 md:w-72 lg:w-96"
+                  className="w-32 bg-transparent text-sm outline-none placeholder:text-gray-500 sm:w-56 md:w-72 lg:w-96"
                   placeholder={
                     showCoursesWorkspace
                       ? "Search for courses, modules, users…"
-                      : showTutorLedWorkspace
-                        ? "Search tutor-led programs…"
-                        : "Search here..."
+                      : showLessonsWorkspace
+                        ? "Search courses for lessons…"
+                        : showTutorLedWorkspace
+                          ? "Search tutor-led programs…"
+                          : showWorkshopsWorkspace
+                            ? "Search workshops…"
+                            : showBatchesWorkspace
+                              ? "Search batch schedules…"
+                              : showCourseQAModeration
+                                ? "Filter Q&A by course…"
+                                : showUsersWorkspace
+                                  ? "Search users by email…"
+                                  : "Search here..."
                   }
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <button className="rounded-lg border border-white/10 bg-[#0a1120] p-2">
                 <Bell size={14} />
               </button>
               <button className="rounded-lg border border-white/10 bg-[#0a1120] p-2">
                 <Moon size={14} />
               </button>
-              <div className="rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs">
+              <div className="hidden rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs sm:block">
                 Apr 21 - Apr 27, 2026
               </div>
               <div className="rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs">Admin</div>
@@ -535,6 +644,7 @@ export default function AdminPage() {
                     onClick={() => {
                       if (action === "Add New Course") selectMenu("Self-paced courses");
                       else if (action === "Add New Category") selectMenu("Categories");
+                      else if (action === "Manage Users") selectMenu("Users");
                       else if (action === "Create Tutor-Led Session") selectMenu("Tutor Led");
                     }}
                     className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-left text-xs hover:border-[#6f55ff]/50"
@@ -643,21 +753,21 @@ export default function AdminPage() {
               <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-300">
                 <button
                   type="button"
-                  onClick={() => setActiveMenu("Home Page")}
+                  onClick={() => selectMenu("Home Page")}
                   className="rounded-md bg-[#6f55ff]/30 px-2 py-1 hover:bg-[#6f55ff]/45"
                 >
                   Home Page
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveMenu("About Page")}
+                  onClick={() => selectMenu("About Page")}
                   className="rounded-md border border-white/10 px-2 py-1 hover:bg-white/10"
                 >
                   About Page
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveMenu("Courses Page")}
+                  onClick={() => selectMenu("Courses Page")}
                   className="rounded-md border border-white/10 px-2 py-1 hover:bg-white/10"
                 >
                   Courses Page
@@ -723,6 +833,10 @@ export default function AdminPage() {
             </article>
           </div>
 
+          <AdminDashboardCalendarEditor />
+
+          <AdminCommunityConnectEditor />
+
           <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#0b1224] px-3 py-2 text-xs text-gray-400">
             <Calendar size={12} />
             Last updated just now
@@ -732,9 +846,15 @@ export default function AdminPage() {
 
           {showCoursesWorkspace && <AdminCoursesWorkspace />}
 
+          {showLessonsWorkspace && <AdminLessonsWorkspace />}
+
           {showCourseQAModeration && <AdminCourseQAModeration />}
 
+          {showBatchesWorkspace && <AdminBatchesWorkspace />}
+
           {showTutorLedWorkspace && <AdminTutorLedWorkspace />}
+
+          {showWorkshopsWorkspace && <AdminWorkshopsWorkspace />}
 
           {showCoursesPageEditor && <AdminCoursesPageEditor />}
 
@@ -743,6 +863,20 @@ export default function AdminPage() {
           {showAboutPageEditor && <AdminAboutPageEditor />}
 
           {showSupportTickets && <AdminSupportTickets />}
+
+          {showFormSubmissions && <AdminFormSubmissions />}
+
+          {showCertificatesWorkspace && <AdminCertificatesWorkspace />}
+
+          {showUsersWorkspace && <AdminUsersWorkspace />}
+
+          {showOrganizationTeam && <AdminOrganizationTeamEditor />}
+
+          {showRolesWorkspace && <AdminRolesPermissionsWorkspace />}
+
+          {showImageUploadGuide && <AdminWebsiteImageGuide />}
+          {showFaqPageEditor && <AdminFaqPageEditor />}
+          {showTestimonialsEditor && <AdminTestimonialsPageEditor />}
 
           {activeMenu === "Categories" && (
             <>
@@ -979,7 +1113,8 @@ export default function AdminPage() {
               </p>
               <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-amber-100/85">
                 To manage <strong className="text-white">live tutor-led programs</strong> (Zoom links, curriculum,
-                pad notes / PPT / webbook on <strong className="text-white">/tutor-led/your-slug</strong>), open{" "}
+                enrolled learner dashboard, pad notes / PPT / webbook on{" "}
+                <strong className="text-white">/tutor-led/your-slug</strong>), open{" "}
                 <button
                   type="button"
                   onClick={() => selectMenu("Tutor Led")}
@@ -1043,5 +1178,13 @@ export default function AdminPage() {
         />
       ) : null}
     </main>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<AdminAccessLoading />}>
+      <AdminPageInner />
+    </Suspense>
   );
 }

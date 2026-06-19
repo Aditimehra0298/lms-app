@@ -19,10 +19,16 @@ import {
   IndianRupee,
   Radio,
   CalendarDays,
+  LayoutDashboard,
+  Award,
 } from "lucide-react";
 import { AdminModeToggle } from "@/components/admin/AdminModeToggle";
+import { AdminProgramCertificateAssetsEditor } from "@/components/admin/AdminProgramCertificateAssetsEditor";
 import { AdminTutorLedCurriculumEditor } from "@/components/admin/AdminTutorLedCurriculumEditor";
+import { AdminTutorLedLearnerDashboardEditor } from "@/components/admin/AdminTutorLedLearnerDashboardEditor";
 import { AdminTutorLedMediaPanel } from "@/components/admin/AdminTutorLedMediaPanel";
+import { patchProgramCertificateConfig, sanitizeCertificateConfig } from "@/lib/course-certificate-config";
+import { getCertificateUploadStatus } from "@/lib/certificate-admin-status";
 import type { AdminContent } from "@/lib/content-schema";
 import { defaultAdminContent } from "@/lib/content-schema";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
@@ -41,6 +47,8 @@ import {
   resolveZoomJoinUrl,
   ZOOM_PREMIUM_ADMIN_HINTS,
 } from "@/lib/zoom-meeting";
+import { syncDurationBatchDetail, getDurationSource } from "@/lib/tutor-led-training-schedule";
+import { isWorkshopProgram, workshopLandingHref } from "@/lib/workshop-program";
 
 const LEARNING_TOOL_KINDS: TutorLedToolKind[] = ["pad-notes", "ppt", "webbook"];
 
@@ -62,6 +70,8 @@ type EditorTab =
   | "curriculum"
   | "marketing"
   | "downloads"
+  | "learner"
+  | "certificate"
   | "faqs";
 type ListFilter = "all" | "published" | "draft";
 
@@ -74,6 +84,8 @@ const EDITOR_TABS: { id: EditorTab; label: string; icon: typeof BookOpen }[] = [
   { id: "curriculum", label: "Curriculum & days", icon: CalendarDays },
   { id: "marketing", label: "Page content", icon: FileText },
   { id: "downloads", label: "Downloads", icon: Upload },
+  { id: "learner", label: "Learner dashboard", icon: LayoutDashboard },
+  { id: "certificate", label: "Certificate", icon: Award },
   { id: "faqs", label: "FAQs", icon: HelpCircle },
 ];
 
@@ -84,6 +96,15 @@ function materialCount(p: TutorLedProgramStored) {
 function discountLabel(sale: number, list: number): string {
   if (list <= 0 || sale >= list) return "";
   return `${Math.round((1 - sale / list) * 100)}% OFF`;
+}
+
+function programLandingPath(slug: string, isWorkshop: boolean): string {
+  return isWorkshop ? workshopLandingHref(slug) : `/tutor-led/${slug}`;
+}
+
+function programPreviewPath(slug: string, published: boolean, isWorkshop: boolean): string {
+  const base = programLandingPath(slug, isWorkshop);
+  return published ? base : `${base}?preview=1`;
 }
 
 function ImagePreview({ src, alt }: { src: string; alt: string }) {
@@ -115,6 +136,7 @@ function newProgramFromTemplate(): TutorLedProgramStored {
     ...base,
     slug: id,
     title: "New live program",
+    programKind: "tutor-led",
     published: false,
     learningMaterials: [],
     liveJoinUrl: "",
@@ -122,6 +144,28 @@ function newProgramFromTemplate(): TutorLedProgramStored {
     zoomPasscode: "",
     curriculumMode: "auto",
     zoomLinkMode: "manual",
+  };
+}
+
+function newWorkshopFromTemplate(): TutorLedProgramStored {
+  const base = newProgramFromTemplate();
+  const id = `new-workshop-${Date.now()}`;
+  const batchDetails = [...(base.batchDetails ?? [])];
+  const durationIdx = batchDetails.findIndex((d) => d.label === "Duration");
+  if (durationIdx >= 0) batchDetails[durationIdx] = { ...batchDetails[durationIdx], value: "1 Day" };
+  else batchDetails.push({ icon: "Clock", label: "Duration", value: "1 Day" });
+
+  return {
+    ...base,
+    programKind: "workshop",
+    slug: id,
+    title: "New live workshop",
+    badge: "LIVE WORKSHOP",
+    batchLabel: "One-day live workshop",
+    breadcrumb: ["Home", "Workshops", "Live Workshop"],
+    curriculum: (base.curriculum ?? []).slice(0, 1),
+    batchDetails,
+    durationSource: "manual",
   };
 }
 
@@ -147,7 +191,15 @@ function applyMeetingIdField(draft: TutorLedProgramStored, raw: string): TutorLe
   return { ...draft, zoomMeetingId, liveJoinUrl };
 }
 
-export default function AdminTutorLedWorkspace() {
+type WorkspaceKind = "tutor-led" | "workshop";
+
+type Props = {
+  /** tutor-led = multi-day programs; workshop = one-day sessions at `/workshops/[slug]`. */
+  workspaceKind?: WorkspaceKind;
+};
+
+export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: Props) {
+  const isWorkshopAdmin = workspaceKind === "workshop";
   const [content, setContent] = useState<AdminContent | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -158,6 +210,7 @@ export default function AdminTutorLedWorkspace() {
   const [uploadingMaterialId, setUploadingMaterialId] = useState<string | null>(null);
   const [uploadingHero, setUploadingHero] = useState(false);
   const [uploadingLearnerHero, setUploadingLearnerHero] = useState(false);
+  const [uploadingLearnerHeroBg, setUploadingLearnerHeroBg] = useState(false);
   const [uploadingTrainerAvatar, setUploadingTrainerAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState<EditorTab>("basics");
   const [searchQuery, setSearchQuery] = useState("");
@@ -172,10 +225,15 @@ export default function AdminTutorLedWorkspace() {
     [content?.tutorLedPrograms],
   );
 
-  const publishedCount = useMemo(() => programs.filter((p) => p.published).length, [programs]);
+  const scopedPrograms = useMemo(() => {
+    if (isWorkshopAdmin) return programs.filter((p) => isWorkshopProgram(p));
+    return programs.filter((p) => !isWorkshopProgram(p));
+  }, [programs, isWorkshopAdmin]);
+
+  const publishedCount = useMemo(() => scopedPrograms.filter((p) => p.published).length, [scopedPrograms]);
 
   const filteredPrograms = useMemo(() => {
-    let list = programs;
+    let list = scopedPrograms;
     if (listFilter === "published") list = list.filter((p) => p.published);
     if (listFilter === "draft") list = list.filter((p) => !p.published);
     const q = searchQuery.trim().toLowerCase();
@@ -185,7 +243,7 @@ export default function AdminTutorLedWorkspace() {
       );
     }
     return list;
-  }, [programs, listFilter, searchQuery]);
+  }, [scopedPrograms, listFilter, searchQuery]);
 
   const load = useCallback(async (): Promise<AdminContent | null> => {
     setLoadError(null);
@@ -355,7 +413,7 @@ export default function AdminTutorLedWorkspace() {
     setIsCreating(true);
     setOriginalSlug(null);
     setActiveTab("basics");
-    setDraft(newProgramFromTemplate());
+    setDraft(isWorkshopAdmin ? newWorkshopFromTemplate() : newProgramFromTemplate());
   };
 
   const openEdit = (p: TutorLedProgramStored) => {
@@ -407,7 +465,18 @@ export default function AdminTutorLedWorkspace() {
       setLoadError("Slug is required (use letters, numbers, hyphens).");
       return;
     }
-    const normalized = { ...draft, slug };
+    const synced =
+      getDurationSource(draft) === "manual" ? { ...draft, slug } : syncDurationBatchDetail({ ...draft, slug });
+    const programKind: TutorLedProgramStored["programKind"] = isWorkshopAdmin
+      ? "workshop"
+      : synced.programKind === "workshop"
+        ? "workshop"
+        : "tutor-led";
+    const normalized: TutorLedProgramStored = {
+      ...synced,
+      programKind,
+      certificateConfig: sanitizeCertificateConfig(synced.certificateConfig),
+    };
 
     if (isCreating) {
       if (programs.some((p) => p.slug === slug)) {
@@ -471,7 +540,7 @@ export default function AdminTutorLedWorkspace() {
   };
 
   const deleteProgram = async (slug: string) => {
-    if (!window.confirm(`Delete tutor-led program “${slug}”?`)) return;
+    if (!window.confirm(`Delete ${isWorkshopAdmin ? "workshop" : "tutor-led program"} “${slug}”?`)) return;
     await persistPrograms(programs.filter((p) => p.slug !== slug));
     if (draft?.slug === slug) {
       setDraft(null);
@@ -482,7 +551,8 @@ export default function AdminTutorLedWorkspace() {
   if (!content && !loadError) {
     return (
       <div className="flex items-center justify-center rounded-xl border border-white/10 bg-[#0b1224] px-4 py-16 text-sm text-gray-400">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin text-violet-400" /> Loading tutor-led programs…
+        <Loader2 className="mr-2 h-5 w-5 animate-spin text-violet-400" /> Loading{" "}
+        {isWorkshopAdmin ? "workshops" : "tutor-led programs"}…
       </div>
     );
   }
@@ -511,17 +581,29 @@ export default function AdminTutorLedWorkspace() {
       <div className="rounded-xl border border-white/10 bg-[#0b1224] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-violet-300">
-              <Radio className="h-3.5 w-3.5" aria-hidden />
-              Tutor-led programs
+            <p
+              className={`inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider ${isWorkshopAdmin ? "text-rose-300" : "text-violet-300"}`}
+            >
+              {isWorkshopAdmin ? (
+                <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+              ) : (
+                <Radio className="h-3.5 w-3.5" aria-hidden />
+              )}
+              {isWorkshopAdmin ? "Live workshops" : "Tutor-led programs"}
             </p>
-            <h1 className="mt-1 text-xl font-semibold text-white md:text-2xl">Live course admin</h1>
+            <h1 className="mt-1 text-xl font-semibold text-white md:text-2xl">
+              {isWorkshopAdmin ? "Workshop admin" : "Live course admin"}
+            </h1>
             <p className="mt-1 max-w-2xl text-xs text-gray-400">
-              Pick a program on the left, edit in tabs on the right — marketing page, Zoom, pricing, and downloads.
+              {isWorkshopAdmin
+                ? "One-day sessions — same landing style as tutor-led. Set next batch date for learner calendar reminders after registration."
+                : "Pick a program on the left, edit in tabs on the right — marketing page, Zoom, pricing, and downloads."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
-            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">{programs.length} total</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+              {scopedPrograms.length} total
+            </span>
             <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-emerald-200">
               {publishedCount} live
             </span>
@@ -540,7 +622,7 @@ export default function AdminTutorLedWorkspace() {
               onClick={openCreate}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#6f55ff] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#7d63ff]"
             >
-              <Plus className="h-4 w-4" /> New program
+              <Plus className="h-4 w-4" /> {isWorkshopAdmin ? "New workshop" : "New program"}
             </button>
             <div className="relative mt-3">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
@@ -614,6 +696,27 @@ export default function AdminTutorLedWorkspace() {
                         {p.liveJoinUrl?.trim() ? (
                           <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[9px] text-sky-200">Zoom</span>
                         ) : null}
+                        {(() => {
+                          const cert = getCertificateUploadStatus(p.certificateConfig);
+                          if (!cert.enabled) {
+                            return (
+                              <span className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] text-gray-500">Cert off</span>
+                            );
+                          }
+                          return (
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[9px] ${
+                                cert.complete
+                                  ? "bg-amber-500/20 text-amber-200"
+                                  : cert.partial
+                                    ? "bg-amber-500/10 text-amber-100/80"
+                                    : "bg-white/5 text-gray-500"
+                              }`}
+                            >
+                              Cert {cert.label}
+                            </span>
+                          );
+                        })()}
                         <span className="text-[9px] text-gray-500">{materialCount(p)} files</span>
                       </div>
                       </button>
@@ -626,7 +729,7 @@ export default function AdminTutorLedWorkspace() {
                           {p.published ? "Unpublish" : "Publish"}
                         </button>
                         <Link
-                          href={p.published ? `/tutor-led/${p.slug}` : `/tutor-led/${p.slug}?preview=1`}
+                          href={programPreviewPath(p.slug, !!p.published, isWorkshopAdmin)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-0.5 rounded px-2 py-0.5 text-[10px] text-violet-300 hover:bg-violet-500/10"
@@ -654,9 +757,13 @@ export default function AdminTutorLedWorkspace() {
           {!draft ? (
             <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-[#0d1528]/60 px-6 py-16 text-center">
               <BookOpen className="mb-3 h-10 w-10 text-violet-400/50" aria-hidden />
-              <p className="text-sm font-medium text-white">Select a program to edit</p>
+              <p className="text-sm font-medium text-white">
+                {isWorkshopAdmin ? "Select a workshop to edit" : "Select a program to edit"}
+              </p>
               <p className="mt-1 max-w-sm text-xs text-gray-500">
-                Or click <strong className="text-gray-400">New program</strong> to add a live course.
+                Or click{" "}
+                <strong className="text-gray-400">{isWorkshopAdmin ? "New workshop" : "New program"}</strong> to add a{" "}
+                {isWorkshopAdmin ? "one-day session" : "live course"}.
               </p>
             </div>
           ) : (
@@ -665,9 +772,15 @@ export default function AdminTutorLedWorkspace() {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h2 className="text-sm font-semibold text-white">
-                      {isCreating ? "New program" : draft.title || draft.slug}
+                      {isCreating
+                        ? isWorkshopAdmin
+                          ? "New workshop"
+                          : "New program"
+                        : draft.title || draft.slug}
                     </h2>
-                    <p className="mt-0.5 font-mono text-[10px] text-gray-500">/tutor-led/{draft.slug || "…"}</p>
+                    <p className="mt-0.5 font-mono text-[10px] text-gray-500">
+                      {programLandingPath(draft.slug || "…", isWorkshopAdmin)}
+                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-1.5 text-[11px] text-gray-300">
@@ -685,11 +798,7 @@ export default function AdminTutorLedWorkspace() {
                       </span>
                     ) : null}
                     <Link
-                      href={
-                        draft.published
-                          ? `/tutor-led/${draft.slug}`
-                          : `/tutor-led/${draft.slug}?preview=1`
-                      }
+                      href={programPreviewPath(draft.slug, !!draft.published, isWorkshopAdmin)}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2.5 py-1.5 text-[11px] font-medium text-violet-200 hover:bg-violet-500/20"
@@ -708,7 +817,7 @@ export default function AdminTutorLedWorkspace() {
                       className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition ${tabClass(id)}`}
                     >
                       <Icon className="h-3 w-3" aria-hidden />
-                      {label}
+                      {id === "curriculum" && isWorkshopAdmin ? "Session & date" : label}
                     </button>
                   ))}
                 </nav>
@@ -855,6 +964,45 @@ export default function AdminTutorLedWorkspace() {
                   className="mt-1 w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
                 />
               </label>
+              {isWorkshopAdmin ? (
+                <div className="block">
+                  <span className="text-[11px] text-gray-500">Program kind</span>
+                  <p className="mt-1 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+                    Workshop (one day) — public page at{" "}
+                    <span className="font-mono text-rose-50/90">/workshops/[slug]</span>. Set{" "}
+                    <strong>Next batch date</strong> in Session &amp; date for learner calendar reminders.
+                  </p>
+                </div>
+              ) : (
+                <label className="block">
+                  <span className="text-[11px] text-gray-500">Program kind</span>
+                  <select
+                    value={draft.programKind === "workshop" ? "workshop" : "tutor-led"}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        programKind: e.target.value === "workshop" ? "workshop" : "tutor-led",
+                        badge:
+                          e.target.value === "workshop" && !draft.badge?.trim()
+                            ? "LIVE WORKSHOP"
+                            : draft.badge,
+                        batchLabel:
+                          e.target.value === "workshop" && !draft.batchLabel?.trim()
+                            ? "One-day live workshop"
+                            : draft.batchLabel,
+                      })
+                    }
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
+                  >
+                    <option value="tutor-led">Tutor-led (multi-day)</option>
+                    <option value="workshop">Workshop (one day)</option>
+                  </select>
+                  <p className="mt-1 text-[10px] text-gray-600">
+                    Workshops appear under Course Management → Workshops and use{" "}
+                    <span className="font-mono text-gray-500">/workshops/[slug]</span>.
+                  </p>
+                </label>
+              )}
               <label className="block">
                 <span className="text-[11px] text-gray-500">Badge</span>
                 <input
@@ -881,70 +1029,7 @@ export default function AdminTutorLedWorkspace() {
                 />
               </label>
             </div>
-            </div>
-            <div className={activeTab === "pricing" ? "space-y-4" : "hidden"}>
-            <h3 className="text-xs font-semibold text-violet-200">Pricing — before payment (checkout page)</h3>
-            <p className="text-[10px] text-gray-600">
-              Shown on <span className="text-gray-400">/tutor-led/your-slug</span> with strikethrough list price.
-            </p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="block">
-                <span className="text-[11px] text-gray-500">Sale price (₹)</span>
-                <input
-                  type="number"
-                  value={draft.price}
-                  onChange={(e) => patchPrices({ price: Number(e.target.value) || 0 })}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[11px] text-gray-500">List price (₹, strikethrough)</span>
-                <input
-                  type="number"
-                  value={draft.originalPrice}
-                  onChange={(e) => patchPrices({ originalPrice: Number(e.target.value) || 0 })}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                />
-              </label>
-              <label className="block md:col-span-2">
-                <span className="text-[11px] text-gray-500">Discount badge</span>
-                <input
-                  value={draft.discount}
-                  onChange={(e) => setDraft({ ...draft, discount: e.target.value })}
-                  placeholder={discountLabel(draft.price, draft.originalPrice) || "31% OFF"}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                />
-              </label>
-              <div className="md:col-span-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-100/90">
-                Preview:{" "}
-                <strong className="text-white">₹{draft.price.toLocaleString("en-IN")}</strong>{" "}
-                <span className="text-gray-500 line-through">₹{draft.originalPrice.toLocaleString("en-IN")}</span>{" "}
-                {draft.discount ? (
-                  <span className="text-amber-200">{draft.discount}</span>
-                ) : null}
-              </div>
-            </div>
-
-            <h3 className="border-t border-white/10 pt-3 text-xs font-semibold text-violet-200">
-              Pricing — after payment (My Learning)
-            </h3>
-            <p className="text-[10px] text-gray-600">Shown on the enrolled learner dashboard (no strikethrough).</p>
-            <label className="block md:col-span-2">
-              <span className="text-[11px] text-gray-500">Enrolled price (₹)</span>
-              <input
-                type="number"
-                value={draft.priceAfterPayment ?? draft.price}
-                onChange={(e) =>
-                  setDraft({ ...draft, priceAfterPayment: Number(e.target.value) || 0 })
-                }
-                className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-              />
-              <p className="mt-1 text-[10px] text-gray-600">
-                Preview: Enrolled · ₹{(draft.priceAfterPayment ?? draft.price).toLocaleString("en-IN")}
-              </p>
-            </label>
-            </div>
-            <div className={activeTab === "basics" ? "space-y-4" : "hidden"}>
+            <h3 className="border-t border-white/10 pt-4 text-xs font-semibold text-gray-300">Batch &amp; schedule</h3>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="block">
                 <span className="text-[11px] text-gray-500">Batch label</span>
@@ -1015,6 +1100,68 @@ export default function AdminTutorLedWorkspace() {
                 </label>
               ))}
             </div>
+            </div>
+            <div className={activeTab === "pricing" ? "space-y-4" : "hidden"}>
+            <h3 className="text-xs font-semibold text-violet-200">Pricing — before payment (checkout page)</h3>
+            <p className="text-[10px] text-gray-600">
+              Shown on <span className="text-gray-400">/tutor-led/your-slug</span> with strikethrough list price.
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="block">
+                <span className="text-[11px] text-gray-500">Sale price (₹)</span>
+                <input
+                  type="number"
+                  value={draft.price}
+                  onChange={(e) => patchPrices({ price: Number(e.target.value) || 0 })}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[11px] text-gray-500">List price (₹, strikethrough)</span>
+                <input
+                  type="number"
+                  value={draft.originalPrice}
+                  onChange={(e) => patchPrices({ originalPrice: Number(e.target.value) || 0 })}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
+                />
+              </label>
+              <label className="block md:col-span-2">
+                <span className="text-[11px] text-gray-500">Discount badge</span>
+                <input
+                  value={draft.discount}
+                  onChange={(e) => setDraft({ ...draft, discount: e.target.value })}
+                  placeholder={discountLabel(draft.price, draft.originalPrice) || "31% OFF"}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
+                />
+              </label>
+              <div className="md:col-span-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-100/90">
+                Preview:{" "}
+                <strong className="text-white">₹{draft.price.toLocaleString("en-IN")}</strong>{" "}
+                <span className="text-gray-500 line-through">₹{draft.originalPrice.toLocaleString("en-IN")}</span>{" "}
+                {draft.discount ? (
+                  <span className="text-amber-200">{draft.discount}</span>
+                ) : null}
+              </div>
+            </div>
+
+            <h3 className="border-t border-white/10 pt-3 text-xs font-semibold text-violet-200">
+              Pricing — after payment (My Learning)
+            </h3>
+            <p className="text-[10px] text-gray-600">Shown on the enrolled learner dashboard (no strikethrough).</p>
+            <label className="block md:col-span-2">
+              <span className="text-[11px] text-gray-500">Enrolled price (₹)</span>
+              <input
+                type="number"
+                value={draft.priceAfterPayment ?? draft.price}
+                onChange={(e) =>
+                  setDraft({ ...draft, priceAfterPayment: Number(e.target.value) || 0 })
+                }
+                className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
+              />
+              <p className="mt-1 text-[10px] text-gray-600">
+                Preview: Enrolled · ₹{(draft.priceAfterPayment ?? draft.price).toLocaleString("en-IN")}
+              </p>
+            </label>
             </div>
             <div className={activeTab === "zoom" ? "space-y-4" : "hidden"} id="zoom-editor-panel">
             <h3 className="text-xs font-semibold text-sky-300">Zoom — live meeting link</h3>
@@ -1288,6 +1435,7 @@ export default function AdminTutorLedWorkspace() {
                 setDraft={setDraft}
                 uploadingHero={uploadingHero}
                 uploadingLearnerHero={uploadingLearnerHero}
+                uploadingLearnerHeroBg={uploadingLearnerHeroBg}
                 uploadingTrainerAvatar={uploadingTrainerAvatar}
                 onUploadHero={(file) =>
                   void uploadImageField(
@@ -1302,7 +1450,15 @@ export default function AdminTutorLedWorkspace() {
                     file,
                     (url) => setDraft({ ...draft, learnerHeroSrc: url }),
                     setUploadingLearnerHero,
-                    "Learner banner upload failed.",
+                    "Learner thumbnail upload failed.",
+                  )
+                }
+                onUploadLearnerHeroBg={(file) =>
+                  void uploadImageField(
+                    file,
+                    (url) => setDraft({ ...draft, learnerHeroBgSrc: url }),
+                    setUploadingLearnerHeroBg,
+                    "Learner hero background upload failed.",
                   )
                 }
                 onUploadTrainerAvatar={(file) =>
@@ -1585,6 +1741,27 @@ export default function AdminTutorLedWorkspace() {
                 );
               })}
             </div>
+            </div>
+            <div className={activeTab === "learner" ? "space-y-4" : "hidden"}>
+              <AdminTutorLedLearnerDashboardEditor
+                draft={draft}
+                setDraft={setDraft}
+                fieldClass={tlField}
+              />
+            </div>
+            <div className={activeTab === "certificate" ? "space-y-4" : "hidden"}>
+              <AdminProgramCertificateAssetsEditor
+                programLabel="program"
+                programTitle={draft.title}
+                certificateEnabled={draft.certificateConfig?.enabled !== false}
+                onCertificateEnabledChange={(on) => {
+                  setDraft((d) => (d ? patchProgramCertificateConfig(d, { enabled: on }) : d));
+                }}
+                config={draft.certificateConfig ?? {}}
+                onPatch={(patch) => {
+                  setDraft((d) => (d ? patchProgramCertificateConfig(d, patch) : d));
+                }}
+              />
             </div>
             <div className={activeTab === "faqs" ? "space-y-4" : "hidden"}>
             <h3 className="text-xs font-semibold text-gray-300">FAQs</h3>

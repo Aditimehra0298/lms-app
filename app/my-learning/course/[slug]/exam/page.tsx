@@ -3,20 +3,42 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
+import { ExamSessionClock } from "@/components/ExamSessionClock";
+import { ExamProgressPanel } from "@/components/ExamProgressPanel";
 import {
-  AlarmClock,
   BookOpen,
   ChevronRight,
   CircleHelp,
   FileText,
   Flag,
   Headset,
+  Lock,
   ListChecks,
   ShieldCheck,
 } from "lucide-react";
 import type { CourseCurriculumItem, CourseCurriculumModule, CourseFinalExam } from "@/lib/content-schema";
-import { getLearnerEmail } from "@/lib/learner-session-client";
-import { requestCourseCertificateClient } from "@/lib/request-course-certificate-client";
+import {
+  DEFAULT_MODULE_EXAM_PASS_PERCENT,
+  FINAL_EXAM_SCORE_KEY,
+  computeCombinedExamGrade,
+  learnerCredentialsEligible,
+  recordModuleExamAttempt,
+} from "@/lib/learner-exam-scores";
+import { markModuleCompleted, normalizeCompletedModulesForCurriculum, readCompletedModules } from "@/lib/learner-course-progress";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
+import {
+  hasSeenCompletionCelebration,
+  queueCompletionCelebration,
+} from "@/components/CourseCompletionCelebration";
+import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
+import {
+  healModuleWatchRecord,
+  modulePreviewProgress,
+  PREVIEW_WATCH_UPDATED_EVENT,
+  readModuleWatchedSeconds,
+  writeModuleWatchedSeconds,
+} from "@/lib/learner-preview-gate";
+import type { ParsedExamQuestion } from "@/lib/exam-csv-parse";
 
 export const dynamic = "force-dynamic";
 
@@ -25,108 +47,49 @@ type CourseExamPayload = {
   title: string;
   curriculum: CourseCurriculumModule[] | null;
   finalExam: CourseFinalExam | null;
+  deliveryKind?: "tutor-led" | "self-paced";
+  examUnlocked?: boolean;
+  trainingDays?: number;
+  completedDays?: number;
 };
-
-function getFirstExamRowInModule(mod: CourseCurriculumModule | undefined): CourseCurriculumItem | undefined {
-  if (!mod) return undefined;
-  const top = mod.items.find((i) => i.kind === "exam");
-  if (top) return top;
-  for (const sm of mod.subModules ?? []) {
-    const row = sm.items.find((i) => i.kind === "exam");
-    if (row) return row;
-  }
-  return undefined;
-}
-
-const quizQuestions = [
-  {
-    question: "What is monitoring in HACCP?",
-    options: ["Ignoring hazards", "Checking CCPs regularly", "Hiring workers", "Reducing cost"],
-    correctIndex: 1,
-  },
-  {
-    question: "Which hazard type includes pesticides?",
-    options: ["Biological", "Chemical", "Physical", "Radiological"],
-    correctIndex: 1,
-  },
-  {
-    question: "What does HACCP stand for?",
-    options: [
-      "Hazard Analysis Critical Control Point",
-      "Hazard Assessment Critical Control Process",
-      "Health Analysis Critical Control Point",
-      "Hazard Analysis Control Check Process",
-    ],
-    correctIndex: 0,
-  },
-  {
-    question: "Which record is important in HACCP?",
-    options: ["Employee salary record", "HACCP documentation", "Sales report", "Marketing plan"],
-    correctIndex: 1,
-  },
-  {
-    question: "What should be done if a CCP is out of control?",
-    options: ["Ignore it", "Take corrective action", "Stop production permanently", "Change supplier"],
-    correctIndex: 1,
-  },
-  {
-    question: "Which type of system is HACCP?",
-    options: ["Reactive system", "Preventive system", "Financial system", "Marketing system"],
-    correctIndex: 1,
-  },
-  {
-    question: "What is a Critical Control Point (CCP)?",
-    options: ["A place to store food", "A step where hazard can be controlled", "A cleaning area", "A packaging method"],
-    correctIndex: 1,
-  },
-  {
-    question: "What is the first principle of HACCP?",
-    options: ["Identify hazards", "Establish monitoring procedures", "Set corrective actions", "Record keeping"],
-    correctIndex: 0,
-  },
-  {
-    question: "What is the main purpose of HACCP?",
-    options: ["Increase production speed", "Ensure food safety", "Reduce labor cost", "Improve packaging"],
-    correctIndex: 1,
-  },
-  {
-    question: "Which of the following is a biological hazard?",
-    options: ["Glass pieces", "Bacteria", "Cleaning chemicals", "Metal fragments"],
-    correctIndex: 1,
-  },
-];
 
 function CourseExamPageInner() {
   const params = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
-  const slug = params?.slug ?? "course";
-  const isFinalExam = searchParams.get("final") === "1";
-  const moduleNumber = Math.max(1, Number(searchParams.get("module") || "1"));
+  const paramSlug = params?.slug ?? "course";
+  const slug = canonicalCourseSlug(paramSlug);
+  const moduleParam = searchParams.get("module");
+  const isFinalExam = searchParams.get("final") === "1" || moduleParam === "final";
+  const moduleNumber = isFinalExam
+    ? 0
+    : Math.max(1, Number.parseInt(moduleParam || "1", 10) || 1);
   const moduleIdx = moduleNumber - 1;
 
   const [courseMeta, setCourseMeta] = useState<CourseExamPayload | null | undefined>(undefined);
+  const [questions, setQuestions] = useState<ParsedExamQuestion[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
+  const [loadedModuleNumber, setLoadedModuleNumber] = useState<number | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [reviewedQuestions, setReviewedQuestions] = useState<number[]>([]);
-  const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>(
-    () => Array.from({ length: quizQuestions.length }, () => null),
-  );
+  const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [certMessage, setCertMessage] = useState("");
   const [timeRemainingSec, setTimeRemainingSec] = useState<number | null>(null);
-  const currentQuestion = quizQuestions[currentQuestionIndex];
+  const [examStartedAtMs, setExamStartedAtMs] = useState<number | null>(null);
+  const [watchedSecondsByModule, setWatchedSecondsByModule] = useState<Record<number, number>>({});
+  const currentQuestion = questions[currentQuestionIndex];
   const answeredQuestions = useMemo(
     () => selectedAnswers.map((answer, idx) => (answer !== null ? idx : -1)).filter((idx) => idx >= 0),
     [selectedAnswers],
   );
-  const markedQuestions = reviewedQuestions.length;
-  const notAnswered = quizQuestions.length - answeredQuestions.length;
+
   const score = useMemo(
     () =>
       selectedAnswers.reduce<number>((sum, answer, idx) => {
         if (answer === null) return sum;
-        return sum + (answer === quizQuestions[idx].correctIndex ? 1 : 0);
+        return sum + (answer === questions[idx]?.correctIndex ? 1 : 0);
       }, 0),
-    [selectedAnswers],
+    [selectedAnswers, questions],
   );
 
   useEffect(() => {
@@ -136,13 +99,49 @@ function CourseExamPageInner() {
         const res = await fetch(`/api/courses/${encodeURIComponent(slug)}`, { cache: "no-store" });
         if (!res.ok) throw new Error("load");
         const data = (await res.json()) as CourseExamPayload;
-        if (!cancelled) setCourseMeta(data);
+        if (cancelled) return;
+        setCourseMeta(data);
+        if (data.curriculum?.length) {
+          normalizeCompletedModulesForCurriculum(slug, data.curriculum.length);
+          const priorWatch = readModuleWatchedSeconds(slug);
+          let healed = priorWatch;
+          let watchChanged = false;
+          data.curriculum.forEach((mod, idx) => {
+            const moduleNumber = idx + 1;
+            const nextVal = healModuleWatchRecord(mod, priorWatch[moduleNumber] ?? 0);
+            if (nextVal !== (priorWatch[moduleNumber] ?? 0)) {
+              healed = { ...healed, [moduleNumber]: nextVal };
+              watchChanged = true;
+            }
+          });
+          if (watchChanged) {
+            writeModuleWatchedSeconds(slug, healed);
+            setWatchedSecondsByModule(healed);
+          }
+        }
       } catch {
         if (!cancelled) setCourseMeta(null);
       }
     })();
     return () => {
       cancelled = true;
+    };
+  }, [slug]);
+
+  useEffect(() => {
+    const loadWatched = () => setWatchedSecondsByModule(readModuleWatchedSeconds(slug));
+    loadWatched();
+    const onWatch = (e: Event) => {
+      const detail = (e as CustomEvent<{ courseSlug?: string }>).detail;
+      if (!detail?.courseSlug || detail.courseSlug === slug) loadWatched();
+    };
+    window.addEventListener(PREVIEW_WATCH_UPDATED_EVENT, onWatch);
+    window.addEventListener("storage", loadWatched);
+    window.addEventListener("focus", loadWatched);
+    return () => {
+      window.removeEventListener(PREVIEW_WATCH_UPDATED_EVENT, onWatch);
+      window.removeEventListener("storage", loadWatched);
+      window.removeEventListener("focus", loadWatched);
     };
   }, [slug]);
 
@@ -164,7 +163,10 @@ function CourseExamPageInner() {
     }
     const mod = courseMeta.curriculum?.[moduleIdx];
     const row = getFirstExamRowInModule(mod);
-    const passing = typeof row?.examPassingScorePercent === "number" ? row.examPassingScorePercent : 60;
+    const passing =
+      typeof row?.examPassingScorePercent === "number"
+        ? row.examPassingScorePercent
+        : DEFAULT_MODULE_EXAM_PASS_PERCENT;
     const timed = !!row?.timedExam;
     const durationSec = Math.max(60, (row?.examDurationMinutes ?? 90) * 60);
     const title = row?.label?.trim() || `Module ${moduleNumber} examination — ${courseMeta.title}`;
@@ -176,6 +178,100 @@ function CourseExamPageInner() {
       materialsUrl: row?.examUploadUrl,
     };
   }, [courseMeta, isFinalExam, moduleIdx, moduleNumber]);
+
+  const selfPacedFinalUnlocked = useMemo(() => {
+    if (!courseMeta?.curriculum?.length || !isFinalExam) return true;
+    const completed = readCompletedModules(slug);
+    const { allExamsPassed } = computeCombinedExamGrade(slug, courseMeta.curriculum);
+    const { allModulesDone } = learnerCredentialsEligible(
+      courseMeta.curriculum,
+      completed,
+      allExamsPassed,
+    );
+    return allModulesDone && allExamsPassed;
+  }, [courseMeta, isFinalExam, slug]);
+
+  const examAccessUnlocked = useMemo(() => {
+    if (!isFinalExam) return true;
+    if (courseMeta?.deliveryKind === "tutor-led") {
+      return courseMeta.examUnlocked === true;
+    }
+    return selfPacedFinalUnlocked;
+  }, [courseMeta, isFinalExam, selfPacedFinalUnlocked]);
+
+  useEffect(() => {
+    if (!courseMeta?.slug) return;
+
+    let cancelled = false;
+    setQuestionsLoading(true);
+    setQuestionsError(null);
+    setQuestions([]);
+    setSelectedAnswers([]);
+    setIsSubmitted(false);
+    setCurrentQuestionIndex(0);
+    setReviewedQuestions([]);
+    setExamStartedAtMs(null);
+
+    const query = isFinalExam
+      ? "module=final"
+      : `module=${moduleNumber}`;
+
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/courses/${encodeURIComponent(slug)}/exam-questions?${query}`,
+          { cache: "no-store" },
+        );
+        const data = (await res.json()) as {
+          ok?: boolean;
+          questions?: ParsedExamQuestion[];
+          message?: string;
+          moduleTitle?: string;
+        };
+        if (cancelled) return;
+        if (!res.ok || !data.ok || !data.questions?.length) {
+          setQuestions([]);
+          setSelectedAnswers([]);
+          setQuestionsError(
+            data.message ??
+              "This exam is not available yet. Please try again later or contact support if you need help.",
+          );
+          setLoadedModuleNumber(isFinalExam ? -1 : moduleNumber);
+          setQuestionsLoading(false);
+          return;
+        }
+        setQuestions(data.questions);
+        setSelectedAnswers(Array.from({ length: data.questions.length }, () => null));
+        setLoadedModuleNumber(isFinalExam ? -1 : moduleNumber);
+        setQuestionsError(null);
+      } catch {
+        if (cancelled) return;
+        setQuestions([]);
+        setSelectedAnswers([]);
+        setQuestionsError("Could not load exam questions. Refresh the page and try again.");
+        setLoadedModuleNumber(isFinalExam ? -1 : moduleNumber);
+      } finally {
+        if (!cancelled) setQuestionsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, moduleNumber, isFinalExam, courseMeta?.slug]);
+
+  const previewGate = useMemo(() => {
+    if (!courseMeta || isFinalExam) {
+      return { requiredSec: 0, watchedSec: 0, unlocked: true };
+    }
+    const mod = courseMeta.curriculum?.[moduleIdx];
+    const progress = modulePreviewProgress(mod, watchedSecondsByModule[moduleNumber] ?? 0);
+    return {
+      requiredSec: progress.required,
+      watchedSec: progress.watched,
+      unlocked: progress.unlocked,
+    };
+  }, [courseMeta, isFinalExam, moduleIdx, moduleNumber, watchedSecondsByModule]);
 
   useEffect(() => {
     if (!examRuntime) return;
@@ -204,66 +300,54 @@ function CourseExamPageInner() {
     }
   }, [examRuntime?.timed, timeRemainingSec, isSubmitted]);
 
-  const mm =
-    timeRemainingSec === null ? "—" : String(Math.floor(timeRemainingSec / 60)).padStart(2, "0");
-  const ss = timeRemainingSec === null ? "—" : String(timeRemainingSec % 60).padStart(2, "0");
+  useEffect(() => {
+    if (!previewGate.unlocked || !examRuntime || isSubmitted || examStartedAtMs !== null) return;
+    setExamStartedAtMs(Date.now());
+  }, [previewGate.unlocked, examRuntime, isSubmitted, examStartedAtMs]);
 
-  const markModuleCompleted = () => {
-    if (isFinalExam) return;
-    const key = `sft_completed_modules_${slug}`;
-    try {
-      const raw = window.localStorage.getItem(key);
-      const existing = raw ? (JSON.parse(raw) as number[]) : [];
-      const merged = Array.from(new Set([...(Array.isArray(existing) ? existing : []), moduleNumber]));
-      window.localStorage.setItem(key, JSON.stringify(merged));
-    } catch {
-      // keep UI working even if local storage fails
-    }
-  };
-
-  const saveModuleScorePercent = (percent: number) => {
-    if (isFinalExam) return;
-    const key = `sft_module_exam_scores_${slug}`;
-    try {
-      const raw = window.localStorage.getItem(key);
-      const prev = raw ? (JSON.parse(raw) as Record<string, number>) : {};
-      const prevScore =
-        prev && typeof prev === "object" && typeof prev[String(moduleNumber)] === "number"
-          ? prev[String(moduleNumber)]
-          : 0;
-      // Keep best attempt so retries can only improve certification status.
-      const next = {
-        ...(prev && typeof prev === "object" ? prev : {}),
-        [String(moduleNumber)]: Math.max(prevScore, percent),
-      };
-      window.localStorage.setItem(key, JSON.stringify(next));
-    } catch {
-      // keep UI working even if local storage fails
-    }
+  const markModuleCompletedLocal = () => {
+    if (isFinalExam || !courseMeta) return;
+    markModuleCompleted(slug, moduleNumber, courseMeta.curriculum?.length, {
+      courseTitle: courseMeta.title,
+      moduleTitle: `Module ${moduleNumber}`,
+    });
   };
 
   useEffect(() => {
     if (!isSubmitted || !examRuntime) return;
-    const percentage = Math.round((score / quizQuestions.length) * 100);
-    saveModuleScorePercent(percentage);
-    if (percentage >= examRuntime.passingScorePercent) {
-      markModuleCompleted();
-      const email = getLearnerEmail();
-      if (email && courseMeta?.slug) {
-        void requestCourseCertificateClient({
-          learnerEmail: email,
-          courseSlug: courseMeta.slug,
-          scorePercent: percentage,
-        }).then((r) => {
-          setCertMessage(
-            r.ok
-              ? "Your certificate is being generated. Check My Learning → Certificates after admin approval."
-              : r.message ?? "Certificate could not be started.",
-          );
-        });
+    const total = questions.length;
+    const correct = score;
+    const entry = recordModuleExamAttempt({
+      courseSlug: slug,
+      moduleNumber: isFinalExam ? FINAL_EXAM_SCORE_KEY : moduleNumber,
+      correct,
+      total,
+      passingPercent: examRuntime.passingScorePercent,
+    });
+    if (isFinalExam) return;
+    if (entry.passed) {
+      markModuleCompletedLocal();
+      const curriculum = courseMeta?.curriculum ?? [];
+      if (curriculum.length > 0) {
+        const completed = readCompletedModules(slug);
+        const { allExamsPassed } = computeCombinedExamGrade(slug, curriculum);
+        const { eligible } = learnerCredentialsEligible(curriculum, completed, allExamsPassed);
+        if (eligible && !hasSeenCompletionCelebration(slug)) {
+          queueCompletionCelebration(slug);
+        }
       }
     }
-  }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug, courseMeta?.slug]);
+  }, [isSubmitted, score, examRuntime, isFinalExam, moduleNumber, slug, questions.length, courseMeta?.curriculum]);
+
+  const courseCredentialsUnlocked = useMemo(() => {
+    if (!isSubmitted || !courseMeta?.curriculum?.length || !examRuntime) return false;
+    const percentage = questions.length ? Math.round((score / questions.length) * 100) : 0;
+    const passed = percentage >= examRuntime.passingScorePercent;
+    if (!passed) return false;
+    const completed = readCompletedModules(slug);
+    const { allExamsPassed } = computeCombinedExamGrade(slug, courseMeta.curriculum);
+    return learnerCredentialsEligible(courseMeta.curriculum, completed, allExamsPassed).eligible;
+  }, [isSubmitted, courseMeta, examRuntime, questions.length, score, slug]);
 
   if (courseMeta === undefined) {
     return (
@@ -292,26 +376,97 @@ function CourseExamPageInner() {
     );
   }
 
-  if (isFinalExam) {
+  if (questionsLoading || loadedModuleNumber !== (isFinalExam ? -1 : moduleNumber)) {
     return (
       <div className="min-h-screen bg-[#060b17] text-white">
-
-        <main className="mx-auto max-w-[700px] px-4 py-16 text-center">
-          <p className="text-2xl font-bold">Final exam is not required</p>
-          <p className="mt-2 text-sm text-gray-300">
-            Certification is based on overall module exam performance. Score at least 60% across module exams.
+        <main className="mx-auto flex max-w-[600px] flex-col items-center justify-center px-4 py-24 text-center">
+          <p className="text-sm text-gray-400">
+            Loading exam for module {moduleNumber}…
           </p>
-          <Link href={`/my-learning/course/${slug}`} className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold">
-            Back to My Learning
+        </main>
+      </div>
+    );
+  }
+
+  if (!questions.length && questionsError) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto max-w-[600px] px-4 py-16 text-center">
+          <p className="text-lg font-semibold text-amber-200">Exam not available</p>
+          <p className="mt-2 text-sm text-gray-300">{questionsError}</p>
+          <Link
+            href={`/my-learning/course/${slug}`}
+            className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold"
+          >
+            Back to course
           </Link>
         </main>
+      </div>
+    );
+  }
 
+  if (!examAccessUnlocked) {
+    const tutorLocked =
+      courseMeta?.deliveryKind === "tutor-led" &&
+      typeof courseMeta.trainingDays === "number";
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto max-w-[760px] px-4 py-16 text-center">
+          <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-6">
+            <p className="inline-flex items-center gap-2 text-amber-200">
+              <Lock size={18} /> Assessment locked
+            </p>
+            <h1 className="mt-3 text-2xl font-bold">
+              {tutorLocked ? "Complete all live training first" : "Complete all modules first"}
+            </h1>
+            <p className="mt-2 text-sm text-amber-100/90">
+              {tutorLocked
+                ? `Attend all ${courseMeta.trainingDays} training days (${courseMeta.completedDays ?? 0}/${courseMeta.trainingDays} completed) before the final exam unlocks.`
+                : "Pass every module exam and finish all module lessons to unlock the final examination."}
+            </p>
+            <Link
+              href={
+                tutorLocked
+                  ? `/my-learning/course/${slug}`
+                  : `/my-learning/course/${slug}`
+              }
+              className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold"
+            >
+              Back to course
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!isFinalExam && !previewGate.unlocked) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto max-w-[760px] px-4 py-16 text-center">
+          <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-6">
+            <p className="inline-flex items-center gap-2 text-amber-200">
+              <Lock size={18} /> Assessment locked
+            </p>
+            <h1 className="mt-3 text-2xl font-bold">Complete the module lessons first</h1>
+            <p className="mt-2 text-sm text-amber-100/90">
+              Module {moduleNumber} assessment unlocks after you finish the lessons in this module. Return to the
+              course and continue watching.
+            </p>
+            <Link
+              href={`/my-learning/course/${slug}`}
+              className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold"
+            >
+              Back to module lessons
+            </Link>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (isSubmitted) {
-    const percentage = Math.round((score / quizQuestions.length) * 100);
+    const percentage = questions.length ? Math.round((score / questions.length) * 100) : 0;
     const passed = percentage >= examRuntime.passingScorePercent;
     return (
       <div className="min-h-screen bg-[#060b17] text-white">
@@ -323,17 +478,9 @@ function CourseExamPageInner() {
             <p className="mt-0.5 text-xs text-gray-500">
               Passing score: {examRuntime.passingScorePercent}% correct required
             </p>
-            <div className="mt-4 grid gap-3 md:grid-cols-4">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-xs text-gray-400">Total Questions</p>
-                <p className="text-2xl font-bold">{quizQuestions.length}</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-xs text-gray-400">Correct</p>
-                <p className="text-2xl font-bold">{score}</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-xs text-gray-400">Score</p>
+                <p className="text-xs text-gray-400">Your score</p>
                 <p className="text-2xl font-bold">{percentage}%</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
@@ -343,34 +490,63 @@ function CourseExamPageInner() {
                 </p>
               </div>
             </div>
-            {passed && certMessage ? (
-              <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                {certMessage}
+            {passed ? (
+              courseCredentialsUnlocked ? (
+                <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                  Congratulations — you have finished the course! Your certificate and completion summary are
+                  ready. Open them below to generate or download your official certificate.
+                </p>
+              ) : (
+                <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                  You passed this exam ({percentage}%). When you have passed every module exam, your combined
+                  percentage is used for your certificate grade.
+                </p>
+              )
+            ) : (
+              <p className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                You need {examRuntime.passingScorePercent}% to pass (your score: {percentage}%). You can retake
+                this exam as many times as you need.
               </p>
-            ) : null}
+            )}
             <div className="mt-5 flex flex-wrap gap-2">
-              {passed ? (
+              {passed && courseCredentialsUnlocked ? (
                 <Link
-                  href="/my-learning?tab=certificates"
-                  className="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-black"
+                  href={`/my-learning/course/${slug}#credentials`}
+                  className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold"
                 >
-                  My Certificates
+                  View certificate & completion
                 </Link>
               ) : null}
-              <Link href={`/my-learning/course/${slug}`} className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold">
-                Back to My Learning
+              <Link
+                href={`/my-learning/course/${slug}${passed && courseCredentialsUnlocked ? "#credentials" : ""}`}
+                className={`rounded-md px-4 py-2 text-sm font-semibold ${
+                  passed && courseCredentialsUnlocked
+                    ? "border border-white/15 bg-black/25"
+                    : "bg-violet-600"
+                }`}
+              >
+                {passed && courseCredentialsUnlocked ? "Back to course lessons" : "Back to course"}
               </Link>
+              {passed && !courseCredentialsUnlocked ? (
+                <Link
+                  href={`/my-learning/course/${slug}#credentials`}
+                  className="rounded-md border border-emerald-300/35 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-100"
+                >
+                  View progress & credentials
+                </Link>
+              ) : null}
               <button
                 onClick={() => {
                   setIsSubmitted(false);
                   setCurrentQuestionIndex(0);
-                  setSelectedAnswers(Array.from({ length: quizQuestions.length }, () => null));
+                  setSelectedAnswers(Array.from({ length: questions.length }, () => null));
                   setReviewedQuestions([]);
                   setTimeRemainingSec(examRuntime.timed ? examRuntime.durationSec : null);
+                  setExamStartedAtMs(Date.now());
                 }}
                 className="rounded-md border border-white/15 bg-black/25 px-4 py-2 text-sm"
               >
-                Retake Exam
+                {passed ? "Retake exam (optional)" : "Retake exam"}
               </button>
             </div>
           </section>
@@ -394,44 +570,58 @@ function CourseExamPageInner() {
 
         <section className="grid gap-3 xl:grid-cols-[0.35fr_1.65fr_1fr]">
           <aside className="space-y-2 rounded-xl border border-white/10 bg-[#0c1324] p-3">
-            {[
-              ["Overview", CircleHelp],
-              ["Course Content", BookOpen],
-              ["Modules", ListChecks],
-              ["Assignments", FileText],
-              ["Exams", ShieldCheck],
-              ["Results", ListChecks],
-              ["Certificate", ShieldCheck],
-              ["Discussion", CircleHelp],
-              ["Resources", FileText],
-              ["Help & Support", Headset],
-            ].map(([label, Icon], idx) => (
-              <button
-                key={String(label)}
-                className={`inline-flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm ${
-                  idx === 4 ? "bg-violet-500/20 text-violet-100" : "hover:bg-white/5"
-                }`}
-              >
-                <Icon size={14} className={idx === 4 ? "text-violet-300" : "text-gray-400"} />
-                {String(label)}
-              </button>
-            ))}
+            {(
+              [
+                ["Overview", CircleHelp, `/my-learning/course/${slug}`],
+                ["Course Content", BookOpen, `/my-learning/course/${slug}`],
+                ["Modules", ListChecks, `/my-learning/course/${slug}`],
+                ["Assignments", FileText, `/my-learning?tab=assignments`],
+                ["Exams", ShieldCheck, null],
+                ["Discussion", CircleHelp, `/my-learning?tab=community`],
+                ["Resources", FileText, `/my-learning/course/${slug}`],
+                ["Help & Support", Headset, "/contact"],
+              ] as const
+            ).map(([label, Icon, href]) =>
+              href ? (
+                <Link
+                  key={label}
+                  href={href}
+                  className="inline-flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-white/5"
+                >
+                  <Icon size={14} className="text-gray-400" />
+                  {label}
+                </Link>
+              ) : (
+                <span
+                  key={label}
+                  className="inline-flex w-full items-center gap-2 rounded-md bg-violet-500/20 px-2.5 py-2 text-left text-sm text-violet-100"
+                >
+                  <Icon size={14} className="text-violet-300" />
+                  {label}
+                </span>
+              ),
+            )}
             <div className="mt-3 rounded-lg border border-white/10 bg-black/30 p-3">
               <p className="text-sm font-semibold">Need Help?</p>
               <p className="mt-1 text-xs text-gray-400">If you face any issues during exam, contact support.</p>
-              <button className="mt-3 w-full rounded-md border border-violet-300/35 bg-violet-500/10 py-1.5 text-xs text-violet-100">
+              <Link
+                href="/contact"
+                className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-violet-300/35 bg-violet-500/10 py-1.5 text-xs text-violet-100 hover:bg-violet-500/20"
+              >
                 Contact Support
-              </button>
+              </Link>
             </div>
           </aside>
 
           <div className="space-y-3">
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
               <h1 className="text-2xl font-bold md:text-3xl">{examRuntime.title}</h1>
+              {questionsError ? (
+                <p className="mt-2 rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                  {questionsError}
+                </p>
+              ) : null}
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1">
-                  Total questions: {quizQuestions.length}
-                </span>
                 <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1">
                   Passing score: {examRuntime.passingScorePercent}%
                 </span>
@@ -463,10 +653,13 @@ function CourseExamPageInner() {
             </article>
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-violet-300">
-                  Question {currentQuestionIndex + 1} / {quizQuestions.length}
-                </p>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-violet-300">Current question</p>
+                  <p className="mt-0.5 text-sm font-semibold text-gray-300">
+                    Question {currentQuestionIndex + 1} of {questions.length}
+                  </p>
+                </div>
                 <button
                   onClick={() =>
                     setReviewedQuestions((prev) =>
@@ -488,10 +681,10 @@ function CourseExamPageInner() {
                   {reviewedQuestions.includes(currentQuestionIndex) ? "Marked for Review" : "Mark for Review"}
                 </button>
               </div>
-              <h2 className="text-3xl font-bold">{currentQuestion.question}</h2>
+              <h2 className="text-3xl font-bold">{currentQuestion?.question ?? "No questions loaded"}</h2>
 
               <div className="mt-4 space-y-2">
-                {currentQuestion.options.map((option, idx) => (
+                {(currentQuestion?.options ?? []).map((option, idx) => (
                   <button
                     key={option}
                     onClick={() =>
@@ -532,7 +725,7 @@ function CourseExamPageInner() {
                   Clear Response
                 </button>
                 <button
-                  onClick={() => setCurrentQuestionIndex((prev) => Math.min(quizQuestions.length - 1, prev + 1))}
+                  onClick={() => setCurrentQuestionIndex((prev) => Math.min(questions.length - 1, prev + 1))}
                   className="rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold"
                 >
                   Next Question
@@ -548,83 +741,21 @@ function CourseExamPageInner() {
           </div>
 
           <aside className="space-y-3">
-            <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
-              <p className="text-xs text-gray-400">Time Remaining</p>
-              <p className="mt-1 inline-flex items-center gap-2 text-3xl font-bold">
-                <AlarmClock size={20} className="text-amber-300" />{" "}
-                {examRuntime.timed ? `${mm}:${ss}` : "—"}
-              </p>
-              {!examRuntime.timed ? (
-                <p className="mt-1 text-[11px] text-gray-500">This attempt is not timed.</p>
-              ) : null}
-              <button
-                onClick={() => setIsSubmitted(true)}
-                className="mt-3 w-full rounded-md border border-red-300/35 bg-red-500/10 py-2 text-sm text-red-200"
-              >
-                End Exam
-              </button>
-            </article>
+            <ExamSessionClock
+              timed={examRuntime.timed}
+              timeRemainingSec={timeRemainingSec}
+              startedAtMs={examStartedAtMs ?? Date.now()}
+              onEndExam={() => setIsSubmitted(true)}
+            />
 
-            <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
-              <div className="flex items-center justify-between text-sm">
-                <span>Your Progress</span>
-                <span>
-                  {answeredQuestions.length} / {quizQuestions.length} Answered
-                </span>
-              </div>
-              <div className="mt-2 h-2 rounded-full bg-white/10">
-                <div
-                  className="h-2 rounded-full bg-violet-500"
-                  style={{ width: `${Math.round((answeredQuestions.length / quizQuestions.length) * 100)}%` }}
-                />
-              </div>
-              <div className="mt-2 grid grid-cols-4 gap-1 text-[10px]">
-                <span className="rounded border border-white/10 bg-black/25 px-1 py-0.5 text-center">Answered: {answeredQuestions.length}</span>
-                <span className="rounded border border-white/10 bg-black/25 px-1 py-0.5 text-center">Not Answered: {notAnswered}</span>
-                <span className="rounded border border-white/10 bg-black/25 px-1 py-0.5 text-center">Marked: {markedQuestions}</span>
-                <span className="rounded border border-white/10 bg-black/25 px-1 py-0.5 text-center">Left: {notAnswered}</span>
-              </div>
-            </article>
+            <ExamProgressPanel
+              total={questions.length}
+              currentIndex={currentQuestionIndex}
+              answeredIndices={answeredQuestions}
+              reviewedIndices={reviewedQuestions}
+              onSelectQuestion={setCurrentQuestionIndex}
+            />
 
-            <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="font-semibold">Question Navigator</p>
-                <button className="text-xs text-violet-200">Collapse</button>
-              </div>
-              <div className="mb-2 grid grid-cols-2 gap-1 text-[10px]">
-                <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/25 px-1.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" /> Answered
-                </span>
-                <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/25 px-1.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-gray-500" /> Not Answered
-                </span>
-                <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/25 px-1.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-rose-400" /> Marked
-                </span>
-                <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/25 px-1.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-violet-400" /> Current
-                </span>
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                {Array.from({ length: quizQuestions.length }).map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentQuestionIndex(idx)}
-                    className={`h-8 w-8 rounded-full border text-xs ${
-                      idx === currentQuestionIndex
-                        ? "border-violet-300/40 bg-violet-500/20 text-violet-100"
-                        : reviewedQuestions.includes(idx)
-                          ? "border-rose-300/35 bg-rose-500/15 text-rose-200"
-                          : answeredQuestions.includes(idx)
-                            ? "border-emerald-300/30 bg-emerald-500/15 text-emerald-200"
-                            : "border-white/10 bg-black/25 text-gray-300"
-                    }`}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
-              </div>
-            </article>
           </aside>
         </section>
       </main>

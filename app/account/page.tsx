@@ -11,9 +11,31 @@ import PasswordConfirmFields from "@/components/PasswordConfirmFields";
 import PasswordField from "@/components/PasswordField";
 import PhoneWithCountryCode from "@/components/PhoneWithCountryCode";
 import { validateLearnerPassword } from "@/lib/password-policy";
+import { normalizeLearnerEmail } from "@/lib/learner-email";
 import type { AccountTypeId, LearnerAuthProfile } from "@/lib/auth-profile";
 import { cacheLearnerProfile } from "@/lib/auth-profile";
-import { GOOGLE_GSI_SCRIPT, getGoogleClientId, requestGoogleAccessToken } from "@/lib/google-sign-in-client";
+import {
+  markLearnerAuthProvider,
+} from "@/lib/learner-learning-preferences";
+import {
+  PROFILE_COMPANY_SIZE_OPTIONS,
+  REGISTRATION_INDUSTRY_OPTIONS,
+  profileFieldClass,
+  profileLabelClass,
+} from "@/lib/learner-profile-form";
+import {
+  GOOGLE_GSI_SCRIPT,
+  getGoogleClientId,
+  isGoogleOAuthReady,
+  requestGoogleAccessToken,
+  waitForGoogleOAuth2,
+} from "@/lib/google-sign-in-client";
+import {
+  getBrowserOrigin,
+  googleOriginMismatchHint,
+  googleOriginSetupHint,
+  isLanOrNonLocalhostOrigin,
+} from "@/lib/google-sign-in-origin";
 import { countryDisplayName } from "@/lib/iso-country-list";
 import { applyGoogleSession, signInWithGoogleAccessToken } from "@/lib/learner-google-auth";
 import {
@@ -26,17 +48,19 @@ import {
   type AuthCountryInput,
 } from "@/lib/learner-session-client";
 import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
+import { MY_LEARNING_DASHBOARD_HREF } from "@/lib/my-learning-nav";
 
 export const dynamic = "force-dynamic";
 
-/** Learners land here after sign-in when no `redirect` query is provided. */
-const DEFAULT_LEARNER_AFTER_LOGIN = "/";
+/** Learners always land on the dashboard after sign-in or registration. */
 
-/** New registrations go to checkout first (demo payment), then success links to My Learning. */
-const DEFAULT_REGISTER_CHECKOUT = "/checkout?buyNow=advanced-cyber-security-professional";
+function learnerDestinationAfterAuth(accountType: AccountType): string {
+  if (accountType === "self") return "/admin";
+  return MY_LEARNING_DASHBOARD_HREF;
+}
 
 /** Stable props so Galaxy WebGL is not re-initialized on every keystroke. */
-const ACCOUNT_GALAXY_PROPS = {
+const ACCOUNT_GALAXY_PROPS_DARK = {
   mouseRepulsion: false,
   mouseInteraction: false,
   density: 1.2,
@@ -44,6 +68,23 @@ const ACCOUNT_GALAXY_PROPS = {
   saturation: 0.15,
   hueShift: 140,
   twinkleIntensity: 0.35,
+  rotationSpeed: 0.1,
+  repulsionStrength: 2,
+  autoCenterRepulsion: 0,
+  starSpeed: 0.5,
+  speed: 1,
+  transparent: true,
+} as const;
+
+/** Golden starfield for light theme — brown page bg, gold galaxy particles. */
+const ACCOUNT_GALAXY_PROPS_LIGHT = {
+  mouseRepulsion: false,
+  mouseInteraction: false,
+  density: 1.2,
+  glowIntensity: 0.68,
+  saturation: 0.72,
+  hueShift: 46,
+  twinkleIntensity: 0.4,
   rotationSpeed: 0.1,
   repulsionStrength: 2,
   autoCenterRepulsion: 0,
@@ -73,19 +114,20 @@ const accountTypes = [
   },
 ] as const;
 
-const industryTypes = [
-  "Technology",
-  "Information Technology",
-  "Software & IT",
-  "Cybersecurity",
-  "Finance",
-  "Healthcare",
-  "Education",
-  "Manufacturing",
-  "Any Technology",
-  "Other",
-];
-const companySizes = ["1-10", "11-50", "51-200", "201-1000", "1000+"];
+function RegisterSection({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
+      <h3 className="text-sm font-bold uppercase tracking-wide text-amber-200">{title}</h3>
+      {description ? <p className="mt-1 text-xs text-gray-400">{description}</p> : null}
+    </div>
+  );
+}
 
 type AccountType = AccountTypeId;
 type AuthView = "register" | "login";
@@ -137,6 +179,13 @@ function profileFromForm(
     if (companySize) base.companySize = companySize;
   }
 
+  if (accountType === "individual") {
+    const industryType = String(formData.get("industry_type") ?? "").trim();
+    if (industryType) base.industryType = industryType;
+    const companyName = String(formData.get("company_name") ?? "").trim();
+    if (companyName) base.companyName = companyName;
+  }
+
   return base;
 }
 
@@ -172,7 +221,6 @@ function GoogleMark({ className = "h-4 w-4 shrink-0" }: { className?: string }) 
 export default function AccountPage() {
   const router = useRouter();
   const [mode, setMode] = useState<string | null>(null);
-  const [redirectTo, setRedirectTo] = useState<string>(DEFAULT_LEARNER_AFTER_LOGIN);
 
   const [selectedAccountType, setSelectedAccountType] = useState<AccountType>("individual");
   const [authView, setAuthView] = useState<AuthView>(mode === "login" ? "login" : "register");
@@ -186,6 +234,7 @@ export default function AccountPage() {
   const [authError, setAuthError] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleScriptReady, setGoogleScriptReady] = useState(false);
+  const [browserOrigin, setBrowserOrigin] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [emailOtpVerified, setEmailOtpVerified] = useState(false);
   const [registerCountryCode, setRegisterCountryCode] = useState("");
@@ -193,19 +242,38 @@ export default function AccountPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [loginNotice, setLoginNotice] = useState("");
   const [adminSetupHint, setAdminSetupHint] = useState<string | null>(null);
+  const [isLightTheme, setIsLightTheme] = useState(false);
   const googleConfigured = Boolean(getGoogleClientId());
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search);
     const nextMode = search.get("mode");
-    const nextRedirect = search.get("redirect");
     setMode(nextMode);
-    setRedirectTo(nextRedirect?.trim() || DEFAULT_LEARNER_AFTER_LOGIN);
     if (search.get("admin") === "1" || search.get("admin") === "true") {
       setSelectedAccountType("self");
       setAuthView("login");
       setShowAuthStep(true);
+      return;
     }
+    const loggedIn = window.localStorage.getItem("sft_logged_in") === "true";
+    const learnerEmail = window.localStorage.getItem("sft_learner_email")?.trim();
+    if (loggedIn && learnerEmail) {
+      router.replace(MY_LEARNING_DASHBOARD_HREF);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    setBrowserOrigin(getBrowserOrigin());
+  }, []);
+
+  useEffect(() => {
+    const syncTheme = () => {
+      setIsLightTheme(document.documentElement.dataset.theme === "light");
+    };
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -246,9 +314,9 @@ export default function AccountPage() {
               "Set GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local, then restart.",
             );
           } else {
-            const origin = data.appUrl ?? "http://localhost:3000";
+            const origin = getBrowserOrigin() || data.appUrl || "http://localhost:3000";
             setAdminSetupHint(
-              `Google must use only ${data.mainAdminEmail ?? "(MAIN_ADMIN_EMAIL)"}. Add ${origin} in Google Cloud → Authorized JavaScript origins.`,
+              `Google must use only ${data.mainAdminEmail ?? "(MAIN_ADMIN_EMAIL)"}. ${googleOriginSetupHint(origin)}`,
             );
           }
         },
@@ -334,10 +402,11 @@ export default function AccountPage() {
     const passwordConfirm = String(formData.get("password_confirm") ?? "").trim();
 
     const formEmail = emailFromForm(formData, selectedAccountType, authView, selfEmail);
-    const normalizedEmail =
+    const normalizedEmail = normalizeLearnerEmail(
       authView === "register" && selectedAccountType !== "self"
         ? registerEmail.trim().toLowerCase() || formEmail
-        : formEmail;
+        : formEmail,
+    );
     const passwordValue = (selfPassword.trim() || formPassword).trim();
     const profile = profileFromForm(formData, selectedAccountType, authView);
     if (authView === "register" && registerPhone.trim()) {
@@ -467,7 +536,15 @@ export default function AccountPage() {
     setAuthError("");
     window.localStorage.setItem("sft_logged_in", "true");
     window.localStorage.setItem("sft_learner_email", normalizedEmail);
-    cacheLearnerProfile(profile);
+    if (authView === "register") {
+      cacheLearnerProfile(profile);
+      markLearnerAuthProvider("email");
+      if (profile.companyName) {
+        cacheLearnerProfile({ ...profile, companyName: profile.companyName });
+      }
+    } else {
+      markLearnerAuthProvider("email");
+    }
     try {
       const country = authView === "register" ? authCountryInput(registerCountryCode) : undefined;
       const result = await recordLearnerAuth(
@@ -501,12 +578,22 @@ export default function AccountPage() {
     await syncLearnerProfileFromServer(normalizedEmail);
     window.dispatchEvent(new Event("sft_auth_updated"));
     window.localStorage.setItem("sft_user_role", "learner");
-    const r = redirectTo.trim();
-    const registerKeepsRedirect =
-      (r.startsWith("/checkout") && r.includes("buyNow=")) || r.startsWith("/tutor-led/");
-    const learnerDestination =
-      authView === "register" ? (registerKeepsRedirect ? redirectTo : DEFAULT_REGISTER_CHECKOUT) : redirectTo;
-    router.push(learnerDestination);
+    router.push(learnerDestinationAfterAuth(selectedAccountType));
+  };
+
+  const resolveCountryForGoogle = async (): Promise<string | null> => {
+    if (registerCountryCode.trim()) return registerCountryCode.trim();
+    try {
+      const res = await fetch("/api/geo/country", { cache: "no-store" });
+      const data = (await res.json()) as { countryCode?: string };
+      if (data.countryCode?.trim()) {
+        setRegisterCountryCode(data.countryCode.trim().toUpperCase());
+        return data.countryCode.trim().toUpperCase();
+      }
+    } catch {
+      /* ignore */
+    }
+    return null;
   };
 
   const finishGoogleSignIn = async (accessToken: string, adminTokenOverride?: string | null) => {
@@ -514,14 +601,20 @@ export default function AccountPage() {
     setAuthError("");
     const verifyTokenForAdmin = adminTokenOverride ?? adminVerifyToken;
     try {
-      if (authView === "register" && selectedAccountType !== "self" && !registerCountryCode) {
-        setAuthError("Choose your country code in the mobile number field before Google sign-in.");
-        setGoogleLoading(false);
-        return;
+      let countryCodeForRegister: string | null = null;
+      if (authView === "register" && selectedAccountType !== "self") {
+        countryCodeForRegister = await resolveCountryForGoogle();
+        if (!countryCodeForRegister) {
+          setAuthError(
+            "Choose your country code in the mobile field, or allow location detection, before Google sign-in.",
+          );
+          setGoogleLoading(false);
+          return;
+        }
       }
       const country =
-        authView === "register" && selectedAccountType !== "self"
-          ? authCountryInput(registerCountryCode)
+        authView === "register" && selectedAccountType !== "self" && countryCodeForRegister
+          ? authCountryInput(countryCodeForRegister)
           : undefined;
       const result = await signInWithGoogleAccessToken(
         accessToken,
@@ -561,12 +654,7 @@ export default function AccountPage() {
         router.push("/admin");
         return;
       }
-      const r = redirectTo.trim();
-      const registerKeepsRedirect =
-        (r.startsWith("/checkout") && r.includes("buyNow=")) || r.startsWith("/tutor-led/");
-      const learnerDestination =
-        authView === "register" ? (registerKeepsRedirect ? redirectTo : DEFAULT_REGISTER_CHECKOUT) : redirectTo;
-      router.push(learnerDestination);
+      router.push(learnerDestinationAfterAuth(result.accountType ?? selectedAccountType));
     } catch {
       setAuthError("Could not reach the server. Check that the app is running.");
     } finally {
@@ -582,10 +670,11 @@ export default function AccountPage() {
       );
       return;
     }
-    if (!googleScriptReady && !window.google?.accounts?.oauth2) {
+    if (!isGoogleOAuthReady()) {
       setAuthError("Google sign-in is still loading. Wait a moment and try again.");
       return;
     }
+    setGoogleScriptReady(true);
     if (!verifyToken) {
       setAuthError("Enter your admin email and password first.");
       return;
@@ -601,83 +690,95 @@ export default function AccountPage() {
       },
       (message) => {
         adminGoogleTriggered.current = false;
-        const originHint =
-          message.includes("origin") || message.includes("blocked")
-            ? " Add http://localhost:3000 under Authorized JavaScript origins in Google Cloud Console."
-            : "";
-        setAuthError(`${message}${originHint}`);
+        setAuthError(googleOriginMismatchHint(message, getBrowserOrigin()));
       },
       { loginHint: adminGoogleEmail, prompt: "" },
     );
   };
 
   const handleGoogleSignIn = () => {
-    if (selectedAccountType === "self") {
-      if (!adminVerifyToken) {
-        setAuthError("Enter admin email and password first.");
+    void (async () => {
+      if (selectedAccountType === "self") {
+        if (!adminVerifyToken) {
+          setAuthError("Enter admin email and password first.");
+          return;
+        }
+        runAdminGoogleVerification();
         return;
       }
-      runAdminGoogleVerification();
-      return;
-    }
-    if (authView === "register" && !registerCountryCode) {
-      setAuthError("Choose your country code in the mobile number field before Google sign-in.");
-      return;
-    }
-    if (!googleConfigured) {
-      setAuthError(
-        "Google sign-in is not configured. Add GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_CLIENT_ID to .env.local, then restart the dev server. See docs/GOOGLE_SIGNIN.md.",
+      if (!googleConfigured) {
+        setAuthError(
+          "Google sign-in is not configured. Add GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_CLIENT_ID to .env.local, then restart the dev server. See docs/GOOGLE_SIGNIN.md.",
+        );
+        return;
+      }
+      setGoogleLoading(true);
+      setAuthError("");
+      const sdkReady =
+        googleScriptReady || isGoogleOAuthReady() || (await waitForGoogleOAuth2());
+      if (sdkReady) setGoogleScriptReady(true);
+      if (!sdkReady) {
+        setGoogleLoading(false);
+        setAuthError(
+          `Google sign-in is still loading. Check your connection, disable ad blockers for this page, then try again. ${googleOriginSetupHint(getBrowserOrigin())}`,
+        );
+        return;
+      }
+      requestGoogleAccessToken(
+        (token) => {
+          void finishGoogleSignIn(token);
+        },
+        (message) => {
+          setGoogleLoading(false);
+          setAuthError(googleOriginMismatchHint(message, getBrowserOrigin()));
+        },
+        undefined,
       );
-      return;
-    }
-    if (!googleScriptReady) {
-      setAuthError("Google sign-in is still loading. Wait a moment and try again.");
-      return;
-    }
-    requestGoogleAccessToken(
-      (token) => {
-        void finishGoogleSignIn(token);
-      },
-      (message) => setAuthError(message),
-      undefined,
-    );
+    })();
   };
 
   const goldGradient = "bg-gradient-to-b from-[#f9b14d] to-[#eb9422]";
+  const accountGalaxyProps = isLightTheme ? ACCOUNT_GALAXY_PROPS_LIGHT : ACCOUNT_GALAXY_PROPS_DARK;
 
   return (
-    <div className="relative isolate overflow-x-hidden bg-[#070707] text-white">
+    <div className="account-page relative isolate flex w-full flex-1 flex-col bg-[#070707] text-white">
       {googleConfigured && (
         <Script
           src={GOOGLE_GSI_SCRIPT}
           strategy="afterInteractive"
-          onLoad={() => setGoogleScriptReady(true)}
+          onLoad={() => {
+            setGoogleScriptReady(true);
+            void waitForGoogleOAuth2(5000).then((ok) => {
+              if (ok) setGoogleScriptReady(true);
+            });
+          }}
           onError={() => {
             setAuthError(
-              "Could not load Google sign-in. Check your internet connection and that http://localhost:3000 is allowed in Google Cloud Console.",
+              `Could not load Google sign-in. Check your internet connection. ${googleOriginSetupHint(getBrowserOrigin())}`,
             );
           }}
         />
       )}
       <Galaxy
-        className="pointer-events-none absolute inset-0 z-0 min-h-full w-full"
+        key={isLightTheme ? "account-galaxy-light" : "account-galaxy-dark"}
+        className="account-galaxy pointer-events-none absolute inset-0 z-0 min-h-full w-full"
         aria-hidden
-        {...ACCOUNT_GALAXY_PROPS}
+        {...accountGalaxyProps}
       />
-      <main className="relative z-10 px-6 pt-4 pb-4">
-        <div className="mx-auto max-w-6xl">
-        {!showAuthStep && (
-          <>
+      <main className="relative z-10 w-full flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+        <div className="mx-auto w-full max-w-[1760px]">
+          {!showAuthStep && (
+            <div className="mx-auto flex w-full max-w-6xl flex-col py-4 md:py-8">
             <div className="text-center">
-              <h2 className="bg-linear-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
+              <h2 className="account-hero-title bg-linear-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
                 Choose your avatar and account type
               </h2>
-              <p className="mt-1 text-sm text-gray-300">
+              <p className="mt-2 text-sm text-gray-300">
                 Pick one profile to continue with a futuristic access experience.
               </p>
             </div>
-            <div className="mt-4">
-              <div className="flex flex-wrap items-start justify-center gap-5">
+            <div className="mt-6">
+              <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
                 {accountTypes.map((type) => {
                   const active = selectedAccountType === type.id;
                   return (
@@ -685,7 +786,7 @@ export default function AccountPage() {
                       key={type.id}
                       type="button"
                       onClick={() => handleAccountTypeChange(type.id)}
-                      className={`relative w-full max-w-[280px] overflow-hidden rounded-3xl border p-3 text-left transition-all duration-300 md:w-[280px] ${
+                      className={`account-type-card relative w-full overflow-hidden rounded-3xl border p-3 text-left transition-all duration-300 ${
                         active
                           ? "border-amber-300/90 bg-amber-500/15 shadow-[0_0_45px_rgba(235,148,34,0.45)]"
                           : "border-white/15 bg-white/5 hover:border-amber-500/40 hover:shadow-[0_0_30px_rgba(235,148,34,0.2)]"
@@ -695,7 +796,7 @@ export default function AccountPage() {
                         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(235,148,34,0.35),rgba(235,148,34,0.08)_35%,transparent_70%)]"
                         aria-hidden
                       />
-                      <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-black/40 p-2">
+                      <div className="relative flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-amber-500/20 bg-black/40 p-2 sm:h-48 lg:h-52">
                         <div
                           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(249,177,77,0.25),transparent_70%)]"
                           aria-hidden
@@ -705,7 +806,7 @@ export default function AccountPage() {
                           alt={`${type.title} avatar`}
                           width={420}
                           height={300}
-                          className="relative h-56 w-full object-cover"
+                          className="relative h-full w-full object-contain"
                         />
                       </div>
                       <div className="relative mt-3 text-center">
@@ -717,7 +818,7 @@ export default function AccountPage() {
                 })}
               </div>
             </div>
-            <div className="mt-4 flex justify-center pb-1">
+            <div className="mt-8 flex justify-center">
               <button
                 type="button"
                 onClick={handleContinue}
@@ -726,11 +827,11 @@ export default function AccountPage() {
                 Continue
               </button>
             </div>
-          </>
-        )}
+            </div>
+          )}
 
-        {showAuthStep && (
-          <div className="overflow-visible rounded-3xl border border-white/15 bg-black/65 p-6 shadow-[0_0_45px_rgba(0,0,0,0.45)] md:p-8">
+          {showAuthStep && (
+          <div className="account-auth-panel mx-auto w-full overflow-visible rounded-3xl border border-white/15 bg-black/65 p-5 shadow-[0_0_45px_rgba(0,0,0,0.45)] sm:p-6 md:p-8 xl:p-10">
             <div className="mb-6 flex items-center gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4">
               <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-amber-500/30">
                 <Image
@@ -744,6 +845,9 @@ export default function AccountPage() {
               <div>
                 <p className="text-xs uppercase tracking-wide text-amber-200/80">Selected profile</p>
                 <p className="text-lg font-bold capitalize">{selectedAccountType}</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Edit organisation, industry & learning preferences anytime under Profile & settings.
+                </p>
               </div>
             </div>
             <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -755,6 +859,23 @@ export default function AccountPage() {
                 Back
               </button>
             </div>
+
+            {browserOrigin && isLanOrNonLocalhostOrigin(browserOrigin) && googleConfigured ? (
+              <p className="mb-4 rounded-xl border border-sky-400/35 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+                <strong className="text-sky-200">Wi‑Fi login:</strong> Google must allow this exact address — add{" "}
+                <code className="rounded bg-black/40 px-1.5 py-0.5 text-xs text-sky-50">{browserOrigin}</code> in{" "}
+                <a
+                  href="https://console.cloud.google.com/apis/credentials"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline text-sky-200"
+                >
+                  Google Cloud → Credentials
+                </a>{" "}
+                → your OAuth client → <strong>Authorized JavaScript origins</strong> (keep{" "}
+                <code className="text-xs">http://localhost:3000</code> too). Save, wait ~1 minute, refresh this page.
+              </p>
+            ) : null}
 
             <div className="mb-6 flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
               {!isSelf && (
@@ -818,12 +939,16 @@ export default function AccountPage() {
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
-                  disabled={googleLoading}
+                  disabled={googleLoading || !googleScriptReady}
                   className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-sm hover:border-amber-500/40 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4"
                 >
                   <GoogleMark />
                   <span className="whitespace-nowrap">
-                    {googleLoading ? "Signing in…" : "Continue with Google"}
+                    {googleLoading
+                      ? "Signing in…"
+                      : !googleScriptReady
+                        ? "Loading Google…"
+                        : "Continue with Google"}
                   </span>
                 </button>
               )}
@@ -855,24 +980,39 @@ export default function AccountPage() {
               </div>
             )}
 
-              <form className="grid gap-4 overflow-visible md:grid-cols-2" onSubmit={handleAuthSubmit}>
+              <form className="grid gap-4 overflow-visible sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5" onSubmit={handleAuthSubmit}>
               {selectedAccountType === "individual" && authView === "register" && (
                 <>
-                  <input name="name" type="text" placeholder="Name" required className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none" />
-                  <PhoneWithCountryCode
-                    countryCode={registerCountryCode}
-                    onCountryChange={setRegisterCountryCode}
-                    onPhoneChange={setRegisterPhone}
+                  <RegisterSection
+                    title="Account details"
+                    description="Your login email must be verified with OTP before you can register."
                   />
-                  <EmailOtpField
-                    email={registerEmail}
-                    onEmailChange={setRegisterEmail}
-                    emailInputName="email"
-                    emailPlaceholder="Email"
-                    verified={emailOtpVerified}
-                    onVerifiedChange={setEmailOtpVerified}
-                  />
-                  <PasswordConfirmFields />
+                  <label className="block">
+                    <span className={profileLabelClass}>Full name</span>
+                    <input name="name" type="text" required placeholder="Your full name" className={profileFieldClass} />
+                  </label>
+                  <div>
+                    <span className={profileLabelClass}>Mobile number</span>
+                    <PhoneWithCountryCode
+                      countryCode={registerCountryCode}
+                      onCountryChange={setRegisterCountryCode}
+                      onPhoneChange={setRegisterPhone}
+                    />
+                  </div>
+                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                    <EmailOtpField
+                      email={registerEmail}
+                      onEmailChange={setRegisterEmail}
+                      emailInputName="email"
+                      emailPlaceholder="Email address"
+                      verified={emailOtpVerified}
+                      onVerifiedChange={setEmailOtpVerified}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                    <PasswordConfirmFields />
+                  </div>
                 </>
               )}
 
@@ -913,39 +1053,68 @@ export default function AccountPage() {
 
               {selectedAccountType === "organisation" && authView === "register" && (
                 <>
-                  <input name="name" type="text" placeholder="Name" required className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none" />
-                  <PhoneWithCountryCode
-                    countryCode={registerCountryCode}
-                    onCountryChange={setRegisterCountryCode}
-                    onPhoneChange={setRegisterPhone}
+                  <RegisterSection
+                    title="Account details"
+                    description="Organisation accounts manage team training. Work email must be verified with OTP."
                   />
-                  <input name="company_name" type="text" placeholder="Company Name" required className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none" />
-                  <EmailOtpField
-                    email={registerEmail}
-                    onEmailChange={setRegisterEmail}
-                    emailInputName="work_email"
-                    emailPlaceholder="Work Email"
-                    verified={emailOtpVerified}
-                    onVerifiedChange={setEmailOtpVerified}
-                  />
-                  <input name="personal_email" type="email" placeholder="Personal Email" className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none" />
-                  <select name="industry_type" className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 focus:border-amber-400/50 focus:outline-none">
-                    <option value="">Industry Type</option>
-                    {industryTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                  <select name="company_size" className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 focus:border-amber-400/50 focus:outline-none">
-                    <option value="">Company Size</option>
-                    {companySizes.map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                  <PasswordConfirmFields />
+                  <label className="block">
+                    <span className={profileLabelClass}>Contact name</span>
+                    <input name="name" type="text" required placeholder="Your name" className={profileFieldClass} />
+                  </label>
+                  <div>
+                    <span className={profileLabelClass}>Mobile number</span>
+                    <PhoneWithCountryCode
+                      countryCode={registerCountryCode}
+                      onCountryChange={setRegisterCountryCode}
+                      onPhoneChange={setRegisterPhone}
+                    />
+                  </div>
+                  <label className="block sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                    <span className={profileLabelClass}>Company name</span>
+                    <input name="company_name" type="text" required placeholder="Legal company name" className={profileFieldClass} />
+                  </label>
+                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                    <EmailOtpField
+                      email={registerEmail}
+                      onEmailChange={setRegisterEmail}
+                      emailInputName="work_email"
+                      emailPlaceholder="Work email"
+                      verified={emailOtpVerified}
+                      onVerifiedChange={setEmailOtpVerified}
+                    />
+                  </div>
+                  <label className="block">
+                    <span className={profileLabelClass}>Personal email</span>
+                    <input name="personal_email" type="email" placeholder="Optional backup email" className={profileFieldClass} />
+                  </label>
+
+                  <RegisterSection title="Organisation profile" />
+                  <label className="block">
+                    <span className={profileLabelClass}>Industry</span>
+                    <select name="industry_type" className={profileFieldClass}>
+                      <option value="">Select industry</option>
+                      {REGISTRATION_INDUSTRY_OPTIONS.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className={profileLabelClass}>Company size</span>
+                    <select name="company_size" className={profileFieldClass}>
+                      <option value="">Select size</option>
+                      {PROFILE_COMPANY_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {size} employees
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                    <PasswordConfirmFields />
+                  </div>
                 </>
               )}
 
@@ -1002,7 +1171,10 @@ export default function AccountPage() {
                       <code className="text-xs">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> to{" "}
                       <code className="text-xs">.env.local</code>, then restart{" "}
                       <code className="text-xs">npm run dev</code>. Also add{" "}
-                      <code className="text-xs">http://localhost:3000</code> in Google Cloud → Authorized
+                      <code className="text-xs">
+                        {browserOrigin || "http://localhost:3000"}
+                      </code>{" "}
+                      and <code className="text-xs">http://localhost:3000</code> in Google Cloud → Authorized
                       JavaScript origins.
                     </p>
                   )}

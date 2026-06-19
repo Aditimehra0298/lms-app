@@ -10,6 +10,8 @@
     "build": "node --use-system-ca ./node_modules/prisma/build/index.js generate && next build --webpack",
     "build:turbo": "next build",
     "start": "next start",
+    "start:server": "next start -H 0.0.0.0 -p 3000",
+    "studio:server": "prisma studio --hostname 127.0.0.1 --port 5555 --browser none",
     "lint": "eslint",
     "postinstall": "node scripts/postinstall.mjs",
     "clean:node_modules": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean-node-modules.ps1",
@@ -20,6 +22,8 @@
     "db:deploy": "prisma migrate deploy",
     "env:init": "node scripts/init-env-local.mjs",
     "env:edit": "node scripts/open-env-local.mjs",
+    "demo:complete-course": "node --env-file=.env.local scripts/demo-complete-course.mjs",
+    "demo:senior-certificates": "node --env-file=.env.local scripts/demo-complete-course.mjs advanced-cyber-security-professional,cybersecurity",
     "setup:otp": "prisma db push && prisma generate && npm run install:nodemailer",
     "install:nodemailer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-nodemailer.ps1",
     "install:nodemailer:offline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-nodemailer-offline.ps1"
@@ -35,6 +39,8 @@
     "next": "16.2.3",
     "nodemailer": "^6.10.1",
     "openai": "^6.38.0",
+    "pdf-lib": "^1.17.1",
+    "razorpay": "^2.9.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-easy-crop": "^5.5.7"

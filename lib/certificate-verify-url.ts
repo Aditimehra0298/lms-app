@@ -1,0 +1,18 @@
+/** Public certificate tracker URL (QR on PDF + LinkedIn share). */
+export function buildCertificateVerifyUrl(
+  baseUrl: string,
+  input: { delegateNumber?: string | null; certificateNumber?: string | null },
+): string {
+  const base = baseUrl.replace(/\/$/, "");
+  if (input.delegateNumber?.trim()) {
+    return `${base}/certificates/verify?delegate=${encodeURIComponent(input.delegateNumber.trim())}`;
+  }
+  if (input.certificateNumber?.trim()) {
+    return `${base}/certificates/verify?number=${encodeURIComponent(input.certificateNumber.trim())}`;
+  }
+  return `${base}/certificates/verify`;
+}
+
+export function buildLinkedInShareUrl(pageUrl: string): string {
+  return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
+}

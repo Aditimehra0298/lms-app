@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     certificateId?: string;
     certificateNumber?: string;
     pdfUrl?: string;
+    pdfBase64?: string;
     status?: "ready" | "failed";
   };
   try {
@@ -30,12 +31,13 @@ export async function POST(request: Request) {
       certificateId: body.certificateId ?? "",
       certificateNumber: body.certificateNumber,
       pdfUrl: body.pdfUrl,
+      pdfBase64: body.pdfBase64,
       status: body.status,
     });
     if (!result.ok) {
       return NextResponse.json(result, { status: 400 });
     }
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, storedPdfUrl: result.storedPdfUrl });
   } catch (err) {
     console.error("[certificates/n8n-callback]", err);
     return NextResponse.json({ ok: false, message: "Callback failed." }, { status: 503 });

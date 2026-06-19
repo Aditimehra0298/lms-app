@@ -119,6 +119,6 @@ Full Workbench + CLI steps: **`docs/MYSQL_WORKBENCH.md`**.
 
 1. **Server JSON store:** `lib/server/content-store.ts` (path constant `data/admin-content.json`).
 2. **Admin API:** `app/api/admin/content/route.ts`.
-3. **Checkout → purchases in browser:** `app/checkout/page.tsx` (`sft_purchased_courses`).
+3. **Checkout → purchases in browser:** `app/checkout/page.tsx` (`sft_purchased_courses`). Payments via **Razorpay** when configured — see **`docs/RAZORPAY_SETUP.md`**.
 4. **Enrollment helper:** `lib/enrollment-storage.ts`.
 5. **MySQL / Prisma:** `prisma/schema.prisma`, `lib/prisma.ts`, `app/api/health/mysql/route.ts`.

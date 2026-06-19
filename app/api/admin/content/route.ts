@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AdminContent, defaultAdminContent } from "@/lib/content-schema";
+import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
 import { syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
 import { syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
 import { readAdminContent, writeAdminContent } from "@/lib/server/content-store";
@@ -11,9 +12,6 @@ const noStoreJson = { "Cache-Control": "private, no-store, max-age=0" };
 
 export async function GET() {
   const content = await readAdminContent();
-  void syncManagedCoursesToMysql(content.managedCourses ?? []).catch((err) =>
-    console.error("[admin/content GET] course sync", err),
-  );
   return NextResponse.json(content, { headers: noStoreJson });
 }
 
@@ -27,6 +25,12 @@ export async function PUT(request: Request) {
           body.dashboard?.nextClassTitle ?? defaultAdminContent.dashboard.nextClassTitle,
         nextClassTime: body.dashboard?.nextClassTime ?? defaultAdminContent.dashboard.nextClassTime,
         streakDays: Number(body.dashboard?.streakDays ?? defaultAdminContent.dashboard.streakDays),
+        calendarReminders: Array.isArray(body.dashboard?.calendarReminders)
+          ? body.dashboard.calendarReminders
+          : existing.dashboard.calendarReminders ?? defaultAdminContent.dashboard.calendarReminders ?? [],
+        communityConnect: Array.isArray(body.dashboard?.communityConnect)
+          ? body.dashboard.communityConnect
+          : existing.dashboard.communityConnect ?? defaultAdminContent.dashboard.communityConnect ?? [],
       },
       learningCourses:
         body.learningCourses && body.learningCourses.length > 0
@@ -50,6 +54,13 @@ export async function PUT(request: Request) {
         Array.isArray(body.tutorLedPrograms) && body.tutorLedPrograms.length > 0
           ? body.tutorLedPrograms
           : existing.tutorLedPrograms ?? defaultAdminContent.tutorLedPrograms,
+      globalCertificateAssets:
+        body.globalCertificateAssets !== undefined
+          ? body.globalCertificateAssets
+          : existing.globalCertificateAssets,
+      organizationTeam: mergeOrganizationTeamAdminConfig(
+        body.organizationTeam ?? existing.organizationTeam,
+      ),
     };
 
     await writeAdminContent(nextContent);

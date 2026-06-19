@@ -1,0 +1,356 @@
+{
+  "teams": {
+    "eurocert.info@gmail.com": {
+      "workEmail": "eurocert.info@gmail.com",
+      "planId": "monthly-premium",
+      "seatLimit": 20,
+      "roster": [
+        {
+          "slot": 1,
+          "id": "1",
+          "name": "John Smith",
+          "email": "john.smith@team.demo",
+          "position": "Operations Lead",
+          "avatarUrl": "https://randomuser.me/api/portraits/men/32.jpg",
+          "invited": true
+        },
+        {
+          "slot": 2,
+          "id": "2",
+          "name": "Sarah Johnson",
+          "email": "sarah.johnson@team.demo",
+          "position": "Quality Manager",
+          "avatarUrl": "https://randomuser.me/api/portraits/women/44.jpg",
+          "invited": true
+        },
+        {
+          "slot": 3,
+          "id": "3",
+          "name": "Michael Brown",
+          "email": "michael.brown@team.demo",
+          "position": "Team Member",
+          "avatarUrl": "https://randomuser.me/api/portraits/men/75.jpg",
+          "invited": true
+        },
+        {
+          "slot": 4,
+          "id": "4",
+          "name": "Emily Davis",
+          "email": "emily.davis@team.demo",
+          "position": "Team Member",
+          "avatarUrl": "https://randomuser.me/api/portraits/women/68.jpg",
+          "invited": true
+        },
+        {
+          "slot": 5,
+          "id": "5",
+          "name": "David Wilson",
+          "email": "david.wilson@team.demo",
+          "position": "Team Member",
+          "avatarUrl": "https://randomuser.me/api/portraits/men/41.jpg",
+          "invited": true
+        },
+        {
+          "slot": 6,
+          "id": "slot-6",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 7,
+          "id": "slot-7",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 8,
+          "id": "slot-8",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 9,
+          "id": "slot-9",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 10,
+          "id": "slot-10",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 11,
+          "id": "slot-11",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 12,
+          "id": "slot-12",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 13,
+          "id": "slot-13",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 14,
+          "id": "slot-14",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 15,
+          "id": "slot-15",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 16,
+          "id": "slot-16",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 17,
+          "id": "slot-17",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 18,
+          "id": "slot-18",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 19,
+          "id": "slot-19",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 20,
+          "id": "slot-20",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        }
+      ],
+      "courseAssignments": {
+        "esg-reporting-fundamentals": [
+          "1"
+        ]
+      },
+      "updatedAt": "2026-06-11T10:14:16.927Z"
+    },
+    "dhamu673948@gmail.com": {
+      "workEmail": "dhamu673948@gmail.com",
+      "planId": "monthly-premium",
+      "seatLimit": 20,
+      "roster": [
+        {
+          "slot": 1,
+          "id": "1",
+          "name": "John Smith",
+          "email": "john.smith@team.demo",
+          "position": "Operations Lead",
+          "avatarUrl": "https://randomuser.me/api/portraits/men/32.jpg",
+          "invited": true
+        },
+        {
+          "slot": 2,
+          "id": "2",
+          "name": "Sarah Johnson",
+          "email": "sarah.johnson@team.demo",
+          "position": "Quality Manager",
+          "avatarUrl": "https://randomuser.me/api/portraits/women/44.jpg",
+          "invited": true
+        },
+        {
+          "slot": 3,
+          "id": "3",
+          "name": "Michael Brown",
+          "email": "michael.brown@team.demo",
+          "position": "Team Member",
+          "avatarUrl": "https://randomuser.me/api/portraits/men/75.jpg",
+          "invited": true
+        },
+        {
+          "slot": 4,
+          "id": "4",
+          "name": "Emily Davis",
+          "email": "emily.davis@team.demo",
+          "position": "Team Member",
+          "avatarUrl": "https://randomuser.me/api/portraits/women/68.jpg",
+          "invited": true
+        },
+        {
+          "slot": 5,
+          "id": "5",
+          "name": "David Wilson",
+          "email": "david.wilson@team.demo",
+          "position": "Team Member",
+          "avatarUrl": "https://randomuser.me/api/portraits/men/41.jpg",
+          "invited": true
+        },
+        {
+          "slot": 6,
+          "id": "slot-6",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 7,
+          "id": "slot-7",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 8,
+          "id": "slot-8",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 9,
+          "id": "slot-9",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 10,
+          "id": "slot-10",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 11,
+          "id": "slot-11",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 12,
+          "id": "slot-12",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 13,
+          "id": "slot-13",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 14,
+          "id": "slot-14",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 15,
+          "id": "slot-15",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 16,
+          "id": "slot-16",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 17,
+          "id": "slot-17",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 18,
+          "id": "slot-18",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 19,
+          "id": "slot-19",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        },
+        {
+          "slot": 20,
+          "id": "slot-20",
+          "name": "",
+          "email": "",
+          "position": "",
+          "invited": false
+        }
+      ],
+      "courseAssignments": {},
+      "updatedAt": "2026-06-12T04:04:16.265Z"
+    }
+  }
+}

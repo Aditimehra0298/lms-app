@@ -26,6 +26,14 @@ export async function POST(request: Request) {
     }
 
     if (!isManagedLocalMediaUrl(url) && !url.startsWith("/api/media/serve/")) {
+      const scope =
+        body.scope ?? (body.courseSlug?.trim() ? "learner" : email && isAdminEmail(email) ? "admin" : "catalog");
+      if (scope === "learner") {
+        return NextResponse.json(
+          { ok: false, error: "External video URLs are blocked for learners. Upload to protected storage." },
+          { status: 403 },
+        );
+      }
       return NextResponse.json({ ok: true, playUrl: url });
     }
 
@@ -42,12 +50,28 @@ export async function POST(request: Request) {
       else scope = "catalog";
     }
 
+    const adminTtl = Number(process.env.MEDIA_TOKEN_TTL_ADMIN_SECONDS || "");
+    const learnerTtl = Number(process.env.MEDIA_TOKEN_TTL_LEARNER_SECONDS || "");
+    const catalogTtl = Number(process.env.MEDIA_TOKEN_TTL_CATALOG_SECONDS || "");
+    const ttlSeconds =
+      scope === "admin"
+        ? Number.isFinite(adminTtl) && adminTtl > 0
+          ? adminTtl
+          : 60 * 60
+        : scope === "catalog"
+          ? Number.isFinite(catalogTtl) && catalogTtl > 0
+            ? catalogTtl
+            : 10 * 60
+          : Number.isFinite(learnerTtl) && learnerTtl > 0
+            ? learnerTtl
+            : 3 * 60;
+
     const token = createMediaAccessToken({
       f: fileName,
       scope,
       course: body.courseSlug?.trim(),
       email: email || undefined,
-      ttlSeconds: scope === "admin" ? 60 * 60 * 24 * 7 : 60 * 60 * 4,
+      ttlSeconds,
     });
 
     const payload = verifyMediaAccessToken(token);

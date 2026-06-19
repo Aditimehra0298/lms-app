@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getManagedCourseBySlug } from "@/lib/server/course-catalog";
 import { getTutorLedProgramBySlug } from "@/lib/server/tutor-led-catalog";
-import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import { programLandingHref } from "@/lib/workshop-program";
 import SelfPacedCourseShell from "@/components/SelfPacedCourseShell";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
 
   const tutorLed = await getTutorLedProgramBySlug(slug);
   if (tutorLed?.published && course.learningFormat !== "self-paced") {
-    redirect(liveTutorCourseHref(slug));
+    redirect(programLandingHref(tutorLed));
   }
 
   return (

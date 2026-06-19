@@ -6,6 +6,8 @@ export type GoogleUserInfo = {
   picture?: string;
   /** e.g. en-US, en_IN — used to infer country when IP is unavailable */
   locale?: string;
+  /** Google Workspace hosted domain, when the account belongs to an organization */
+  hd?: string;
 };
 
 export async function fetchGoogleUserInfo(accessToken: string): Promise<GoogleUserInfo> {

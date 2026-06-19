@@ -1,54 +1,62 @@
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { readAdminContent } from "@/lib/server/content-store";
+import { filterPublishedWorkshops, isWorkshopProgram } from "@/lib/workshop-program";
 
-/** Normalize URL slug (decode, trim). */
+function matchSlug(program: TutorLedProgramStored, key: string, decoded: string): boolean {
+  return program.slug === key || program.slug === decoded;
+}
+
 export function normalizeTutorLedSlug(slug: string): string {
+  const key = slug.trim();
   try {
-    return decodeURIComponent(slug).trim();
+    return decodeURIComponent(key);
   } catch {
-    return slug.trim();
+    return key;
   }
 }
 
-/** Merge admin overrides onto built-in defaults (by slug). */
-function mergeTutorLedPrograms(adminList: TutorLedProgramStored[] | undefined): TutorLedProgramStored[] {
+async function loadMergedPrograms(): Promise<Map<string, TutorLedProgramStored>> {
+  const content = await readAdminContent();
+  const apiList = content.tutorLedPrograms ?? [];
   const bySlug = new Map<string, TutorLedProgramStored>();
   for (const p of defaultTutorLedPrograms) bySlug.set(p.slug, p);
-  for (const p of adminList ?? []) {
-    const key = p.slug?.trim();
-    if (!key) continue;
-    const base = bySlug.get(key);
-    bySlug.set(key, base ? { ...base, ...p, slug: key } : { ...p, slug: key });
+  for (const p of apiList) {
+    const s = p.slug?.trim();
+    if (!s) continue;
+    const base = bySlug.get(s);
+    bySlug.set(s, base ? { ...base, ...p, slug: s } : { ...p, slug: s });
   }
-  return Array.from(bySlug.values());
+  return bySlug;
 }
 
-export async function getTutorLedPrograms(): Promise<TutorLedProgramStored[]> {
-  const content = await readAdminContent();
-  const list = content.tutorLedPrograms;
-  if (!list || list.length === 0) return defaultTutorLedPrograms;
-  return mergeTutorLedPrograms(list);
-}
-
+/** Any tutor-led program by slug (published or draft). */
 export async function getTutorLedProgramBySlug(slug: string): Promise<TutorLedProgramStored | null> {
-  const key = normalizeTutorLedSlug(slug);
-  if (!key) return null;
-  const programs = await getTutorLedPrograms();
-  return programs.find((p) => p.slug === key) ?? null;
+  const key = slug.trim();
+  const decoded = normalizeTutorLedSlug(key);
+  const bySlug = await loadMergedPrograms();
+  return Array.from(bySlug.values()).find((p) => matchSlug(p, key, decoded)) ?? null;
 }
 
+/** Published tutor-led programs for catalog and marketing pages. */
 export async function getPublishedTutorLedPrograms(): Promise<TutorLedProgramStored[]> {
-  const programs = await getTutorLedPrograms();
-  return programs.filter((p) => p.published);
+  const bySlug = await loadMergedPrograms();
+  return Array.from(bySlug.values()).filter((p) => p.published !== false);
 }
 
-export async function getPublishedTutorLedProgramBySlug(slug: string): Promise<TutorLedProgramStored | null> {
+/** Published one-day workshops (`programKind: workshop`). */
+export async function getPublishedWorkshopPrograms(): Promise<TutorLedProgramStored[]> {
+  return filterPublishedWorkshops(await getPublishedTutorLedPrograms());
+}
+
+/** Published multi-day tutor-led only (excludes workshops). */
+export async function getPublishedTutorLedProgramsOnly(): Promise<TutorLedProgramStored[]> {
+  const all = await getPublishedTutorLedPrograms();
+  return all.filter((p) => !isWorkshopProgram(p));
+}
+
+/** Tutor-led program for enrolled learner flows (exams, hub). */
+export async function getTutorLedProgramForLearner(slug: string): Promise<TutorLedProgramStored | null> {
   const program = await getTutorLedProgramBySlug(slug);
-  return program?.published ? program : null;
-}
-
-export async function getFirstPublishedTutorLedSlug(): Promise<string | null> {
-  const published = await getPublishedTutorLedPrograms();
-  const preferred = published.find((p) => p.slug === "advanced-cyber-security-professional");
-  return preferred?.slug ?? published[0]?.slug ?? null;
+  if (!program || program.published === false) return null;
+  return program;
 }

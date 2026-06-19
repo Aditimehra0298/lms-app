@@ -1,59 +1,12 @@
 {
   "dashboard": {
-    "nextClassTitle": "Cyber Security Fundamentals",
-    "nextClassTime": "10:00 AM - 11:30 AM",
-    "streakDays": 12
+    "nextClassTitle": "",
+    "nextClassTime": "",
+    "streakDays": 0,
+    "calendarReminders": [],
+    "communityConnect": []
   },
-  "learningCourses": [
-    {
-      "title": "Advanced Cyber Security Professional",
-      "modules": 12,
-      "duration": "40h 30m",
-      "completed": 8,
-      "status": "In Progress",
-      "action": "Continue"
-    },
-    {
-      "title": "ESG Fundamentals",
-      "modules": 10,
-      "duration": "20h 15m",
-      "completed": 10,
-      "status": "Completed",
-      "action": "View Certificate"
-    },
-    {
-      "title": "Network Security Essentials",
-      "modules": 9,
-      "duration": "18h 45m",
-      "completed": 5,
-      "status": "In Progress",
-      "action": "Continue"
-    },
-    {
-      "title": "Ethical Hacking with Tools",
-      "modules": 8,
-      "duration": "16h 30m",
-      "completed": 2,
-      "status": "In Progress",
-      "action": "Continue"
-    },
-    {
-      "title": "Python for Data Science",
-      "modules": 10,
-      "duration": "22h 10m",
-      "completed": 0,
-      "status": "Not Started",
-      "action": "Start Course"
-    },
-    {
-      "title": "Workplace Compliance",
-      "modules": 6,
-      "duration": "10h 20m",
-      "completed": 6,
-      "status": "Completed",
-      "action": "View Certificate"
-    }
-  ],
+  "learningCourses": [],
   "managedCourses": [
     {
       "slug": "esg-reporting-fundamentals",
@@ -72,7 +25,15 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "information-security-governance",
@@ -91,7 +52,15 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "medical-device-quality-regulatory",
@@ -110,7 +79,15 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "workplace-compliance-practical",
@@ -129,7 +106,15 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "skill-development-framework-implementation",
@@ -148,7 +133,15 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "hvac-refrigeration-core-operations",
@@ -167,7 +160,15 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "cyber-security-essentials",
@@ -187,7 +188,15 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "advanced-cyber-security-professional",
@@ -268,136 +277,15 @@
       ],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
-    },
-    {
-      "slug": "cybersecurity",
-      "title": "Cyber Security Phishing Awareness Trainings",
-      "subtitle": "Cyber Security Phishing Awareness Training equips individuals with the knowledge to identify, prevent, and respond to phishing attacks, helping protect sensitive data and strengthen organizational security.",
-      "category": "cyber-security",
-      "level": "Beginner",
-      "duration": "2h 00m",
-      "rating": "4.6",
-      "learners": "0",
-      "price": "1299",
-      "oldPrice": "$79.00",
-      "image": "/course-food-safety.png",
-      "published": true,
-      "learningFormat": "self-paced",
-      "instructorName": "Sustaniable Future Trainings Expert",
-      "curriculum": [
-        {
-          "title": "Module 1: What is Phishing?",
-          "items": [
-            {
-              "label": "Video — How to use this course & navigation",
-              "kind": "video",
-              "videoUrl": "/uploads/admin/1777973208786-i7jor0sf-1773913728What_is_Phishing__1080p_captio.mp4",
-              "about": "This course provides a comprehensive introduction to phishing, one of the most prevalent and dangerous cyber threats in today’s digital world. It explores how cyber attackers impersonate trusted organizations to deceive individuals into sharing sensitive information such as passwords, banking credentials, and personal data.\n\nThrough real-world examples and visual demonstrations, the course explains how phishing attacks are crafted to appear legitimate across emails, websites, and digital notifications. It also highlights the psychological manipulation techniques—such as urgency, fear, and enticing offers—that attackers use to exploit human behavior.\n\nDesigned for learners of all levels, this course builds essential awareness around phishing risks and equips individuals with the knowledge needed to recognize and respond to potential threats effectively.",
-              "learningOutcomes": [
-                "Understand the concept of phishing and how it operates in different forms.",
-                "Identify common characteristics of phishing emails, links, and fake websites.",
-                "Recognize psychological tactics used by attackers to manipulate users.",
-                "Analyze real-life phishing examples to distinguish between legitimate and fraudulent communications.",
-                "Understand the risks and consequences of falling victim to phishing attacks.",
-                "Apply best practices to detect, avoid, and respond to phishing attempts.",
-                "Develop safer online habits to protect personal and organizational data."
-              ]
-            },
-            {
-              "label": "Module examination (10 MCQs)",
-              "kind": "exam",
-              "description": "",
-              "examUploadUrl": "/uploads/admin/1778059992102-0q7un01d-Untitled_spreadsheet_-_moduoe_1.csv",
-              "examPassingScorePercent": 60,
-              "timedExam": false
-            }
-          ]
-        },
-        {
-          "title": "Module 2 : Anatomy of a Phishing Email",
-          "items": [
-            {
-              "label": "Video — Anatomy of a Phishing Email",
-              "kind": "video",
-              "videoUrl": "/uploads/admin/1777973357757-o57b7pmj-1773913793Anatomy_of_a_Phishing_Email_10.mp4",
-              "description": "",
-              "about": "This module focuses on the anatomy of a phishing email and explains how attackers carefully design fraudulent messages to appear legitimate and trustworthy. It breaks down the key components of phishing emails, including the sender’s address, subject line, greeting, message body, malicious links, and attachments.\n\nLearners will explore how each element is strategically crafted to manipulate recipients into taking actions such as clicking harmful links or sharing sensitive information. The module also highlights how attackers impersonate trusted organizations like banks, companies, and online platforms to gain credibility.\n\nIn addition, it explains the psychological techniques—such as urgency, fear, and curiosity—that are commonly used to influence user behavior. This module aims to build a deeper understanding of how phishing emails are structured, enabling users to detect threats more effectively.",
-              "learningOutcomes": [
-                "Understand the structure and key components of a phishing email.",
-                "Identify suspicious sender addresses and misleading subject lines.",
-                "Analyze email content to detect signs of fraud or manipulation.",
-                "Recognize malicious links and unsafe attachments.",
-                "Understand how attackers impersonate trusted organizations.",
-                "Identify psychological tactics used in phishing emails.",
-                "Evaluate emails critically before taking any action.",
-                "Improve ability to detect and prevent phishing attacks"
-              ]
-            },
-            {
-              "label": "Module examination (10 MCQs)",
-              "kind": "exam",
-              "description": "",
-              "examPassingScorePercent": 60,
-              "examUploadUrl": "/uploads/admin/1778062376529-4oiv5ver-Untitled_spreadsheet_-_module_2.csv"
-            }
-          ]
-        },
-        {
-          "title": "Module 3 : How to Identify Phishing Emails",
-          "items": [
-            {
-              "label": "Video — Scenario-based lesson",
-              "kind": "video",
-              "videoUrl": "/uploads/admin/1777974587519-eeoydmcw-1773913822How_to_Identify_Phishing_Email.mp4",
-              "about": "This module provides a practical approach to identifying phishing emails using five quick and effective verification checks. It focuses on simple yet powerful techniques that users can apply before interacting with any suspicious message.\n\nThe module emphasizes the importance of examining the sender’s email address, as attackers often disguise malicious domains behind familiar names. It also highlights the risks associated with unexpected attachments, particularly files like .zip, .exe, or unfamiliar documents from unknown sources.\n\nLearners will understand how phishing emails often contain spelling and grammatical errors, which can serve as warning signs. The module further explains how attackers use urgent or threatening language to pressure users into acting quickly without proper verification. Additionally, it introduces the practice of hovering over links to reveal their actual destination before clicking.\n\nOverall, this module is designed to equip users with quick, actionable checks that significantly reduce the risk of falling victim to phishing attacks.",
-              "learningOutcomes": [
-                "Apply five quick verification checks to assess suspicious emails.",
-                "Identify fake or misleading sender email addresses.",
-                "Recognize risks associated with unexpected or suspicious attachments.",
-                "Detect spelling and grammatical errors as potential red flags.",
-                "Understand how urgency and threats are used to manipulate users.",
-                "Safely inspect links by checking their actual destination before clicking.",
-                "Make informed decisions before interacting with email content.",
-                "Enhance overall email security awareness and reduce phishing risks."
-              ]
-            }
-          ]
-        },
-        {
-          "title": "Module 4 — Standards & compliance (Cyber Security Phishing Awareness Trainings)",
-          "items": [
-            {
-              "label": "Video — Regulatory and policy context",
-              "kind": "video",
-              "videoUrl": "/uploads/admin/1777974636698-4f0e92mv-1773914055Phishing_Attack_Response_Roles.mp4",
-              "about": "This module focuses on how organizations effectively respond to phishing attacks by establishing clear roles, responsibilities, and defense strategies across all levels. It presents phishing as a critical social engineering threat and highlights the importance of rapid detection, containment, and mitigation to safeguard sensitive information.\n\nThe module outlines the responsibilities of key stakeholders within an organization, including leadership, security teams, managers, employees, and support functions such as HR and legal. It explains how coordinated efforts ensure an efficient and timely response to phishing incidents.\n\nAdditionally, the module introduces the incident response lifecycle, covering stages such as identification, response, recovery, and continuous improvement. It also emphasizes preventive measures like security awareness training, email filtering systems, multi-factor authentication, and phishing simulations to strengthen organizational resilience.\n\nOverall, this module aims to build a proactive and well-coordinated cybersecurity approach to effectively manage and prevent phishing threats.",
-              "learningOutcomes": [
-                "Understand phishing as a social engineering threat at an organizational level.",
-                "Identify roles and responsibilities of key stakeholders in responding to phishing attacks.",
-                "Explain the incident response lifecycle for phishing incidents.",
-                "Recognize the importance of rapid detection, containment, and mitigation.",
-                "Understand the role of employees as the first line of defense.",
-                "Apply preventive measures such as awareness training, email filtering, and multi-factor authentication.",
-                "Evaluate how coordination across teams improves incident response effectiveness.",
-                "Contribute to building a proactive cybersecurity culture within an organization."
-              ]
-            },
-            {
-              "label": "Module examination (10 MCQs)",
-              "kind": "exam",
-              "description": "",
-              "examPassingScorePercent": 60,
-              "examUploadUrl": "/uploads/admin/1778064136115-ixcnd55p-Untitled_spreadsheet_-_Sheet5.csv"
-            }
-          ]
-        }
-      ],
-      "highlights": [],
-      "faqs": [],
-      "trainerCertifications": [],
-      "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "food-safety-masterclass",
@@ -587,7 +475,15 @@
       "faqs": [],
       "trainerCertifications": [],
       "trainerWorkedWith": [],
-      "regionalPrices": []
+      "regionalPrices": [],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "cousers-esg-esg-management-development-training-program",
@@ -1018,7 +914,15 @@
             }
           ]
         }
-      ]
+      ],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
     },
     {
       "slug": "fssc-22000-v6-food-fraud-mitigation-auditing",
@@ -1097,7 +1001,7 @@
         "moneyBackGuarantee": "7 days money-back gurantee",
         "enrollButtonLabel": "Enroll Now",
         "wishlistButtonLabel": "Add to Wishlist",
-        "certificatePreviewImage": "/api/media/serve/1779876278897-noxduahi-ChatGPT_Image_May_27_2026_03_34_30_PM.png",
+        "certificatePreviewImage": "/api/media/serve/1780039189907-4bcypvwo-advanced_food_fraud.pdf_1_-1.png",
         "certificatePreviewLabel": "Certificate of Attainment",
         "aboutText": "This course provides advanced knowledge of food fraud mitigation and auditing within the FSSC 22000 Version 6 framework. It helps learners understand how food fraud risks can affect food safety, product integrity, brand reputation, and certification compliance.\n\nThe course covers food fraud vulnerability assessment, mitigation strategies, audit evidence, documentation requirements, and practical control measures. It is designed for food safety professionals, auditors, quality managers, consultants, and technical teams who want to build stronger, audit-ready food fraud prevention systems.",
         "courseIncludes": [
@@ -1237,7 +1141,7 @@
       "learningSection": {
         "brandLogoUrl": "/SF-WHITE-LOGO.png",
         "accreditedBadgeLabel": "Accredited label",
-        "accreditedDescription": "This course is developed by the SFT Expert Team and aligned with the learning needs of food safety, quality, compliance, and auditing professionals. It supports learners in understanding food fraud mitigation, vulnerability assessment, documentation, and audit readiness under FSSC 22000 Version 6.\n\nUpon successful completion, learners will receive a course completion certificate from Sustainable Futures Training (SFT).",
+        "accreditedDescription": "Upon successful completion, learners will receive a course completion certificate from Sustainable Futures Training (SFT).",
         "certificationRuleText": "Certification is awarded after the learner successfully completes all required course modules and passes the final assessment as per the course completion criteria.",
         "noVideoMessage": "Preview loading",
         "learningToolsTitle": "Learning tools",
@@ -1265,7 +1169,7 @@
               "label": "Food Fraud Introduction: Course Overview and Learning Outcomes",
               "kind": "video",
               "description": "The self-paced course admin panel should allow the admin to manage all module content from one simple icon-based interface. Each module will include options such as Video, Notes, Captions, PDF, PPT, Podcast, Documents, Webhook, and Module Exam.\n\nWhen the admin clicks on any content icon, the related editor should open. Each editor should provide both Upload File and Add URL/Link options. The course will not have a final exam; instead, assessments will be managed module-wise through the Module Exam option. This structure will make content uploading, editing, and module management easy, flexible, and organized.",
-              "videoUrl": "/api/media/serve/1779881052790-gz0ojvbt-1775807105introduction_video_1080p_capti.mp4",
+              "videoUrl": "/api/media/serve/1780480905061-05p8cxo2-1775807105introduction_video_1080p_capti.mp4",
               "learningOutcomes": [
                 "Understand the key topic covered in this lesson.",
                 "Explain how the topic supports food fraud mitigation.",
@@ -1274,7 +1178,10 @@
                 "Understand documentation and records required for audit readiness.",
                 "Apply the lesson concept within an FSSC 22000 Version 6 food safety system."
               ],
-              "about": "This lesson explains the selected topic in a simple and practical way, helping learners understand how it connects with food fraud mitigation, FSSC 22000 Version 6 requirements, and audit readiness. It focuses on key concepts, real-world food safety risks, required controls, and the type of evidence or documentation that may be reviewed during audits."
+              "about": "This lesson explains the selected topic in a simple and practical way, helping learners understand how it connects with food fraud mitigation, FSSC 22000 Version 6 requirements, and audit readiness. It focuses on key concepts, real-world food safety risks, required controls, and the type of evidence or documentation that may be reviewed during audits.",
+              "previewLimitMinutes": 11,
+              "lessonDurationMinutes": 8,
+              "lessonVideoSizeMb": 143.2
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1302,7 +1209,10 @@
                 "Apply the lesson learning in a practical FSMS context.",
                 "Understand what audit evidence may be reviewed for this topic."
               ],
-              "videoUrl": "/api/media/serve/1779881493500-bg6vnp9v-1775807283module_1_720p_caption.mp4"
+              "videoUrl": "/api/media/serve/1780480876306-u9l3dyg8-1775807283module_1_720p_caption.mp4",
+              "previewLimitMinutes": 22,
+              "lessonDurationMinutes": 23,
+              "lessonVideoSizeMb": 264.5
             },
             {
               "label": "Module examination (10 MCQs)",
@@ -1313,70 +1223,140 @@
           ]
         },
         {
-          "title": "Module 2 — Core foundations (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "title": "Module 2 - Food Fraud Vulnerability Assessment (FFVA)",
           "items": [
             {
-              "label": "Video — Key principles and terminology",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Reference readings and frameworks",
-              "kind": "reading"
+              "label": "Module 2 - Food Fraud Vulnerability Assessment (FFVA)",
+              "kind": "video",
+              "description": "This module provides a practical understanding of Food Fraud Vulnerability Assessment (FFVA) under FSSC 22000 Version 6, Section 2.5.4.1. It explains how organizations identify, assess, and prioritize food fraud vulnerabilities across raw materials, ingredients, products, processes, suppliers, and supply chains.\n\nThe module focuses on applying a defined methodology, involving a trained multidisciplinary team, evaluating vulnerability factors, identifying significant vulnerabilities, and linking assessment results to an effective food fraud mitigation plan. It helps learners understand FFVA as a formal, documented, site-specific, and auditable process rather than a generic checklist exercise.",
+              "about": "This lesson explains the purpose and practical application of Food Fraud Vulnerability Assessment under FSSC 22000 Version 6. It helps learners understand how vulnerabilities are identified, evaluated, documented, and linked to mitigation planning using a structured and evidence-based approach.",
+              "learningOutcomes": [
+                "Explain the purpose of FFVA within the FSSC 22000 food fraud mitigation framework.",
+                "Understand why FFVA must be formal, documented, and auditable.",
+                "Apply a defined methodology for food fraud vulnerability assessment.",
+                "Identify vulnerabilities across materials, products, processes, suppliers, and supply chains.",
+                "Evaluate factors such as economic attractiveness, detectability, fraud history, and sourcing complexity.",
+                "Distinguish between generic assessments and site-specific risk-based FFVA.",
+                "Assess whether significant vulnerabilities are supported by logic and evidence.",
+                "Understand the role of a trained multidisciplinary FFVA team.",
+                "Follow the FFVA sequence from scope definition to significance decision.",
+                "Recognize common weaknesses in food fraud vulnerability assessments.",
+                "Link significant vulnerabilities to a documented mitigation plan.",
+                "Apply FFVA thinking during audits and technical reviews."
+              ],
+              "videoUrl": "/api/media/serve/1780480840394-ysewud4d-1775807622module_2__720p_caption_1_.mp4",
+              "previewLimitMinutes": 24,
+              "lessonDurationMinutes": 25,
+              "lessonVideoSizeMb": 259.3
             },
             {
               "label": "Module examination (10 MCQs)",
-              "kind": "exam"
+              "kind": "exam",
+              "description": "",
+              "examUploadUrl": "/api/media/serve/1779891228411-f20v77h7-Untitled_spreadsheet_-_Sheet10.csv"
             }
           ]
         },
         {
-          "title": "Module 3 — Applied practices (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "title": "Module 3 - Determining Significant Vulnerabilities",
           "items": [
             {
-              "label": "Video — Scenario-based lesson",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Worksheets, templates, and examples",
-              "kind": "reading"
+              "label": "Module 3 - Determining Significant Vulnerabilities",
+              "kind": "video",
+              "description": "This module explains how to determine significant food fraud vulnerabilities after completing a Food Fraud Vulnerability Assessment under FSSC 22000 Version 6, Section 2.5.4.1. It helps learners understand which vulnerabilities require formal mitigation and how significance decisions should be made using structured, evidence-based logic.\n\nThe module covers practical decision factors such as economic attractiveness, fraud history, detectability, supply-chain complexity, current controls, and supplier-related risks. It also explains how to document decisions clearly, avoid assumption-based judgments, and link significant vulnerabilities directly to the food fraud mitigation plan.",
+              "videoUrl": "/api/media/serve/1780480808246-o2ez9shd-1775808148Untitled_design.mp4",
+              "learningOutcomes": [
+                "Explain the meaning of significant food fraud vulnerability.",
+                "Distinguish between general vulnerabilities and vulnerabilities requiring formal mitigation.",
+                "Apply a structured method to determine significance.",
+                "Use factors such as economic attractiveness, fraud history, detectability, supply-chain complexity, and existing controls.",
+                "Understand how a risk matrix or similar methodology supports significance decisions.",
+                "Recognize when material grouping is acceptable and when item-level analysis is needed.",
+                "Document significance decisions in a clear, consistent, and traceable manner.",
+                "Identify common weaknesses in significance evaluation.",
+                "Evaluate food fraud cases using evidence-based logic.",
+                "Link significant vulnerabilities to suitable mitigation measures.",
+                "Strengthen audit readiness through credible and defensible significance decisions."
+              ],
+              "about": "This lesson explains how organizations move from identifying food fraud vulnerabilities to deciding which ones are significant and need formal mitigation. It focuses on structured decision-making, documented logic, audit evidence, and the connection between significance evaluation and mitigation planning.",
+              "previewLimitMinutes": 24,
+              "lessonDurationMinutes": 25,
+              "lessonVideoSizeMb": 418.6
             },
             {
               "label": "Module examination (10 MCQs)",
-              "kind": "exam"
+              "kind": "exam",
+              "description": "",
+              "examUploadUrl": "/api/media/serve/1779892596683-2mbrf4vx-Untitled_spreadsheet_-_Sheet11.csv"
             }
           ]
         },
         {
-          "title": "Module 4 — Standards & compliance (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "title": "Module 4 - Food Fraud Mitigation Measures and Mitigation Planning",
           "items": [
             {
-              "label": "Video — Regulatory and policy context",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Checklists and guidance notes",
-              "kind": "reading"
+              "label": "Module 4 - Food Fraud Mitigation Measures and Mitigation Planning",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1780480780309-lkjs2xsz-1775808366module_4_720p_caption.mp4",
+              "description": "This module explains how to convert the results of a Food Fraud Vulnerability Assessment (FFVA) into a documented and auditable food fraud mitigation plan under FSSC 22000 Version 6, Section 2.5.4.2. It helps learners understand how mitigation measures should be selected, documented, verified, reviewed, and linked to significant food fraud vulnerabilities.\n\nThe module covers the key elements of a strong mitigation plan, including mitigation actions, responsibilities, verification procedures, records, review triggers, and FSMS support. It also explains how organizations can keep the plan updated when suppliers, market conditions, legislation, or fraud intelligence change. Special focus is given to supplier assurance expectations for FII organizations.",
+              "learningOutcomes": [
+                "Explain the purpose of a documented food fraud mitigation plan.",
+                "Understand FSSC 22000 Version 6, Section 2.5.4.2 requirements.",
+                "Convert FFVA outputs into a practical mitigation plan.",
+                "Link mitigation measures to significant food fraud vulnerabilities.",
+                "Distinguish between a generic control list and a vulnerability-based mitigation plan.",
+                "Evaluate whether mitigation measures are suitable and proportionate.",
+                "Understand verification procedures for checking mitigation effectiveness.",
+                "Identify key mitigation plan elements such as responsibilities, records, and review triggers.",
+                "Integrate the mitigation plan into the FSMS through training, audits, review, and corrective action.",
+                "Keep the mitigation plan updated when suppliers, market conditions, or fraud intelligence change.",
+                "Understand supplier assurance expectations for FII organizations.",
+                "Recognize common audit weaknesses in food fraud mitigation plans."
+              ],
+              "about": "This lesson explains how to develop a documented food fraud mitigation plan after completing the Food Fraud Vulnerability Assessment. It helps learners understand how significant vulnerabilities should be converted into practical mitigation measures under FSSC 22000 Version 6, Section 2.5.4.2.\n\nLearners will understand what a strong mitigation plan should include, such as responsibilities, verification procedures, records, review triggers, and FSMS support. The lesson also explains how to keep the plan updated when suppliers, market conditions, legislation, or fraud intelligence changes.",
+              "previewLimitMinutes": 29,
+              "lessonDurationMinutes": 30,
+              "lessonVideoSizeMb": 267.6
             },
             {
               "label": "Module examination (10 MCQs)",
-              "kind": "exam"
+              "kind": "exam",
+              "examUploadUrl": "/api/media/serve/1779892821923-hyu3yj1k-Untitled_spreadsheet_-_Sheet12.csv"
             }
           ]
         },
         {
-          "title": "Module 5 — Risk assessment & controls (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
+          "title": "Module 5 -  FSMS Integration, Team Competence, and Training",
           "items": [
             {
-              "label": "Video — Identification and mitigation walkthrough",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Case studies and exercises",
-              "kind": "reading"
+              "label": "Module 5 -  FSMS Integration, Team Competence, and Training",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1780480764843-88y29evr-1775811672module_5_720p_caption_1_.mp4",
+              "description": "This module explains how food fraud mitigation should be integrated into the Food Safety Management System (FSMS) rather than treated as a separate activity. It focuses on the support required under FSSC 22000 Version 6, Section 2.5.4.2(b), including training, internal audits, management review, verification, records, corrective action, and continual improvement.\n\nThe module helps learners understand the role of a multidisciplinary food fraud team, the importance of competence and awareness, and the need for clear communication, ownership, and escalation pathways. It also explains how weak FSMS integration can reduce the effectiveness of even a well-prepared food fraud mitigation plan.",
+              "about": "This lesson explains how food fraud mitigation is supported through the wider FSMS. Learners will understand how training, competence, internal audits, management review, records, communication, and corrective actions help ensure that food fraud controls are actually implemented and maintained.\n\nThe lesson also highlights why food fraud responsibilities should not depend on one person only. It shows how different functions such as procurement, QA, receiving, operations, technical teams, and management contribute to effective food fraud control.",
+              "learningOutcomes": [
+                "Explain how the food fraud mitigation plan is supported by the FSMS.",
+                "Identify FSMS elements that support food fraud mitigation.",
+                "Understand the role of training, records, audits, review, and corrective action.",
+                "Recognize the importance of a multidisciplinary food fraud team.",
+                "Distinguish between HACCP team competence and food fraud team competence.",
+                "Evaluate whether food fraud team training is adequate and audit-ready.",
+                "Understand the need for wider awareness across procurement, QA, receiving, operations, and management.",
+                "Explain the importance of ownership, communication, review, and escalation pathways.",
+                "Recognize how food fraud should be included in internal audits and management review.",
+                "Identify records needed to demonstrate implementation and effectiveness.",
+                "Detect common weaknesses such as one-person ownership, missing training evidence, and poor audit coverage.",
+                "Judge whether weak competence or poor FSMS integration can affect the mitigation plan."
+              ],
+              "previewLimitMinutes": 25,
+              "lessonDurationMinutes": 24,
+              "lessonVideoSizeMb": 297.4
             },
             {
               "label": "Module examination (10 MCQs)",
-              "kind": "exam"
+              "kind": "exam",
+              "description": "",
+              "examUploadUrl": "/api/media/serve/1779893206302-tdijl4w7-Untitled_spreadsheet_-_Sheet13.csv"
             }
           ]
         },
@@ -1385,53 +1365,448 @@
           "items": [
             {
               "label": "Video — Operational best practices on the job",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — SOP excerpts and job aids",
-              "kind": "reading"
-            },
-            {
-              "label": "Module examination (10 MCQs)",
-              "kind": "exam"
-            }
-          ]
-        },
-        {
-          "title": "Module 7 — Review & assessment prep (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
-          "items": [
-            {
-              "label": "Video — Summary and practice session",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Revision materials and sample questions",
-              "kind": "reading"
-            },
-            {
-              "label": "Module examination (10 MCQs)",
-              "kind": "exam"
-            }
-          ]
-        },
-        {
-          "title": "Module 8 — Capstone & certification path (Advanced Food Fraud Mitigation and Auditing FSSC 22000:2018 VERSION 6)",
-          "items": [
-            {
-              "label": "Video — Final wrap-up and next steps",
-              "kind": "video"
-            },
-            {
-              "label": "Reading — Completion requirements overview",
-              "kind": "reading"
+              "kind": "video",
+              "description": "This module prepares learners to audit food fraud mitigation under FSSC 22000 Version 6 using a practical, evidence-based approach. It explains how auditors should review the Food Fraud Vulnerability Assessment (FFVA), evaluate significance decisions, assess mitigation measures, and verify whether the system is properly implemented and supported by the FSMS.\n\nThe module focuses on practical audit judgement through document review, interviews, records sampling, supplier evidence, internal audits, management review, performance evaluation, and emergency preparedness. It helps learners move beyond basic paperwork review and develop clear, technically sound audit conclusions.",
+              "about": "This lesson explains how to audit food fraud mitigation systems under FSSC 22000 Version 6. Learners will understand how to review FFVA, check the logic behind significant vulnerabilities, verify mitigation measures, and assess whether food fraud controls are supported by the wider FSMS.\n\nThe lesson also helps learners understand how to collect audit evidence through documents, records, interviews, supplier information, internal audits, and management review outputs.",
+              "learningOutcomes": [
+                "Interpret FSSC 22000 food fraud requirements in audit contexts.",
+                "Verify whether the FFVA is documented, scoped, and methodology-based.",
+                "Evaluate the logic used to identify significant vulnerabilities.",
+                "Assess whether mitigation measures are risk-based and proportionate.",
+                "Review mitigation plans for controls, verification procedures, and implementation logic.",
+                "Collect objective audit evidence through documents, records, interviews, and supplier information.",
+                "Assess team competence, training records, and ownership responsibilities.",
+                "Verify FSMS support through internal audits, management review, corrective action, and performance evaluation.",
+                "Identify common weaknesses and possible nonconformities.",
+                "Write clear, evidence-based audit conclusions linked to FSSC requirements.",
+                "Apply structured audit review points with confidence and consistency."
+              ],
+              "videoUrl": "/api/media/serve/1780480744161-95t0a0ix-1775811887module_6_720p_caption.mp4",
+              "previewLimitMinutes": 28,
+              "lessonDurationMinutes": 29,
+              "lessonVideoSizeMb": 279.9
             },
             {
               "label": "Module examination (10 MCQs)",
-              "kind": "exam"
+              "kind": "exam",
+              "examPassingScorePercent": 70,
+              "examUploadUrl": "/api/media/serve/1779894568790-gre507oe-Untitled_spreadsheet_-_Sheet14.csv"
             }
           ]
         }
-      ]
+      ],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "n8n",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false
+      },
+      "organizationSeatPricing": []
+    },
+    {
+      "slug": "cyber-security-phishing-awareness-training",
+      "title": "Cyber Security Phishing Awareness Trainings",
+      "subtitle": "Learn how to identify phishing emails, fake links, and online scams before they create risk. This course helps employees protect company data, avoid cyber threats, and follow safe digital practices at work.",
+      "category": "cyber-security",
+      "level": "Beginner",
+      "duration": "2h 00m",
+      "rating": "4.6",
+      "learners": "0",
+      "price": "$49.00",
+      "oldPrice": "$79.00",
+      "image": "/course-food-safety.png",
+      "published": true,
+      "learningFormat": "self-paced",
+      "instructorName": "Sustainable Futures Trainings Experts",
+      "pageBadge": "SELF-PACED",
+      "highlights": [
+        "Beginner-friendly learning approach",
+        "Practical phishing awareness examples",
+        "Workplace-focused cyber safety guidance",
+        "Simple language for non-technical learners",
+        "Email safety and suspicious link detection",
+        "Useful for employees across all departments",
+        "Certificate after successful completion"
+      ],
+      "faqs": [
+        {
+          "q": "Who should take this course?",
+          "a": "This course is suitable for employees, students, professionals, and workplace users who want to understand phishing risks and cyber safety basics."
+        },
+        {
+          "q": "Is prior cyber security knowledge required?",
+          "a": "No prior cyber security knowledge is required. The course is designed in simple language for beginners and non-technical learners."
+        },
+        {
+          "q": "Will I receive a certificate?",
+          "a": "Yes, learners will receive a course completion certificate after successfully completing the required lessons and assessments."
+        },
+        {
+          "q": "What topics are covered in this course?",
+          "a": "The course covers phishing awareness, email safety, suspicious link detection, password protection, safe browsing, data protection, and incident reporting."
+        },
+        {
+          "q": "Is this course useful for organizations?",
+          "a": "Yes, this course helps organizations improve employee cyber awareness and reduce risks related to phishing, data loss, and human error."
+        },
+        {
+          "q": "Can I access this course on mobile?",
+          "a": "Yes, learners can access this course on mobile, tablet, laptop, or desktop through the LMS, subject to internet connectivity and device compatibility."
+        }
+      ],
+      "trainerRole": "Senior Instructor",
+      "trainerExperience": "10+ years · 5,000+ learners trained",
+      "trainerBio": "Our senior instructor brings practical experience in corporate training, workplace risk awareness, compliance, and cyber security awareness education. The course is designed to help learners understand phishing risks in simple language and apply safe digital practices in daily workplace activities.",
+      "trainerCertifications": [
+        "Certified Trainer",
+        "Cyber Security Awareness Specialist",
+        "Information Security Awareness Trainer",
+        "Corporate Compliance Trainer"
+      ],
+      "trainerWorkedWith": [
+        "Certified Trainer",
+        "Cyber Security Awareness Specialist",
+        "Information Security Awareness Trainer",
+        "Corporate Compliance Trainer"
+      ],
+      "hero": {
+        "backgroundImage": "/api/media/serve/1781253798716-atvcawn4-ChatGPT_Image_Jun_12_2026_02_12_58_PM.png",
+        "previewImage": "/api/media/serve/1781254631095-f1cpai5f-ChatGPT_Image_Jun_12_2026_02_27_00_PM.png",
+        "previewLabel": "Preview this Course",
+        "ratingCount": "4.5",
+        "studentsLabel": "599",
+        "language": "English",
+        "captions": "English [Auto]",
+        "lectureCount": "4 lectures",
+        "projects": "Cybersecurity Project",
+        "certificate": "Yes",
+        "access": "Lifetime",
+        "shareable": "Yes",
+        "moneyBackGuarantee": "Money-back assurance as per course policy.",
+        "enrollButtonLabel": "Enroll Now",
+        "wishlistButtonLabel": "Add to Wishlist",
+        "certificatePreviewImage": "/api/media/serve/1781500686146-ag5iq81x-Vikas_kaushal_page-0001.jpg",
+        "certificatePreviewLabel": "Certificate of attainment",
+        "aboutText": "This course helps employees understand common cyber security risks, especially phishing emails, fake links, suspicious attachments, and online scams. It teaches learners how to identify phishing attempts, protect sensitive information, follow safe digital practices, and report suspicious activity on time. The course is designed to build practical cyber awareness and reduce the risk of data loss, fraud, and workplace security breaches.",
+        "courseIncludes": [
+          "Phishing awareness and prevention.",
+          "Email safety and suspicious link detection",
+          "Password protection and account security.",
+          "Safe internet browsing practices.",
+          "Data protection and confidentiality basics.",
+          "How to identify fake websites and online scams.",
+          "Reporting suspicious emails or cyber incidents.",
+          "Practical examples and real-life scenarios"
+        ]
+      },
+      "instructorSection": {
+        "headline": "Course developed by Sustainable Future Trainings Expert",
+        "teamImage": "/api/media/serve/1781255261840-w09iy3ix-Untitled_design_3_.png",
+        "introParagraphs": [
+          "This course has been developed by the expert team at Sustainable Futures Trainings, with a focus on practical cyber security awareness for workplace users.\nOur training content is designed by professionals with experience in management systems, compliance, risk awareness, and corporate training delivery.\nThe course uses simple explanations, real-life examples, and practical guidance to help learners identify phishing attempts, avoid online scams, and follow safe digital practices.\nWith a learner-focused approach, Sustainable Futures Trainings helps organizations build stronger cyber awareness and reduce the risk of security incidents."
+        ],
+        "sidebarInstructors": [
+          {
+            "name": "Sustainable Futures Trainings Expert Team",
+            "role": "Course Development Team"
+          },
+          {
+            "name": "Cyber Security Awareness Trainer",
+            "role": "Phishing Awareness & Email Safety Expert"
+          },
+          {
+            "name": "Information Security Training Specialist",
+            "role": "Workplace Cyber Risk & Data Protection Expert"
+          },
+          {
+            "name": "Compliance Training Specialist",
+            "role": "Corporate Awareness & Risk Management Trainer"
+          }
+        ]
+      },
+      "tabLabels": {
+        "overview": "Overview",
+        "curriculum": "Course Content",
+        "instructor": "Instructor",
+        "reviews": "Reviews",
+        "qa": "Q&A"
+      },
+      "overviewSection": {
+        "aboutTitle": "About this Course",
+        "youWillLearnTitle": "You will learn to:",
+        "learnOutcomes": [
+          "Identify common types of phishing attacks, including email, SMS, voice, and fake website scams.",
+          "Recognize suspicious links, attachments, sender details, and warning signs in phishing messages.",
+          "Understand how phishing attacks can lead to data theft, financial loss, and security breaches.",
+          "Apply safe email, browsing, and password practices in daily workplace activities.",
+          "Protect confidential company, customer, and personal information from cyber threats.",
+          "Respond correctly when a suspicious email, link, or cyber incident is identified.",
+          "Report phishing attempts and security concerns through the appropriate internal process.",
+          "Build stronger cyber awareness habits to reduce human-error-related security risks."
+        ],
+        "whatYouLearnTitle": "What you'll learn",
+        "whatYouLearn": [
+          {
+            "title": "Phishing Awareness",
+            "description": "Understand what phishing is and how attackers use fake emails, links, messages, and websites to mislead users."
+          },
+          {
+            "title": "Email Safety",
+            "description": "Learn how to identify suspicious senders, unsafe attachments, fake login pages, and warning signs in emails."
+          },
+          {
+            "title": "Safe Browsing",
+            "description": "Recognize unsafe websites, fake forms, and risky links before entering personal or company information."
+          },
+          {
+            "title": "Password Protection",
+            "description": "Follow good password habits and understand the importance of strong passwords and multi-factor authentication."
+          },
+          {
+            "title": "Data Protection",
+            "description": "Learn how to protect company, customer, and personal information from cyber threats and unauthorized access."
+          },
+          {
+            "title": "Incident Reporting",
+            "description": "Understand what steps to take when you receive a suspicious email or identify a possible phishing attempt."
+          },
+          {
+            "title": "Real-Life Scenarios",
+            "description": "Practice awareness through common workplace examples of phishing, online scams, and cyber fraud."
+          },
+          {
+            "title": "Cyber Safety Habits",
+            "description": "Build daily digital safety habits to reduce human-error-related security risks in the workplace."
+          }
+        ],
+        "requirementsTitle": "What you'll learn Requirements",
+        "requirements": [
+          "No prior cyber security knowledge is required.",
+          "Basic understanding of email, internet browsing, and workplace digital tools is helpful.",
+          "Learners should have access to a computer, laptop, tablet, or mobile device.",
+          "A stable internet connection is recommended for smooth course access.",
+          "Willingness to learn safe digital practices and apply them in daily work."
+        ],
+        "faqSectionTitle": "Frequently Asked Question"
+      },
+      "reviewsSection": {
+        "learnersLoveTitle": "Leaner Love this Course",
+        "highlyRatedItems": [
+          "Practical and easy-to-understand training content",
+          "Real-life phishing examples and workplace scenarios",
+          "Clear guidance on email safety and suspicious link detection",
+          "Useful for employees across all departments and roles",
+          "Helps build stronger cyber security awareness habits",
+          "Simple language suitable for beginners and non-technical learners",
+          "Supports safer handling of company and customer information",
+          "Designed to reduce phishing risks and human-error-related incidents"
+        ],
+        "writeReviewTitle": "Write a Review",
+        "writeReviewSubtitle": "Your feedback helps us improve the course and guides future learners in making the right choice."
+      },
+      "qaSection": {
+        "title": "Q&A title",
+        "subtitle": "Have questions about the course? Browse common learner queries or ask your own question to get the right guidance.",
+        "askButtonLabel": "Ask a question",
+        "guidelines": [
+          "Ask questions clearly and respectfully.",
+          "Use professional and polite language in all discussions.",
+          "Do not share personal passwords, login details, or confidential company information.",
+          "Avoid posting spam, promotional content, or unrelated messages.",
+          "Respect different opinions and learning levels of other participants.",
+          "Report suspicious links, unsafe content, or inappropriate comments.",
+          "Keep discussions focused on the course topic and learning objectives.",
+          "Support other learners by sharing helpful, accurate, and relevant responses."
+        ]
+      },
+      "learningSection": {
+        "brandLogoUrl": "/SF-WHITE-LOGO.PNG",
+        "accreditedBadgeLabel": "Accredited label",
+        "accreditedDescription": "Developed by Sustainable Futures Trainings to support practical workplace awareness and professional learning, with certification issued as per course policy.",
+        "certificationRuleText": "Learners will receive a course completion certificate after successfully completing all required lessons, assessments, and course activities as per the course completion criteria.",
+        "noVideoMessage": "Video not available for this lesson. Please continue with the provided learning content.",
+        "learningToolsTitle": "Learning tools",
+        "learningToolsHint": "Learning tools hint",
+        "markCompleteLabel": "Mark as complete",
+        "previousLabel": "Previous",
+        "nextLabel": "Next",
+        "defaultLessonAbout": "This lesson introduces the key concept of the topic in a simple and practical way. Learners will understand why it is important, how it applies in the workplace, and what actions they should follow to stay safe and responsible.",
+        "defaultLessonDescription": "In this lesson, learners will explore the main topic through simple explanations, practical examples, and workplace-focused guidance. The lesson is designed to help learners understand the risk, recognize safe and unsafe practices, and apply the correct actions in real-life situations.",
+        "defaultLearningOutcomes": [
+          "Understand the key concept covered in this lesson.",
+          "Recognize why the topic is important in the workplace.",
+          "Identify common risks, warning signs, and unsafe practices.",
+          "Apply the correct steps or actions in real-life work situations.",
+          "Follow safe, responsible, and professional practices related to the lesson topic.",
+          "Use the learning from this lesson to support better awareness and decision-making."
+        ]
+      },
+      "regionalPrices": [
+        {
+          "countryCode": "IN",
+          "price": "10,999",
+          "oldPrice": "9999"
+        }
+      ],
+      "organizationSeatPricing": [],
+      "curriculum": [
+        {
+          "title": "General Instructions for Candidate",
+          "items": [
+            {
+              "label": "Video — How to Use This Course & Navigation",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1781497227704-hnpehrig-video_completion_guide.mp4",
+              "lessonVideoSizeMb": 11.5,
+              "previewLimitMinutes": 2,
+              "lessonDurationMinutes": 3,
+              "description": "This introductory lesson explains how to navigate the course, access learning materials, complete module examinations, and track your progress. It helps learners understand the course structure and get the best learning experience.",
+              "about": "In this lesson, learners will receive an overview of the course layout, module sequence, learning resources, assessments, and certification requirements. It also explains how to use the platform features and successfully complete the training.",
+              "learningOutcomes": [
+                "Understand the structure of the course.",
+                "Learn how to navigate between modules and lessons.",
+                "Know how to access learning materials and resources.",
+                "Understand how module examinations work.",
+                "Learn the course completion and certification requirements.",
+                "Track learning progress effectively.",
+                "Use the platform features with confidence.",
+                "Prepare for a smooth and successful learning experience."
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Module 1:  What is Phishing?",
+          "items": [
+            {
+              "label": "Video — What is Phishing? Course Overview and Learning Outcomes",
+              "kind": "video",
+              "previewLimitMinutes": 15,
+              "lessonDurationMinutes": 16,
+              "videoUrl": "/api/media/serve/1781497794695-0q32n87v-V1.mp4",
+              "lessonVideoSizeMb": 157.3,
+              "description": "This lesson introduces the concept of phishing and explains how attackers use fake emails, links, websites, and messages to trick users into sharing sensitive information. Learners will understand the purpose of the module, the key risks linked with phishing, and the learning outcomes they are expected to achieve.",
+              "about": "In this lesson, learners will understand what phishing means, how attackers use fake emails, links, websites, and messages to trick users, and why phishing awareness is important in the workplace. The lesson also introduces the learning outcomes of the module and prepares learners to recognize suspicious communication more confidently.",
+              "learningOutcomes": [
+                "Define phishing in simple terms.",
+                "Understand how phishing attacks are commonly carried out.",
+                "Recognize that attackers may impersonate trusted organizations or individuals.",
+                "Identify why phishing emails, links, and fake websites can look genuine.",
+                "Understand the role of urgency, fear, and attractive offers in phishing attempts.",
+                "Recognize the possible risks of falling for phishing attacks.",
+                "Understand the importance of careful online behavior.",
+                "Prepare for the upcoming lessons on phishing identification and prevention."
+              ]
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam",
+              "examPassingScorePercent": 70,
+              "examUploadUrl": "/api/media/serve/1781497847113-e4d57962-Untitled_spreadsheet_-_moduoe_1.csv",
+              "description": "This module examination is designed to assess learners’ understanding of phishing basics, common phishing techniques, warning signs, and safe response practices. Learners must complete the exam and achieve the required passing score to successfully complete this module."
+            }
+          ]
+        },
+        {
+          "title": "Anatomy of a Phishing Email",
+          "items": [
+            {
+              "label": "Video — Anatomy of a Phishing Email: Key Principles and Terminology",
+              "kind": "video",
+              "previewLimitMinutes": 14,
+              "lessonDurationMinutes": 15,
+              "videoUrl": "/api/media/serve/1781498103328-vbjanmd7-V2.mp4",
+              "lessonVideoSizeMb": 59.3,
+              "description": "This lesson explains the main parts of a phishing email and how attackers design messages to appear genuine. Learners will understand common phishing email elements such as sender details, subject lines, greetings, message content, suspicious links, attachments, and urgent calls to action.",
+              "about": "In this lesson, learners will explore the structure of a phishing email and understand how each part is used to mislead the recipient. The lesson explains how attackers impersonate trusted organizations, create urgency, and use fake links or attachments to make users click, respond, or share sensitive information.",
+              "learningOutcomes": [
+                "In this lesson, learners will explore the structure of a phishing email and understand how each part is used to mislead the recipient. The lesson explains how attackers impersonate trusted organizations, create urgency, and use fake links or attachments to make users click, respond, or share sensitive information."
+              ]
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam",
+              "examPassingScorePercent": 70,
+              "examUploadUrl": "/api/media/serve/1781498151015-m27bjf3j-Untitled_spreadsheet_-_module_2.csv"
+            }
+          ]
+        },
+        {
+          "title": "Scenario-based Lesson",
+          "items": [
+            {
+              "label": "Scenario-based Lesson",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1781498214015-aouwrpwt-V3.mp4",
+              "lessonVideoSizeMb": 74.4,
+              "previewLimitMinutes": 14,
+              "lessonDurationMinutes": 15,
+              "description": "This lesson explains five quick verification checks that learners should follow before clicking links, opening attachments, or responding to suspicious emails. It helps learners identify phishing warning signs such as fake sender addresses, unexpected attachments, spelling errors, urgent language, and unsafe links.",
+              "about": "This lesson explains five quick verification checks that learners should follow before clicking links, opening attachments, or responding to suspicious emails. It helps learners identify phishing warning signs such as fake sender addresses, unexpected attachments, spelling errors, urgent language, and unsafe links.",
+              "learningOutcomes": [
+                "Identify suspicious sender names and email addresses.",
+                "Recognize unexpected or risky attachments from unknown sources.",
+                "Detect spelling mistakes, grammar errors, and unusual message formatting.",
+                "Understand how urgent or threatening language is used in phishing emails.",
+                "Learn how to hover over links to check the actual destination URL.",
+                "Apply five quick verification checks before clicking or responding.",
+                "Avoid opening suspicious links, files, or requests without confirmation.",
+                "Improve daily email security awareness and safe decision-making."
+              ]
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam",
+              "examPassingScorePercent": 70,
+              "examUploadUrl": "/api/media/serve/1781498400864-pw5t1quo-module_phishing_quick_checks_questions_1.csv",
+              "description": "This module examination assesses learners’ understanding of the five quick checks used to identify phishing emails. It tests whether learners can verify sender details, identify suspicious attachments, recognize urgent or threatening language, check links safely, and take the correct action before clicking or responding."
+            }
+          ]
+        },
+        {
+          "title": "Video Lesson Overview",
+          "items": [
+            {
+              "label": "Video — Phishing Response: Roles, Responsibilities and Defence Strategies",
+              "kind": "video",
+              "videoUrl": "/api/media/serve/1781498478230-z6o1qhb7-V4.mp4",
+              "lessonVideoSizeMb": 58.7,
+              "lessonDurationMinutes": 16,
+              "previewLimitMinutes": 15,
+              "description": "This lesson explains how organizations should respond to phishing attacks through clear roles, responsibilities, and coordinated defence actions. Learners will understand how leadership, IT security teams, managers, employees, HR, and legal teams contribute to phishing detection, reporting, containment, communication, and prevention.",
+              "about": "In this lesson, learners will explore phishing as a social engineering threat and understand why a fast and organized response is important. The lesson explains the role of key stakeholders such as the CEO, CISO, IT security team, managers, employees, HR, and legal teams. It also introduces the incident response lifecycle and common preventive controls such as awareness training, email filtering, multi-factor authentication, and phishing simulations.",
+              "learningOutcomes": [
+                "Understand phishing as a social engineering and cyber security threat.",
+                "Recognize the importance of rapid detection, reporting, and containment.",
+                "Identify the role of leadership in phishing incident response.",
+                "Understand the responsibilities of the CISO and IT security team.",
+                "Recognize employees as the first line of defence against phishing.",
+                "Understand how managers support communication and coordination during incidents.",
+                "Identify the role of HR and legal teams in compliance and internal communication.",
+                "Understand the basic phishing incident response lifecycle.",
+                "Recognize preventive measures such as email filtering, MFA, awareness training, and simulations.",
+                "Apply coordinated response practices to reduce phishing-related risks."
+              ]
+            },
+            {
+              "label": "Module examination",
+              "kind": "exam",
+              "examUploadUrl": "/api/media/serve/1781503520205-0o9z2q4q-module_phishing_quick_checks_questions.csv"
+            }
+          ]
+        }
+      ],
+      "certificateConfig": {
+        "enabled": true,
+        "provider": "api",
+        "showInLearnerDashboard": true,
+        "autoVisibleWhenReady": true,
+        "requireAdminApproval": false,
+        "templateImage": "/api/media/serve/1781500493102-vyvhmj3x-A4.png",
+        "badgeImage": "/api/media/serve/1781500553481-nt52wht7-Copy_of_badge_-_iso_45001_lv_1_.png",
+        "transcriptFile": "/api/media/serve/1781500506185-3oqljd7i-A4_2_.png"
+      }
     }
   ],
   "categories": [
@@ -1524,93 +1899,7 @@
       "tone": "violet"
     }
   ],
-  "categoryPages": {
-    "esg": {
-      "heroImage": "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=1600&q=80",
-      "heroSubtitle": "",
-      "hiddenCourseSlugs": [],
-      "instructors": [
-        {
-          "name": "Priya Nair",
-          "role": "Lead Auditor",
-          "years": "14+ Years Exp",
-          "photo": "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=240&h=240&q=80"
-        },
-        {
-          "name": "Daniel Brooks",
-          "role": "Quality Consultant",
-          "years": "12+ Years Exp",
-          "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&h=240&q=80"
-        },
-        {
-          "name": "Ananya Rao",
-          "role": "Compliance Lead",
-          "years": "10+ Years Exp",
-          "photo": "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=240&h=240&q=80"
-        }
-      ],
-      "levelFilters": [
-        {
-          "value": "",
-          "label": "All levels"
-        },
-        {
-          "value": "student",
-          "label": "Student level"
-        },
-        {
-          "value": "orator",
-          "label": "Orator level"
-        },
-        {
-          "value": "industry",
-          "label": "Industry level"
-        },
-        {
-          "value": "consultant",
-          "label": "Consultant level"
-        },
-        {
-          "value": "officer",
-          "label": "Officer level"
-        },
-        {
-          "value": "vacant",
-          "label": "Vacant"
-        }
-      ],
-      "whyLearn": [
-        {
-          "label": "Recognized Programs",
-          "desc": "Credentials employers and auditors respect.",
-          "tone": "amber",
-          "icon": "ScrollText",
-          "quote": ""
-        },
-        {
-          "label": "Practical Skills",
-          "desc": "Apply concepts immediately at work.",
-          "tone": "emerald",
-          "icon": "Award",
-          "quote": ""
-        },
-        {
-          "label": "Career Growth",
-          "desc": "Stand out in hiring and promotions.",
-          "tone": "blue",
-          "icon": "Users",
-          "quote": ""
-        },
-        {
-          "label": "Expert-Led",
-          "desc": "Learn from practitioners in the field.",
-          "tone": "violet",
-          "icon": "BookOpen",
-          "quote": ""
-        }
-      ]
-    }
-  },
+  "categoryPages": {},
   "coursesPage": {
     "hero": {
       "badgeText": "NEW PROGRAM",
@@ -1845,32 +2134,38 @@
       {
         "quote": "The content is practical and easy to follow. I could apply what I learned immediately in daily work.",
         "name": "Rohan Verma",
-        "role": "Security Professional"
+        "role": "Security Professional",
+        "courseBadge": "Cyber Security Essentials"
       },
       {
         "quote": "Live sessions and assignments helped me build confidence with real scenarios, not just theory.",
         "name": "Priya Rao",
-        "role": "Data Analyst"
+        "role": "Data Analyst",
+        "courseBadge": "ESG Reporting & Compliance"
       },
       {
         "quote": "Great mentorship and structured learning path. The certification gave my profile a strong boost.",
         "name": "Aman Kumar",
-        "role": "Cloud Engineer"
+        "role": "Cloud Engineer",
+        "courseBadge": "Advanced Cyber Security Professional"
       },
       {
         "quote": "Clear modules, supportive trainers, and strong outcomes. One of the best learning platforms I used.",
         "name": "Neha Sharma",
-        "role": "Program Coordinator"
+        "role": "Program Coordinator",
+        "courseBadge": "ESG Management Development"
       },
       {
         "quote": "The trainer-led sessions were highly practical. I improved my process audit skills and could apply them at work immediately.",
         "name": "Vikram Singh",
-        "role": "Quality Specialist"
+        "role": "Quality Specialist",
+        "courseBadge": "HACCP Food Safety (Level 2)"
       },
       {
         "quote": "Excellent balance of self-paced modules and live expert guidance. The certifications added real value to my profile.",
         "name": "Sneha Iyer",
-        "role": "Compliance Analyst"
+        "role": "Compliance Analyst",
+        "courseBadge": "Workplace Compliance Program"
       }
     ],
     "individualPlans": [
@@ -1966,7 +2261,17 @@
       "/p7.png",
       "/p8.png"
     ],
-    "faqImage": "https://res.cloudinary.com/dwnnakrrh/image/upload/v1779337638/Untitled_design_1_zdyxfv.png"
+    "faqImage": "https://res.cloudinary.com/dwnnakrrh/image/upload/v1779337638/Untitled_design_1_zdyxfv.png",
+    "faqPage": {
+      "badge": "FAQ",
+      "title": "Frequently Asked Questions",
+      "subtitle": "Find quick answers to common questions about programs, enrollment, and certificates."
+    },
+    "testimonialsPage": {
+      "badge": "What Our Learners Say",
+      "title": "What Our Learners Say",
+      "subtitle": "Real experiences from professionals who have advanced their skills with our training programs."
+    }
   },
   "aboutPage": {
     "hero": {
@@ -2406,7 +2711,7 @@
         },
         {
           "q": "Will I get a certificate?",
-          "a": "Yes. Upon successful completion of all live sessions and assessments, you receive a personalized, IEB-accredited Certificate of Attainment with a unique certificate number and QR code for online verification."
+          "a": "Yes, upon successful completion you receive an industry-recognized Certificate of Attainment."
         },
         {
           "q": "Is this course beginner-friendly?",
@@ -2426,243 +2731,83 @@
       "learnerHeroSrc": "/h2.png",
       "learnerHeroAlt": "Your live cohort dashboard",
       "priceAfterPayment": 12999,
-      "learningMaterials": [
-        {
-          "id": "demo-pad-1",
-          "kind": "pad-notes",
-          "title": "Live session scratchpad",
-          "downloadUrl": "/uploads/demo/session-notes.pdf"
-        },
-        {
-          "id": "demo-ppt-1",
-          "kind": "ppt",
-          "title": "Week 1 — Introduction slides",
-          "downloadUrl": "/uploads/demo/week-1-slides.pptx"
-        },
-        {
-          "id": "demo-web-1",
-          "kind": "webbook",
-          "title": "Course workbook (PDF)",
-          "downloadUrl": "/uploads/demo/course-workbook.pdf"
-        }
-      ]
-    },
-    {
-      "slug": "new-live-1779168065766",
-      "published": false,
-      "title": "New live program",
-      "subtitle": "Join live interactive sessions with industry experts on Zoom and master in-demand cybersecurity skills through hands-on learning.",
-      "breadcrumb": [
-        "Home",
-        "Live Trainings",
-        "Tutor Led Training"
-      ],
-      "badge": "TUTOR LED TRAINING",
-      "price": 12999,
-      "originalPrice": 18999,
-      "discount": "31% OFF",
-      "batchLabel": "Upcoming Live Batch",
-      "seatsFilling": true,
-      "seatsLeft": 18,
-      "trainer": {
-        "name": "Mr. Arvind Rao",
-        "role": "Cyber Security Expert & Trainer",
-        "experience": "12+ Years of Experience",
-        "bio": "12+ years of experience in cybersecurity, ethical hacking, and information security. Worked with top MNCs and trained more than 15,000+ professionals worldwide.",
-        "certifications": [
-          "CEH Certified",
-          "CISSP Certified",
-          "OSCP Certified"
-        ],
-        "workedWith": [
-          "IBM",
-          "Deloitte",
-          "Infosys",
-          "KPMG",
-          "WIPRO"
-        ],
-        "avatar": "/trainer-avatar.png"
-      },
-      "nextBatchDate": "15 June 2024",
-      "schedule": "Tue, Thu, Sat (7:00 PM - 9:00 PM IST)",
-      "language": "English",
-      "countdown": {
-        "days": 5,
-        "hours": 12,
-        "mins": 45,
-        "secs": 30
-      },
-      "liveJoinUrl": "",
-      "zoomMeetingId": "",
-      "zoomPasscode": "",
-      "batchDetails": [
-        {
-          "icon": "Clock",
-          "label": "Duration",
-          "value": "12 Weeks"
-        },
-        {
-          "icon": "Calendar",
-          "label": "Live Sessions",
-          "value": "Tue, Thu, Sat (7:00 PM - 9:00 PM IST)"
-        },
-        {
-          "icon": "Monitor",
-          "label": "Platform",
-          "value": "Zoom (Live Interactive)"
-        },
-        {
-          "icon": "Video",
-          "label": "Recording Access",
-          "value": "Lifetime access to recordings"
-        },
-        {
-          "icon": "Award",
-          "label": "Certification",
-          "value": "IEB-Accredited Certificate of Attainment"
-        }
-      ],
-      "features": [
-        {
-          "icon": "Mic",
-          "title": "Live Expert Training",
-          "desc": "Learn directly from industry experts"
-        },
-        {
-          "icon": "MessageCircle",
-          "title": "Public Discussion",
-          "desc": "Clarify doubts and share knowledge"
-        },
-        {
-          "icon": "Users",
-          "title": "Peer Interaction",
-          "desc": "Engage with fellow learners"
-        },
-        {
-          "icon": "Handshake",
-          "title": "Peer Learning",
-          "desc": "Collaborate and grow together"
-        },
-        {
-          "icon": "Video",
-          "title": "Session Recordings",
-          "desc": "Watch anytime, revise at your convenience"
-        },
-        {
-          "icon": "Shield",
-          "title": "Certificates",
-          "desc": "IEB-accredited Certificate of Attainment with QR verification"
-        }
-      ],
-      "highlights": [
-        "Live interactive sessions on Zoom",
-        "Real-time doubt solving",
-        "Hands-on labs & practical demos",
-        "Industry-based case studies",
-        "IEB-accredited Certificate of Attainment",
-        "Career guidance & support"
-      ],
-      "curriculum": [
-        {
-          "week": 1,
-          "label": "Module 1",
-          "topic": "Introduction to Cybersecurity",
-          "keyLearning": "Security fundamentals, threats & attack vectors",
-          "sessionType": "Live Lecture"
-        },
-        {
-          "week": 2,
-          "label": "Module 2",
-          "topic": "Network Security",
-          "keyLearning": "Firewalls, IDS/IPS, VPN, network monitoring",
-          "sessionType": "Live + Hands-on"
-        },
-        {
-          "week": 3,
-          "label": "Module 3",
-          "topic": "Practical Tools",
-          "keyLearning": "Industry tools for scanning & enumeration",
-          "sessionType": "Live + Lab"
-        },
-        {
-          "week": 4,
-          "label": "Module 4",
-          "topic": "Web Application Security",
-          "keyLearning": "OWASP Top 10, SQL injection, XSS",
-          "sessionType": "Live + Hands-on"
-        },
-        {
-          "week": 5,
-          "label": "Module 5",
-          "topic": "Incident Response",
-          "keyLearning": "Detection, containment & recovery",
-          "sessionType": "Live Workshop"
-        },
-        {
-          "week": 6,
-          "label": "Final Project",
-          "topic": "Capstone Project & Presentation",
-          "keyLearning": "Real-world project, review & feedback session",
-          "sessionType": "Live + Review"
-        }
-      ],
-      "whyChoose": [
-        {
-          "icon": "Rocket",
-          "title": "Live Learning Experience",
-          "desc": "Engage in real-time with expert trainers and peers"
-        },
-        {
-          "icon": "Brain",
-          "title": "Practical Cybersecurity Skills",
-          "desc": "Hands-on labs and real-world security scenarios"
-        },
-        {
-          "icon": "UserRound",
-          "title": "Real Trainer Support",
-          "desc": "Get doubts cleared directly by industry experts"
-        },
-        {
-          "icon": "TrendingUp",
-          "title": "Career Improvement",
-          "desc": "Build in-demand skills and boost your career"
-        },
-        {
-          "icon": "Users",
-          "title": "Interactive Community",
-          "desc": "Learn and grow with fellow cybersecurity professionals"
-        }
-      ],
-      "faqs": [
-        {
-          "q": "Who is this course for?",
-          "a": "IT professionals, security analysts, network admins, and anyone looking to start or advance in cybersecurity."
-        },
-        {
-          "q": "Will I get a certificate?",
-          "a": "Yes. Upon successful completion of all live sessions and assessments, you receive a personalized, IEB-accredited Certificate of Attainment with a unique certificate number and QR code for online verification."
-        },
-        {
-          "q": "Is this course beginner-friendly?",
-          "a": "Yes. We start from fundamentals and build up to advanced topics with live trainer support."
-        },
-        {
-          "q": "Will recordings be provided?",
-          "a": "Yes. All live sessions are recorded and available for lifetime access in My Learning."
-        },
-        {
-          "q": "How will the live classes be conducted?",
-          "a": "Classes run on Zoom with screen share, live Q&A, polls, and breakout activities."
-        }
-      ],
-      "heroSrc": "/h1.png",
-      "heroAlt": "Live interactive sessions with expert trainer",
-      "learnerHeroSrc": "/h2.png",
-      "learnerHeroAlt": "Your live cohort dashboard",
-      "priceAfterPayment": 12999,
-      "learningMaterials": [],
-      "curriculumMode": "auto",
-      "zoomLinkMode": "manual"
+      "learningMaterials": []
     }
-  ]
+  ],
+  "globalCertificateAssets": {
+    "templateImage": "/api/media/serve/1779901022545-gvx9lroc-advanced_food_fraud.pdf_1_-1.png",
+    "badgeImage": "/api/media/serve/1779901040858-07mxz27u-Copy_of_badge_-_iso_45001_lv.png",
+    "transcriptFile": "/api/media/serve/1779901026429-h89dhjll-advanced_food_fraud.pdf_1_-2.png"
+  },
+  "organizationTeam": {
+    "defaultPlanId": "monthly-premium",
+    "learningRuleTemplate": "{seats} employees can learn any course on your plan. Each employee may be assigned to more than one course.",
+    "plans": [
+      {
+        "id": "monthly-premium",
+        "name": "Monthly Premium",
+        "tagline": "Up to 20 employees — any course, billed monthly",
+        "defaultSeatLimit": 20,
+        "minSeatLimit": 1,
+        "maxSeatLimit": 50,
+        "seatLimitConfigurable": true,
+        "anyCourseAccess": true,
+        "billingLabel": "Monthly",
+        "priceLabel": "Per seat",
+        "billingSuffix": "/ month",
+        "priceNote": "20 employees · any course · multiple courses per person",
+        "features": [
+          "Up to 20 employees can learn (seat count adjustable in admin)",
+          "Full catalog — any self-paced or tutor-led course",
+          "Each employee may take multiple courses",
+          "Team progress, assignments, and certificates",
+          "Monthly billing"
+        ],
+        "published": true
+      },
+      {
+        "id": "early-program",
+        "name": "Early Program",
+        "tagline": "50+ employees — full catalog, annual early access",
+        "defaultSeatLimit": 50,
+        "minSeatLimit": 50,
+        "maxSeatLimit": 200,
+        "seatLimitConfigurable": true,
+        "anyCourseAccess": true,
+        "billingLabel": "Annual · Early access",
+        "priceLabel": "Annual early access",
+        "priceNote": "50+ employees · full catalog",
+        "features": [
+          "50+ employees (adjustable for larger teams)",
+          "Any course in the catalog for every seat",
+          "Each employee may enroll in multiple programs",
+          "Organisation reporting and compliance tracking",
+          "Priority onboarding support"
+        ],
+        "highlighted": true,
+        "published": true
+      },
+      {
+        "id": "premium-package",
+        "name": "Premium Package",
+        "tagline": "124 employees — unlimited catalog access",
+        "defaultSeatLimit": 124,
+        "minSeatLimit": 50,
+        "maxSeatLimit": 500,
+        "seatLimitConfigurable": true,
+        "anyCourseAccess": true,
+        "billingLabel": "Annual · Premium",
+        "priceLabel": "Annual premium",
+        "priceNote": "124 employees · any course in catalog",
+        "features": [
+          "Up to 124 employees can learn any course",
+          "Full catalog including specialist programs",
+          "Multiple courses per employee",
+          "Advanced team reports and calendar",
+          "Dedicated account support"
+        ],
+        "published": true
+      }
+    ]
+  }
 }

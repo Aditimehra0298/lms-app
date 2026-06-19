@@ -54,17 +54,12 @@ export default function ForgotPasswordForm({ accountType, onBackToLogin, onSucce
       const data = (await res.json()) as {
         ok?: boolean;
         message?: string;
-        devCode?: string;
       };
       if (!data.ok) {
         setError(data.message ?? "Could not send reset code.");
         return;
       }
-      setMessage(
-        data.devCode
-          ? `Dev code: ${data.devCode}`
-          : (data.message ?? "Check your email for the reset code."),
-      );
+      setMessage(data.message ?? "Check your email for the reset code.");
       setStep("reset");
       setResendIn(RESEND_SECONDS);
     } catch {

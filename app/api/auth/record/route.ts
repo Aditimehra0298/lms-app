@@ -16,6 +16,7 @@ import { registrationPeriodFromDate } from "@/lib/registration-ids";
 import { ensureOrganizationProfile } from "@/lib/server/organization-identification";
 import { ensureUserIdentificationNumber } from "@/lib/server/user-identification";
 import { getClientIps } from "@/lib/request-ip";
+import { queueWelcomeEmail } from "@/lib/welcome-email-service";
 
 export const dynamic = "force-dynamic";
 
@@ -146,22 +147,29 @@ export async function POST(request: Request) {
             }
           : {}),
       },
-      update: {
-        name: userFields.name ?? undefined,
-        accountType: userFields.accountType ?? undefined,
-        avatarUrl: userFields.avatarUrl ?? undefined,
-        phone: userFields.phone ?? undefined,
-        companyName: userFields.companyName ?? undefined,
-        personalEmail: userFields.personalEmail ?? undefined,
-        industryType: userFields.industryType ?? undefined,
-        companySize: userFields.companySize ?? undefined,
-        ipv4: ips.ipv4 ?? undefined,
-        ipv6: ips.ipv6 ?? undefined,
-        ...countryFields,
-        ...(passwordHash ? { passwordHash } : {}),
-        lastLoginAt: new Date(),
-        emailVerifiedAt: action === "register" ? new Date() : undefined,
-      },
+      update:
+        action === "login"
+          ? {
+              ipv4: ips.ipv4 ?? undefined,
+              ipv6: ips.ipv6 ?? undefined,
+              lastLoginAt: new Date(),
+            }
+          : {
+              name: userFields.name ?? undefined,
+              accountType: userFields.accountType ?? undefined,
+              avatarUrl: userFields.avatarUrl ?? undefined,
+              phone: userFields.phone ?? undefined,
+              companyName: userFields.companyName ?? undefined,
+              personalEmail: userFields.personalEmail ?? undefined,
+              industryType: userFields.industryType ?? undefined,
+              companySize: userFields.companySize ?? undefined,
+              ipv4: ips.ipv4 ?? undefined,
+              ipv6: ips.ipv6 ?? undefined,
+              ...countryFields,
+              ...(passwordHash ? { passwordHash } : {}),
+              lastLoginAt: new Date(),
+              emailVerifiedAt: action === "register" ? new Date() : undefined,
+            },
     });
     dbSaved = true;
     if (action === "register" && registrationPeriod) {
@@ -234,6 +242,15 @@ export async function POST(request: Request) {
   }
 
   const userProfile = dbSaved ? await fetchLmsUserProfile(email) : null;
+
+  if (action === "register" && dbSaved && !existing && !isAdminEmail(email)) {
+    queueWelcomeEmail({
+      email,
+      learnerName: userProfile?.name ?? userFields.name,
+      method: "email",
+      accountType: userProfile?.accountType ?? accountType ?? null,
+    });
+  }
 
   return NextResponse.json({
     ok: true,

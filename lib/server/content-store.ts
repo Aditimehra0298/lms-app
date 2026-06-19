@@ -1,13 +1,18 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { cache } from "react";
+import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
+import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import {
   AdminContent,
   defaultAdminContent,
+  type ManagedCourse,
   defaultAboutPageConfig,
   defaultCoursesPageConfig,
   defaultHomePageConfig,
   type AboutPageTeamLevel,
 } from "@/lib/content-schema";
+import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
 
 const contentFilePath = path.join(process.cwd(), "data", "admin-content.json");
 
@@ -47,20 +52,44 @@ function migrateAboutPage(cfg: ReturnType<typeof Object.assign>) {
   return cfg;
 }
 
-export async function readAdminContent(): Promise<AdminContent> {
+/** Sanitize per-course certificate config (template, badge, transcript per course/program). */
+function migrateManagedCourses(courses: ManagedCourse[]): ManagedCourse[] {
+  return courses.map((c) => ({
+    ...c,
+    certificateConfig: sanitizeCertificateConfig(c.certificateConfig),
+  }));
+}
+
+function migrateTutorLedPrograms(programs: TutorLedProgramStored[]): TutorLedProgramStored[] {
+  return programs.map((p) => ({
+    ...p,
+    certificateConfig: sanitizeCertificateConfig(p.certificateConfig),
+  }));
+}
+
+async function readAdminContentFromDisk(): Promise<AdminContent> {
   await ensureContentFile();
   const raw = await fs.readFile(contentFilePath, "utf8");
   try {
     const parsed = JSON.parse(raw) as AdminContent;
     return {
-      dashboard: parsed.dashboard ?? defaultAdminContent.dashboard,
+      dashboard: {
+        ...defaultAdminContent.dashboard,
+        ...(parsed.dashboard ?? {}),
+        calendarReminders: Array.isArray(parsed.dashboard?.calendarReminders)
+          ? parsed.dashboard.calendarReminders
+          : defaultAdminContent.dashboard.calendarReminders ?? [],
+        communityConnect: Array.isArray(parsed.dashboard?.communityConnect)
+          ? parsed.dashboard.communityConnect
+          : defaultAdminContent.dashboard.communityConnect ?? [],
+      },
       learningCourses:
         parsed.learningCourses && parsed.learningCourses.length > 0
           ? parsed.learningCourses
           : defaultAdminContent.learningCourses,
       managedCourses:
         parsed.managedCourses && parsed.managedCourses.length > 0
-          ? parsed.managedCourses
+          ? migrateManagedCourses(parsed.managedCourses)
           : defaultAdminContent.managedCourses,
       categories: Array.isArray(parsed.categories)
         ? parsed.categories
@@ -80,13 +109,21 @@ export async function readAdminContent(): Promise<AdminContent> {
         : defaultAboutPageConfig,
       tutorLedPrograms:
         Array.isArray(parsed.tutorLedPrograms) && parsed.tutorLedPrograms.length > 0
-          ? parsed.tutorLedPrograms
+          ? migrateTutorLedPrograms(parsed.tutorLedPrograms)
           : defaultAdminContent.tutorLedPrograms,
+      globalCertificateAssets:
+        parsed.globalCertificateAssets && typeof parsed.globalCertificateAssets === "object"
+          ? parsed.globalCertificateAssets
+          : undefined,
+      organizationTeam: mergeOrganizationTeamAdminConfig(parsed.organizationTeam),
     };
   } catch {
     return defaultAdminContent;
   }
 }
+
+/** One disk read per server request (deduped across parallel catalog calls). */
+export const readAdminContent = cache(readAdminContentFromDisk);
 
 export async function writeAdminContent(content: AdminContent): Promise<void> {
   await ensureContentFile();

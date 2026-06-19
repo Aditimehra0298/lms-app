@@ -68,7 +68,7 @@ export default function CartPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="cart-page min-h-screen bg-[#0a0a0a] text-white">
       <main className="mx-auto max-w-[1760px] px-4 py-6 md:px-6 xl:px-8">
         <p className="text-xs text-gray-400">
           Home <span className="mx-2">›</span> Cart

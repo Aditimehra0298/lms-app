@@ -1,4 +1,7 @@
-import type { ManagedCourse, ManagedCourseCertificateConfig } from "@/lib/content-schema";
+import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
+import type { ManagedCourse } from "@/lib/content-schema";
+
+export type { ManagedCourseCertificateConfig };
 
 export function sanitizeCertificateConfig(
   raw: ManagedCourseCertificateConfig | undefined,
@@ -9,20 +12,25 @@ export function sanitizeCertificateConfig(
         .filter((d) => d && typeof d === "object" && d.title?.trim() && d.url?.trim())
         .map((d) => ({ title: d.title.trim(), url: d.url.trim() }))
     : [];
-  const provider = raw.provider === "builtin" || raw.provider === "n8n" ? raw.provider : undefined;
+  /** Certificate generator API (env CERTIFICATE_GENERATOR_API_URL) — per-course templates from admin. */
+  const provider: ManagedCourseCertificateConfig["provider"] =
+    raw.provider === "builtin" ? "builtin" : "api";
   const out: ManagedCourseCertificateConfig = {
     enabled: raw.enabled !== false,
     provider,
-    n8nWebhookUrl: raw.n8nWebhookUrl?.trim(),
     showInLearnerDashboard: raw.showInLearnerDashboard !== false,
-    autoVisibleWhenReady: raw.autoVisibleWhenReady !== false,
-    requireAdminApproval: raw.requireAdminApproval === true,
+    autoVisibleWhenReady: raw.autoVisibleWhenReady === true,
+    requireAdminApproval: raw.requireAdminApproval !== false,
     title: raw.title?.trim(),
-    templateImage: raw.templateImage?.trim(),
-    badgeImage: raw.badgeImage?.trim(),
+    templateImage: raw.templateImage?.trim() || undefined,
+    badgeImage: raw.badgeImage?.trim() || undefined,
+    transcriptFile: raw.transcriptFile?.trim() || undefined,
     nameTopPercent: clampPercent(raw.nameTopPercent),
     numberTopPercent: clampPercent(raw.numberTopPercent),
     dateTopPercent: clampPercent(raw.dateTopPercent),
+    overlayCourseTitle: raw.overlayCourseTitle,
+    overlayScore: raw.overlayScore,
+    overlayBadge: raw.overlayBadge,
     supplementaryDocs: docs.length > 0 ? docs : undefined,
   };
   return Object.keys(out).some((k) => out[k as keyof ManagedCourseCertificateConfig] !== undefined)
@@ -39,8 +47,20 @@ export function patchCertificateConfig(
   draft: ManagedCourse,
   patch: Partial<ManagedCourseCertificateConfig>,
 ): ManagedCourse {
+  const merged = { ...(draft.certificateConfig ?? {}), ...patch };
   return {
     ...draft,
-    certificateConfig: { ...(draft.certificateConfig ?? {}), ...patch },
+    certificateConfig: sanitizeCertificateConfig(merged) ?? merged,
+  };
+}
+
+export function patchProgramCertificateConfig<T extends { certificateConfig?: ManagedCourseCertificateConfig }>(
+  draft: T,
+  patch: Partial<ManagedCourseCertificateConfig>,
+): T {
+  const merged = { ...(draft.certificateConfig ?? {}), ...patch };
+  return {
+    ...draft,
+    certificateConfig: sanitizeCertificateConfig(merged) ?? merged,
   };
 }

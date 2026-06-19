@@ -59,7 +59,19 @@ export function parseOrganizationCertificateNumber(value: string): CertificateNu
   };
 }
 
-export function parseAnyCertificateNumber(value: string): (CertificateNumberParts & { holderType: "individual" | "organisation" }) | null {
+export function parseAnyCertificateNumber(
+  value: string,
+): (CertificateNumberParts & { holderType: "individual" | "organisation" }) | null {
+  const sft = parseSftCertificateNumber(value);
+  if (sft) {
+    const mm = String(sft.month).padStart(2, "0");
+    return {
+      identificationNumber: sft.userIdentificationNumber,
+      monthYear: `${mm}-${sft.year}`,
+      sequence: sft.trainingSequence,
+      holderType: sft.holderType,
+    };
+  }
   const org = parseOrganizationCertificateNumber(value);
   if (org) return { ...org, holderType: "organisation" };
   const ind = parseCertificateNumber(value);
@@ -67,8 +79,55 @@ export function parseAnyCertificateNumber(value: string): (CertificateNumberPart
   return null;
 }
 
+export type SftCertificateNumberParts = {
+  year: number;
+  month: number;
+  courseIdentificationNumber: number;
+  trainingSequence: number;
+  userIdentificationNumber: number;
+  holderType: "individual" | "organisation";
+};
+
+/**
+ * Current format: {YYYY}-{MM}-{courseId}-{trainingId}/{userId}
+ * Example: 2026-05-101-001/123 (trainingId = issue sequence for that course in that month)
+ */
+export function formatSftCertificateNumber(parts: SftCertificateNumberParts): string {
+  const mm = String(parts.month).padStart(2, "0");
+  const trainingId = String(parts.trainingSequence).padStart(3, "0");
+  const userId =
+    parts.holderType === "organisation"
+      ? `${parts.userIdentificationNumber}-org`
+      : String(parts.userIdentificationNumber);
+  return `${parts.year}-${mm}-${parts.courseIdentificationNumber}-${trainingId}/${userId}`;
+}
+
+export function parseSftCertificateNumber(value: string): SftCertificateNumberParts | null {
+  const m = value.trim().match(/^(\d{4})-(\d{2})-(\d+)-(\d+)\/(\d+)(-org)?$/i);
+  if (!m) return null;
+  return {
+    year: parseInt(m[1], 10),
+    month: parseInt(m[2], 10),
+    courseIdentificationNumber: parseInt(m[3], 10),
+    trainingSequence: parseInt(m[4], 10),
+    userIdentificationNumber: parseInt(m[5], 10),
+    holderType: m[6] ? "organisation" : "individual",
+  };
+}
+
+export function sftCertificateNumberPrefix(
+  courseIdentificationNumber: number,
+  issuedAt: Date,
+): string {
+  const mm = String(issuedAt.getMonth() + 1).padStart(2, "0");
+  return `${issuedAt.getFullYear()}-${mm}-${courseIdentificationNumber}-`;
+}
+
 export function describeCertificateIdFormat(): string {
-  return `Individual: {id}/{MM-YYYY}/{issue#} (e.g. 101/05-2026/001). Organisation: {id}-org/{MM-YYYY}/{issue#} (e.g. 101-org/05-2026/001). IDs start at 101.`;
+  return (
+    "Current: {YYYY}-{MM}-{courseId}-{trainingId}/{userId} (e.g. 2026-05-101-001/123). " +
+    "Legacy individual: {id}/{MM-YYYY}/{issue#}. Organisation legacy: {id}-org/{MM-YYYY}/{issue#}."
+  );
 }
 
 export function describeOrganizationIdFormat(): string {

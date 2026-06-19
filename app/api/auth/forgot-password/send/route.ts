@@ -38,7 +38,6 @@ export async function POST(request: Request) {
       ok: true,
       message: result.message ?? GENERIC_OK,
       devLogged: result.devLogged,
-      devCode: result.devCode,
     });
   } catch (err) {
     console.error("[forgot-password/send]", err);

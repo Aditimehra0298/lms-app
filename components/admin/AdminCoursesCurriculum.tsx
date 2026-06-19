@@ -62,7 +62,6 @@ const TABS = [
   "Settings",
   "SEO",
   "Students",
-  "Certificates",
   "Publish",
 ] as const;
 
@@ -131,15 +130,9 @@ export default function AdminCoursesCurriculum() {
           </button>
           <button
             type="button"
-            className="rounded-lg border border-white/15 bg-[#0a1120] px-3 py-2 text-xs font-medium text-gray-200 hover:bg-white/5"
-          >
-            Save as Draft
-          </button>
-          <button
-            type="button"
             className="inline-flex items-center gap-1 rounded-lg bg-[#6f55ff] px-4 py-2 text-xs font-semibold text-white shadow-[0_0_20px_rgba(111,85,255,0.35)] hover:bg-[#7d63ff]"
           >
-            Publish Course
+            Save curriculum
             <ChevronDown className="h-3.5 w-3.5 opacity-80" />
           </button>
         </div>

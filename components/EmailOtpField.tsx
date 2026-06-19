@@ -69,13 +69,15 @@ export default function EmailOtpField({
         ok?: boolean;
         message?: string;
         devLogged?: boolean;
-        devCode?: string;
       };
       if (!data.ok) {
         notify(data.message ?? "Could not send OTP.", "error");
         return;
       }
-      notify(data.message ?? "OTP sent.", data.devCode ? "success" : data.devLogged ? "info" : "success");
+      notify(
+        data.message ?? "OTP sent.",
+        data.devLogged ? "info" : "success",
+      );
       setResendIn(RESEND_SECONDS);
     } catch {
       notify("Network error. Is the dev server running?", "error");

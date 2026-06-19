@@ -1,4 +1,9 @@
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { resolveTrainingDuration } from "@/lib/tutor-led-training-schedule";
+import {
+  getProgramTrainingDays,
+  isWorkshopProgram,
+} from "@/lib/workshop-program";
 
 /** Cart / checkout line item (stored in `sft_cart`). */
 export type ShopCartItem = {
@@ -7,8 +12,8 @@ export type ShopCartItem = {
   price: string;
   image?: string;
   qty: number;
-  /** Live programs from Admin → Tutor Led vs catalog managed courses */
-  deliveryKind?: "managed" | "tutor-led";
+  /** Live programs from Admin → Tutor Led vs one-day workshops vs catalog courses */
+  deliveryKind?: "managed" | "tutor-led" | "workshop";
   learningModules?: number;
   learningDuration?: string;
   learningTone?: string;
@@ -30,15 +35,14 @@ export function applyTutorLedShopMeta(
 ): ShopCartItem {
   const program = tutorLedProgramBySlug(programs, item.slug);
   if (!program) return item;
-  const modules = Math.max(1, program.curriculum.length * 5);
-  const durationFromDetail = program.batchDetails?.find((d) => d.label === "Duration")?.value;
+  const workshop = isWorkshopProgram(program);
   return {
     ...item,
-    deliveryKind: "tutor-led",
-    learningModules: modules,
-    learningDuration: durationFromDetail?.trim() || "Live cohort",
-    learningTone: "amber",
-    learningAction: "Continue",
+    deliveryKind: workshop ? "workshop" : "tutor-led",
+    learningModules: getProgramTrainingDays(program),
+    learningDuration: workshop ? "1 Day" : resolveTrainingDuration(program),
+    learningTone: workshop ? "rose" : "amber",
+    learningAction: workshop ? "Join workshop" : "Continue",
     image: item.image || program.heroSrc,
   };
 }

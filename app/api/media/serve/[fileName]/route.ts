@@ -1,16 +1,40 @@
 import { stat } from "node:fs/promises";
+import { createReadStream } from "node:fs";
 import { NextResponse } from "next/server";
+import { Readable } from "node:stream";
 import { mediaAccessAllowed } from "@/lib/server/media-access-policy";
 import { verifyMediaAccessToken } from "@/lib/server/media-access-token";
+import { learnerMediaStreamAllowed, parseByteRange } from "@/lib/server/media-request-guard";
 import {
   mimeFromFileName,
-  openMediaReadStream,
   resolveMediaFilePath,
 } from "@/lib/server/private-media-storage";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ fileName: string }> };
+
+function secureVideoHeaders(mime: string, extra: Record<string, string> = {}): Record<string, string> {
+  const isVideo = mime.startsWith("video/");
+  return {
+    "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+    "Pragma": "no-cache",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "X-Robots-Tag": "noindex, noarchive, nosnippet, noimageindex",
+    "Cross-Origin-Resource-Policy": "same-site",
+    "X-Frame-Options": "DENY",
+    ...(isVideo
+      ? {
+          "Content-Disposition": "inline",
+          "Accept-Ranges": "bytes",
+        }
+      : {
+          "Content-Disposition": "inline",
+        }),
+    ...extra,
+  };
+}
 
 export async function GET(request: Request, { params }: Params) {
   const { fileName: raw } = await params;
@@ -35,7 +59,24 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
   }
 
-  const requestEmail = new URL(request.url).searchParams.get("email")?.trim().toLowerCase();
+  const fetchDest = request.headers.get("sec-fetch-dest")?.trim().toLowerCase();
+  if (payload.scope === "learner" && fetchDest === "document") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (payload.scope === "learner" && !learnerMediaStreamAllowed(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const requestEmail =
+    new URL(request.url).searchParams.get("email")?.trim().toLowerCase() ||
+    request.headers.get("x-learner-email")?.trim().toLowerCase();
+  if (payload.email && !requestEmail) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (payload.email && requestEmail && payload.email !== requestEmail) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const allowed = await mediaAccessAllowed(payload, requestEmail);
   if (!allowed) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -48,17 +89,27 @@ export async function GET(request: Request, { params }: Params) {
 
   const info = await stat(filePath);
   const mime = mimeFromFileName(fileName);
-  const stream = openMediaReadStream(filePath);
+  const range = parseByteRange(request.headers.get("range"), info.size);
 
-  return new Response(stream as unknown as ReadableStream, {
+  if (range) {
+    const { start, end } = range;
+    const stream = createReadStream(filePath, { start, end });
+    return new Response(Readable.toWeb(stream) as ReadableStream, {
+      status: 206,
+      headers: secureVideoHeaders(mime, {
+        "Content-Type": mime,
+        "Content-Length": String(end - start + 1),
+        "Content-Range": `bytes ${start}-${end}/${info.size}`,
+      }),
+    });
+  }
+
+  const stream = createReadStream(filePath);
+  return new Response(Readable.toWeb(stream) as ReadableStream, {
     status: 200,
-    headers: {
+    headers: secureVideoHeaders(mime, {
       "Content-Type": mime,
       "Content-Length": String(info.size),
-      "Cache-Control": "private, no-store, max-age=0",
-      "X-Content-Type-Options": "nosniff",
-      // Prevents “download as attachment” prompts; user may still capture the stream via devtools.
-      "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(fileName)}`,
-    },
+    }),
   });
 }

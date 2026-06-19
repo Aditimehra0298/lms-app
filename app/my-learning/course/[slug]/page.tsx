@@ -3,39 +3,86 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { ResolvedLearningSection } from "@/lib/course-learning-resolve";
 import { resolveLearningSection } from "@/lib/course-learning-resolve";
-import { resolveProtectedMediaUrl } from "@/lib/media-client";
+import { SecureCourseVideoPlayer } from "@/components/SecureCourseVideoPlayer";
 import {
   BadgeCheck,
   Bookmark,
-  CalendarDays,
+  CheckCheck,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronUp,
   Circle,
-  Clock3,
   Download,
   FileText,
   FolderOpen,
   Headphones,
   Link2,
+  Lock,
   MessageCircle,
   Play,
   PlayCircle,
   Presentation,
-  Search,
   StickyNote,
   Subtitles,
 } from "lucide-react";
 import TutorLedProgramClient from "@/components/TutorLedProgramClient";
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
-import { getCurriculumForCourse } from "@/lib/course-detail-template";
+import {
+  isCoursePurchased,
+  subscribeTutorLedPurchases,
+} from "@/lib/tutor-led-enrollment-client";
+import { getCurriculumForCourse, normalizeCurriculumModules } from "@/lib/course-detail-template";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
+import { curriculumModulesForLearner } from "@/lib/curriculum-learner-filter";
+import type { CourseCurriculumModule as SchemaCurriculumModule } from "@/lib/content-schema";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import { requestCourseCertificateClient } from "@/lib/request-course-certificate-client";
+import { syncLearnerCourseProgressFromServer } from "@/lib/learner-progress-sync-client";
+import {
+  computeCombinedExamGrade,
+  DEFAULT_MODULE_EXAM_PASS_PERCENT,
+  examModuleNumbers,
+  learnerCredentialsEligible,
+} from "@/lib/learner-exam-scores";
+import { learnerExamDisplayLabel } from "@/lib/my-learning-exams";
+import { CourseCompletedDashboard } from "@/components/CourseCompletedDashboard";
+import {
+  clearPendingCompletionCelebration,
+  markCompletionCelebrationSeen,
+} from "@/components/CourseCompletionCelebration";
+import { CourseCompletionRewards } from "@/components/CourseCompletionRewards";
+import { CoursePlayerFeedbackSection } from "@/components/CoursePlayerFeedbackSection";
+import { CoursePlayerProgressSnapshot } from "@/components/CoursePlayerProgressSnapshot";
+import {
+  COURSE_PROGRESS_UPDATED_EVENT,
+  markModuleCompleted,
+  normalizeCompletedModulesForCurriculum,
+  readCompletedModules,
+} from "@/lib/learner-course-progress";
 import { openTutorLedProgram } from "@/lib/push-checkout-or-login";
+import {
+  findLessonNavIndex,
+  flattenLearnerLessons,
+} from "@/lib/course-lesson-nav";
+import type { CertificateRowDto } from "@/lib/certificate-types";
+import { readJsonResponse } from "@/lib/safe-json";
+import type { AdminContent } from "@/lib/content-schema";
+import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
+import { resolveCertificateAssetsForSlug } from "@/lib/global-certificate-assets";
+import {
+  healModuleWatchRecord,
+  moduleCurriculumRows,
+  modulePreviewProgress,
+  type PreviewGateModule,
+  PREVIEW_WATCH_UPDATED_EVENT,
+  readModuleWatchedSeconds,
+  requiredPreviewSecondsForModule,
+  writeModuleWatchedSeconds,
+} from "@/lib/learner-preview-gate";
 
 const toTitle = (slug: string) =>
   slug
@@ -47,8 +94,11 @@ type CourseCurriculumItem = {
   label?: string;
   kind?: "video" | "reading" | "exam";
   videoUrl?: string;
+  lessonVideoSizeMb?: number;
+  previewLimitMinutes?: number;
   examUploadUrl?: string;
   description?: string;
+  lessonDurationMinutes?: number;
   about?: string;
   learningOutcomes?: string[];
   notes?: string;
@@ -64,22 +114,58 @@ type CourseCurriculumItem = {
 type CourseCurriculumModule = {
   title?: string;
   items?: CourseCurriculumItem[];
+  subModules?: Array<{ title?: string; items?: CourseCurriculumItem[] }>;
 };
+
+function mergeTutorLedPrograms(apiList: TutorLedProgramStored[]): TutorLedProgramStored[] {
+  const mergedBySlug = new Map<string, TutorLedProgramStored>();
+  for (const p of defaultTutorLedPrograms) mergedBySlug.set(p.slug, p);
+  for (const p of apiList) mergedBySlug.set(p.slug, p);
+  return Array.from(mergedBySlug.values());
+}
+
+function resolveTutorLedHit(
+  programs: TutorLedProgramStored[],
+  slug: string,
+  purchasedThisSlug: boolean,
+  isTutorLedPurchase: boolean,
+): TutorLedProgramStored | null {
+  const slugHit = programs.find((p) => p.slug === slug) ?? null;
+  if (!slugHit) return null;
+  // Self-paced (managed) purchase always uses the video player, even when slug exists in tutor-led catalog.
+  if (purchasedThisSlug && !isTutorLedPurchase) return null;
+  if (isTutorLedPurchase) return slugHit;
+  if (purchasedThisSlug) return slugHit;
+  if (Boolean(slugHit.published) && !purchasedThisSlug) return slugHit;
+  return null;
+}
 
 export default function CourseLearningPlayerPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
-  const slug = params?.slug ?? "course";
+  const paramSlug = params?.slug ?? "course";
+  const slug = canonicalCourseSlug(paramSlug);
   const courseTitle = useMemo(() => toTitle(slug), [slug]);
   const [apiCourseTitle, setApiCourseTitle] = useState<string | null>(null);
-  const [videoSrc, setVideoSrc] = useState<string>("");
+  const [activeVideoStoredUrl, setActiveVideoStoredUrl] = useState<string>("");
+  const [videoLoadError, setVideoLoadError] = useState<string | null>(null);
   const [curriculum, setCurriculum] = useState<CourseCurriculumModule[]>([]);
   const [selectedModuleIdx, setSelectedModuleIdx] = useState(0);
   const [selectedEntryIdx, setSelectedEntryIdx] = useState(0);
-  const [completedModules, setCompletedModules] = useState<number[]>([]);
-  const [isPurchased, setIsPurchased] = useState(false);
-  const [purchaseHydrated, setPurchaseHydrated] = useState(false);
-  const [overallExamPercent, setOverallExamPercent] = useState<number | null>(null);
+  const [completedModules, setCompletedModules] = useState<number[]>(() => readCompletedModules(slug));
+  const [progressHydrated, setProgressHydrated] = useState(true);
+  const [expandedModules, setExpandedModules] = useState<Set<number>>(() => new Set([0]));
+  const isPurchased = useSyncExternalStore(
+    subscribeTutorLedPurchases,
+    () => isCoursePurchased(slug),
+    () => false,
+  );
+  const [combinedExamPercent, setCombinedExamPercent] = useState<number | null>(null);
+  const [allExamsPassed, setAllExamsPassed] = useState(false);
+  const [examMarksSummary, setExamMarksSummary] = useState<{ correct: number; total: number } | null>(null);
+  const [watchedSecondsByModule, setWatchedSecondsByModule] = useState<Record<number, number>>({});
+  const watchSampleRef = useRef<{ module: number; at: number; position: number } | null>(null);
+  const watchAccumRef = useRef<Record<number, number>>({});
   const [learningCopy, setLearningCopy] = useState<ResolvedLearningSection>(() =>
     resolveLearningSection({
       slug,
@@ -97,10 +183,125 @@ export default function CourseLearningPlayerPage() {
     }),
   );
   const [activeLearningTool, setActiveLearningTool] = useState<string>("Notes");
-  const [tutorLedResolved, setTutorLedResolved] = useState<TutorLedProgramStored | null | "pending">("pending");
+  const [tutorLedResolved, setTutorLedResolved] = useState<TutorLedProgramStored | null>(
+    () => defaultTutorLedPrograms.find((p) => p.slug === slug) ?? null,
+  );
+  const [courseDuration, setCourseDuration] = useState("");
+  const [certAssets, setCertAssets] = useState({ badge: "", template: "", transcript: "" });
+  const [certLayout, setCertLayout] = useState<
+    Pick<
+      ManagedCourseCertificateConfig,
+      | "nameTopPercent"
+      | "numberTopPercent"
+      | "dateTopPercent"
+      | "overlayCourseTitle"
+      | "overlayScore"
+      | "overlayBadge"
+    >
+  >({});
+  const [certRequested, setCertRequested] = useState(false);
+  const [hasIssuedCertificate, setHasIssuedCertificate] = useState(false);
+  const [hasFinalExam, setHasFinalExam] = useState(false);
+  const [lessonBookmarked, setLessonBookmarked] = useState(false);
+  const [learnerNote, setLearnerNote] = useState("");
+  const [resourcesPanelOpen, setResourcesPanelOpen] = useState(false);
+  const [activeLessonTab, setActiveLessonTab] = useState<"notes" | "resources">("notes");
+  const certRequestRef = useRef<string | null>(null);
+  const [watermarkUser, setWatermarkUser] = useState("Learner");
+  const [watermarkTime, setWatermarkTime] = useState("");
 
   useEffect(() => {
-    setTutorLedResolved("pending");
+    if (!paramSlug || canonicalCourseSlug(paramSlug) === paramSlug) return;
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    router.replace(`/my-learning/course/${encodeURIComponent(slug)}${hash}`);
+  }, [paramSlug, slug, router]);
+
+  useEffect(() => {
+    setCertRequested(window.localStorage.getItem(`sft_cert_requested_${slug}`) === "1");
+  }, [slug]);
+
+  useEffect(() => {
+    const email = getLearnerEmail()?.trim();
+    if (!email) {
+      setHasIssuedCertificate(false);
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/certificates?email=${encodeURIComponent(email)}`, { cache: "no-store" })
+      .then((res) => readJsonResponse(res, {} as { ok?: boolean; certificates?: CertificateRowDto[] }))
+      .then((data) => {
+        if (cancelled || !data.ok || !data.certificates) return;
+        const hit = data.certificates.find((c) => c.courseSlug === slug);
+        setHasIssuedCertificate(hit?.status === "ready" && hit.visibleToLearner !== false);
+      })
+      .catch(() => {
+        if (!cancelled) setHasIssuedCertificate(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  useEffect(() => {
+    const email = getLearnerEmail()?.trim().toLowerCase() ?? "";
+    if (!email || !email.includes("@")) {
+      setWatermarkUser("Learner");
+      return;
+    }
+    const [local, domain] = email.split("@");
+    const maskedLocal =
+      local.length <= 3 ? `${local[0] ?? "l"}***` : `${local.slice(0, 2)}***${local.slice(-1)}`;
+    const maskedDomain = domain ? domain.replace(/^[^.]+/, "***") : "***";
+    setWatermarkUser(`${maskedLocal}@${maskedDomain}`);
+  }, []);
+
+  useEffect(() => {
+    const refresh = () => {
+      setWatermarkTime(
+        new Date().toLocaleString("en-IN", {
+          hour12: false,
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      );
+    };
+    refresh();
+    const id = window.setInterval(refresh, 20000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/admin/content", { cache: "no-store" })
+      .then(async (r) => (r.ok ? readJsonResponse(r, null) : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const content = data as AdminContent;
+        const assets = resolveCertificateAssetsForSlug(content, slug);
+        const courseCfg = content.managedCourses?.find((c) => c.slug === slug)?.certificateConfig;
+        setCertAssets({
+          badge: assets.badgeImage,
+          template: assets.templateImage,
+          transcript: assets.transcriptFile,
+        });
+        setCertLayout({
+          nameTopPercent: courseCfg?.nameTopPercent,
+          numberTopPercent: courseCfg?.numberTopPercent,
+          dateTopPercent: courseCfg?.dateTopPercent,
+          overlayCourseTitle: courseCfg?.overlayCourseTitle,
+          overlayScore: courseCfg?.overlayScore,
+          overlayBadge: courseCfg?.overlayBadge,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  useEffect(() => {
     let cancelled = false;
 
     let isTutorLedPurchase = false;
@@ -111,121 +312,145 @@ export default function CourseLearningPlayerPage() {
       if (Array.isArray(parsed)) {
         const row = parsed.find((c) => (c.slug ?? "").trim() === slug);
         purchasedThisSlug = !!row;
-        isTutorLedPurchase = row?.deliveryKind === "tutor-led";
+        isTutorLedPurchase =
+          row?.deliveryKind === "tutor-led" || row?.deliveryKind === "workshop";
       }
     } catch {
       isTutorLedPurchase = false;
       purchasedThisSlug = false;
     }
 
-    (async () => {
+    const applyPrograms = (programs: TutorLedProgramStored[]) => {
+      if (cancelled) return;
+      setTutorLedResolved(resolveTutorLedHit(programs, slug, purchasedThisSlug, isTutorLedPurchase));
+    };
+
+    applyPrograms(mergeTutorLedPrograms([]));
+
+    void (async () => {
       try {
         const res = await fetch("/api/admin/content", { cache: "no-store" });
-        if (!res.ok) {
-          if (!cancelled) setTutorLedResolved(null);
-          return;
-        }
-        const data = (await res.json()) as { tutorLedPrograms?: TutorLedProgramStored[] };
+        if (!res.ok) return;
+        const data = await readJsonResponse(res, {} as { tutorLedPrograms?: TutorLedProgramStored[] });
         const apiList = Array.isArray(data.tutorLedPrograms) ? data.tutorLedPrograms : [];
-        const mergedBySlug = new Map<string, TutorLedProgramStored>();
-        for (const p of defaultTutorLedPrograms) mergedBySlug.set(p.slug, p);
-        for (const p of apiList) mergedBySlug.set(p.slug, p);
-        const programs = Array.from(mergedBySlug.values());
-        const slugHit = programs.find((p) => p.slug === slug) ?? null;
-        const hit =
-          slugHit &&
-          (isTutorLedPurchase || (Boolean(slugHit.published) && !purchasedThisSlug))
-            ? slugHit
-            : null;
-        if (!cancelled) setTutorLedResolved(hit);
+        applyPrograms(mergeTutorLedPrograms(apiList));
       } catch {
-        if (!cancelled) setTutorLedResolved(null);
+        // Keep default merge from above.
       }
     })();
+
     return () => {
       cancelled = true;
     };
   }, [slug]);
 
   useEffect(() => {
-    const key = `sft_completed_modules_${slug}`;
     const load = () => {
-      try {
-        const raw = window.localStorage.getItem(key);
-        const parsed = raw ? (JSON.parse(raw) as number[]) : [];
-        setCompletedModules(Array.isArray(parsed) ? parsed : []);
-      } catch {
-        setCompletedModules([]);
-      }
+      setCompletedModules(readCompletedModules(slug));
+      setProgressHydrated(true);
     };
     load();
     window.addEventListener("storage", load);
-    return () => window.removeEventListener("storage", load);
+    window.addEventListener(COURSE_PROGRESS_UPDATED_EVENT, load);
+    return () => {
+      window.removeEventListener("storage", load);
+      window.removeEventListener(COURSE_PROGRESS_UPDATED_EVENT, load);
+    };
   }, [slug]);
 
+  const refreshExamGrades = useMemo(
+    () => () => {
+      const summary = computeCombinedExamGrade(
+        slug,
+        curriculum as Parameters<typeof computeCombinedExamGrade>[1],
+      );
+      setCombinedExamPercent(summary.combinedPercent);
+      setAllExamsPassed(summary.allExamsPassed);
+      if (summary.totalQuestions > 0) {
+        setExamMarksSummary({ correct: summary.totalCorrect, total: summary.totalQuestions });
+      } else {
+        setExamMarksSummary(null);
+      }
+    },
+    [slug, curriculum],
+  );
+
   useEffect(() => {
-    try {
-      const key = `sft_module_exam_scores_${slug}`;
-      const raw = window.localStorage.getItem(key);
-      if (!raw) {
-        setOverallExamPercent(null);
-        return;
-      }
-      const parsed = JSON.parse(raw) as Record<string, number>;
-      const vals = Object.values(parsed ?? {}).filter((v) => typeof v === "number");
-      if (!vals.length) {
-        setOverallExamPercent(null);
-        return;
-      }
-      const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-      setOverallExamPercent(avg);
-    } catch {
-      setOverallExamPercent(null);
-    }
-  }, [slug, completedModules]);
+    refreshExamGrades();
+    void syncLearnerCourseProgressFromServer(slug).then(() => {
+      setCompletedModules(readCompletedModules(slug));
+      refreshExamGrades();
+    });
+    const onUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<{ courseSlug?: string }>).detail;
+      if (!detail?.courseSlug || detail.courseSlug === slug) refreshExamGrades();
+    };
+    window.addEventListener("sft-exam-scores-updated", onUpdate);
+    window.addEventListener("storage", refreshExamGrades);
+    return () => {
+      window.removeEventListener("sft-exam-scores-updated", onUpdate);
+      window.removeEventListener("storage", refreshExamGrades);
+    };
+  }, [slug, refreshExamGrades, completedModules]);
+
+  useEffect(() => {
+    const load = () => setWatchedSecondsByModule(readModuleWatchedSeconds(slug));
+    load();
+    const onWatch = (e: Event) => {
+      const detail = (e as CustomEvent<{ courseSlug?: string }>).detail;
+      if (!detail?.courseSlug || detail.courseSlug === slug) load();
+    };
+    window.addEventListener(PREVIEW_WATCH_UPDATED_EVENT, onWatch);
+    window.addEventListener("storage", load);
+    return () => {
+      window.removeEventListener(PREVIEW_WATCH_UPDATED_EVENT, onWatch);
+      window.removeEventListener("storage", load);
+    };
+  }, [slug]);
 
   useEffect(() => {
     if (!curriculum.length || !slug) return;
     const allDone = curriculum.every((_, idx) => completedModules.includes(idx + 1));
-    const examOk = overallExamPercent != null && overallExamPercent >= 60;
-    if (!allDone || !examOk) return;
+    if (!allDone) return;
+
+    const examModules = examModuleNumbers(
+      curriculum as Parameters<typeof examModuleNumbers>[0],
+    );
+    const examsRequired = examModules.length > 0;
+    const scoreForCert = combinedExamPercent ?? 100;
+    if (examsRequired && (!allExamsPassed || combinedExamPercent == null)) return;
 
     const flagKey = `sft_cert_requested_${slug}`;
-    if (window.localStorage.getItem(flagKey) === "1") return;
+    if (certRequestRef.current === slug) return;
 
     const email = getLearnerEmail();
     if (!email) return;
 
+    certRequestRef.current = slug;
     void requestCourseCertificateClient({
       learnerEmail: email,
       courseSlug: slug,
-      scorePercent: overallExamPercent ?? undefined,
+      scorePercent: scoreForCert,
     }).then((r) => {
-      if (r.ok) window.localStorage.setItem(flagKey, "1");
+      if (r.ok) {
+        window.localStorage.setItem(flagKey, "1");
+        setCertRequested(true);
+      } else {
+        certRequestRef.current = null;
+        console.warn("[certificate] auto-request failed:", r.message);
+      }
     });
-  }, [slug, curriculum.length, completedModules, overallExamPercent]);
+  }, [slug, curriculum, completedModules, allExamsPassed, combinedExamPercent]);
 
-  useEffect(() => {
-    setPurchaseHydrated(false);
-    try {
-      const raw = window.localStorage.getItem("sft_purchased_courses");
-      if (!raw) {
-        setIsPurchased(false);
-        return;
-      }
-      const parsed = JSON.parse(raw) as Array<{ slug?: string; title?: string }>;
-      if (!Array.isArray(parsed)) {
-        setIsPurchased(false);
-        return;
-      }
-      const bought = parsed.some((course) => (course.slug ?? "").trim() === slug);
-      setIsPurchased(bought);
-    } catch {
-      setIsPurchased(false);
-    } finally {
-      setPurchaseHydrated(true);
-    }
-  }, [slug]);
+  const { allModulesDone, eligible } = useMemo(
+    () =>
+      learnerCredentialsEligible(
+        curriculum as SchemaCurriculumModule[],
+        completedModules,
+        allExamsPassed,
+      ),
+    [curriculum, completedModules, allExamsPassed],
+  );
 
   useEffect(() => {
     const loadCourse = async () => {
@@ -235,68 +460,219 @@ export default function CourseLearningPlayerPage() {
         let resolved: CourseCurriculumModule[] = [];
 
         if (res.ok) {
-          const data = (await res.json()) as {
+          const data = await readJsonResponse(res, {} as {
             title?: string;
             category?: string;
+            duration?: string;
             curriculum?: CourseCurriculumModule[];
             certificatePreviewLabel?: string;
             learningSection?: ResolvedLearningSection;
-          };
+            finalExam?: { title?: string; examUploadUrl?: string } | null;
+          });
           if (data.title?.trim()) setApiCourseTitle(data.title.trim());
+          if (data.duration?.trim()) setCourseDuration(data.duration.trim());
           if (data.learningSection) setLearningCopy(data.learningSection);
-          resolved =
+          const fe = data.finalExam;
+          setHasFinalExam(
+            Boolean(
+              fe &&
+                (fe.title?.trim() ||
+                  fe.examUploadUrl?.trim()),
+            ),
+          );
+          resolved = curriculumModulesForLearner(
+            normalizeCurriculumModules(
             data.curriculum?.length
-              ? data.curriculum
+              ? (data.curriculum as SchemaCurriculumModule[])
               : getCurriculumForCourse(
                   slug,
                   data.category,
                   data.title?.trim() || titleFallback,
                   null,
-                );
+                ),
+            ),
+          );
         } else {
-          resolved = getCurriculumForCourse(slug, undefined, titleFallback, null);
+          setHasFinalExam(false);
+          resolved = curriculumModulesForLearner(
+            normalizeCurriculumModules(
+            getCurriculumForCourse(slug, undefined, titleFallback, null),
+            ),
+          );
         }
         setCurriculum(resolved);
+        const healedCompleted = normalizeCompletedModulesForCurriculum(slug, resolved.length);
+        setCompletedModules(healedCompleted);
         setSelectedModuleIdx(0);
         setSelectedEntryIdx(0);
 
-        for (const mod of resolved) {
-          for (const item of mod.items ?? []) {
-            if (item.kind === "video" && item.videoUrl?.trim()) {
-              void resolveProtectedMediaUrl(item.videoUrl.trim(), {
-                courseSlug: slug,
-                scope: "learner",
-              }).then(setVideoSrc);
-              return;
-            }
+        const priorWatch = readModuleWatchedSeconds(slug);
+        let healed = priorWatch;
+        let watchChanged = false;
+        resolved.forEach((mod, idx) => {
+          const moduleNumber = idx + 1;
+          const nextVal = healModuleWatchRecord(mod as PreviewGateModule, priorWatch[moduleNumber] ?? 0);
+          if (nextVal !== (priorWatch[moduleNumber] ?? 0)) {
+            healed = { ...healed, [moduleNumber]: nextVal };
+            watchChanged = true;
           }
+        });
+        if (watchChanged) {
+          writeModuleWatchedSeconds(slug, healed);
+          setWatchedSecondsByModule(healed);
         }
-        setVideoSrc("");
       } catch {
-        const fallback = getCurriculumForCourse(slug, undefined, courseTitle, null);
+        const fallback = normalizeCurriculumModules(
+          getCurriculumForCourse(slug, undefined, courseTitle, null),
+        );
         setCurriculum(fallback);
         setSelectedModuleIdx(0);
         setSelectedEntryIdx(0);
-        setVideoSrc("");
+        setActiveVideoStoredUrl("");
       }
     };
     void loadCourse();
   }, [slug]);
 
   const activeModule = curriculum[selectedModuleIdx];
-  const activeItem = activeModule?.items?.[selectedEntryIdx];
+  const activeModuleItems = useMemo(
+    () => moduleCurriculumRows(activeModule as PreviewGateModule),
+    [activeModule],
+  );
+  const activeItem = activeModuleItems[selectedEntryIdx];
+  const selectedModuleNumber = selectedModuleIdx + 1;
+  const lessonStorageKey = `${slug}_${selectedModuleNumber}_${selectedEntryIdx}`;
+
+  useEffect(() => {
+    setLessonBookmarked(window.localStorage.getItem(`sft_bookmark_${lessonStorageKey}`) === "1");
+    setLearnerNote(window.localStorage.getItem(`sft_learner_note_${lessonStorageKey}`) ?? "");
+  }, [lessonStorageKey]);
+
+  const toggleLessonBookmark = () => {
+    const next = !lessonBookmarked;
+    setLessonBookmarked(next);
+    window.localStorage.setItem(`sft_bookmark_${lessonStorageKey}`, next ? "1" : "0");
+  };
+
+  const saveLearnerNote = () => {
+    window.localStorage.setItem(`sft_learner_note_${lessonStorageKey}`, learnerNote);
+  };
+
+  const requiredSecondsByModule = useMemo(() => {
+    const out: Record<number, number> = {};
+    curriculum.forEach((module, idx) => {
+      out[idx + 1] = requiredPreviewSecondsForModule(module as PreviewGateModule);
+    });
+    return out;
+  }, [curriculum]);
+
+  const moduleWatchProgress = (moduleNumber: number) => {
+    const mod = curriculum[moduleNumber - 1];
+    return modulePreviewProgress(mod as PreviewGateModule, watchedSecondsByModule[moduleNumber] ?? 0);
+  };
+
+  const persistModuleWatch = (moduleNumber: number, watchedSec: number) => {
+    setWatchedSecondsByModule((prev) => {
+      const existing = prev[moduleNumber] ?? 0;
+      const nextVal = Math.max(existing, watchedSec);
+      if (nextVal <= existing) return prev;
+      const next = { ...prev, [moduleNumber]: nextVal };
+      writeModuleWatchedSeconds(slug, next);
+      return next;
+    });
+  };
+
+  const recordVideoWatchProgress = (moduleNumber: number, video: HTMLVideoElement) => {
+    const current = video.currentTime;
+    if (!Number.isFinite(current) || current < 0) return;
+
+    const now = performance.now();
+    const last = watchSampleRef.current;
+    let accumulated = watchAccumRef.current[moduleNumber] ?? 0;
+
+    if (last?.module === moduleNumber && !video.paused && !video.ended) {
+      const deltaPos = current - last.position;
+      const deltaWall = (now - last.at) / 1000;
+      if (deltaPos > 0 && deltaPos <= 4 && deltaWall > 0 && deltaWall <= 4) {
+        accumulated += Math.min(deltaPos, deltaWall);
+      }
+    }
+    watchAccumRef.current[moduleNumber] = accumulated;
+    watchSampleRef.current = { module: moduleNumber, at: now, position: current };
+
+    persistModuleWatch(moduleNumber, Math.max(accumulated, current));
+  };
+
+  const onVideoEnded = (moduleNumber: number) => {
+    const mod = curriculum[moduleNumber - 1];
+    const required = requiredPreviewSecondsForModule(mod as PreviewGateModule);
+    const accumulated = watchAccumRef.current[moduleNumber] ?? 0;
+    persistModuleWatch(moduleNumber, Math.max(accumulated, required));
+  };
 
   useEffect(() => {
     const itemVideo = activeItem?.kind === "video" ? activeItem.videoUrl?.trim() : "";
     if (itemVideo) {
-            void resolveProtectedMediaUrl(itemVideo, { courseSlug: slug }).then(setVideoSrc);
+      setActiveVideoStoredUrl(itemVideo);
+      setVideoLoadError(null);
       return;
     }
-    const moduleVideo = activeModule?.items?.find((it) => it.kind === "video" && it.videoUrl?.trim())?.videoUrl?.trim();
+    const moduleVideo = activeModuleItems.find((it) => it.kind === "video" && it.videoUrl?.trim())?.videoUrl?.trim();
     if (moduleVideo) {
-      void resolveProtectedMediaUrl(moduleVideo, { courseSlug: slug }).then(setVideoSrc);
+      setActiveVideoStoredUrl(moduleVideo);
+      setVideoLoadError(null);
+      return;
     }
-  }, [activeItem?.kind, activeItem?.videoUrl, activeModule, slug]);
+    setActiveVideoStoredUrl("");
+    setVideoLoadError(null);
+  }, [activeItem?.kind, activeItem?.videoUrl, activeModuleItems, slug]);
+
+  useEffect(() => {
+    setExpandedModules((prev) => {
+      const next = new Set(prev);
+      next.add(selectedModuleIdx);
+      return next;
+    });
+    watchSampleRef.current = null;
+  }, [selectedModuleIdx, selectedEntryIdx]);
+
+  const navigableLessons = useMemo(() => flattenLearnerLessons(curriculum), [curriculum]);
+  const currentLessonNavIdx = findLessonNavIndex(
+    navigableLessons,
+    selectedModuleIdx,
+    selectedEntryIdx,
+  );
+  const goToLessonNavIdx = (navIdx: number) => {
+    const target = navigableLessons[navIdx];
+    if (!target) return;
+    setSelectedModuleIdx(target.moduleIdx);
+    setSelectedEntryIdx(target.entryIdx);
+    setExpandedModules((prev) => new Set(prev).add(target.moduleIdx));
+  };
+
+  const handleMarkModuleComplete = () => {
+    const moduleNumber = selectedModuleIdx + 1;
+    markModuleCompleted(slug, moduleNumber, curriculum.length, {
+      courseTitle: apiCourseTitle || courseTitle,
+      moduleTitle: moduleTitle(activeModule ?? {}, selectedModuleIdx),
+      badgeImageUrl: certAssets.badge || undefined,
+    });
+    setCompletedModules(readCompletedModules(slug));
+  };
+
+  const toggleModuleExpanded = (idx: number) => {
+    setSelectedModuleIdx(idx);
+    setExpandedModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const expandAllModules = () => {
+    setExpandedModules(new Set(curriculum.map((_, idx) => idx)));
+  };
 
   const resourceLinks = useMemo(() => {
     const out: Array<{ label: string; url: string }> = [];
@@ -305,17 +681,11 @@ export default function CourseLearningPlayerPage() {
     if (activeItem?.podcastUrl?.trim()) out.push({ label: "Podcast", url: activeItem.podcastUrl.trim() });
     if (activeItem?.resourceUrl?.trim()) out.push({ label: "Documents", url: activeItem.resourceUrl.trim() });
     if (activeItem?.webhookUrl?.trim()) out.push({ label: "Webhook", url: activeItem.webhookUrl.trim() });
-    // Security: do not show direct download link in the learner dashboard.
-    for (const row of activeModule?.items ?? []) {
-      if (row.kind === "reading" && row.videoUrl?.trim()) {
-        out.push({ label: row.label?.trim() || "Reading resource", url: row.videoUrl.trim() });
-      }
-      if (row.kind === "exam" && row.examUploadUrl?.trim()) {
-        out.push({ label: row.label?.trim() || "Exam resource", url: row.examUploadUrl.trim() });
-      }
+    if (activeItem?.kind === "exam" && activeItem.examUploadUrl?.trim()) {
+      out.push({ label: "Exam File", url: activeItem.examUploadUrl.trim() });
     }
     return out;
-  }, [activeModule]);
+  }, [activeItem]);
 
   const toolItems = useMemo(
     () => [
@@ -333,6 +703,36 @@ export default function CourseLearningPlayerPage() {
 
   const activeToolItem = toolItems.find((t) => t.label === activeLearningTool) ?? toolItems[0];
   const logoUrl = learningCopy.brandLogoUrl?.trim() || "/SF-WHITE-LOGO.png";
+  const moduleTitle = (module: CourseCurriculumModule, idx: number) =>
+    module.title?.trim() || `Module ${idx + 1}`;
+
+  const completionStateReady = progressHydrated && curriculum.length > 0;
+  const completionUnlocked = eligible || hasIssuedCertificate;
+  const courseProgressComplete =
+    allModulesDone ||
+    (curriculum.length > 0 && completedModules.length >= curriculum.length);
+  const showCompletionDashboard =
+    completionStateReady && (completionUnlocked || courseProgressComplete);
+
+  useEffect(() => {
+    if (!showCompletionDashboard) return;
+    markCompletionCelebrationSeen(slug);
+    clearPendingCompletionCelebration(slug);
+    const hash = window.location.hash.replace("#", "").toLowerCase();
+    if (hash) return;
+    const path = `${window.location.pathname}${window.location.search}`;
+    window.history.replaceState(null, "", `${path}#credentials`);
+  }, [showCompletionDashboard, slug]);
+
+  useEffect(() => {
+    if (!showCompletionDashboard) return;
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [showCompletionDashboard]);
 
   useEffect(() => {
     setActiveLearningTool("Notes");
@@ -350,22 +750,7 @@ export default function CourseLearningPlayerPage() {
     return "border-violet-400/35 bg-violet-500/12 text-violet-100 hover:border-violet-300/50 hover:bg-violet-500/20 hover:shadow-[0_0_14px_rgba(139,92,246,0.2)]";
   };
 
-  if (tutorLedResolved === "pending") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#060b17] text-white">
-        <p className="text-sm text-gray-400">Loading course…</p>
-      </div>
-    );
-  }
-
   if (tutorLedResolved) {
-    if (!purchaseHydrated) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-[#060b17] text-white">
-          <p className="text-sm text-gray-400">Loading course…</p>
-        </div>
-      );
-    }
     if (!isPurchased) {
       return (
         <div className="min-h-screen bg-[#060b17] text-white">
@@ -391,6 +776,69 @@ export default function CourseLearningPlayerPage() {
     return <TutorLedProgramClient program={tutorLedResolved} enrolledLearning />;
   }
 
+  if (!tutorLedResolved && !isPurchased) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto max-w-[1760px] px-4 py-16 md:px-6 xl:px-8">
+          <Link href="/my-learning?tab=learning" className="text-xs text-gray-400 hover:text-amber-200">
+            ← My Learning
+          </Link>
+          <h1 className="mt-4 text-3xl font-bold">{apiCourseTitle || courseTitle}</h1>
+          <p className="mt-2 max-w-xl text-gray-300">
+            Enroll in this self-paced course to access video lessons, module exams, and your certificate.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href={`/courses/${encodeURIComponent(slug)}`}
+              className="inline-flex rounded-lg bg-amber-400 px-5 py-2.5 text-sm font-bold text-black hover:bg-amber-300"
+            >
+              View course & enroll
+            </Link>
+            <Link
+              href="/courses"
+              className="inline-flex rounded-lg border border-white/15 px-5 py-2.5 text-sm font-semibold text-gray-200 hover:bg-white/5"
+            >
+              Browse courses
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if ((hasIssuedCertificate || completedModules.length > 0) && !completionStateReady) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto flex max-w-[1760px] items-center justify-center px-4 py-24">
+          <p className="text-sm text-gray-400">Loading your course progress…</p>
+        </main>
+      </div>
+    );
+  }
+
+  if (showCompletionDashboard) {
+    return (
+      <div className="min-h-screen bg-[#060b17] text-white">
+        <main className="mx-auto max-w-[1760px] px-4 py-5 md:px-6 xl:px-8">
+          <CourseCompletedDashboard
+            courseSlug={slug}
+            courseTitle={apiCourseTitle || courseTitle}
+            courseDuration={courseDuration}
+            curriculum={curriculum as SchemaCurriculumModule[]}
+            completedModules={completedModules}
+            combinedExamPercent={combinedExamPercent}
+            allExamsPassed={allExamsPassed}
+            templateImageUrl={certAssets.template || undefined}
+            badgeImageUrl={certAssets.badge || undefined}
+            certificateLayout={certLayout}
+            certRequested={certRequested}
+            hasFinalExam={hasFinalExam}
+          />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#060b17] text-white">
       <main className="mx-auto max-w-[1760px] px-4 py-5 md:px-6 xl:px-8">
@@ -408,15 +856,13 @@ export default function CourseLearningPlayerPage() {
           <div className="space-y-3">
             <article className="overflow-hidden rounded-xl border border-white/10 bg-[#0c1324]">
               <div className="relative bg-black">
-                {videoSrc ? (
-                  <video
-                    key={videoSrc}
-                    src={videoSrc}
-                    controls
-                    controlsList="nodownload"
-                    disablePictureInPicture
-                    playsInline
-                    preload="metadata"
+                {activeVideoStoredUrl ? (
+                  <SecureCourseVideoPlayer
+                    storedUrl={activeVideoStoredUrl}
+                    courseSlug={slug}
+                    onTimeUpdate={(video) => recordVideoWatchProgress(selectedModuleNumber, video)}
+                    onEnded={() => onVideoEnded(selectedModuleNumber)}
+                    onError={(message) => setVideoLoadError(message)}
                     className="h-[320px] w-full bg-black object-contain md:h-[460px] xl:h-[560px]"
                   />
                 ) : (
@@ -431,6 +877,24 @@ export default function CourseLearningPlayerPage() {
                     {learningCopy.noVideoMessage}
                   </div>
                 )}
+                {activeVideoStoredUrl ? (
+                  <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+                    <div className="absolute left-[8%] top-[16%] rotate-[-12deg] text-[11px] font-semibold tracking-wide text-white/16">
+                      {watermarkUser} · {watermarkTime}
+                    </div>
+                    <div className="absolute right-[10%] top-[38%] rotate-[10deg] text-[11px] font-semibold tracking-wide text-white/16">
+                      {watermarkUser} · {watermarkTime}
+                    </div>
+                    <div className="absolute left-[22%] bottom-[18%] rotate-[-8deg] text-[11px] font-semibold tracking-wide text-white/16">
+                      {watermarkUser} · {watermarkTime}
+                    </div>
+                  </div>
+                ) : null}
+                {videoLoadError ? (
+                  <div className="border-t border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+                    {videoLoadError}
+                  </div>
+                ) : null}
                 <div
                   className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent px-3 py-2"
                   aria-hidden
@@ -466,8 +930,17 @@ export default function CourseLearningPlayerPage() {
                       "Follow module lessons in order, then attempt module assessments and the final exam."}
                   </p>
                 </div>
-                <button className="inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-gray-300">
-                  <Bookmark size={14} /> {learningCopy.bookmarkLabel}
+                <button
+                  type="button"
+                  onClick={toggleLessonBookmark}
+                  className={`inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm transition ${
+                    lessonBookmarked
+                      ? "border-amber-300/50 bg-amber-500/20 text-amber-100"
+                      : "border-white/15 bg-black/30 text-gray-300 hover:border-amber-300/40"
+                  }`}
+                >
+                  <Bookmark size={14} className={lessonBookmarked ? "fill-current" : undefined} />{" "}
+                  {lessonBookmarked ? "Bookmarked" : learningCopy.bookmarkLabel}
                 </button>
               </div>
 
@@ -551,14 +1024,31 @@ export default function CourseLearningPlayerPage() {
               </div>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                <button className="rounded-md border border-violet-300/35 bg-violet-500/15 px-4 py-2 text-sm font-semibold text-violet-100">
-                  {learningCopy.markCompleteLabel}
+                <button
+                  type="button"
+                  onClick={handleMarkModuleComplete}
+                  disabled={completedModules.includes(selectedModuleNumber)}
+                  className="rounded-md border border-violet-300/35 bg-violet-500/15 px-4 py-2 text-sm font-semibold text-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {completedModules.includes(selectedModuleNumber)
+                    ? "Module Completed"
+                    : learningCopy.markCompleteLabel}
                 </button>
                 <div className="flex items-center gap-2">
-                  <button className="rounded-md border border-white/15 bg-black/25 px-6 py-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => goToLessonNavIdx(currentLessonNavIdx - 1)}
+                    disabled={currentLessonNavIdx <= 0}
+                    className="rounded-md border border-white/15 bg-black/25 px-6 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                  >
                     {learningCopy.previousLabel}
                   </button>
-                  <button className="rounded-md bg-violet-600 px-8 py-2 text-sm font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => goToLessonNavIdx(currentLessonNavIdx + 1)}
+                    disabled={currentLessonNavIdx < 0 || currentLessonNavIdx >= navigableLessons.length - 1}
+                    className="rounded-md bg-violet-600 px-8 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+                  >
                     {learningCopy.nextLabel}
                   </button>
                 </div>
@@ -567,31 +1057,54 @@ export default function CourseLearningPlayerPage() {
               <div className="mt-4 grid gap-3 md:grid-cols-[1.2fr_1fr_minmax(140px,0.75fr)]">
                 <div className="rounded-lg border border-white/10 bg-black/20 p-3">
                   <div className="mb-2 flex items-center gap-5 text-sm">
-                    <span className="border-b-2 border-violet-400 pb-1 text-violet-100">
+                    <button
+                      type="button"
+                      onClick={() => setActiveLessonTab("notes")}
+                      className={`pb-1 ${
+                        activeLessonTab === "notes"
+                          ? "border-b-2 border-violet-400 text-violet-100"
+                          : "text-gray-400 hover:text-gray-200"
+                      }`}
+                    >
                       {learningCopy.notesTabLabel}
-                    </span>
-                    <span className="text-gray-400">{learningCopy.resourcesTabLabel}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveLessonTab("resources");
+                        setResourcesPanelOpen(true);
+                      }}
+                      className={`pb-1 ${
+                        activeLessonTab === "resources"
+                          ? "border-b-2 border-violet-400 text-violet-100"
+                          : "text-gray-400 hover:text-gray-200"
+                      }`}
+                    >
+                      {learningCopy.resourcesTabLabel}
+                    </button>
                   </div>
+                  {activeLessonTab === "notes" ? (
                   <div className="grid gap-2 md:grid-cols-[1fr_auto]">
                     <input
-                      value={activeItem?.notes ?? ""}
-                      onChange={() => {}}
-                      readOnly
-                      placeholder="No lesson notes added in admin."
+                      value={learnerNote}
+                      onChange={(e) => setLearnerNote(e.target.value)}
+                      placeholder={
+                        activeItem?.notes?.trim()
+                          ? `Instructor notes: ${activeItem.notes.trim().slice(0, 80)}…`
+                          : "Write your personal note for this lesson…"
+                      }
                       className="rounded-md border border-white/10 bg-black/35 px-3 py-2 text-sm placeholder:text-gray-500"
                     />
-                    <button className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold">
+                    <button
+                      type="button"
+                      onClick={saveLearnerNote}
+                      className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold hover:bg-violet-500"
+                    >
                       {learningCopy.saveNoteLabel}
                     </button>
                   </div>
-                </div>
-
-                <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="font-semibold">Resources</p>
-                    <button className="text-xs text-violet-200">View All</button>
-                  </div>
-                  <div className="space-y-2">
+                  ) : (
+                  <div className="grid gap-2 sm:grid-cols-2">
                     {resourceLinks.length > 0 ? (
                       resourceLinks.map((res) => (
                         <a
@@ -599,14 +1112,63 @@ export default function CourseLearningPlayerPage() {
                           href={res.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="block rounded-md border border-white/10 bg-black/30 p-2 hover:border-violet-300/35"
+                          className="rounded-md border border-white/10 bg-black/30 p-2 text-xs text-violet-200 underline hover:border-violet-300/40"
                         >
-                          <p className="text-sm">{res.label}</p>
-                          <p className="text-xs text-gray-400">Open resource</p>
+                          {res.label}
                         </a>
                       ))
                     ) : (
-                      <div className="rounded-md border border-white/10 bg-black/30 p-2 text-xs text-gray-400">
+                      <p className="text-sm text-gray-500">No resources uploaded for this lesson yet.</p>
+                    )}
+                  </div>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="font-semibold">Resources</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveLessonTab("resources");
+                        setResourcesPanelOpen(true);
+                      }}
+                      className="text-xs text-violet-200 hover:text-violet-100"
+                    >
+                      View All
+                    </button>
+                  </div>
+                  <div className={`grid gap-2 sm:grid-cols-2 ${resourcesPanelOpen ? "" : "max-h-28 overflow-hidden"}`}>
+                    {resourceLinks.length > 0 ? (
+                      resourceLinks.map((res) => {
+                        const iconMap: Record<string, typeof FileText> = {
+                          PDF: FileText,
+                          PPT: Presentation,
+                          Podcast: Headphones,
+                          Documents: FolderOpen,
+                          Webhook: Link2,
+                        };
+                        const Icon = iconMap[res.label] ?? FileText;
+                        return (
+                          <a
+                            key={`${res.label}-${res.url}`}
+                            href={res.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="group rounded-md border border-white/10 bg-black/30 p-2 transition hover:border-violet-300/35 hover:bg-white/5"
+                          >
+                            <div className="inline-flex items-center gap-1.5 rounded border border-violet-300/30 bg-violet-500/15 px-2 py-1 text-[10px] font-semibold text-violet-100">
+                              <Icon size={12} />
+                              {res.label}
+                            </div>
+                            <p className="mt-2 text-xs text-gray-400 group-hover:text-violet-200">
+                              Open resource
+                            </p>
+                          </a>
+                        );
+                      })
+                    ) : (
+                      <div className="rounded-md border border-white/10 bg-black/30 p-2 text-xs text-gray-400 sm:col-span-2">
                         {learningCopy.resourcesEmptyMessage}
                       </div>
                     )}
@@ -649,24 +1211,38 @@ export default function CourseLearningPlayerPage() {
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="text-lg font-bold">Course Modules ({curriculum.length})</h3>
-                <button className="text-xs text-violet-200">Expand All</button>
+                <button
+                  type="button"
+                  onClick={expandAllModules}
+                  className="text-xs text-violet-200 hover:text-violet-100"
+                >
+                  Expand All
+                </button>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {curriculum.map((module, idx) => (
                   <div
-                    key={module.title}
-                    className={`rounded-md border px-2 py-2 text-sm ${
+                    key={`${moduleTitle(module, idx)}-${idx}`}
+                    className={`rounded-lg border px-2.5 py-2.5 text-sm shadow-sm ${
                       completedModules.includes(idx + 1)
-                        ? "border-emerald-300/35 bg-emerald-500/12 text-emerald-100"
+                        ? "border-emerald-300/35 bg-gradient-to-r from-emerald-500/20 to-[#13263a] text-emerald-100"
                         : idx === selectedModuleIdx
-                          ? "border-violet-300/35 bg-linear-to-r from-violet-500/20 to-[#121a32] text-violet-100"
+                          ? "border-violet-300/40 bg-gradient-to-r from-violet-500/25 to-[#121a32] text-violet-100"
                           : "border-white/10 bg-black/25 text-gray-200"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-3">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => toggleModuleExpanded(idx)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") toggleModuleExpanded(idx);
+                      }}
+                      className="flex cursor-pointer items-center justify-between gap-3"
+                    >
                       <div className="inline-flex items-start gap-2">
                         <span
-                          className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-bold ${
+                          className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${
                             completedModules.includes(idx + 1)
                               ? "bg-emerald-500/30 text-emerald-100"
                               : idx === selectedModuleIdx
@@ -674,9 +1250,13 @@ export default function CourseLearningPlayerPage() {
                                 : "bg-white/10 text-gray-200"
                           }`}
                         >
-                          {idx === 0 ? "GI" : idx}
+                          {completedModules.includes(idx + 1) ? (
+                            <CheckCheck size={12} />
+                          ) : (
+                            <Circle size={12} />
+                          )}
                         </span>
-                        <span className="line-clamp-2 font-semibold">{module.title}</span>
+                        <span className="line-clamp-2 font-semibold">{moduleTitle(module, idx)}</span>
                       </div>
                       <div className="inline-flex items-center gap-2">
                         {completedModules.includes(idx + 1) && (
@@ -684,14 +1264,13 @@ export default function CourseLearningPlayerPage() {
                             Completed
                           </span>
                         )}
-                        <span className="text-xs text-gray-400">--:--</span>
                         {idx === selectedModuleIdx ? <ChevronUp size={13} className="text-gray-400" /> : <ChevronDown size={13} className="text-gray-400" />}
                       </div>
                     </div>
-                    {idx === selectedModuleIdx && (
-                      <div className="mt-1.5 space-y-1 rounded border border-white/10 bg-black/25 p-2">
-                        {(module.items ?? []).map((entry, entryIdx) => {
-                          const entryKey = `${module.title ?? "module"}-${entry.label ?? "entry"}-${entry.kind ?? "item"}-${entryIdx}`;
+                    {expandedModules.has(idx) && (
+                      <div className="mt-2 space-y-1.5 rounded-md border border-white/10 bg-black/30 p-2">
+                        {moduleCurriculumRows(module as PreviewGateModule).map((entry, entryIdx) => {
+                          const entryKey = `${moduleTitle(module, idx)}-${entry.label ?? "entry"}-${entry.kind ?? "item"}-${entryIdx}`;
                           const lessonTools = [
                             entry.notes?.trim() ? { key: "notes", label: "Notes", icon: StickyNote } : null,
                             entry.pdfUrl?.trim() ? { key: "pdf", label: "PDF", icon: FileText } : null,
@@ -706,24 +1285,56 @@ export default function CourseLearningPlayerPage() {
                             icon: typeof StickyNote;
                           }>;
                           return entry.kind === "exam" ? (
-                            <Link
-                              key={entryKey}
-                              href={`/my-learning/course/${slug}/exam?module=${idx + 1}`}
-                              className="flex items-center justify-between rounded bg-emerald-500/15 px-1.5 py-1 text-[11px] text-emerald-200 hover:bg-emerald-500/25"
-                            >
-                              <span className="inline-flex items-center gap-1.5">
-                                <Circle size={10} className="text-emerald-300" />
-                                {entry.label?.trim() || `Module ${idx + 1} exam`}
-                              </span>
-                              <span className="inline-flex items-center gap-2 text-[10px] text-emerald-200">
-                                {entry.examUploadUrl?.trim() ? (
-                                  <span className="inline-flex items-center gap-1 rounded border border-emerald-200/30 bg-emerald-500/20 px-1.5 py-0.5">
-                                    <FileText size={9} /> File
+                            (() => {
+                              const progress = moduleWatchProgress(idx + 1);
+                              const examLabel = learnerExamDisplayLabel(
+                                entry.label,
+                                `Module ${idx + 1} exam`,
+                              );
+                              if (!progress.unlocked) {
+                                return (
+                                  <div
+                                    key={entryKey}
+                                    className="flex items-center justify-between gap-2 rounded-md border border-amber-300/25 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-100"
+                                  >
+                                    <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                                      {examLabel}
+                                    </span>
+                                    <span className="shrink-0 inline-flex items-center gap-1 rounded border border-amber-300/35 bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-100">
+                                      <Lock size={10} />
+                                      Locked
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              if (!entry.examUploadUrl?.trim()) {
+                                return (
+                                  <div
+                                    key={entryKey}
+                                    className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] text-gray-400"
+                                  >
+                                    <span className="truncate">{examLabel}</span>
+                                    <span className="shrink-0 text-[10px] text-amber-300">Exam file pending</span>
+                                  </div>
+                                );
+                              }
+                              return (
+                                <Link
+                                  key={entryKey}
+                                  href={`/my-learning/course/${slug}/exam?module=${idx + 1}`}
+                                  className="flex items-center justify-between rounded-md border border-emerald-300/30 bg-emerald-500/15 px-2 py-1.5 text-[11px] text-emerald-200 hover:bg-emerald-500/25"
+                                >
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <CheckCircle2 size={11} className="text-emerald-300" />
+                                    {examLabel}
                                   </span>
-                                ) : null}
-                                Open Exam
-                              </span>
-                            </Link>
+                                  <span className="inline-flex items-center gap-1 rounded border border-emerald-200/30 bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-100">
+                                    <PlayCircle size={10} />
+                                    Start exam
+                                  </span>
+                                </Link>
+                              );
+                            })()
                           ) : (
                             <button
                               key={entryKey}
@@ -732,22 +1343,29 @@ export default function CourseLearningPlayerPage() {
                                 setSelectedModuleIdx(idx);
                                 setSelectedEntryIdx(entryIdx);
                               }}
-                              className={`flex w-full items-center justify-between rounded px-1.5 py-1 text-[11px] ${
+                              className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[11px] ${
                                 entryIdx === selectedEntryIdx
-                                  ? "bg-violet-500/20 text-violet-100"
-                                  : "bg-black/30 text-gray-300"
+                                  ? "bg-violet-500/20 text-violet-100 ring-1 ring-violet-300/30"
+                                  : "bg-black/35 text-gray-300 hover:bg-white/5"
                               }`}
                             >
                               <span className="inline-flex items-center gap-1.5">
-                                {entryIdx === 0 ? (
-                                  <Play size={10} className="text-emerald-300" />
+                                {entry.kind === "video" ? (
+                                  <PlayCircle size={11} className="text-emerald-300" />
                                 ) : (
-                                  <Circle size={10} className="text-violet-300" />
+                                  <FileText size={11} className="text-violet-300" />
                                 )}
                                 {entry.label?.trim() || `Lesson ${entryIdx + 1}`}
                               </span>
                               <span className="inline-flex items-center gap-1">
-                                <span className="text-[10px] text-gray-400">{entry.kind === "video" ? "Video" : "Reading"}</span>
+                                <span className="rounded border border-white/10 bg-black/25 px-1.5 py-0.5 text-[10px] text-gray-300">
+                                  {entry.kind === "video" ? "Video" : "Reading"}
+                                </span>
+                                {entry.kind === "video" && (entry.previewLimitMinutes ?? 0) > 0 ? (
+                                  <span className="inline-flex items-center rounded border border-cyan-300/35 bg-cyan-500/15 px-1 py-0.5 text-[9px] text-cyan-100">
+                                    <Lock size={9} />
+                                  </span>
+                                ) : null}
                                 {lessonTools.length > 0 ? (
                                   <span className="inline-flex items-center gap-1">
                                     {lessonTools.slice(0, 3).map((tool) => {
@@ -780,30 +1398,53 @@ export default function CourseLearningPlayerPage() {
               </div>
               <div className="mt-3 rounded-md border border-amber-300/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
                 {learningCopy.certificationRuleText}
-                {overallExamPercent !== null ? (
+                {combinedExamPercent !== null ? (
                   <span className="ml-2 inline-flex rounded bg-black/25 px-2 py-0.5 text-xs">
-                    Current overall: {overallExamPercent}% {overallExamPercent >= 60 ? "✓ Eligible" : "✗ Not eligible"}
+                    Combined grade: {combinedExamPercent}%
+                    {allExamsPassed ? " ✓ All exams passed" : ` ✗ Pass each exam at ${DEFAULT_MODULE_EXAM_PASS_PERCENT}%+`}
                   </span>
-                ) : null}
+                ) : (
+                  <span className="ml-2 inline-flex rounded bg-black/25 px-2 py-0.5 text-xs">
+                    Pass each module exam at {DEFAULT_MODULE_EXAM_PASS_PERCENT}%+ (unlimited retakes).
+                  </span>
+                )}
               </div>
             </article>
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
               <h3 className="text-sm font-semibold">{learningCopy.quickToolsTitle}</h3>
               <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                <button className="rounded border border-white/10 bg-black/25 px-2 py-1.5">
-                  {activeItem?.notes?.trim() ? "Notes Added" : "No Notes"}
+                <button
+                  type="button"
+                  onClick={() => setActiveLearningTool("Notes")}
+                  className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
+                >
+                  {activeItem?.notes?.trim() || learnerNote.trim() ? "Notes Added" : "No Notes"}
                 </button>
-                <button className="rounded border border-white/10 bg-black/25 px-2 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveLessonTab("resources");
+                    setResourcesPanelOpen(true);
+                  }}
+                  className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
+                >
                   {resourceLinks.length > 0 ? "Resources Ready" : "No Resources"}
                 </button>
-                <button className="rounded border border-white/10 bg-black/25 px-2 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveLearningTool("Captions")}
+                  className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
+                >
                   {activeItem?.captions?.trim() ? "Captions Ready" : "No Captions"}
                 </button>
               </div>
-              <div className="mt-3 inline-flex items-center gap-2 text-xs text-gray-400">
-                <Search size={12} /> Search inside module content
-              </div>
+              <Link
+                href="/my-learning?tab=community"
+                className="mt-3 inline-flex items-center gap-2 text-xs text-violet-300 underline hover:text-violet-200"
+              >
+                <MessageCircle size={12} /> Ask mentor in community
+              </Link>
               {activeItem?.pdfUrl?.trim() ? (
                 <a
                   href={activeItem.pdfUrl.trim()}
@@ -815,17 +1456,79 @@ export default function CourseLearningPlayerPage() {
                 </a>
               ) : null}
               <div className="mt-2 inline-flex items-center gap-2 text-xs text-gray-400">
-                <MessageCircle size={12} /> Ask mentor for clarification
-              </div>
-              <div className="mt-2 inline-flex items-center gap-2 text-xs text-gray-400">
-                <CalendarDays size={12} /> Next live Q&A on Friday
+                <MessageCircle size={12} /> Need help? Use community or contact support below.
               </div>
               <div className="mt-2 inline-flex items-center gap-2 text-xs text-emerald-300">
-                <CheckCircle2 size={12} /> Certificate unlocks at 60%+ overall module exam score
+                <CheckCircle2 size={12} /> Pass every exam at {DEFAULT_MODULE_EXAM_PASS_PERCENT}%+ — combined score = certificate %
               </div>
             </article>
+
+            <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
+              <p className="text-sm font-semibold text-violet-100">Need help?</p>
+              <p className="mt-2 text-xs text-gray-300">
+                If anything is unclear in this module, contact support and share your course + module name for faster
+                help.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href="/contact"
+                  className="rounded-md border border-violet-300/35 bg-violet-500/15 px-3 py-1.5 text-xs font-semibold text-violet-100 hover:bg-violet-500/25"
+                >
+                  Contact support
+                </Link>
+                <Link
+                  href="/my-learning?tab=community"
+                  className="rounded-md border border-white/15 bg-black/25 px-3 py-1.5 text-xs text-gray-300"
+                >
+                  Ask mentor
+                </Link>
+              </div>
+            </article>
+
+            <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
+              <p className="text-sm font-semibold text-violet-100">Next actions</p>
+              <div className="mt-2 space-y-2 text-xs text-gray-300">
+                <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                  Complete remaining lessons in this module.
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                  Complete the module lessons to unlock the assessment.
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                  Pass module exam at {DEFAULT_MODULE_EXAM_PASS_PERCENT}% or above.
+                </div>
+              </div>
+            </article>
+
+            <CoursePlayerProgressSnapshot
+              courseSlug={slug}
+              curriculum={curriculum as SchemaCurriculumModule[]}
+              completedModules={completedModules}
+              watchedSecondsByModule={watchedSecondsByModule}
+            />
+            <CoursePlayerFeedbackSection
+              courseSlug={slug}
+              courseTitle={apiCourseTitle || courseTitle}
+              activeModuleTitle={activeModule?.title}
+            />
           </aside>
         </section>
+
+        {allModulesDone ? (
+          <CourseCompletionRewards
+            courseSlug={slug}
+            courseTitle={apiCourseTitle || courseTitle}
+            courseDuration={courseDuration}
+            curriculum={curriculum as SchemaCurriculumModule[]}
+            completedModules={completedModules}
+            combinedExamPercent={combinedExamPercent}
+            allExamsPassed={allExamsPassed}
+            badgeImageUrl={certAssets.badge || undefined}
+            templateImageUrl={certAssets.template || undefined}
+            transcriptTemplateUrl={certAssets.transcript || undefined}
+            certRequested={certRequested}
+          />
+        ) : null}
       </main>
     </div>
   );

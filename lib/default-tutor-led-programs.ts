@@ -1,4 +1,6 @@
+import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
 import type { TutorLedLearningMaterial } from "@/lib/tutor-led-learning-tools";
+import type { TutorLedLearnerSection } from "@/lib/tutor-led-learner-section";
 import type { ZoomSessionRecording } from "@/lib/zoom-session-types";
 
 /**
@@ -7,6 +9,8 @@ import type { ZoomSessionRecording } from "@/lib/zoom-session-types";
  */
 export type TutorLedProgramStored = {
   slug: string;
+  /** tutor-led = multi-day program; workshop = one-day live session (landing at `/workshops/[slug]`). */
+  programKind?: "tutor-led" | "workshop";
   published: boolean;
   title: string;
   subtitle: string;
@@ -50,9 +54,12 @@ export type TutorLedProgramStored = {
   /** Hero on `/tutor-led/[slug]` before payment. */
   heroSrc?: string;
   heroAlt?: string;
-  /** Banner on My Learning after payment; falls back to `heroSrc`. */
+  /** Thumbnail / recordings fallback on My Learning after payment; falls back to `heroSrc`. */
   learnerHeroSrc?: string;
   learnerHeroAlt?: string;
+  /** Gold shield background on enrolled learner hero card. */
+  learnerHeroBgSrc?: string;
+  learnerHeroBgAlt?: string;
   /** Full Zoom join link (from Zoom → Meetings → copy invitation). */
   liveJoinUrl?: string;
   /** Optional — auto-filled when you paste a Zoom link; or enter PMI / meeting ID manually. */
@@ -69,6 +76,12 @@ export type TutorLedProgramStored = {
   curriculumMode?: "auto" | "manual";
   /** auto = Zoom API buttons; manual = paste join link only. */
   zoomLinkMode?: "auto" | "manual";
+  /** Enrolled learner hub — `/my-learning/course/[slug]` when tutor-led. */
+  learnerSection?: TutorLedLearnerSection;
+  /** `curriculum` (default) = duration & journey follow module count; `manual` = batchDetails Duration row. */
+  durationSource?: "curriculum" | "manual";
+  /** Same certificate / badge / transcript uploads as self-paced courses (Admin → Certificate tab). */
+  certificateConfig?: ManagedCourseCertificateConfig;
 };
 
 export const defaultTutorLedPrograms: TutorLedProgramStored[] = [
@@ -202,26 +215,9 @@ export const defaultTutorLedPrograms: TutorLedProgramStored[] = [
     heroAlt: "Live interactive sessions with expert trainer",
     learnerHeroSrc: "/h2.png",
     learnerHeroAlt: "Your live cohort dashboard",
+    learnerHeroBgSrc: "/learner-dashboard-hero-bg.png",
+    learnerHeroBgAlt: "Gold achievement shield",
     priceAfterPayment: 12999,
-    learningMaterials: [
-      {
-        id: "demo-pad-1",
-        kind: "pad-notes",
-        title: "Live session scratchpad",
-        downloadUrl: "/uploads/demo/session-notes.pdf",
-      },
-      {
-        id: "demo-ppt-1",
-        kind: "ppt",
-        title: "Week 1 — Introduction slides",
-        downloadUrl: "/uploads/demo/week-1-slides.pptx",
-      },
-      {
-        id: "demo-web-1",
-        kind: "webbook",
-        title: "Course workbook (PDF)",
-        downloadUrl: "/uploads/demo/course-workbook.pdf",
-      },
-    ],
+    learningMaterials: [],
   },
 ];

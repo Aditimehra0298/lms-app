@@ -17,12 +17,12 @@ export default function CategoryFaqAccordion({
         return (
           <div
             key={item.q}
-            className="overflow-hidden rounded-xl border border-white/10 bg-black/40 transition-colors hover:border-white/15"
+            className="category-faq-item overflow-hidden rounded-xl border border-white/10 bg-black/40 transition-colors hover:border-white/15"
           >
             <button
               type="button"
               onClick={() => setOpen(isOpen ? null : i)}
-              className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm font-semibold text-white"
+              className="category-faq-trigger flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm font-semibold text-white"
             >
               <span>{item.q}</span>
               <Plus

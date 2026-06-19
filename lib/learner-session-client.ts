@@ -8,6 +8,8 @@ import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
 import { pricingRegionForCountry, type PricingRegion } from "@/lib/country-pricing";
 import { countryDisplayName } from "@/lib/iso-country-list";
 import { setPricingRevealed } from "@/lib/pricing-reveal";
+import { syncEnrollmentsToServer } from "@/lib/enrollment-sync-client";
+import { readJsonResponse, safeJsonParse } from "@/lib/safe-json";
 
 export const AUTH_KEYS = {
   loggedIn: "sft_logged_in",
@@ -23,34 +25,57 @@ export function isLearnerLoggedIn(): boolean {
   return window.localStorage.getItem(AUTH_KEYS.loggedIn) === "true";
 }
 
+const LEARNER_AUTH_EVENTS = ["sft_auth_updated", "storage"] as const;
+
+/** Subscribe to login/session changes (for useSyncExternalStore). */
+export function subscribeLearnerAuth(onStoreChange: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const handler = () => onStoreChange();
+  for (const event of LEARNER_AUTH_EVENTS) {
+    window.addEventListener(event, handler);
+  }
+  return () => {
+    for (const event of LEARNER_AUTH_EVENTS) {
+      window.removeEventListener(event, handler);
+    }
+  };
+}
+
 export function getLearnerEmail(): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(AUTH_KEYS.email);
 }
 
-export function loginRedirectHref(redirectPath?: string): string {
-  const redirect =
-    redirectPath ??
-    (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/");
-  return `/account?mode=login&redirect=${encodeURIComponent(redirect)}`;
+/** Keep cookie in sync so certificate PDF GET works without ?email= in the URL. */
+export function syncLearnerEmailCookie(): void {
+  if (typeof window === "undefined") return;
+  const email = getLearnerEmail()?.trim().toLowerCase();
+  if (email) {
+    document.cookie = `${AUTH_KEYS.email}=${encodeURIComponent(email)}; path=/; max-age=31536000; SameSite=Lax`;
+  } else {
+    document.cookie = `${AUTH_KEYS.email}=; path=/; max-age=0`;
+  }
 }
 
-export function registerRedirectHref(redirectPath?: string): string {
-  const redirect =
-    redirectPath ??
-    (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/");
-  return `/account?mode=register&redirect=${encodeURIComponent(redirect)}`;
+/** Pass `redirectPath` from `usePathname()` in render to avoid hydration mismatch. */
+export function loginRedirectHref(redirectPath: string = "/"): string {
+  return `/account?mode=login&redirect=${encodeURIComponent(redirectPath)}`;
+}
+
+export function registerRedirectHref(redirectPath: string = "/"): string {
+  return `/account?mode=register&redirect=${encodeURIComponent(redirectPath)}`;
+}
+
+/** Use in click handlers only (client has window). */
+export function loginRedirectHrefForCurrentPage(): string {
+  if (typeof window === "undefined") return loginRedirectHref("/");
+  return loginRedirectHref(window.location.pathname + window.location.search);
 }
 
 export function getCachedPricingRegion(): PricingRegion | null {
   if (typeof window === "undefined") return null;
   const raw = window.localStorage.getItem(AUTH_KEYS.pricingRegion);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as PricingRegion;
-  } catch {
-    return null;
-  }
+  return safeJsonParse<PricingRegion | null>(raw, null);
 }
 
 export const PRICING_REGION_EVENT = "sft_pricing_region_updated";
@@ -80,7 +105,7 @@ export async function fetchGuestPricingRegion(): Promise<PricingRegion | null> {
   try {
     const res = await fetch("/api/geo/country", { cache: "no-store" });
     if (!res.ok) return getCachedPricingRegion();
-    const data = (await res.json()) as { region?: PricingRegion; countryCode?: string };
+    const data = await readJsonResponse(res, {} as { region?: PricingRegion; countryCode?: string });
     if (data.region) {
       cachePricingRegion(data.region);
       return data.region;
@@ -108,16 +133,28 @@ export type AuthRecordResult = {
 
 export function applyDbProfileToSession(profile: LmsUserProfilePayload): LearnerAuthProfile {
   const learner = learnerProfileFromDb(profile);
+  const prevEmail = window.localStorage.getItem(AUTH_KEYS.email);
+  const nextRole = profile.role === "admin" ? "admin" : "learner";
+  const prevRole = window.localStorage.getItem(AUTH_KEYS.role);
   window.localStorage.setItem(AUTH_KEYS.email, profile.email);
-  window.localStorage.setItem(AUTH_KEYS.role, profile.role === "admin" ? "admin" : "learner");
+  window.localStorage.setItem(AUTH_KEYS.role, nextRole);
+  syncLearnerEmailCookie();
   cacheLearnerProfile(learner);
   if (profile.countryCode && profile.countryName) {
-    cachePricingRegion(
-      pricingRegionForCountry(profile.countryCode, profile.countryName),
-    );
-    setPricingRevealed(true);
+    const cached = getCachedPricingRegion();
+    const sameCountry =
+      cached?.countryCode === profile.countryCode &&
+      cached?.countryName === profile.countryName;
+    if (!sameCountry) {
+      cachePricingRegion(pricingRegionForCountry(profile.countryCode, profile.countryName));
+      setPricingRevealed(true);
+    }
   }
+  const sessionChanged = prevEmail !== profile.email || prevRole !== nextRole;
   window.dispatchEvent(new Event("sft_auth_updated"));
+  if (sessionChanged && profile.role !== "admin") {
+    void syncEnrollmentsToServer(profile.email);
+  }
   return learner;
 }
 
@@ -128,7 +165,7 @@ export async function syncLearnerProfileFromServer(email: string): Promise<Learn
     const res = await fetch(`/api/auth/me?email=${encodeURIComponent(email.trim().toLowerCase())}`, {
       cache: "no-store",
     });
-    const data = (await res.json()) as { ok?: boolean; profile?: LmsUserProfilePayload };
+    const data = await readJsonResponse(res, {} as { ok?: boolean; profile?: LmsUserProfilePayload });
     if (!res.ok || !data.ok || !data.profile) return null;
     return applyDbProfileToSession(data.profile);
   } catch {
@@ -170,7 +207,7 @@ export async function recordLearnerAuth(
       countryName: country?.countryName,
     }),
   });
-  const data = (await res.json()) as AuthRecordResult;
+  const data = await readJsonResponse(res, { ok: false } as AuthRecordResult);
   if (!res.ok) {
     data.ok = false;
   }
@@ -189,22 +226,66 @@ export async function recordLearnerAuth(
   return data;
 }
 
-export async function refreshPricingRegion(): Promise<PricingRegion | null> {
+/** Persist country choice to MySQL and refresh cached pricing region. */
+export async function saveLearnerPricingCountry(countryCode: string): Promise<PricingRegion | null> {
   const email = getLearnerEmail();
-  if (!email || !isLearnerLoggedIn()) return getCachedPricingRegion();
+  const code = countryCode.trim().toUpperCase();
+  if (!email || !code) {
+    return cachePricingRegionFromCountryCode(countryCode);
+  }
 
   try {
-    const res = await fetch(`/api/pricing/region?email=${encodeURIComponent(email)}`, {
-      cache: "no-store",
+    const res = await fetch("/api/pricing/region", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, countryCode: code }),
     });
-    if (!res.ok) return getCachedPricingRegion();
-    const data = (await res.json()) as { region?: PricingRegion };
-    if (data.region) {
-      cachePricingRegion(data.region, { notify: false });
+    const data = await readJsonResponse(res, {} as { ok?: boolean; region?: PricingRegion });
+    if (res.ok && data.region) {
+      cachePricingRegion(data.region);
+      window.dispatchEvent(new Event(PRICING_REGION_EVENT));
       return data.region;
     }
   } catch {
-    /* network / dev server unavailable — use cached region */
+    /* fall through */
   }
-  return getCachedPricingRegion();
+
+  return cachePricingRegionFromCountryCode(code);
+}
+
+const PRICING_REGION_REFRESH_MS = 60_000;
+let pricingRegionRefreshAt = 0;
+let pricingRegionInflight: Promise<PricingRegion | null> | null = null;
+
+export async function refreshPricingRegion(force = false): Promise<PricingRegion | null> {
+  const email = getLearnerEmail();
+  if (!email || !isLearnerLoggedIn()) return getCachedPricingRegion();
+
+  const cached = getCachedPricingRegion();
+  if (!force && cached && Date.now() - pricingRegionRefreshAt < PRICING_REGION_REFRESH_MS) {
+    return cached;
+  }
+  if (pricingRegionInflight) return pricingRegionInflight;
+
+  pricingRegionInflight = (async () => {
+    try {
+      const res = await fetch(`/api/pricing/region?email=${encodeURIComponent(email)}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return getCachedPricingRegion();
+      const data = await readJsonResponse(res, {} as { region?: PricingRegion });
+      if (data.region) {
+        cachePricingRegion(data.region, { notify: false });
+        pricingRegionRefreshAt = Date.now();
+        return data.region;
+      }
+    } catch {
+      /* network / dev server unavailable — use cached region */
+    }
+    return getCachedPricingRegion();
+  })().finally(() => {
+    pricingRegionInflight = null;
+  });
+
+  return pricingRegionInflight;
 }

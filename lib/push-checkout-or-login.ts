@@ -3,7 +3,7 @@
  * 1. Browse `/tutor-led/[slug]` (no login required)
  * 2. Register / Reserve on template → login or register if needed
  * 3. After auth → checkout (payment)
- * 4. After payment → My Learning → Tutor Led (checkout success screen)
+ * 4. After payment → live course dashboard (`/my-learning/course/[slug]`)
  */
 import {
   hasViewedCourseLanding,

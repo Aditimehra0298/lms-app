@@ -1,6 +1,22 @@
 import type { CourseCurriculumItem, CourseCurriculumModule, ManagedCourse } from "@/lib/content-schema";
 
-function getFirstExamRowInModule(mod: CourseCurriculumModule | undefined): CourseCurriculumItem | undefined {
+/** Learner-facing exam title — no fixed question counts in labels. */
+export function learnerExamDisplayLabel(label: string | undefined, fallback: string): string {
+  const raw = (label?.trim() || fallback).trim();
+  return (
+    raw
+      .replace(/\s*\(\s*\d+\s*MCQs?\s*\)/gi, "")
+      .replace(/\s*[-–—]\s*\d+\s*MCQs?/gi, "")
+      .replace(/\s*\(\s*\d+\s*questions?\s*\)/gi, "")
+      .replace(/\s*\(\s*\d+\s*q(?:uestions?)?\s*\)/gi, "")
+      .replace(/\s*[-–—]\s*\d+\s*questions?/gi, "")
+      .replace(/\s*[-–—]\s*\d+\s*q\b/gi, "")
+      .replace(/\s*•\s*\d+\s*questions?/gi, "")
+      .trim() || fallback
+  );
+}
+
+export function getFirstExamRowInModule(mod: CourseCurriculumModule | undefined): CourseCurriculumItem | undefined {
   if (!mod) return undefined;
   const top = mod.items?.find((i) => i.kind === "exam");
   if (top) return top;
@@ -15,6 +31,8 @@ export type ManagedCourseExamLink = {
   href: string;
   label: string;
   slot: string;
+  /** Admin uploaded a CSV/PDF exam file for this module. */
+  ready: boolean;
 };
 
 function hasFinalExamPayload(fe: ManagedCourse["finalExam"]): boolean {
@@ -37,8 +55,9 @@ export function examLinksFromManagedCourse(course: ManagedCourse): ManagedCourse
       if (!row) return;
       out.push({
         href: `/my-learning/course/${course.slug}/exam?module=${idx + 1}`,
-        label: row.label?.trim() || `${mod.title} — Exam`,
+        label: learnerExamDisplayLabel(row.label, `${mod.title} — Exam`),
         slot: `Module ${idx + 1}`,
+        ready: !!row.examUploadUrl?.trim(),
       });
     });
   }
@@ -48,6 +67,7 @@ export function examLinksFromManagedCourse(course: ManagedCourse): ManagedCourse
       href: `/my-learning/course/${course.slug}/exam?final=1`,
       label: fe.title?.trim() || "Final examination",
       slot: "Final",
+      ready: !!fe.examUploadUrl?.trim(),
     });
   }
   return out;

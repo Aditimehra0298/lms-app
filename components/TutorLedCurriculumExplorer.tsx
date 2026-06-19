@@ -14,6 +14,8 @@ type Props = {
   variant?: "marketing" | "learner";
   weekProgress?: WeekProgress[];
   liveJoinAnchor?: string;
+  /** When set, live sessions open Zoom directly instead of scrolling to anchor. */
+  liveJoinUrl?: string | null;
   /** Parent provides section title — hide duplicate heading */
   embedded?: boolean;
 };
@@ -29,6 +31,7 @@ export function TutorLedCurriculumExplorer({
   variant = "marketing",
   weekProgress,
   liveJoinAnchor = "#zoom-live",
+  liveJoinUrl = null,
   embedded = false,
 }: Props) {
   const weeks = program.curriculum;
@@ -237,10 +240,13 @@ export function TutorLedCurriculumExplorer({
                             ) : null}
                             {variant === "learner" && day.kind === "live" ? (
                               <a
-                                href={liveJoinAnchor}
+                                href={liveJoinUrl?.trim() || liveJoinAnchor}
+                                {...(liveJoinUrl?.trim()
+                                  ? { target: "_blank", rel: "noopener noreferrer" }
+                                  : {})}
                                 className="rounded-lg border border-sky-400/40 bg-sky-500/15 px-3 py-1.5 text-xs font-bold text-sky-200 hover:bg-sky-500/25"
                               >
-                                Join live
+                                {liveJoinUrl?.trim() ? "Join on Zoom" : "Join live"}
                               </a>
                             ) : null}
                             {variant === "marketing" && day.kind === "live" ? (

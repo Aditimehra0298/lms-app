@@ -87,9 +87,11 @@ type Props = {
   setDraft: React.Dispatch<React.SetStateAction<TutorLedProgramStored | null>>;
   uploadingHero: boolean;
   uploadingLearnerHero: boolean;
+  uploadingLearnerHeroBg: boolean;
   uploadingTrainerAvatar: boolean;
   onUploadHero: (file: File) => void;
   onUploadLearnerHero: (file: File) => void;
+  onUploadLearnerHeroBg: (file: File) => void;
   onUploadTrainerAvatar: (file: File) => void;
 };
 
@@ -98,9 +100,11 @@ export function AdminTutorLedMediaPanel({
   setDraft,
   uploadingHero,
   uploadingLearnerHero,
+  uploadingLearnerHeroBg,
   uploadingTrainerAvatar,
   onUploadHero,
   onUploadLearnerHero,
+  onUploadLearnerHeroBg,
   onUploadTrainerAvatar,
 }: Props) {
   return (
@@ -121,15 +125,27 @@ export function AdminTutorLedMediaPanel({
           uploadLabel="Upload marketing hero"
         />
         <ImageField
-          title="Learner dashboard banner"
-          description="After payment — My Learning course page"
+          title="Learner hero background"
+          description="Gold shield glow behind the enrolled hero card (top-right)"
+          url={draft.learnerHeroBgSrc ?? ""}
+          alt={draft.learnerHeroBgAlt ?? ""}
+          onUrlChange={(url) => setDraft({ ...draft, learnerHeroBgSrc: url })}
+          onAltChange={(alt) => setDraft({ ...draft, learnerHeroBgAlt: alt })}
+          onUpload={onUploadLearnerHeroBg}
+          uploading={uploadingLearnerHeroBg}
+          uploadLabel="Upload hero background"
+          placeholder="Empty = default gold shield"
+        />
+        <ImageField
+          title="Learner thumbnail image"
+          description="Session recordings & continue-learning thumbnails"
           url={draft.learnerHeroSrc ?? ""}
           alt={draft.learnerHeroAlt ?? ""}
           onUrlChange={(url) => setDraft({ ...draft, learnerHeroSrc: url })}
           onAltChange={(alt) => setDraft({ ...draft, learnerHeroAlt: alt })}
           onUpload={onUploadLearnerHero}
           uploading={uploadingLearnerHero}
-          uploadLabel="Upload learner banner"
+          uploadLabel="Upload thumbnail"
           placeholder="Empty = use marketing hero"
         />
         <ImageField

@@ -1,0 +1,74 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { isAdminEmail } from "@/lib/server/admin-emails";
+import {
+  N8N_ARCHIVED_PDF_MIN_BYTES,
+  readCertificatePdfBuffer,
+  resolveCertificatePdfPath,
+} from "@/lib/server/certificate-pdf-store";
+import { learnerEmailFromRequest } from "@/lib/server/learner-email-from-request";
+
+export const dynamic = "force-dynamic";
+
+type Params = { params: Promise<{ id: string }> };
+
+/** Serve permanently stored certificate PDF (after n8n callback archived it). */
+export async function GET(request: Request, { params }: Params) {
+  const { id } = await params;
+  if (!id?.trim()) {
+    return NextResponse.json({ ok: false, message: "Missing certificate id" }, { status: 400 });
+  }
+
+  const row = await prisma.lmsCertificate.findUnique({ where: { id: id.trim() } });
+  if (!row) {
+    return NextResponse.json({ ok: false, message: "Not found" }, { status: 404 });
+  }
+
+  const email = learnerEmailFromRequest(request);
+  const forceDownload = new URL(request.url).searchParams.get("download") === "1";
+  const isOwner = email && email === row.learnerEmail.trim().toLowerCase();
+  const isAdmin = email && isAdminEmail(email);
+
+  if (!isOwner && !isAdmin) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: email
+          ? row.visibleToLearner
+            ? "You do not have access to this certificate."
+            : "Certificate is awaiting admin approval before download."
+          : "Add ?email= with your signed-in learner email.",
+      },
+      { status: 403 },
+    );
+  }
+
+  const minBytes = row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
+  const buffer = await readCertificatePdfBuffer(id.trim(), { minBytes });
+  if (buffer) {
+    return new Response(buffer, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Length": String(buffer.length),
+        "Cache-Control": "private, max-age=86400",
+        "Accept-Ranges": "bytes",
+        "Content-Disposition": `${forceDownload ? "attachment" : "inline"}; filename="${row.certificateNumber.replace(/[^\w.-]+/g, "_")}.pdf"`,
+      },
+    });
+  }
+
+  const filePath = await resolveCertificatePdfPath(id.trim());
+  if (!filePath && row.pdfUrl?.trim().startsWith("http")) {
+    return NextResponse.redirect(row.pdfUrl.trim());
+  }
+
+  return NextResponse.json(
+    {
+      ok: false,
+      message:
+        "Certificate PDF is not saved yet. Click Download again to generate it via n8n.",
+    },
+    { status: 404 },
+  );
+}
