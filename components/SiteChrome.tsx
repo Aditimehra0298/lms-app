@@ -5,7 +5,7 @@ import LmsChatbot from "@/components/LmsChatbot";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { PricingProvider } from "@/components/PricingProvider";
-import CourseChatbot from "@/components/CourseChatbot";
+
 
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
@@ -24,7 +24,7 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
         {children}
       </div>
       <SiteFooter />
-      <CourseChatbot />
+
  <LmsChatbot />
     </PricingProvider>
 

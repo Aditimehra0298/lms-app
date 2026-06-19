@@ -215,49 +215,25 @@ export default function LmsChatbot() {
         <div
           role="dialog"
           aria-label="Learning assistant chat"
-          className="pointer-events-auto relative flex h-[min(520px,calc(100vh-6rem))] w-[min(100vw-2rem,380px)] flex-col overflow-hidden rounded-2xl border border-amber-200/25 shadow-[0_12px_48px_rgba(180,120,20,0.35)]"
+          className="pointer-events-auto relative flex h-[min(520px,calc(100vh-6rem))] w-[min(100vw-2rem,380px)] flex-col overflow-hidden rounded-2xl border border-zinc-800 shadow-[0_24px_64px_rgba(0,0,0,0.9)]"
+          style={{ background: "#000" }}
         >
-          {/* Bright golden base — smooth gradients only, no grid */}
-          <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-[#4a3d28] via-[#5c4a32] to-[#3d3225]"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-t from-amber-900/30 via-transparent to-amber-100/20"
-            aria-hidden
-          />
-          {/* Golden light rays */}
-          <div
-            className="pointer-events-none absolute -right-8 -top-12 h-44 w-56 rotate-12 rounded-full bg-amber-300/45 blur-3xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute -left-6 top-1/3 h-36 w-48 -rotate-6 rounded-full bg-yellow-200/35 blur-3xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute bottom-0 right-1/4 h-32 w-40 rounded-full bg-orange-300/30 blur-3xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-b from-amber-50/25 via-transparent to-amber-950/10"
-            aria-hidden
-          />
-          <header className="relative flex items-center justify-between gap-2 border-b border-amber-200/20 bg-amber-50/10 px-4 py-3 backdrop-blur-[2px]">
+          {/* Header */}
+          <header className="flex items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-950 px-4 py-3">
             <div className="flex items-center gap-2">
               <ChatLogo />
               <div>
-                <p className="text-sm font-semibold text-amber-50">
+                <p className="text-sm font-semibold text-white">
                   {learnerFirstName !== "there"
                     ? `${learnerFirstName}'s Learning Assistant`
                     : "AI Learning Assistant"}
                 </p>
-                <p className="text-[10px] text-amber-100/80">
+                <p className="text-[10px] text-zinc-500">
                   {configured === false
                     ? "Setup needed — add OpenAI keys to .env.local"
                     : configured
                       ? provider === "openai"
-                        ? "Online · OpenAI"
+                        ? "SFT Assistant"
                         : "Online"
                       : "Connecting…"}
                 </p>
@@ -266,14 +242,15 @@ export default function LmsChatbot() {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-lg p-1.5 text-amber-100/90 hover:bg-amber-950/20 hover:text-white"
+              className="rounded-lg p-1.5 text-zinc-500 transition hover:bg-zinc-800 hover:text-white"
               aria-label="Close chat"
             >
               <X size={18} />
             </button>
           </header>
 
-          <div ref={scrollRef} className="relative flex-1 space-y-3 overflow-y-auto px-3 py-3">
+          {/* Messages */}
+          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-3 py-3" style={{ background: "#000" }}>
             {lines.map((line, i) => (
               <div
                 key={`${line.role}-${i}`}
@@ -283,8 +260,8 @@ export default function LmsChatbot() {
                 <p
                   className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
                     line.role === "user"
-                      ? "bg-amber-400/35 text-amber-950"
-                      : "bg-amber-950/25 text-amber-50 backdrop-blur-[1px]"
+                      ? "bg-white text-black"
+                      : "bg-zinc-900 text-zinc-100 ring-1 ring-zinc-800"
                   }`}
                 >
                   {line.content}
@@ -292,11 +269,12 @@ export default function LmsChatbot() {
               </div>
             ))}
             {sending ? (
-              <p className="text-xs text-amber-200/70">Assistant is typing…</p>
+              <p className="text-xs text-zinc-600">Assistant is typing…</p>
             ) : null}
           </div>
 
-          <footer className="relative border-t border-amber-200/20 bg-amber-50/10 p-3 backdrop-blur-[2px]">
+          {/* Footer */}
+          <footer className="border-t border-zinc-800 bg-zinc-950 p-3">
             <div className="flex items-end gap-2">
               <textarea
                 ref={inputRef}
@@ -306,13 +284,13 @@ export default function LmsChatbot() {
                 onKeyDown={onKeyDown}
                 placeholder="Ask about courses, certificates…"
                 disabled={sending}
-                className="min-h-[44px] flex-1 resize-none rounded-2xl border border-amber-200/25 bg-amber-950/15 px-3 py-2 text-sm text-amber-50 placeholder:text-amber-200/50 focus:border-amber-300/60 focus:outline-none disabled:opacity-60"
+                className="min-h-[44px] flex-1 resize-none rounded-2xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => void send()}
                 disabled={sending || !input.trim()}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-400 text-amber-950 shadow-[0_0_20px_rgba(251,191,36,0.5)] hover:bg-amber-300 disabled:opacity-40"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-zinc-200 disabled:opacity-40"
                 aria-label="Send message"
               >
                 <Send size={18} />
@@ -325,22 +303,17 @@ export default function LmsChatbot() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="pointer-events-auto relative flex items-center justify-center bg-transparent p-0 transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+        className="pointer-events-auto relative flex items-center justify-center bg-transparent p-0 transition hover:scale-105 focus:outline-none"
         aria-label={open ? "Close learning assistant" : "Open learning assistant"}
         aria-expanded={open}
       >
-        {/* Soft golden glow behind logo — no box, no grid */}
-        <span
-          className="pointer-events-none absolute h-16 w-20 rounded-full bg-amber-400/40 blur-2xl"
-          aria-hidden
-        />
         {open ? (
-          <X size={26} className="relative text-amber-200 drop-shadow-[0_0_12px_rgba(251,191,36,0.8)]" />
+          <X size={26} className="relative text-white" />
         ) : (
           <Image
             src={sfWhiteLogo}
             alt="Open SF Trainings assistant"
-            className="relative h-12 w-auto object-contain drop-shadow-[0_0_18px_rgba(251,191,36,0.55)]"
+            className="relative h-12 w-auto object-contain"
             sizes="48px"
             priority
           />
