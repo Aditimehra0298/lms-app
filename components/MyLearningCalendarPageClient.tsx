@@ -121,7 +121,7 @@ export function MyLearningCalendarPageClient() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="my-learning-page min-h-screen bg-[#0a0a0a] text-white">
       <main className="mx-auto max-w-[1760px] px-3 py-4 md:px-5 md:py-6 xl:px-8">
         <MyLearningCalendarView
           tutorLedEnrollments={tutorLedEnrollments}

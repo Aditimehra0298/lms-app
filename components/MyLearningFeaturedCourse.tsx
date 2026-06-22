@@ -29,9 +29,9 @@ export function MyLearningFeaturedCourse({ featured, formatReason }: Props) {
     formatReason ? formatReason(reason) : displayRecommendationReason(reason);
   if (!featured) {
     return (
-      <article className="relative min-h-[220px] overflow-hidden rounded-xl border border-white/10 p-4 md:min-h-[260px]">
+      <article className="my-learning-featured-card relative min-h-[220px] overflow-hidden rounded-xl border border-white/10 p-4 md:min-h-[260px]">
         <Image src={FALLBACK_BG} alt="" fill className="object-cover opacity-40" sizes="(max-width: 768px) 100vw, 50vw" />
-        <div className="absolute inset-0 bg-linear-to-r from-[#091224] via-[#091224]/85 to-[#091224]/40" />
+        <div className="my-learning-featured-overlay absolute inset-0 bg-linear-to-r from-[#091224] via-[#091224]/85 to-[#091224]/40" />
         <div className="relative z-10">
           <p className="inline-flex rounded bg-white/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-100">
             Explore SF Trainings
@@ -58,7 +58,7 @@ export function MyLearningFeaturedCourse({ featured, formatReason }: Props) {
   const isAi = featured.kind === "recommended";
 
   return (
-    <article className="relative min-h-[220px] overflow-hidden rounded-xl border border-white/10 md:min-h-[260px]">
+    <article className="my-learning-featured-card relative min-h-[220px] overflow-hidden rounded-xl border border-white/10 md:min-h-[260px]">
       <Image
         src={bg}
         alt=""
@@ -67,8 +67,8 @@ export function MyLearningFeaturedCourse({ featured, formatReason }: Props) {
         className="object-cover opacity-45"
         sizes="(max-width: 768px) 100vw, 50vw"
       />
-      <div className="absolute inset-0 bg-linear-to-r from-[#091224] via-[#091224]/80 to-transparent" />
-      <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent" />
+      <div className="my-learning-featured-overlay absolute inset-0 bg-linear-to-r from-[#091224] via-[#091224]/80 to-transparent" />
+      <div className="my-learning-featured-overlay-b absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent" />
 
       <div className="relative z-10 flex h-full flex-col justify-end p-4 md:p-5">
         <div className="flex flex-wrap items-center gap-2">

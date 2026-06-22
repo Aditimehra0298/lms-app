@@ -744,7 +744,7 @@ export default function MyLearningPage() {
   ] as const;
 
   return (
-    <div className="bg-[#0a0a0a] text-white">
+    <div className="my-learning-dashboard-main">
       <main
         className={`mx-auto w-full max-w-[1760px] px-4 md:px-5 lg:px-6 ${
           isSubscriptions ? "pb-2 pt-4" : "py-6"
@@ -772,7 +772,7 @@ export default function MyLearningPage() {
         ) : isDashboard ? (
           <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
             <div className="grid gap-3 lg:grid-cols-[1fr_1.5fr]">
-              <article className="rounded-xl border border-white/10 bg-linear-to-br from-violet-500/15 via-[#101933] to-[#0a1023] p-4">
+              <article className="my-learning-welcome-card rounded-xl border border-white/10 bg-linear-to-br from-violet-500/15 via-[#101933] to-[#0a1023] p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                 <p className="text-3xl font-bold">
@@ -821,7 +821,7 @@ export default function MyLearningPage() {
                     <Image
                       src={sfWhiteLogo}
                       alt="Sustainable Futures Trainings"
-                      className="h-24 w-auto object-contain opacity-95 md:h-28 lg:h-32"
+                      className="my-learning-dashboard-logo h-24 w-auto object-contain opacity-95 md:h-28 lg:h-32"
                       priority
                     />
                   </div>

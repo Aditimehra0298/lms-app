@@ -24,7 +24,7 @@ export default function MyLearningDashboardNav() {
   const navItems = isOrg ? MY_LEARNING_ORG_NAV : MY_LEARNING_SIDEBAR_NAV;
 
   return (
-    <div className="border-b border-white/10 bg-[#0a0f1a]">
+    <div className="my-learning-nav border-b border-white/10 bg-[#0a0f1a]">
       <nav
         className="mx-auto flex w-full max-w-[1760px] items-center gap-1 overflow-x-auto px-4 py-2 text-[13px] font-bold xl:px-6"
         aria-label={isOrg ? "Organization dashboard" : "Learner dashboard"}

@@ -11,7 +11,7 @@ function stopBubble(e: MouseEvent) {
 }
 
 const descriptionBtnCls =
-  "inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-2 py-2.5 text-xs font-bold text-zinc-100 transition hover:border-[#FFB800]/35 hover:text-[#FFB800] sm:px-3 sm:text-sm";
+  "course-description-btn inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-2 py-2.5 text-xs font-bold text-zinc-100 transition hover:border-violet-400/40 hover:text-violet-300 sm:px-3 sm:text-sm";
 
 export function DescriptionButton({
   className = "",

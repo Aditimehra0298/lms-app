@@ -306,7 +306,7 @@ export function MyLearningCalendarView({
       {showPageHeader ? (
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">My Calendar</h1>
+            <h1 className="my-learning-calendar-title text-3xl font-bold tracking-tight text-white">My Calendar</h1>
             <p className="mt-1 max-w-xl text-sm text-zinc-400">
               Stay on track with your live sessions, exams, and important reminders.
             </p>
@@ -323,9 +323,9 @@ export function MyLearningCalendarView({
 
       <div className="grid gap-4 xl:grid-cols-[1.55fr_1fr]">
         {/* Left — calendar */}
-        <article className="rounded-2xl border border-[#FFC107]/25 bg-gradient-to-br from-[#14120a] via-[#0c0c0c] to-black p-4 shadow-[0_0_40px_rgba(255,193,7,0.06)] md:p-5">
+        <article className="my-learning-calendar-shell rounded-2xl border border-[#FFC107]/25 bg-gradient-to-br from-[#14120a] via-[#0c0c0c] to-black p-4 shadow-[0_0_40px_rgba(255,193,7,0.06)] md:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
-            <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
+            <h2 className="my-learning-calendar-heading inline-flex items-center gap-2 text-lg font-bold text-white">
               <CalendarDays className="h-5 w-5 text-[#FFC107]" aria-hidden />
               {isOrg ? "Team calendar" : "My calendar"}
             </h2>
@@ -346,7 +346,7 @@ export function MyLearningCalendarView({
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <span className="min-w-[110px] px-2 text-center text-sm font-semibold text-white">
+                <span className="my-learning-calendar-month min-w-[110px] px-2 text-center text-sm font-semibold text-white">
                   {formatMonthYear(viewDate.getFullYear(), viewDate.getMonth())}
                 </span>
                 <button
@@ -388,17 +388,17 @@ export function MyLearningCalendarView({
 
           {viewMode === "month" ? (
             <>
-              <div className="mt-4 grid grid-cols-7 gap-px text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+              <div className="my-learning-calendar-weekdays mt-4 grid grid-cols-7 gap-px text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                 {WEEKDAYS.map((d) => (
                   <span key={d} className="py-2">
                     {d}
                   </span>
                 ))}
               </div>
-              <div className="grid grid-cols-7 gap-px rounded-xl border border-white/10 bg-white/5 p-1">
+              <div className="my-learning-calendar-grid grid grid-cols-7 gap-px rounded-xl border border-white/10 bg-white/5 p-1">
                 {grid.map((cell, i) => {
                   if (!cell.date || cell.day == null) {
-                    return <span key={`empty-${i}`} className="min-h-[64px] bg-black/40" aria-hidden />;
+                    return <span key={`empty-${i}`} className="my-learning-calendar-empty min-h-[64px] bg-black/40" aria-hidden />;
                   }
                   const dayEvents = eventsOnDay(calendarEvents, cell.date);
                   const isToday = isSameDay(cell.date, today);
@@ -411,15 +411,15 @@ export function MyLearningCalendarView({
                       key={cell.date.toISOString()}
                       type="button"
                       onClick={() => setSelected(startOfDay(cell.date!))}
-                      className={`relative flex min-h-[64px] flex-col items-center justify-start rounded-lg px-0.5 pt-1.5 text-sm font-medium transition ${
+                      className={`my-learning-calendar-day relative flex min-h-[64px] flex-col items-center justify-start rounded-lg px-0.5 pt-1.5 text-sm font-medium transition ${
                         isSelected
-                          ? `bg-[#FFC107]/15 text-[#FFC107] ring-2 ${primaryKind ? eventKindRing(primaryKind) : "ring-[#FFC107]/60"}`
+                          ? `my-learning-calendar-day--selected bg-[#FFC107]/15 text-[#FFC107] ring-2 ${primaryKind ? eventKindRing(primaryKind) : "ring-[#FFC107]/60"}`
                           : isToday
-                            ? "bg-violet-500/15 text-violet-100 ring-1 ring-violet-400/50"
-                            : "bg-black/50 text-zinc-200 hover:bg-white/5"
+                            ? "my-learning-calendar-day--today bg-violet-500/15 text-violet-100 ring-1 ring-violet-400/50"
+                            : "my-learning-calendar-day--default bg-black/50 text-zinc-200 hover:bg-white/5"
                       }`}
                     >
-                      <span className="leading-none">{cell.day}</span>
+                      <span className="my-learning-calendar-day-num leading-none">{cell.day}</span>
                       {cellLabel ? (
                         <span
                           className={`mt-0.5 max-w-full truncate px-0.5 text-[9px] font-medium leading-tight ${
@@ -462,7 +462,7 @@ export function MyLearningCalendarView({
                     key={d.toISOString()}
                     type="button"
                     onClick={() => setSelected(d)}
-                    className={`rounded-xl border p-2 text-left ${
+                    className={`my-learning-calendar-week-day rounded-xl border p-2 text-left ${
                       isSelected
                         ? "border-[#FFC107]/50 bg-[#FFC107]/10"
                         : "border-white/10 bg-black/40"
@@ -471,7 +471,7 @@ export function MyLearningCalendarView({
                     <p className="text-[10px] text-zinc-500">
                       {d.toLocaleDateString("en-US", { weekday: "short" })}
                     </p>
-                    <p className="text-lg font-bold">{d.getDate()}</p>
+                    <p className="my-learning-calendar-week-day-num text-lg font-bold">{d.getDate()}</p>
                     <p className="mt-1 text-[10px] text-zinc-400">{dayEvents.length} event(s)</p>
                   </button>
                 );
@@ -726,9 +726,9 @@ export function MyLearningCalendarView({
 
         {/* Right — notifications + help */}
         <div className="flex flex-col gap-4">
-          <article className="flex-1 rounded-2xl border border-white/10 bg-black/40 p-4">
+          <article className="my-learning-calendar-side rounded-2xl border border-white/10 bg-black/40 p-4">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
+              <h2 className="my-learning-calendar-heading inline-flex items-center gap-2 text-lg font-bold text-white">
                 <Bell className="h-5 w-5 text-[#FFC107]" aria-hidden />
                 Notifications
               </h2>
@@ -806,8 +806,8 @@ export function MyLearningCalendarView({
             </div>
           </article>
 
-          <article className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-black/40 to-black p-4">
-            <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
+          <article className="my-learning-calendar-help rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-black/40 to-black p-4">
+            <h2 className="my-learning-calendar-heading inline-flex items-center gap-2 text-lg font-bold text-white">
               <HelpCircle className="h-5 w-5 text-violet-300" aria-hidden />
               Need help?
             </h2>
