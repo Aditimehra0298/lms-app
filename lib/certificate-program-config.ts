@@ -2,9 +2,10 @@
 
 export type ManagedCourseCertificateConfig = {
   enabled?: boolean;
-  provider?: "builtin" | "api";
-  /** Override CERTIFICATE_GENERATOR_API_URL for a single course (optional). */
-  certificateGeneratorApiUrl?: string;
+  /** builtin = LMS overlay only; n8n = webhook workflow (legacy stored value "api" maps to n8n). */
+  provider?: "builtin" | "n8n" | "api";
+  /** n8n workflow PDF template name (matched in n8n — not used by LMS UI). */
+  n8nCertificateTemplateName?: string;
   showInLearnerDashboard?: boolean;
   autoVisibleWhenReady?: boolean;
   requireAdminApproval?: boolean;

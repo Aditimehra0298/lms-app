@@ -4,7 +4,7 @@ import {
   N8N_ARCHIVED_PDF_MIN_BYTES,
   readCertificatePdfBuffer,
 } from "@/lib/server/certificate-pdf-store";
-import { ensureCertificatePdfReady } from "@/lib/server/n8n-certificate-service";
+import { ensureCertificatePdfReady, waitForArchivedCertificatePdf } from "@/lib/server/n8n-certificate-service";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -72,14 +72,8 @@ export async function POST(request: Request, { params }: Params) {
     let buffer = await readCertificatePdfBuffer(certificateId, { minBytes });
 
     if (!buffer && !body.forceRegenerate) {
-      prepared = await ensureCertificatePdfReady({
-        certificateId,
-        learnerEmail: email,
-        forceRegenerate: true,
-      });
-      if (prepared.ok) {
-        buffer = await readCertificatePdfBuffer(certificateId, { minBytes });
-      }
+      await waitForArchivedCertificatePdf(certificateId, 30_000);
+      buffer = await readCertificatePdfBuffer(certificateId, { minBytes });
     }
 
     if (!buffer) {

@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { isAdminEmail } from "@/lib/server/admin-emails";
 import {
   N8N_ARCHIVED_PDF_MIN_BYTES,
+  isTemporaryRemotePdfUrl,
   readCertificatePdfBuffer,
   resolveCertificatePdfPath,
 } from "@/lib/server/certificate-pdf-store";
+import { ensureCertificatePdfReady } from "@/lib/server/n8n-certificate-service";
 import { learnerEmailFromRequest } from "@/lib/server/learner-email-from-request";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +46,15 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   const minBytes = row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
-  const buffer = await readCertificatePdfBuffer(id.trim(), { minBytes });
+  let buffer = await readCertificatePdfBuffer(id.trim(), { minBytes });
+  if (!buffer && isOwner && isTemporaryRemotePdfUrl(row.pdfUrl)) {
+    await ensureCertificatePdfReady({
+      certificateId: id.trim(),
+      learnerEmail: email!,
+      forceRegenerate: false,
+    });
+    buffer = await readCertificatePdfBuffer(id.trim(), { minBytes });
+  }
   if (buffer) {
     return new Response(buffer, {
       status: 200,
@@ -59,8 +69,15 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   const filePath = await resolveCertificatePdfPath(id.trim());
-  if (!filePath && row.pdfUrl?.trim().startsWith("http")) {
-    return NextResponse.redirect(row.pdfUrl.trim());
+  if (!filePath && isTemporaryRemotePdfUrl(row.pdfUrl)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message:
+          "Certificate PDF could not be saved permanently yet. Click Download again to retry archiving.",
+      },
+      { status: 404 },
+    );
   }
 
   return NextResponse.json(

@@ -12,15 +12,16 @@ export function sanitizeCertificateConfig(
         .filter((d) => d && typeof d === "object" && d.title?.trim() && d.url?.trim())
         .map((d) => ({ title: d.title.trim(), url: d.url.trim() }))
     : [];
-  /** Certificate generator API (env CERTIFICATE_GENERATOR_API_URL) — per-course templates from admin. */
+  /** n8n webhook workflow — per-course templates from admin. */
   const provider: ManagedCourseCertificateConfig["provider"] =
-    raw.provider === "builtin" ? "builtin" : "api";
+    raw.provider === "builtin" ? "builtin" : "n8n";
   const out: ManagedCourseCertificateConfig = {
     enabled: raw.enabled !== false,
     provider,
     showInLearnerDashboard: raw.showInLearnerDashboard !== false,
     autoVisibleWhenReady: raw.autoVisibleWhenReady === true,
     requireAdminApproval: raw.requireAdminApproval !== false,
+    n8nCertificateTemplateName: raw.n8nCertificateTemplateName?.trim() || undefined,
     title: raw.title?.trim(),
     templateImage: raw.templateImage?.trim() || undefined,
     badgeImage: raw.badgeImage?.trim() || undefined,

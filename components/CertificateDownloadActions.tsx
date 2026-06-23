@@ -20,9 +20,6 @@ import {
   fetchSavedCertificatePdf,
   savePdfBlob,
 } from "@/lib/certificate-pdf-client";
-import {
-  generateCertificateFromTemplate,
-} from "@/lib/certificate-generator-client";
 import { requestCourseCertificateClient } from "@/lib/request-course-certificate-client";
 
 export type CertificateDownloadActionsProps = {
@@ -33,12 +30,17 @@ export type CertificateDownloadActionsProps = {
   scorePercent?: number | null;
   pdfReady?: boolean;
   pdfUrl?: string | null;
+  /** @deprecated Preview only — generation uses n8n workflow. */
   templateImageUrl?: string;
   disabled?: boolean;
   disabledReason?: string;
   size?: "sm" | "md";
   onComplete?: () => void;
 };
+
+function hasPermanentPdfUrl(pdfUrl?: string | null, pdfReady?: boolean): boolean {
+  return Boolean(pdfReady || pdfUrl?.trim().startsWith("/api/certificates/"));
+}
 
 export function CertificateDownloadActions({
   certificateId,
@@ -48,7 +50,6 @@ export function CertificateDownloadActions({
   scorePercent,
   pdfReady = false,
   pdfUrl,
-  templateImageUrl,
   disabled = false,
   disabledReason,
   size = "md",
@@ -60,6 +61,7 @@ export function CertificateDownloadActions({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [localPdfReady, setLocalPdfReady] = useState(false);
 
   const sessionEmail = useSyncExternalStore(
     subscribeLearnerAuth,
@@ -68,16 +70,18 @@ export function CertificateDownloadActions({
   );
 
   const effectiveEmail = (learnerEmail?.trim().toLowerCase() || sessionEmail).trim();
+  const storedPdf = hasPermanentPdfUrl(pdfUrl, pdfReady) || localPdfReady;
 
   useEffect(() => {
     setMounted(true);
     syncLearnerEmailCookie();
   }, [sessionEmail]);
 
-  const canServePdf = pdfReady || Boolean(pdfUrl?.trim());
-  const hasDirectLinks = Boolean(
-    mounted && canServePdf && certificateId && effectiveEmail && !disabled,
-  );
+  useEffect(() => {
+    if (hasPermanentPdfUrl(pdfUrl, pdfReady)) {
+      setLocalPdfReady(true);
+    }
+  }, [pdfReady, pdfUrl]);
 
   const viewPageHref =
     certificateId && effectiveEmail
@@ -86,115 +90,119 @@ export function CertificateDownloadActions({
         ? `/my-learning/certificates/${encodeURIComponent(certificateId)}/view-pdf`
         : null;
 
-  const handleDownload = useCallback(async () => {
-    if (!certificateId || !effectiveEmail) {
-      setError("Please sign in to download your certificate.");
-      return;
+  const resolveCertificateId = useCallback(async (): Promise<string | null> => {
+    const existing = certificateId?.trim();
+    if (existing) return existing;
+    if (!effectiveEmail) return null;
+
+    const requested = await requestCourseCertificateClient({
+      learnerEmail: effectiveEmail,
+      courseSlug,
+      scorePercent: scorePercent ?? undefined,
+      forceRetry: false,
+    });
+    if (!requested.ok || !requested.certificateId) {
+      setError(
+        requested.message ??
+          "Could not create your certificate record. Complete the course and pass all exams first.",
+      );
+      return null;
     }
+    return requested.certificateId;
+  }, [certificateId, courseSlug, effectiveEmail, scorePercent]);
 
-    setError(null);
-    setDownloading(true);
-
-    try {
-      const result = await fetchSavedCertificatePdf(certificateId, effectiveEmail, {
-        attachment: true,
-      });
-      if (!result.ok) {
-        setError(result.message);
-        return;
-      }
-      savePdfBlob(result.blob, `${courseSlug}-certificate-and-transcript.pdf`);
-    } catch {
-      setError("Download failed. Please try again.");
-    } finally {
-      setDownloading(false);
-    }
-  }, [certificateId, effectiveEmail, courseSlug]);
-
-  const runGenerate = useCallback(async () => {
-    if (!effectiveEmail) {
-      setError("Please sign in to download your certificate.");
-      return;
-    }
-
-    setError(null);
-    setSuccess(false);
-    setBusy(true);
-    setMessage(
-      templateImageUrl
-        ? "Generating your certificate using this course's uploaded templates…"
-        : "Generating your certificate…",
-    );
-
-    try {
-      let certId = certificateId?.trim() ?? "";
-
-      if (!certId) {
-        const requested = await requestCourseCertificateClient({
-          learnerEmail: effectiveEmail,
-          courseSlug,
-          scorePercent: scorePercent ?? undefined,
-          forceRetry: true,
-        });
-        if (!requested.ok || !requested.certificateId) {
-          setError(
-            requested.message ??
-              "Could not create certificate record. Complete the course and upload certificate samples in admin.",
-          );
-          return;
-        }
-        certId = requested.certificateId;
+  const downloadPdf = useCallback(
+    async (options?: { forceRegenerate?: boolean; attachment?: boolean }) => {
+      if (!effectiveEmail) {
+        setError("Please sign in to download your certificate.");
+        return false;
       }
 
-      const generated = await generateCertificateFromTemplate(certId, effectiveEmail, {
-        forceRegenerate: true,
-      });
-      if (!generated.ok) {
-        setError(
-          generated.message ??
-            "Could not build certificate from your uploaded template. Re-upload the certificate sample in Admin → Course → Certificates, then try again.",
-        );
-        return;
-      }
-      if (generated.templateImage) {
-        setMessage("Certificate built from your uploaded course template. Saving PDF…");
-      }
+      setError(null);
+      const certId = await resolveCertificateId();
+      if (!certId) return false;
 
-      setMessage("Saving your certificate PDF…");
       const result = await fetchSavedCertificatePdf(certId, effectiveEmail, {
-        attachment: true,
+        attachment: options?.attachment !== false,
+        forceRegenerate: options?.forceRegenerate === true,
       });
+
       if (!result.ok) {
         setError(result.message);
-        return;
+        return false;
       }
-      savePdfBlob(result.blob, `${courseSlug}-certificate-and-transcript.pdf`);
 
+      if (options?.attachment !== false) {
+        savePdfBlob(result.blob, `${courseSlug}-certificate-and-transcript.pdf`);
+      }
+
+      setLocalPdfReady(true);
       setSuccess(true);
-      setMessage("Certificate ready! Use Download or View below.");
+      setMessage(
+        options?.forceRegenerate
+          ? "Certificate regenerated and saved on the LMS."
+          : storedPdf
+            ? "Certificate downloaded from your saved copy."
+            : "Official certificate generated and saved. You can download it anytime.",
+      );
       onComplete?.();
       window.setTimeout(() => {
         setSuccess(false);
         setMessage(null);
       }, 8000);
+      return true;
+    },
+    [courseSlug, effectiveEmail, onComplete, resolveCertificateId, storedPdf],
+  );
+
+  const handleDownload = useCallback(async () => {
+    setDownloading(true);
+    try {
+      await downloadPdf({ attachment: true });
+    } catch {
+      setError("Download failed. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }, [downloadPdf]);
+
+  const handleFirstGenerate = useCallback(async () => {
+    setSuccess(false);
+    setBusy(true);
+    setMessage(
+      storedPdf
+        ? "Loading your saved certificate…"
+        : "Generating your official certificate… First time only (~15 seconds).",
+    );
+
+    try {
+      await downloadPdf({ attachment: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Generation failed.");
+      setError(err instanceof Error ? err.message : "Could not generate certificate.");
     } finally {
       setBusy(false);
     }
-  }, [
-    certificateId,
-    courseSlug,
-    scorePercent,
-    effectiveEmail,
-    onComplete,
-    templateImageUrl,
-  ]);
+  }, [downloadPdf, storedPdf]);
+
+  const handleRegenerate = useCallback(async () => {
+    setError(null);
+    setBusy(true);
+    setMessage("Regenerating your certificate…");
+    try {
+      await downloadPdf({ attachment: true, forceRegenerate: true });
+    } catch {
+      setError("Regeneration failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }, [downloadPdf]);
 
   const pad = size === "sm" ? "px-3 py-2 text-xs" : "px-4 py-2.5 text-sm";
   const btnClass = `inline-flex items-center gap-2 rounded-lg font-bold ${pad}`;
   const downloadBtnClass = `${btnClass} bg-amber-500 text-black shadow-sm hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50`;
   const viewBtnClass = `${btnClass} border border-white/20 font-semibold text-gray-100 no-underline hover:bg-white/10`;
+
+  const canAct = mounted && effectiveEmail && !disabled;
 
   return (
     <div className="space-y-3">
@@ -205,7 +213,7 @@ export function CertificateDownloadActions({
       ) : null}
 
       {!effectiveEmail ? (
-        <p className="text-xs text-amber-300">Sign in to generate or download your certificate.</p>
+        <p className="text-xs text-amber-300">Sign in to get your certificate PDF.</p>
       ) : null}
 
       {message ? (
@@ -230,11 +238,11 @@ export function CertificateDownloadActions({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {hasDirectLinks ? (
+        {storedPdf && canAct ? (
           <>
             <button
               type="button"
-              disabled={downloading}
+              disabled={downloading || busy}
               onClick={() => void handleDownload()}
               className={downloadBtnClass}
             >
@@ -248,8 +256,8 @@ export function CertificateDownloadActions({
             ) : null}
             <button
               type="button"
-              disabled={busy}
-              onClick={() => void runGenerate()}
+              disabled={busy || downloading}
+              onClick={() => void handleRegenerate()}
               className={`${btnClass} border border-white/15 text-gray-300 hover:bg-white/5 disabled:opacity-50`}
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
@@ -260,19 +268,23 @@ export function CertificateDownloadActions({
           <button
             type="button"
             disabled={busy || disabled || !effectiveEmail}
-            onClick={() => void runGenerate()}
+            onClick={() => void handleFirstGenerate()}
             className={downloadBtnClass}
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            Generate certificate
+            Get certificate PDF
           </button>
         )}
       </div>
 
-      {!hasDirectLinks && !disabled ? (
+      {!storedPdf && !disabled ? (
         <p className="text-[11px] leading-relaxed text-gray-500">
-          Uses certificate + transcript templates uploaded for this course in admin. First generation takes about
-          10–15 seconds.
+          Your official certificate is generated once, saved permanently on the LMS, and reused on every
+          download — no repeat generation unless you choose Regenerate.
+        </p>
+      ) : storedPdf ? (
+        <p className="text-[11px] leading-relaxed text-gray-500">
+          Saved on the LMS — instant download anytime.
         </p>
       ) : null}
     </div>
@@ -296,7 +308,7 @@ export function CertificateStatusBadge({
   if (normalized === "ready" && pdfReady && visibleToLearner) {
     return (
       <span className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
-        Ready
+        Saved
       </span>
     );
   }

@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { findCertificateProgram } from "@/lib/certificate-program-resolve";
+import {
+  isCertificateApiProvider,
+  isN8nCertificateProviderConfigured,
+} from "@/lib/server/certificate-generation-policy";
+import { ensureCertificatePdfReady } from "@/lib/server/n8n-certificate-service";
 import { readAdminContent } from "@/lib/server/content-store";
 import { resolveCertificatePermissions } from "@/lib/server/certificate-permissions";
 import { resolveCertificateConfig } from "@/lib/server/certificate-service";
@@ -255,6 +260,24 @@ export async function generateCertificateFromCourseTemplate(input: {
 
   const program = findCertificateProgram(content, row.courseSlug);
   const perms = program ? resolveCertificatePermissions(program) : null;
+
+  if (perms && isCertificateApiProvider(perms) && isN8nCertificateProviderConfigured()) {
+    const prepared = await ensureCertificatePdfReady({
+      certificateId: id,
+      learnerEmail: email,
+      forceRegenerate: input.forceRegenerate === true,
+    });
+    if (prepared.ok) {
+      return {
+        ok: true,
+        downloadUrl: prepared.downloadUrl,
+        templateImage,
+        usedTemplatedPdf: false,
+        message: prepared.message ?? "Certificate generated via n8n and saved on the LMS.",
+      };
+    }
+    return { ok: false, message: prepared.message };
+  }
 
   if (input.forceRegenerate) {
     await deleteStoredCertificatePdf(id);

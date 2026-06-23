@@ -112,7 +112,8 @@ export default function MyCertificateViewPage() {
               </div>
             ) : (
               <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-6 text-center text-sm text-amber-100">
-                Your official certificate PDF is not ready yet. Generate it from the course completion page.
+                Your official certificate PDF is not ready yet. Open the course completion page and tap
+                Get certificate PDF.
               </p>
             )}
           </div>

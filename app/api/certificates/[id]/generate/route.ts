@@ -6,16 +6,16 @@ export const maxDuration = 120;
 
 type Params = { params: Promise<{ id: string }> };
 
-/** POST learner + course templates to certificate generator API. */
+/** POST learner + course data to n8n certificate webhook. */
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
   if (!id?.trim()) {
     return NextResponse.json({ ok: false, message: "Missing certificate id" }, { status: 400 });
   }
 
-  let body: { email?: string };
+  let body: { email?: string; forceRegenerate?: boolean };
   try {
-    body = (await request.json()) as { email?: string };
+    body = (await request.json()) as { email?: string; forceRegenerate?: boolean };
   } catch {
     return NextResponse.json({ ok: false, message: "Invalid JSON" }, { status: 400 });
   }
@@ -29,6 +29,7 @@ export async function POST(request: Request, { params }: Params) {
     const result = await triggerCertificateGeneration({
       certificateId: id.trim(),
       learnerEmail: email,
+      forceRegenerate: body.forceRegenerate === true,
     });
     if (!result.ok) {
       return NextResponse.json(result, { status: 409 });

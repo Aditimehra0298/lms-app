@@ -57,7 +57,7 @@ function parsePdfFetchError(status: number, raw: string): string {
 export async function fetchSavedCertificatePdf(
   certificateId: string,
   email: string,
-  options?: { attachment?: boolean },
+  options?: { attachment?: boolean; forceRegenerate?: boolean },
 ): Promise<{ ok: true; blob: Blob } | { ok: false; message: string }> {
   const normalizedEmail = email.trim().toLowerCase();
   const id = certificateId.trim();
@@ -76,6 +76,7 @@ export async function fetchSavedCertificatePdf(
     body: JSON.stringify({
       email: normalizedEmail,
       attachment: options?.attachment !== false,
+      forceRegenerate: options?.forceRegenerate === true,
     }),
   });
 
@@ -197,6 +198,18 @@ async function isCertificateCachedOnServer(
   });
   const data = await readJsonResponse(res, {} as { ok?: boolean; cached?: boolean });
   return Boolean(data.ok && data.cached);
+}
+
+async function waitForArchivedCertificatePdfOnClient(
+  certificateId: string,
+  email: string,
+  maxAttempts = 15,
+): Promise<boolean> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (await isCertificateCachedOnServer(certificateId, email)) return true;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  return false;
 }
 
 export function writeWorkerTabLoading(
@@ -463,8 +476,9 @@ export async function downloadCertificatePdf(
 
     let pdf = await fetchCertificatePdfBytes(certificateId, email, !openInNewTab, false);
     if (!pdf.ok) {
-      input.onProgress?.("Trying once more…", "generate");
-      pdf = await fetchCertificatePdfBytes(certificateId, email, !openInNewTab, true);
+      input.onProgress?.("Still preparing your PDF…", "generate");
+      await waitForArchivedCertificatePdfOnClient(certificateId, email);
+      pdf = await fetchCertificatePdfBytes(certificateId, email, !openInNewTab, false);
     }
 
     if (!pdf.ok) {

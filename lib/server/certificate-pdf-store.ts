@@ -20,6 +20,16 @@ export function certificatePdfServePath(certificateId: string): string {
   return `/api/certificates/${encodeURIComponent(certificateId.trim())}/pdf`;
 }
 
+/** Temporary n8n / Vercel / Drive link — must be downloaded and replaced with {@link certificatePdfServePath}. */
+export function isTemporaryRemotePdfUrl(url: string | null | undefined): boolean {
+  const trimmed = url?.trim() ?? "";
+  return Boolean(trimmed && /^https?:\/\//i.test(trimmed));
+}
+
+export function isPermanentLmsPdfUrl(url: string | null | undefined): boolean {
+  return Boolean(url?.trim().startsWith("/api/certificates/"));
+}
+
 export async function certificatePdfExists(certificateId: string): Promise<boolean> {
   try {
     await access(path.join(CERTIFICATE_PDF_DIR, certificatePdfFileName(certificateId)));
@@ -135,7 +145,7 @@ export async function persistCertificatePdf(input: {
   return { ok: true, storedUrl: certificatePdfServePath(id) };
 }
 
-/** If file exists on disk, return LMS serve URL; otherwise keep existing DB URL. */
+/** If file exists on disk, return LMS serve URL; never expose temporary remote links when archived. */
 export async function resolveStoredCertificatePdfUrl(
   certificateId: string,
   currentPdfUrl: string | null,
@@ -143,7 +153,13 @@ export async function resolveStoredCertificatePdfUrl(
   if (await isValidArchivedCertificatePdf(certificateId, { minBytes: N8N_ARCHIVED_PDF_MIN_BYTES })) {
     return certificatePdfServePath(certificateId);
   }
-  if (currentPdfUrl?.startsWith("/api/certificates/")) {
+  if (await isValidArchivedCertificatePdf(certificateId, { minBytes: 128 })) {
+    return certificatePdfServePath(certificateId);
+  }
+  if (isPermanentLmsPdfUrl(currentPdfUrl)) {
+    return currentPdfUrl!.trim();
+  }
+  if (isTemporaryRemotePdfUrl(currentPdfUrl)) {
     return null;
   }
   return currentPdfUrl;

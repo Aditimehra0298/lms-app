@@ -56,6 +56,7 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
+        "n8nCertificateTemplateName": "ISOIEC 27001 2022 Awareness Course",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
@@ -83,6 +84,7 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
+        "n8nCertificateTemplateName": "Mastering EU MDR Essentials Practical Compliance for Medical Devices",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
@@ -281,6 +283,7 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
+        "n8nCertificateTemplateName": "DIPLOMA in Cybersecurity & Ethical Hacking (FOUNDATIONS)",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
@@ -479,6 +482,7 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
+        "n8nCertificateTemplateName": "DIPLOMA IN HACCP FOOD SAFETY STANDARDS (LEVEL 2)",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
@@ -918,6 +922,7 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
+        "n8nCertificateTemplateName": "ESG Management Development Training Program",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
@@ -1398,6 +1403,7 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
+        "n8nCertificateTemplateName": "Advanced Food Fraud Mitigation and Auditing FSSC 220002018 VERSION 6",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false
@@ -1799,7 +1805,8 @@
       ],
       "certificateConfig": {
         "enabled": true,
-        "provider": "api",
+        "provider": "n8n",
+        "n8nCertificateTemplateName": "Cybersecurity awareness phishness",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false,

@@ -19,6 +19,7 @@ import {
   CertificateDownloadActions,
   CertificateStatusBadge,
 } from "@/components/CertificateDownloadActions";
+import { N8nCertificateGenerationStatus } from "@/components/N8nCertificateGenerationStatus";
 import { ShareCredentialButtons } from "@/components/ShareCredentialButtons";
 import { ShareableBadgeCard } from "@/components/ShareableBadgeCard";
 import {
@@ -298,10 +299,18 @@ export function CourseCompletionRewards({
               <p className="mt-1 font-semibold text-white">{courseTitle}</p>
               {!certificate && !certLoading ? (
                 <p className="mt-2 text-xs text-gray-400">
-                  Click download to generate your official PDF.
+                  Click Get certificate PDF to generate your official document (saved on the LMS after the
+                  first download).
                 </p>
               ) : null}
             </div>
+          </div>
+          <div className="mt-4">
+            <N8nCertificateGenerationStatus
+              certificate={certificate}
+              certRequested={certRequested}
+              polling={certLoading || (certRequested && certificate?.status === "pending")}
+            />
           </div>
           <div className="mt-4">
             <CertificateDownloadActions

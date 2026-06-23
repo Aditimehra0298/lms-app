@@ -45,6 +45,7 @@ import {
   CertificateDownloadActions,
   CertificateStatusBadge,
 } from "@/components/CertificateDownloadActions";
+import { N8nCertificateGenerationStatus } from "@/components/N8nCertificateGenerationStatus";
 import {
   certificatePdfDownloadHref,
   fetchSavedCertificatePdf,
@@ -280,9 +281,7 @@ export function CourseCompletedDashboard({
       });
 
   const hasSavedPdf = Boolean(
-    certificate?.pdfReady ||
-      certificate?.pdfUrl?.trim().startsWith("/api/certificates/") ||
-      (certificate?.id && certificate.status === "ready"),
+    certificate?.pdfReady || certificate?.pdfUrl?.trim().startsWith("/api/certificates/"),
   );
 
   const templateImage =
@@ -665,6 +664,14 @@ export function CourseCompletedDashboard({
             ) : null}
           </div>
 
+          <div className="mt-3 shrink-0">
+            <N8nCertificateGenerationStatus
+              certificate={certificate}
+              certRequested={certRequested}
+              polling={certRequested && !hasSavedPdf && certificate?.status !== "failed"}
+            />
+          </div>
+
           {canViewCertificate ? (
             <>
               <div className="relative mt-3 min-h-[min(72vw,480px)] w-full flex-1 overflow-hidden rounded-lg border border-white/10 bg-white shadow-[0_8px_40px_rgba(0,0,0,0.45)] lg:min-h-[420px]">
@@ -699,11 +706,11 @@ export function CourseCompletedDashboard({
                     overlay={
                       <div className="absolute inset-x-0 bottom-0 border-t border-black/10 bg-black/55 px-4 py-3 text-center backdrop-blur-[2px]">
                         <p className="text-sm font-semibold text-white">
-                          Generate your official certificate
+                          Get your official certificate
                         </p>
                         <p className="mt-0.5 text-xs text-gray-200">
-                          First time only (~15 seconds). Your name and details are placed on the
-                          template above.
+                          First download generates your official certificate (~15 seconds) and saves it
+                          permanently. Later downloads are instant.
                         </p>
                       </div>
                     }

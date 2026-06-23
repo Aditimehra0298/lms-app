@@ -65,8 +65,8 @@ export default function MyCertificatesList() {
       <div>
         <h1 className="text-3xl font-bold md:text-4xl">My Certificates</h1>
         <p className="mt-2 max-w-2xl text-sm text-gray-400">
-          Your official certificate and transcript live here. Use Get certificate PDF once to generate
-          (~15 seconds) — after that, download or open anytime instantly.
+          Your official certificate and transcript live here. Tap Get certificate PDF once (~15 seconds)
+          — it is saved on the LMS and downloads instantly after that.
         </p>
       </div>
 

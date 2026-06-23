@@ -12,6 +12,7 @@ import { toAbsoluteN8nAssetUrl } from "@/lib/server/n8n-certificate-assets";
 import type { CertificatePermissionSettings } from "@/lib/server/certificate-permissions";
 import type { RegistrationLookupResult } from "@/lib/server/registration-lookup";
 import type { ResolvedGlobalCertificateAssets } from "@/lib/global-certificate-assets";
+import { resolveN8nCertificateTemplateName, N8N_CERTIFICATE_COURSE_NAMES } from "@/lib/n8n-certificate-template-map";
 
 export type N8nCertificateWebhookPayload = {
   source: "lms";
@@ -112,6 +113,9 @@ export type N8nCertificateSentSummary = {
   courseName: string;
 };
 
+/** @deprecated Use N8nCertificateSentSummary */
+export type CertificateGeneratorSentSummary = N8nCertificateSentSummary;
+
 export function summarizeN8nCertificatePayload(
   payload: N8nCertificateWebhookPayload,
 ): N8nCertificateSentSummary {
@@ -198,9 +202,22 @@ export function buildN8nCertificateWebhookPayload(input: {
 
   const learner = {
     ...registration,
+    name: registration.name?.trim() || displayName,
     displayName,
     delegateNumber,
   };
+
+  const courseNameForN8n = resolveN8nCertificateTemplateName({
+    courseSlug: row.courseSlug,
+    courseTitle: row.courseTitle,
+    configTemplateName: course.certificateConfig?.n8nCertificateTemplateName,
+  });
+  if (!courseNameForN8n) {
+    throw new Error(
+      `No n8n certificate courseName mapped for "${row.courseSlug}". ` +
+        `courseName must be one of the ${N8N_CERTIFICATE_COURSE_NAMES.length} n8n template names.`,
+    );
+  }
 
   return {
     source: "lms",
@@ -242,7 +259,7 @@ export function buildN8nCertificateWebhookPayload(input: {
     },
     certificateFields: {
       candidateName: displayName,
-      courseName: row.courseTitle,
+      courseName: courseNameForN8n,
       courseDescription,
       duration: course.duration,
       mode: courseMode,
@@ -253,7 +270,7 @@ export function buildN8nCertificateWebhookPayload(input: {
     },
     transcriptFields: {
       candidateName: displayName,
-      trainingProgram: row.courseTitle,
+      trainingProgram: courseNameForN8n,
       grade,
       certificateNumber: row.certificateNumber,
       issueDate,
@@ -268,7 +285,7 @@ export function buildN8nCertificateWebhookPayload(input: {
     },
     // Flat aliases — n8n workflows often map $json.body.candidateName (not nested certificateFields)
     candidateName: displayName,
-    courseName: row.courseTitle,
+    courseName: courseNameForN8n,
     certificateNumber: row.certificateNumber,
     delegateNumber,
     verifyUrl,
@@ -276,7 +293,7 @@ export function buildN8nCertificateWebhookPayload(input: {
     issueDate,
     duration: course.duration,
     mode: courseMode,
-    trainingProgram: row.courseTitle,
+    trainingProgram: courseNameForN8n,
     certificateTemplate: certTemplate.url,
     badge: badge.url,
     transcriptTemplate: transcript.url,

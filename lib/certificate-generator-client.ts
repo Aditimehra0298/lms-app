@@ -1,4 +1,4 @@
-import type { CertificateGeneratorSentSummary } from "@/lib/server/certificate-generator-payload";
+import type { CertificateGeneratorSentSummary } from "@/lib/server/n8n-certificate-payload";
 import { readJsonResponse } from "@/lib/safe-json";
 
 export type { CertificateGeneratorSentSummary };
@@ -15,10 +15,11 @@ export type TriggerCertificateResult = {
   certificate?: { id?: string; pdfReady?: boolean; pdfUrl?: string | null };
 };
 
-/** Generate certificate via direct API (course templates from admin). */
+/** Generate certificate via n8n webhook (POST /api/certificates/:id/generate). */
 export async function generateCertificateViaApi(
   certificateId: string,
   email: string,
+  options?: { forceRegenerate?: boolean },
 ): Promise<TriggerCertificateResult> {
   const res = await fetch(
     `/api/certificates/${encodeURIComponent(certificateId.trim())}/generate`,
@@ -27,7 +28,10 @@ export async function generateCertificateViaApi(
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       cache: "no-store",
-      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        forceRegenerate: options?.forceRegenerate === true,
+      }),
     },
   );
   const data = await readJsonResponse(res, {} as TriggerCertificateResult);
@@ -52,7 +56,38 @@ export type GenerateFromTemplateResult = {
   templateImage?: string;
 };
 
-/** Fallback: overlay text on course template inside LMS (pdf-lib). */
+export type PrepareCertificateResult = {
+  ok?: boolean;
+  message?: string;
+  downloadUrl?: string;
+  status?: string;
+  cached?: boolean;
+  n8nCalled?: boolean;
+};
+
+/** Prepare certificate PDF via n8n (first time) or return cached LMS copy. */
+export async function prepareLearnerCertificate(
+  certificateId: string,
+  email: string,
+  options?: { forceRegenerate?: boolean },
+): Promise<PrepareCertificateResult> {
+  const res = await fetch(
+    `/api/certificates/${encodeURIComponent(certificateId.trim())}/prepare`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      cache: "no-store",
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        forceRegenerate: options?.forceRegenerate === true,
+      }),
+    },
+  );
+  return readJsonResponse(res, {} as PrepareCertificateResult);
+}
+
+/** @deprecated Use prepareLearnerCertificate + fetchSavedCertificatePdf for n8n courses. */
 export async function generateCertificateFromTemplate(
   certificateId: string,
   email: string,

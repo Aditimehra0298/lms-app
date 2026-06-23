@@ -5,6 +5,7 @@ import {
   findExistingEnrollment,
   reconcileEnrollmentIdentity,
 } from "@/lib/server/enrollment-lookup";
+import { queuePurchaseConfirmationEmails } from "@/lib/server/n8n-purchase-confirmation-service";
 
 export type PurchaseCourseInput = { slug: string; title: string };
 
@@ -30,10 +31,11 @@ export async function recordPurchasesForLearner(input: {
 
   let recorded = 0;
   let skipped = 0;
+  const newlyRecorded: PurchaseCourseInput[] = [];
 
   const user = await prisma.lmsUser.findUnique({
     where: { email },
-    select: { id: true },
+    select: { id: true, name: true },
   });
 
   for (const course of courses) {
@@ -64,6 +66,10 @@ export async function recordPurchasesForLearner(input: {
         },
       });
       recorded += 1;
+      newlyRecorded.push({
+        slug: course.slug,
+        title: course.title || dbCourse?.title || course.slug,
+      });
     } catch (err: unknown) {
       const code =
         err && typeof err === "object" && "code" in err
@@ -82,6 +88,14 @@ export async function recordPurchasesForLearner(input: {
       }
       throw err;
     }
+  }
+
+  if (newlyRecorded.length > 0) {
+    queuePurchaseConfirmationEmails({
+      learnerEmail: email,
+      learnerName: user?.name,
+      courses: newlyRecorded,
+    });
   }
 
   return { ok: true, recorded, skipped };
