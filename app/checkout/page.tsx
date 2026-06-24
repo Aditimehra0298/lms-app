@@ -18,7 +18,7 @@ import { completeCheckoutPurchase } from "@/lib/checkout-complete-client";
 import { openRazorpayCheckout, verifyRazorpayPaymentOnServer } from "@/lib/razorpay-client";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import { readLearnerProfileFromStorage } from "@/lib/auth-profile";
-import { computeCheckoutTotals } from "@/lib/checkout-totals";
+import { computeCheckoutTotals, toSmallestCurrencyUnit } from "@/lib/checkout-totals";
 import {
   computeRegionalCheckoutTotals,
   formatCheckoutMoney,
@@ -248,6 +248,30 @@ export default function CheckoutPage() {
   };
 
   const completePurchase = async () => {
+    const learnerEmail = learnerInfo.email.trim().toLowerCase();
+    if (learnerEmail) {
+      try {
+        await fetch("/api/payments/demo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            learnerEmail,
+            countryCode: region?.countryCode,
+            currency: paymentCurrency,
+            amount: toSmallestCurrencyUnit(total, paymentCurrency),
+            items: items.map((item) => ({
+              slug: item.slug,
+              title: item.title,
+              price: item.price,
+              qty: item.qty,
+            })),
+          }),
+        });
+      } catch {
+        /* checkout still completes locally */
+      }
+    }
+
     await finalizePurchase({
       orderId: "DEMO",
       paymentId: "—",

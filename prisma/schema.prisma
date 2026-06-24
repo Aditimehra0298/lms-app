@@ -41,6 +41,7 @@ model LmsUser {
   registrationMonthYear String? @db.VarChar(7)
 
   purchases      LmsPurchase[]
+  payments       LmsPayment[]
   certificates   LmsCertificate[]
   organization   LmsOrganization?
 
@@ -167,6 +168,40 @@ model LmsPurchase {
   @@index([userId, courseSlug])
   @@map("lms_purchase")
 }
+
+/// Razorpay / demo / admin-grant payment records for Orders & Payments admin panel.
+model LmsPayment {
+  id                String    @id @default(cuid())
+  userId            String?
+  learnerEmail      String    @db.VarChar(255)
+  razorpayOrderId   String?   @unique @db.VarChar(64)
+  razorpayPaymentId String?   @db.VarChar(64)
+  receipt           String?   @db.VarChar(64)
+  /// Amount in smallest currency unit (paise for INR).
+  amount            Int       @default(0)
+  currency          String    @default("INR") @db.VarChar(8)
+  /// pending | paid | failed | waived | demo
+  status            String    @default("pending") @db.VarChar(32)
+  /// razorpay | demo | admin_grant
+  method            String    @default("razorpay") @db.VarChar(32)
+  /// [{ slug, title, qty, price }]
+  items             Json
+  countryCode       String?   @db.VarChar(8)
+  adminNote         String?   @db.VarChar(512)
+  grantedByEmail    String?   @db.VarChar(255)
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+
+  user LmsUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([learnerEmail])
+  @@index([status])
+  @@index([method])
+  @@index([createdAt])
+  @@index([razorpayPaymentId])
+  @@map("lms_payment")
+}
+
 /// Issued completion certificate — unique number per holder per course.
 model LmsCertificate {
   id                  String   @id @default(cuid())

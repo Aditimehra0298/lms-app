@@ -79,7 +79,7 @@ export async function GET(
 
   const examRow = getFirstExamRowInModule(mod);
   const examUploadUrl = examRow?.examUploadUrl?.trim();
-  if (!examUploadUrl) {
+  if (!examRow || !examUploadUrl) {
     return NextResponse.json({
       ok: false,
       message: "No exam file uploaded for this module in Admin. Add a Module Exam and upload your CSV.",

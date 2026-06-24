@@ -1,5 +1,12 @@
 import { emailAppName, emailAppUrl } from "@/lib/email-brand-config";
-import { buildN8nWebhookHeaders, n8nWebhookAuthHint } from "@/lib/server/n8n-webhook-auth";
+import {
+  buildEmailDispatchKey,
+  markEmailDispatchFailed,
+  markEmailDispatchSent,
+  wasEmailDispatchSent,
+} from "@/lib/server/n8n-email-dispatch-store";
+import { postSftN8nEmailWebhook } from "@/lib/server/n8n-sft-email-service";
+import { N8N_WEBHOOK_PATHS, resolveN8nWebhookUrlFromEnv } from "@/lib/server/n8n-webhook-url";
 import { getTutorLedProgramBySlug } from "@/lib/server/tutor-led-catalog";
 
 export type PurchaseDeliveryKind = "tutor-led" | "self-paced";
@@ -12,22 +19,28 @@ export type PurchaseConfirmationN8nInput = {
   deliveryKind: PurchaseDeliveryKind;
 };
 
-const DEFAULT_TUTOR_LED_PURCHASE_WEBHOOK_URL =
-  "https://damnart-ai-guladab.n8n-wsk.com/webhook/purchased(tutor%20led)";
-const DEFAULT_SELF_PACED_PURCHASE_WEBHOOK_URL =
-  "https://damnart-ai-guladab.n8n-wsk.com/webhook/payment-confirmation(self-based)";
+const DEFAULT_TUTOR_LED_PURCHASE_WEBHOOK_URL = resolveN8nWebhookUrlFromEnv(
+  "N8N_TUTOR_LED_PURCHASE_WEBHOOK_URL",
+  N8N_WEBHOOK_PATHS.tutorLedPurchase,
+);
+const DEFAULT_SELF_PACED_PURCHASE_WEBHOOK_URL = resolveN8nWebhookUrlFromEnv(
+  "N8N_SELF_PACED_PURCHASE_WEBHOOK_URL",
+  N8N_WEBHOOK_PATHS.selfPacedPurchase,
+);
 
 function tutorLedPurchaseWebhookUrl(): string | null {
   return (
     process.env.N8N_TUTOR_LED_PURCHASE_WEBHOOK_URL?.trim() ||
-    DEFAULT_TUTOR_LED_PURCHASE_WEBHOOK_URL
+    DEFAULT_TUTOR_LED_PURCHASE_WEBHOOK_URL ||
+    null
   );
 }
 
 function selfPacedPurchaseWebhookUrl(): string | null {
   return (
     process.env.N8N_SELF_PACED_PURCHASE_WEBHOOK_URL?.trim() ||
-    DEFAULT_SELF_PACED_PURCHASE_WEBHOOK_URL
+    DEFAULT_SELF_PACED_PURCHASE_WEBHOOK_URL ||
+    null
   );
 }
 
@@ -115,31 +128,43 @@ function buildSelfPacedPayload(input: PurchaseConfirmationN8nInput) {
 async function postPurchaseWebhook(
   url: string,
   payload: Record<string, unknown>,
+  deliveryKind: PurchaseDeliveryKind,
+  courseSlug: string,
 ): Promise<{ ok: boolean; message?: string }> {
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: buildN8nWebhookHeaders(),
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const hint = (await res.text()).slice(0, 300);
-      const authHint =
-        res.status === 401 || res.status === 403
-          ? n8nWebhookAuthHint()
-          : "Check workflow is active.";
-      return {
-        ok: false,
-        message: `n8n purchase webhook returned ${res.status}. ${hint || authHint}`,
-      };
-    }
-
+  const email = String(payload.email ?? "")
+    .trim()
+    .toLowerCase();
+  const dispatchKey = buildEmailDispatchKey({
+    event: "course.purchased",
+    learnerEmail: email,
+    courseSlug,
+  });
+  if (wasEmailDispatchSent(dispatchKey)) {
     return { ok: true };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "n8n purchase request failed";
-    return { ok: false, message };
   }
+
+  const result = await postSftN8nEmailWebhook(
+    url,
+    payload,
+    deliveryKind === "tutor-led" ? "tutor-led-purchase" : "self-paced-purchase",
+  );
+
+  if (result.ok) {
+    markEmailDispatchSent({
+      event: "course.purchased",
+      learnerEmail: email,
+      courseSlug,
+    });
+    return { ok: true };
+  }
+
+  markEmailDispatchFailed({
+    event: "course.purchased",
+    learnerEmail: email,
+    courseSlug,
+    message: result.message,
+  });
+  return result;
 }
 
 /** POST tutor-led purchase confirmation to n8n → email workflow. */
@@ -155,7 +180,7 @@ export async function sendTutorLedPurchaseConfirmationViaN8n(
   if (!email) return { ok: false, message: "Learner email is required." };
   if (!input.courseName.trim()) return { ok: false, message: "courseName is required." };
 
-  return postPurchaseWebhook(url, buildTutorLedPayload(input));
+  return postPurchaseWebhook(url, buildTutorLedPayload(input), "tutor-led", input.courseSlug ?? "");
 }
 
 /** POST self-paced purchase confirmation to n8n → email workflow. */
@@ -171,7 +196,7 @@ export async function sendSelfPacedPurchaseConfirmationViaN8n(
   if (!email) return { ok: false, message: "Learner email is required." };
   if (!input.courseName.trim()) return { ok: false, message: "courseName is required." };
 
-  return postPurchaseWebhook(url, buildSelfPacedPayload(input));
+  return postPurchaseWebhook(url, buildSelfPacedPayload(input), "self-paced", input.courseSlug ?? "");
 }
 
 /** Resolve delivery kind and dispatch the matching n8n purchase email. */

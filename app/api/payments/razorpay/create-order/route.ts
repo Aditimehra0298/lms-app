@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { normalizeLearnerEmail } from "@/lib/learner-email";
+import { createPendingRazorpayPayment } from "@/lib/server/payment-record-service";
 import { createRazorpayOrder, type RazorpayCheckoutItem } from "@/lib/server/razorpay-service";
 import { isRazorpayConfigured } from "@/lib/server/razorpay-config";
 
@@ -47,6 +48,21 @@ export async function POST(request: Request) {
     if (!result.ok) {
       return NextResponse.json({ ok: false, message: result.message }, { status: 400 });
     }
+
+    await createPendingRazorpayPayment({
+      learnerEmail,
+      orderId: result.orderId,
+      receipt: result.receipt,
+      amount: Number(result.amount),
+      currency: result.currency,
+      items: items.map((item) => ({
+        slug: item.slug,
+        title: item.title || item.slug,
+        qty: item.qty,
+        price: item.price,
+      })),
+      countryCode: body.countryCode?.trim(),
+    });
 
     return NextResponse.json({
       ok: true,

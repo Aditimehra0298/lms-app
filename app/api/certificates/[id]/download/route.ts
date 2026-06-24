@@ -91,7 +91,7 @@ export async function POST(request: Request, { params }: Params) {
 
     const filename = `${(row?.certificateNumber ?? certificateId).replace(/[^\w.-]+/g, "_")}.pdf`;
 
-    return new Response(buffer, {
+    return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

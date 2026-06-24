@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   const minBytes = row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
   const buffer = await readCertificatePdfBuffer(row.id, { minBytes });
   if (buffer) {
-    return new Response(buffer, {
+    return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

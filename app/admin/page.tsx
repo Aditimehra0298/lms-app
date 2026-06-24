@@ -47,6 +47,7 @@ import AdminWorkshopsWorkspace from "@/components/admin/AdminWorkshopsWorkspace"
 import AdminLessonsWorkspace from "@/components/admin/AdminLessonsWorkspace";
 import AdminBatchesWorkspace from "@/components/admin/AdminBatchesWorkspace";
 import AdminUsersWorkspace from "@/components/admin/AdminUsersWorkspace";
+import AdminPaymentsWorkspace from "@/components/admin/AdminPaymentsWorkspace";
 import AdminRolesPermissionsWorkspace from "@/components/admin/AdminRolesPermissionsWorkspace";
 import { AdminCommunityConnectEditor } from "@/components/admin/AdminCommunityConnectEditor";
 import { AdminDashboardCalendarEditor } from "@/components/admin/AdminDashboardCalendarEditor";
@@ -379,6 +380,7 @@ function AdminPageInner() {
   const showTestimonialsEditor = activeMenu === "Testimonials";
   const showCertificatesWorkspace = activeMenu === "Certificates";
   const showUsersWorkspace = activeMenu === "Users";
+  const showPaymentsWorkspace = activeMenu === "Payments";
   const showOrganizationTeam = activeMenu === "Organization Team";
   const showRolesWorkspace = activeMenu === "Roles & Permissions";
   const hasMainPanel =
@@ -399,6 +401,7 @@ function AdminPageInner() {
     showTestimonialsEditor ||
     showCertificatesWorkspace ||
     showUsersWorkspace ||
+    showPaymentsWorkspace ||
     showOrganizationTeam ||
     showRolesWorkspace ||
     activeMenu === "Categories";
@@ -541,7 +544,9 @@ function AdminPageInner() {
                                 ? "Filter Q&A by course…"
                                 : showUsersWorkspace
                                   ? "Search users by email…"
-                                  : "Search here..."
+                                  : showPaymentsWorkspace
+                                    ? "Search payments by email or order ID…"
+                                    : "Search here..."
                   }
                 />
               </div>
@@ -869,6 +874,8 @@ function AdminPageInner() {
           {showCertificatesWorkspace && <AdminCertificatesWorkspace />}
 
           {showUsersWorkspace && <AdminUsersWorkspace />}
+
+          {showPaymentsWorkspace && <AdminPaymentsWorkspace />}
 
           {showOrganizationTeam && <AdminOrganizationTeamEditor />}
 

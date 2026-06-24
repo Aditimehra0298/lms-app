@@ -41,6 +41,7 @@ import { curriculumModulesForLearner } from "@/lib/curriculum-learner-filter";
 import type { CourseCurriculumModule as SchemaCurriculumModule } from "@/lib/content-schema";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import { requestCourseCertificateClient } from "@/lib/request-course-certificate-client";
+import { notifyCourseCompletionClient } from "@/lib/notify-course-completion-client";
 import { syncLearnerCourseProgressFromServer } from "@/lib/learner-progress-sync-client";
 import {
   computeCombinedExamGrade,
@@ -427,6 +428,12 @@ export default function CourseLearningPlayerPage() {
     if (!email) return;
 
     certRequestRef.current = slug;
+    void notifyCourseCompletionClient({
+      learnerEmail: email,
+      courseSlug: slug,
+      courseName: apiCourseTitle || courseTitle,
+      deliveryKind: "self-paced",
+    });
     void requestCourseCertificateClient({
       learnerEmail: email,
       courseSlug: slug,

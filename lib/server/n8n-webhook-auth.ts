@@ -39,6 +39,7 @@ export function n8nWebhookAuthMode(): N8nWebhookAuthMode {
     return "header";
   }
   if (readEnv("N8N_WEBHOOK_USER") && readEnv("N8N_WEBHOOK_PASSWORD")) return "basic";
+  if (readEnv("N8N_USER") && readEnv("N8N_PASS")) return "basic";
   return "none";
 }
 
@@ -62,8 +63,8 @@ export function buildN8nWebhookAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
   const mode = n8nWebhookAuthMode();
   if (mode === "basic") {
-    const user = readEnv("N8N_WEBHOOK_USER");
-    const password = readEnv("N8N_WEBHOOK_PASSWORD");
+    const user = readEnv("N8N_WEBHOOK_USER") || readEnv("N8N_USER");
+    const password = readEnv("N8N_WEBHOOK_PASSWORD") || readEnv("N8N_PASS");
     if (user && password) {
       const encoded = Buffer.from(`${user}:${password}`, "utf8").toString("base64");
       headers.Authorization = `Basic ${encoded}`;

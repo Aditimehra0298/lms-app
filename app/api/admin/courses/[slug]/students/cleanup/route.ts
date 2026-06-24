@@ -17,9 +17,9 @@ export async function POST(
   try {
     const result = await cleanupCourseEnrollments(courseSlug);
     return NextResponse.json({
-      ok: true,
       message: `Cleaned roster: ${result.removed} duplicate(s) removed, ${result.kept} learner(s) kept, ${result.linked} linked to user accounts.`,
       ...result,
+      ok: true,
     });
   } catch (err) {
     console.error("[admin/courses/[slug]/students/cleanup]", err);

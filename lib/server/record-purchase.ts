@@ -12,6 +12,7 @@ export type PurchaseCourseInput = { slug: string; title: string };
 export async function recordPurchasesForLearner(input: {
   learnerEmail: string;
   courses: PurchaseCourseInput[];
+  skipPurchaseEmail?: boolean;
 }): Promise<{ ok: true; recorded: number; skipped: number } | { ok: false; message: string }> {
   const email = normalizeLearnerEmail(input.learnerEmail);
   if (!email || !email.includes("@")) {
@@ -90,7 +91,7 @@ export async function recordPurchasesForLearner(input: {
     }
   }
 
-  if (newlyRecorded.length > 0) {
+  if (newlyRecorded.length > 0 && !input.skipPurchaseEmail) {
     queuePurchaseConfirmationEmails({
       learnerEmail: email,
       learnerName: user?.name,

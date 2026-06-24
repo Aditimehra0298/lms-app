@@ -56,7 +56,7 @@ export async function GET(request: Request, { params }: Params) {
     buffer = await readCertificatePdfBuffer(id.trim(), { minBytes });
   }
   if (buffer) {
-    return new Response(buffer, {
+    return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

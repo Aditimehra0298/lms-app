@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ExamSessionClock } from "@/components/ExamSessionClock";
 import { ExamProgressPanel } from "@/components/ExamProgressPanel";
@@ -31,6 +31,8 @@ import {
   queueCompletionCelebration,
 } from "@/components/CourseCompletionCelebration";
 import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
+import { getLearnerEmail } from "@/lib/learner-session-client";
+import { notifyCourseCompletionClient } from "@/lib/notify-course-completion-client";
 import {
   healModuleWatchRecord,
   modulePreviewProgress,
@@ -77,6 +79,7 @@ function CourseExamPageInner() {
   const [timeRemainingSec, setTimeRemainingSec] = useState<number | null>(null);
   const [examStartedAtMs, setExamStartedAtMs] = useState<number | null>(null);
   const [watchedSecondsByModule, setWatchedSecondsByModule] = useState<Record<number, number>>({});
+  const completionEmailSentRef = useRef(false);
   const currentQuestion = questions[currentQuestionIndex];
   const answeredQuestions = useMemo(
     () => selectedAnswers.map((answer, idx) => (answer !== null ? idx : -1)).filter((idx) => idx >= 0),
@@ -348,6 +351,23 @@ function CourseExamPageInner() {
     const { allExamsPassed } = computeCombinedExamGrade(slug, courseMeta.curriculum);
     return learnerCredentialsEligible(courseMeta.curriculum, completed, allExamsPassed).eligible;
   }, [isSubmitted, courseMeta, examRuntime, questions.length, score, slug]);
+
+  useEffect(() => {
+    if (!courseCredentialsUnlocked || completionEmailSentRef.current) return;
+    const email = getLearnerEmail();
+    if (!email || !courseMeta?.title) return;
+
+    completionEmailSentRef.current = true;
+    void notifyCourseCompletionClient({
+      learnerEmail: email,
+      courseSlug: slug,
+      courseName: courseMeta.title,
+      deliveryKind: courseMeta.deliveryKind === "tutor-led" ? "tutor-led" : "self-paced",
+    }).catch((err) => {
+      completionEmailSentRef.current = false;
+      console.warn("[course-completion] notify failed:", err);
+    });
+  }, [courseCredentialsUnlocked, courseMeta?.deliveryKind, courseMeta?.title, slug]);
 
   if (courseMeta === undefined) {
     return (

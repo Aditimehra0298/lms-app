@@ -28,7 +28,7 @@ import type { LearnerAuthProfile } from "@/lib/auth-profile";
 import type { FeaturedCoursePick, ScoredCourse } from "@/lib/learner-course-recommendations";
 import type { TutorLedExploreCard } from "@/lib/tutor-led-live-hub-enrich";
 import { COMPANY_DISPLAY_NAME } from "@/lib/contact-site-data";
-import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
+import { MyLearningDashboardLogo } from "@/components/MyLearningDashboardLogo";
 
 const ORG_TEAM_PLAN_BADGE_URL =
   "https://res.cloudinary.com/dwnnakrrh/image/upload/v1781164540/ChatGPT_Image_Jun_11_2026_01_25_11_PM_s4a0fx.png";
@@ -216,12 +216,7 @@ export function MyLearningOrganizationDashboard({
               </div>
 
               <div className="hidden shrink-0 sm:block">
-                <Image
-                  src={sfWhiteLogo}
-                  alt={COMPANY_DISPLAY_NAME}
-                  className="h-24 w-auto object-contain opacity-90 md:h-28"
-                  priority
-                />
+                <MyLearningDashboardLogo />
               </div>
             </div>
 

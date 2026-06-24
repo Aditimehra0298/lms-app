@@ -14,6 +14,7 @@ import {
 } from "@/lib/server/certificate-permissions";
 import { ensureCourseInMysql, getCourseBySlug } from "@/lib/server/course-mysql-sync";
 import { lookupRegistrationByEmail } from "@/lib/server/registration-lookup";
+import { queueCourseLifecycleEmails } from "@/lib/server/n8n-course-lifecycle-emails";
 import type { AdminCertificateRowDto, CertificateRowDto } from "@/lib/certificate-types";
 import { issueCourseCertificate } from "@/lib/server/certificate-service";
 import { appBaseUrl } from "@/lib/server/certificate-app-url";
@@ -448,6 +449,13 @@ export async function requestCourseCertificate(input: {
       },
     });
     const row = await prisma.lmsCertificate.findUnique({ where: { id: built.certificate.id } });
+    queueCourseLifecycleEmails({
+      learnerEmail: email,
+      learnerName: input.learnerName ?? row?.learnerName,
+      courseName: course.title,
+      courseSlug: slug,
+      certificateId: built.certificate.id,
+    });
     return { ok: true, certificate: await toDto(row!) };
   }
 
@@ -522,6 +530,13 @@ export async function requestCourseCertificate(input: {
     scorePercent: input.scorePercent,
   });
   if (!dispatched.ok) return dispatched;
+  queueCourseLifecycleEmails({
+    learnerEmail: email,
+    learnerName: displayName,
+    courseName: course.title,
+    courseSlug: slug,
+    certificateId: row.id,
+  });
   return {
     ok: true,
     certificate: dispatched.certificate,

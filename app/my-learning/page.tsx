@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import loadDynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -33,17 +34,7 @@ import {
   defaultHomePageConfig,
   type ManagedCourse,
 } from "@/lib/content-schema";
-import { MyLearningCommunityHub } from "@/components/MyLearningCommunityHub";
-import { MyLearningOrganizationCommunityHub } from "@/components/MyLearningOrganizationCommunityHub";
-import { MyLearningDashboardCourses } from "@/components/MyLearningDashboardCourses";
-import { MyLearningFeaturedCourse } from "@/components/MyLearningFeaturedCourse";
-import { MyLearningIndividualSubscriptions } from "@/components/MyLearningIndividualSubscriptions";
-import { MyLearningOrganizationCourses } from "@/components/MyLearningOrganizationCourses";
-import { MyLearningOrganizationSubscriptions } from "@/components/MyLearningOrganizationSubscriptions";
-import { MyLearningLiveHub } from "@/components/MyLearningLiveHub";
-import MyCertificatesList from "@/components/MyCertificatesList";
-import { MyLearningAssignmentsTab } from "@/components/MyLearningAssignmentsTab";
-import { MyLearningOrganizationAssignmentsTab } from "@/components/MyLearningOrganizationAssignmentsTab";
+import { MyLearningDashboardLogo } from "@/components/MyLearningDashboardLogo";
 import {
   buildMyLearningAssignments,
   filterLearnerVisibleAssignments,
@@ -71,10 +62,6 @@ import {
   syncOrganizationTeamFromServer,
 } from "@/lib/organization-team-sync-client";
 import { buildOrganizationTeamAssignments } from "@/lib/organization-team-assignments";
-import { MyLearningOrganizationDashboard } from "@/components/MyLearningOrganizationDashboard";
-import { MyLearningOrganizationCertificates } from "@/components/MyLearningOrganizationCertificates";
-import { MyLearningOrganizationLiveHub } from "@/components/MyLearningOrganizationLiveHub";
-import { MyLearningOrganizationTeamProgress } from "@/components/MyLearningOrganizationTeamProgress";
 import {
   buildRecommendationContext,
   pickFeaturedCourse,
@@ -107,12 +94,133 @@ import {
   type PurchasedCourseRow,
 } from "@/lib/learner-course-progress";
 import { BADGES_UPDATED_EVENT, readLearnerBadges } from "@/lib/learner-badges";
-import { MyLearningAchievementsTab } from "@/components/MyLearningAchievementsTab";
-import { MyLearningOrganizationAchievementsTab } from "@/components/MyLearningOrganizationAchievementsTab";
-import { MyLearningOrganizationInviteEmployees } from "@/components/MyLearningOrganizationInviteEmployees";
-import { MyLearningOrganizationAssignCourses } from "@/components/MyLearningOrganizationAssignCourses";
-import { MyLearningOrganizationTeamReport } from "@/components/MyLearningOrganizationTeamReport";
-import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
+
+function TabPanelLoading() {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-10 text-center text-sm text-gray-400">
+      Loading…
+    </div>
+  );
+}
+
+const MyLearningCommunityHub = loadDynamic(
+  () => import("@/components/MyLearningCommunityHub").then((m) => ({ default: m.MyLearningCommunityHub })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationCommunityHub = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationCommunityHub").then((m) => ({
+      default: m.MyLearningOrganizationCommunityHub,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningDashboardCourses = loadDynamic(
+  () => import("@/components/MyLearningDashboardCourses").then((m) => ({ default: m.MyLearningDashboardCourses })),
+  { loading: TabPanelLoading },
+);
+const MyLearningFeaturedCourse = loadDynamic(
+  () => import("@/components/MyLearningFeaturedCourse").then((m) => ({ default: m.MyLearningFeaturedCourse })),
+  { loading: TabPanelLoading },
+);
+const MyLearningIndividualSubscriptions = loadDynamic(
+  () =>
+    import("@/components/MyLearningIndividualSubscriptions").then((m) => ({
+      default: m.MyLearningIndividualSubscriptions,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationCourses = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationCourses").then((m) => ({
+      default: m.MyLearningOrganizationCourses,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationSubscriptions = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationSubscriptions").then((m) => ({
+      default: m.MyLearningOrganizationSubscriptions,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningLiveHub = loadDynamic(
+  () => import("@/components/MyLearningLiveHub").then((m) => ({ default: m.MyLearningLiveHub })),
+  { loading: TabPanelLoading },
+);
+const MyCertificatesList = loadDynamic(() => import("@/components/MyCertificatesList"), {
+  loading: TabPanelLoading,
+});
+const MyLearningAssignmentsTab = loadDynamic(
+  () => import("@/components/MyLearningAssignmentsTab").then((m) => ({ default: m.MyLearningAssignmentsTab })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationAssignmentsTab = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationAssignmentsTab").then((m) => ({
+      default: m.MyLearningOrganizationAssignmentsTab,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationDashboard = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationDashboard").then((m) => ({
+      default: m.MyLearningOrganizationDashboard,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationCertificates = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationCertificates").then((m) => ({
+      default: m.MyLearningOrganizationCertificates,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationLiveHub = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationLiveHub").then((m) => ({
+      default: m.MyLearningOrganizationLiveHub,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationTeamProgress = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationTeamProgress").then((m) => ({
+      default: m.MyLearningOrganizationTeamProgress,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningAchievementsTab = loadDynamic(
+  () => import("@/components/MyLearningAchievementsTab").then((m) => ({ default: m.MyLearningAchievementsTab })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationAchievementsTab = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationAchievementsTab").then((m) => ({
+      default: m.MyLearningOrganizationAchievementsTab,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationInviteEmployees = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationInviteEmployees").then((m) => ({
+      default: m.MyLearningOrganizationInviteEmployees,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationAssignCourses = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationAssignCourses").then((m) => ({
+      default: m.MyLearningOrganizationAssignCourses,
+    })),
+  { loading: TabPanelLoading },
+);
+const MyLearningOrganizationTeamReport = loadDynamic(
+  () =>
+    import("@/components/MyLearningOrganizationTeamReport").then((m) => ({
+      default: m.MyLearningOrganizationTeamReport,
+    })),
+  { loading: TabPanelLoading },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -818,12 +926,7 @@ export default function MyLearningPage() {
                 </div>
                   </div>
                   <div className="hidden shrink-0 sm:block">
-                    <Image
-                      src={sfWhiteLogo}
-                      alt="Sustainable Futures Trainings"
-                      className="my-learning-dashboard-logo h-24 w-auto object-contain opacity-95 md:h-28 lg:h-32"
-                      priority
-                    />
+                    <MyLearningDashboardLogo />
                   </div>
                 </div>
               </article>

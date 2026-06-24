@@ -307,7 +307,7 @@ export function CertificateStatusBadge({
 
   if (normalized === "ready" && pdfReady && visibleToLearner) {
     return (
-      <span className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+      <span className="certificate-status-badge inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
         Saved
       </span>
     );
@@ -315,7 +315,7 @@ export function CertificateStatusBadge({
 
   if (normalized === "ready" && !visibleToLearner) {
     return (
-      <span className="inline-flex items-center rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+      <span className="certificate-status-badge inline-flex items-center rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
         Awaiting approval
       </span>
     );
@@ -323,7 +323,7 @@ export function CertificateStatusBadge({
 
   if (normalized === "ready") {
     return (
-      <span className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+      <span className="certificate-status-badge inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
         Issued
       </span>
     );
@@ -331,14 +331,14 @@ export function CertificateStatusBadge({
 
   if (normalized === "failed") {
     return (
-      <span className="inline-flex items-center rounded-full border border-red-500/35 bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-200">
+      <span className="certificate-status-badge inline-flex items-center rounded-full border border-red-500/35 bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-200">
         Failed
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center rounded-full border border-violet-500/35 bg-violet-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-200">
+    <span className="certificate-status-badge inline-flex items-center rounded-full border border-violet-500/35 bg-violet-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-200">
       Generating…
     </span>
   );

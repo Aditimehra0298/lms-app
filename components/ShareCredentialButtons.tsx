@@ -84,17 +84,17 @@ export function ShareCredentialButtons({
             key={platform.id}
             type="button"
             onClick={() => open(platform.id)}
-            className={`inline-flex shrink-0 items-center justify-center rounded-full text-white shadow-md transition ${buttonSize} ${SOCIAL_BRAND_BUTTON_CLASS[platform.brand]}`}
+            className={`my-learning-social-brand-btn inline-flex shrink-0 items-center justify-center rounded-full text-white shadow-md transition ${buttonSize} ${SOCIAL_BRAND_BUTTON_CLASS[platform.brand]}`}
             aria-label={`Share on ${SOCIAL_BRAND_LABEL[platform.brand]}`}
             title={SOCIAL_BRAND_LABEL[platform.brand]}
           >
-            <SocialBrandIcon brand={platform.brand} size={iconSize} />
+            <SocialBrandIcon brand={platform.brand} size={iconSize} className="text-white" />
           </button>
         ))}
         <button
           type="button"
           onClick={() => open("copy")}
-          className={`inline-flex shrink-0 items-center justify-center rounded-full border border-amber-400/40 bg-amber-500/15 text-amber-100 shadow-md transition hover:border-amber-300/60 hover:bg-amber-500/25 ${buttonSize}`}
+          className={`my-learning-social-copy-btn inline-flex shrink-0 items-center justify-center rounded-full border border-amber-400/40 bg-amber-500/15 text-amber-100 shadow-md transition hover:border-amber-300/60 hover:bg-amber-500/25 ${buttonSize}`}
           aria-label={copyLabel}
           title={copyLabel}
         >

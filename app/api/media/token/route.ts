@@ -26,8 +26,9 @@ export async function POST(request: Request) {
     }
 
     if (!isManagedLocalMediaUrl(url) && !url.startsWith("/api/media/serve/")) {
+      const emailEarly = body.email?.trim().toLowerCase() ?? "";
       const scope =
-        body.scope ?? (body.courseSlug?.trim() ? "learner" : email && isAdminEmail(email) ? "admin" : "catalog");
+        body.scope ?? (body.courseSlug?.trim() ? "learner" : emailEarly && isAdminEmail(emailEarly) ? "admin" : "catalog");
       if (scope === "learner") {
         return NextResponse.json(
           { ok: false, error: "External video URLs are blocked for learners. Upload to protected storage." },
