@@ -34,7 +34,7 @@ import {
   getBrowserOrigin,
   googleOriginMismatchHint,
   googleOriginSetupHint,
-  isLanOrNonLocalhostOrigin,
+  shouldShowGoogleWifiOriginHint,
 } from "@/lib/google-sign-in-origin";
 import { countryDisplayName } from "@/lib/iso-country-list";
 import { applyGoogleSession, signInWithGoogleAccessToken } from "@/lib/learner-google-auth";
@@ -860,7 +860,7 @@ export default function AccountPage() {
               </button>
             </div>
 
-            {browserOrigin && isLanOrNonLocalhostOrigin(browserOrigin) && googleConfigured ? (
+            {browserOrigin && shouldShowGoogleWifiOriginHint(browserOrigin) && googleConfigured ? (
               <p className="mb-4 rounded-xl border border-sky-400/35 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
                 <strong className="text-sky-200">Wi‑Fi login:</strong> Google must allow this exact address — add{" "}
                 <code className="rounded bg-black/40 px-1.5 py-0.5 text-xs text-sky-50">{browserOrigin}</code> in{" "}

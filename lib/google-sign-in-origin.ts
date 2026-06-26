@@ -17,6 +17,19 @@ export function isLanOrNonLocalhostOrigin(origin: string): boolean {
   return !LOCAL_DEV_ORIGINS.has(o);
 }
 
+/** Blue “Wi‑Fi login” banner — LAN IP / dev tunnel only, not public production domains. */
+export function shouldShowGoogleWifiOriginHint(origin: string): boolean {
+  if (!isLanOrNonLocalhostOrigin(origin)) return false;
+  try {
+    const host = new URL(origin).hostname.toLowerCase();
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true;
+    if (host.endsWith(".devtunnels.ms")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function googleOriginSetupHint(origin?: string): string {
   const o = (origin ?? getBrowserOrigin()).trim() || "http://localhost:3000";
   return `Add ${o} (and http://localhost:3000, http://127.0.0.1:3000 if needed) under Google Cloud Console → Credentials → OAuth client → Authorized JavaScript origins.`;
