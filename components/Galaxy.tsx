@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type HTMLAttributes } from "react";
+import { memo, useEffect, useRef, type HTMLAttributes } from "react";
 import "./Galaxy.css";
 
 const vertexShader = `
@@ -212,6 +212,9 @@ const TRIANGLE_STRIDE = 16;
 const TRIANGLE_POS_OFFSET = 0;
 const TRIANGLE_UV_OFFSET = 8;
 
+const DEFAULT_FOCAL: [number, number] = [0.5, 0.5];
+const DEFAULT_ROTATION: [number, number] = [1.0, 0.0];
+
 export type GalaxyProps = {
   focal?: [number, number];
   rotation?: [number, number];
@@ -231,9 +234,9 @@ export type GalaxyProps = {
   transparent?: boolean;
 } & HTMLAttributes<HTMLDivElement>;
 
-export default function Galaxy({
-  focal = [0.5, 0.5],
-  rotation = [1.0, 0.0],
+function Galaxy({
+  focal = DEFAULT_FOCAL,
+  rotation = DEFAULT_ROTATION,
   starSpeed = 0.5,
   density = 1,
   hueShift = 140,
@@ -465,3 +468,5 @@ export default function Galaxy({
     />
   );
 }
+
+export default memo(Galaxy);

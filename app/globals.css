@@ -1611,6 +1611,22 @@ body.tutor-led-marketing-body {
   will-change: transform, filter;
 }
 
+/* My Learning — dark theme */
+:root[data-theme="dark"] .my-learning-page {
+  background: #0a0a0a;
+  color: #fff;
+}
+
+:root[data-theme="dark"] .my-learning-course-player {
+  background: #060b17;
+  color: #fff;
+}
+
+.my-learning-page,
+.my-learning-course-player {
+  min-height: 0;
+}
+
 /* My Learning dashboard — light theme */
 :root[data-theme="light"] .my-learning-page {
   color: #334155;
@@ -2229,6 +2245,226 @@ body.tutor-led-marketing-body {
     radial-gradient(circle at 0% 0%, rgba(212, 160, 23, 0.1), transparent 38%),
     linear-gradient(160deg, #ffffff 0%, #fdf8ef 52%, #f8f1e3 100%) !important;
   box-shadow: 0 4px 18px rgba(120, 95, 55, 0.1) !important;
+}
+
+/* My Learning course player — light theme refinements */
+:root[data-theme="light"] .my-learning-course-player {
+  background: transparent !important;
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player .text-violet-100,
+:root[data-theme="light"] .my-learning-course-player .text-violet-200,
+:root[data-theme="light"] .my-learning-course-player .text-violet-300,
+:root[data-theme="light"] .my-learning-course-player [class*="text-violet-1"],
+:root[data-theme="light"] .my-learning-course-player [class*="text-violet-2"],
+:root[data-theme="light"] .my-learning-course-player [class*="text-violet-3"] {
+  color: #6d28d9 !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player .text-amber-100,
+:root[data-theme="light"] .my-learning-course-player .text-amber-200,
+:root[data-theme="light"] .my-learning-course-player [class*="text-amber-1"],
+:root[data-theme="light"] .my-learning-course-player [class*="text-amber-2"] {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player .text-rose-100,
+:root[data-theme="light"] .my-learning-course-player [class*="text-rose-"] {
+  color: #be123c !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player .text-emerald-100,
+:root[data-theme="light"] .my-learning-course-player .text-emerald-200,
+:root[data-theme="light"] .my-learning-course-player .text-emerald-300,
+:root[data-theme="light"] .my-learning-course-player [class*="text-emerald-1"],
+:root[data-theme="light"] .my-learning-course-player [class*="text-emerald-2"],
+:root[data-theme="light"] .my-learning-course-player [class*="text-emerald-3"] {
+  color: #047857 !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player .text-cyan-100,
+:root[data-theme="light"] .my-learning-course-player [class*="text-cyan-"] {
+  color: #0e7490 !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player input,
+:root[data-theme="light"] .my-learning-course-player textarea {
+  background: #ffffff !important;
+  border-color: rgba(168, 138, 78, 0.32) !important;
+  color: #1f2937 !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player input::placeholder,
+:root[data-theme="light"] .my-learning-course-player textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player button[class*="bg-violet-600"],
+:root[data-theme="light"] .my-learning-course-player button[class*="bg-violet-500"] {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
+  color: #ffffff !important;
+  border-color: rgba(109, 40, 217, 0.35) !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player button[class*="bg-violet-600"]:hover,
+:root[data-theme="light"] .my-learning-course-player button[class*="bg-violet-500"]:hover {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player [class*="from-emerald-500/20"],
+:root[data-theme="light"] .my-learning-course-player [class*="to-[#13263a]"] {
+  background: linear-gradient(90deg, rgba(209, 250, 229, 0.85), rgba(255, 255, 255, 0.92)) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player [class*="from-violet-500/25"],
+:root[data-theme="light"] .my-learning-course-player [class*="to-[#121a32]"] {
+  background: linear-gradient(90deg, rgba(237, 233, 254, 0.9), rgba(255, 252, 245, 0.95)) !important;
+  border-color: rgba(139, 92, 246, 0.35) !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player [class*="from-violet-600/15"] {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(139, 92, 246, 0.12), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 240, 255, 0.9)) !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player [class*="to-violet-950/20"] {
+  background: linear-gradient(180deg, rgba(254, 243, 199, 0.45), rgba(237, 233, 254, 0.55)) !important;
+  border-color: rgba(212, 160, 23, 0.32) !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player .relative.bg-black,
+:root[data-theme="light"] .my-learning-course-player video,
+:root[data-theme="light"] .my-learning-course-player .bg-black.object-contain {
+  background: #000000 !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player [class*="bg-rose-500/10"] {
+  background: rgba(254, 226, 226, 0.75) !important;
+  border-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player [class*="bg-amber-500/10"] {
+  background: rgba(254, 243, 199, 0.55) !important;
+  border-color: rgba(217, 119, 6, 0.35) !important;
+}
+
+:root[data-theme="light"] .my-learning-course-player button[class*="bg-violet-500/20"] {
+  background: rgba(237, 233, 254, 0.85) !important;
+  color: #5b21b6 !important;
+}
+
+/* My Learning subscriptions — light theme */
+:root[data-theme="light"] .my-learning-page .my-learning-subscriptions-title,
+:root[data-theme="light"] .my-learning-page .my-learning-subscriptions h1.text-white {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscriptions .text-gray-300,
+:root[data-theme="light"] .my-learning-page .my-learning-subscriptions .text-gray-400,
+:root[data-theme="light"] .my-learning-page .my-learning-subscriptions .text-gray-500 {
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscriptions strong.text-gray-300 {
+  color: #334155 !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-pill {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(168, 138, 78, 0.28) !important;
+  color: #64748b !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-card {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(212, 160, 23, 0.12), transparent 38%),
+    linear-gradient(160deg, #ffffff 0%, #fdf8ef 52%, #f8f1e3 100%) !important;
+  border-color: rgba(168, 138, 78, 0.3) !important;
+  box-shadow: 0 8px 24px rgba(120, 95, 55, 0.1) !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-card--highlighted {
+  border-color: rgba(217, 119, 6, 0.45) !important;
+  box-shadow:
+    0 8px 28px rgba(120, 95, 55, 0.12),
+    0 0 24px rgba(212, 160, 23, 0.18) !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-card--active {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.1) !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-card h2,
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-card .my-learning-subscription-price,
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-card .text-white {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-card .text-gray-300,
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-card .text-gray-400,
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-card .text-gray-500 {
+  color: #475569 !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-card .text-emerald-400 {
+  color: #059669 !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-secondary-cta,
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-plan-cta.my-learning-subscription-secondary-cta {
+  background: linear-gradient(145deg, rgba(255, 251, 235, 0.98), rgba(237, 233, 254, 0.88)) !important;
+  border-color: rgba(212, 160, 23, 0.38) !important;
+  color: #7c3aed !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-secondary-cta:hover,
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-plan-cta.my-learning-subscription-secondary-cta:hover {
+  background: linear-gradient(145deg, rgba(253, 230, 138, 0.55), rgba(221, 214, 254, 0.82)) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  color: #5b21b6 !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-banner {
+  background: rgba(254, 243, 199, 0.65) !important;
+  border-color: rgba(217, 119, 6, 0.35) !important;
+  color: #92400e !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-banner strong {
+  color: #78350f !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-seats {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(139, 92, 246, 0.08), transparent 36%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(252, 245, 228, 0.94)) !important;
+  border-color: rgba(168, 138, 78, 0.28) !important;
+  box-shadow: 0 8px 24px rgba(120, 95, 55, 0.08) !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-seats .text-white {
+  color: #0f172a !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-seats .text-amber-200 {
+  color: #b45309 !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-seats input {
+  background: #ffffff !important;
+  border-color: rgba(168, 138, 78, 0.32) !important;
+  color: #1f2937 !important;
+}
+
+:root[data-theme="light"] .my-learning-page .my-learning-subscription-seats a[class*="border-white/15"] {
+  background: rgba(255, 251, 235, 0.95) !important;
+  border-color: rgba(212, 160, 23, 0.35) !important;
+  color: #92400e !important;
 }
 
 /* My Learning dashboard tab — golden rays highlight after login */

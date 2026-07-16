@@ -47,17 +47,21 @@ function Field({
   label,
   hint,
   children,
+  asLabel = true,
 }: {
   label: string;
   hint?: string;
   children: React.ReactNode;
+  /** Use false when children include multiple inputs (e.g. Month + Year). */
+  asLabel?: boolean;
 }) {
+  const Wrapper = asLabel ? "label" : "div";
   return (
-    <label className="block">
+    <Wrapper className="block">
       <span className="text-[10px] font-medium text-gray-500">{label}</span>
       {children}
       {hint ? <p className="mt-0.5 text-[9px] leading-snug text-gray-600">{hint}</p> : null}
-    </label>
+    </Wrapper>
   );
 }
 
@@ -130,9 +134,10 @@ export default function AdminCourseHeroFieldsEditor({
               placeholder="23,455 students enrolled"
             />
           </Field>
-          <Field label="Last updated">
-            <div className="grid grid-cols-2 gap-2">
+          <Field label="Last updated" asLabel={false}>
+            <div className="mt-1 grid grid-cols-2 gap-2">
               <select
+                aria-label="Last updated month"
                 value={luMonth}
                 onChange={(e) =>
                   updateHero(setDraft, {
@@ -149,6 +154,7 @@ export default function AdminCourseHeroFieldsEditor({
                 ))}
               </select>
               <select
+                aria-label="Last updated year"
                 value={luYear}
                 onChange={(e) =>
                   updateHero(setDraft, {

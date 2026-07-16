@@ -14,7 +14,6 @@ import {
   writeLearningPreferences,
 } from "@/lib/learner-learning-preferences";
 import {
-  accountTypeLabel,
   emptyProfileForm,
   PROFILE_COMPANY_SIZE_OPTIONS,
   PROFILE_INDUSTRY_OPTIONS,
@@ -146,21 +145,12 @@ export function LearnerProfileSettingsEditor({ initialProfile, compact = false, 
       <div className="rounded-xl border border-white/10 bg-black/30 px-4 py-3">
         <p className="inline-flex items-center gap-2 text-sm font-semibold text-amber-100">
           {isOrganisation ? <Building2 size={16} /> : <UserRound size={16} />}
-          {accountTypeLabel(accountType)} · {summary}
+          {summary}
         </p>
         {email ? <p className="mt-1 text-xs text-gray-400">{email}</p> : null}
-        {initialProfile?.identificationNumber != null ? (
-          <p className="mt-1 font-mono text-xs text-amber-200/90">
-            User ID {initialProfile.identificationNumber}
-            {initialProfile.registrationCode ? ` · ${initialProfile.registrationCode}` : ""}
-            {initialProfile.registrationMonthYear
-              ? ` · registered ${initialProfile.registrationMonthYear}`
-              : ""}
-          </p>
-        ) : null}
         <p className="mt-1 text-[10px] text-zinc-600">
-          Your ID and phone are stored in your account — signing in on another PC or phone loads the
-          same details from the server.
+          Your profile and phone are stored in your account — signing in on another PC or phone loads
+          the same details from the server.
         </p>
       </div>
 

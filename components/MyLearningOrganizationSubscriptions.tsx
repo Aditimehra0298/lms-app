@@ -120,9 +120,9 @@ export function MyLearningOrganizationSubscriptions({
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="my-learning-subscriptions mx-auto w-full max-w-6xl">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-white md:text-3xl">Team Plans</h1>
+        <h1 className="my-learning-subscriptions-title text-2xl font-bold text-white md:text-3xl">Team Plans</h1>
         <p className="mx-auto mt-1.5 max-w-2xl text-sm text-gray-400">
           Three premium tiers — <strong className="font-medium text-gray-300">Monthly Premium</strong>{" "}
           (20 employees), <strong className="font-medium text-gray-300">Early Program</strong> (50+), and{" "}
@@ -131,25 +131,25 @@ export function MyLearningOrganizationSubscriptions({
         </p>
       </div>
 
-      <article className="mx-auto mt-4 max-w-2xl rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100">
+      <article className="my-learning-subscription-banner mx-auto mt-4 max-w-2xl rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100">
         Active plan: <strong>{activePlan.name}</strong> ·{" "}
         <strong>{activePlan.seatLimit} learner seats</strong> · any course in catalog
       </article>
 
       <div className="mt-4 flex flex-wrap justify-center gap-3 text-[11px] text-gray-400">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1">
+        <span className="my-learning-subscription-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1">
           <Building2 size={13} className="text-amber-300" />
           Organisation billing
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1">
+        <span className="my-learning-subscription-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1">
           <BookOpen size={13} className="text-amber-300" />
           Any course per plan
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1">
+        <span className="my-learning-subscription-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1">
           <Video size={13} className="text-[#FFC107]" />
           Tutor-led programs
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1">
+        <span className="my-learning-subscription-pill inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-3 py-1">
           <Award size={13} className="text-emerald-300" />
           Team certificates
         </span>
@@ -161,11 +161,11 @@ export function MyLearningOrganizationSubscriptions({
           return (
             <article
               key={plan.id}
-              className={`relative flex flex-col rounded-xl border bg-linear-to-b from-[#12121a] to-[#0a0a0a] p-5 ${
+              className={`my-learning-subscription-card relative flex flex-col rounded-xl border bg-linear-to-b from-[#12121a] to-[#0a0a0a] p-5 ${
                 plan.highlighted
-                  ? "border-amber-400/50 shadow-[0_0_24px_rgba(255,193,7,0.12)]"
+                  ? "my-learning-subscription-card--highlighted border-amber-400/50 shadow-[0_0_24px_rgba(255,193,7,0.12)]"
                   : isActive
-                    ? "border-emerald-500/40"
+                    ? "my-learning-subscription-card--active border-emerald-500/40"
                     : "border-white/10"
               }`}
             >
@@ -183,7 +183,11 @@ export function MyLearningOrganizationSubscriptions({
               <p className="mt-0.5 text-sm text-gray-400">{plan.tagline}</p>
 
               <div className="mt-3">
-                <CoursePrice label={plan.priceLabel} exactLabel className="text-2xl font-bold text-white" />
+                <CoursePrice
+                  label={plan.priceLabel}
+                  exactLabel
+                  className="my-learning-subscription-price text-2xl font-bold text-white"
+                />
                 {plan.billingSuffix ? (
                   <span className="ml-1 text-sm text-gray-500">{plan.billingSuffix}</span>
                 ) : null}
@@ -192,7 +196,7 @@ export function MyLearningOrganizationSubscriptions({
                 ) : null}
               </div>
 
-              <ul className="mt-4 flex-1 space-y-2">
+              <ul className="mt-4 space-y-2">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
                     <Check size={15} className="mt-0.5 shrink-0 text-emerald-400" aria-hidden />
@@ -204,10 +208,10 @@ export function MyLearningOrganizationSubscriptions({
               <button
                 type="button"
                 onClick={() => selectPlan(plan.id, plan.seatDefault)}
-                className={`mt-4 inline-flex w-full items-center justify-center rounded-lg py-2.5 text-sm font-bold transition ${
+                className={`my-learning-subscription-plan-cta mt-4 inline-flex w-full items-center justify-center rounded-lg py-2.5 text-sm font-bold transition ${
                   plan.primaryCta
                     ? "bg-amber-500 text-black hover:bg-amber-400"
-                    : "border border-white/20 bg-white/5 font-semibold text-white hover:border-amber-400/40 hover:bg-white/10"
+                    : "my-learning-subscription-secondary-cta border border-white/20 bg-white/5 font-semibold text-white hover:border-amber-400/40 hover:bg-white/10"
                 }`}
               >
                 {isActive ? "Selected" : plan.cta}
@@ -217,7 +221,7 @@ export function MyLearningOrganizationSubscriptions({
         })}
       </div>
 
-      <article className="mt-5 rounded-xl border border-white/10 bg-black/30 p-4 md:p-5">
+      <article className="my-learning-subscription-seats mt-5 rounded-xl border border-white/10 bg-black/30 p-4 md:p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="inline-flex items-center gap-2 text-sm font-semibold text-white">

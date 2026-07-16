@@ -22,6 +22,21 @@ import MyLearningHeaderLink from "@/components/MyLearningHeaderLink";
 import { PricingRegionBadge } from "@/components/PricingRegionBadge";
 import { COMPANY_DISPLAY_NAME } from "@/lib/contact-site-data";
 
+const AUDIENCE_TABS = [
+  { id: "associators", label: "Associators" },
+  { id: "industry", label: "Industry Professionals" },
+  { id: "university", label: "University" },
+] as const;
+
+function AudienceTabLabel({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-baseline gap-1">
+      <span className="font-serif text-[15px] font-bold italic lowercase tracking-wide">for</span>
+      <span>{label}</span>
+    </span>
+  );
+}
+
 export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrome?: boolean }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
@@ -53,7 +68,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
     { label: "Courses", href: "/courses" },
     { label: "Contact", href: "/contact" },
   ] as const;
-  const audienceTabs = ["For Associators", "For Industry Professionals", "For University"];
+  const audienceTabs = AUDIENCE_TABS;
   const pathname = usePathname();
   const isContactPage = pathname === "/contact";
   const isMyLearningArea = pathname.startsWith("/my-learning");
@@ -175,11 +190,11 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
           <div className="mx-auto flex h-11 w-full max-w-[1760px] items-center gap-8 px-4 xl:px-6">
             {audienceTabs.map((tab) => (
               <button
-                key={tab}
+                key={tab.id}
                 type="button"
-                onClick={() => setActiveAudience(tab)}
+                onClick={() => setActiveAudience(tab.id)}
                 className={`relative px-1 py-1.5 text-sm font-semibold transition-colors ${
-                  activeAudience === tab
+                  activeAudience === tab.id
                     ? isLight
                       ? "text-[#7a5610]"
                       : "text-amber-100"
@@ -190,7 +205,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
               >
                 <span
                   className={`pointer-events-none absolute inset-x-[-10px] bottom-[-4px] top-[-4px] -z-10 rounded-lg blur-lg ${
-                    activeAudience === tab
+                    activeAudience === tab.id
                       ? isLight
                         ? "bg-amber-300/55"
                         : "bg-amber-400/50"
@@ -200,7 +215,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
                   }`}
                   aria-hidden
                 />
-                {tab}
+                <AudienceTabLabel label={tab.label} />
               </button>
             ))}
           </div>

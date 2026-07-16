@@ -73,23 +73,59 @@ export function heroYearOptions(): { value: string; label: string }[] {
   return years;
 }
 
-/** Parse stored `05/2024` or legacy `2024-05`. */
+/**
+ * Parse stored last-updated values:
+ * - `05/2024` (complete)
+ * - `2024-05` (legacy)
+ * - `05/` (month only, while editing)
+ * - `/2024` (year only, while editing)
+ */
 export function parseHeroLastUpdated(raw: string): { month: string; year: string } {
   const t = raw.trim();
+  if (!t) return { month: "", year: "" };
+
   const slash = t.match(/^(\d{1,2})\/(\d{4})$/);
   if (slash) {
     return { month: slash[1].padStart(2, "0"), year: slash[2] };
   }
+
+  const monthOnly = t.match(/^(\d{1,2})\/$/);
+  if (monthOnly) {
+    return { month: monthOnly[1].padStart(2, "0"), year: "" };
+  }
+
+  const yearOnly = t.match(/^\/(\d{4})$/);
+  if (yearOnly) {
+    return { month: "", year: yearOnly[1] };
+  }
+
   const iso = t.match(/^(\d{4})-(\d{2})$/);
   if (iso) {
     return { month: iso[2], year: iso[1] };
   }
+
+  // Free-text legacy e.g. "May 2024" — try to recover month/year for the selects
+  const named = t.match(
+    /^(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})$/i,
+  );
+  if (named) {
+    const idx = HERO_UPDATE_MONTHS.findIndex(
+      (m) => m.label.toLowerCase() === named[1].toLowerCase(),
+    );
+    if (idx >= 0) {
+      return { month: HERO_UPDATE_MONTHS[idx].value, year: named[2] };
+    }
+  }
+
   return { month: "", year: "" };
 }
 
+/** Keep partial month/year while editing; complete value is `MM/YYYY`. */
 export function formatHeroLastUpdated(month: string, year: string): string {
   const m = month.trim();
   const y = year.trim();
-  if (!m || !y) return "";
-  return `${m.padStart(2, "0")}/${y}`;
+  if (m && y) return `${m.padStart(2, "0")}/${y}`;
+  if (m) return `${m.padStart(2, "0")}/`;
+  if (y) return `/${y}`;
+  return "";
 }

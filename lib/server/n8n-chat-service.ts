@@ -1,3 +1,5 @@
+import type { LmsChatContext } from "@/lib/server/chat-lms-context";
+import type { ChatHistoryItem } from "@/lib/server/chat-local-reply";
 import { buildN8nWebhookHeaders } from "@/lib/server/n8n-webhook-auth";
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -38,6 +40,10 @@ export async function sendChatToN8n(input: {
   message: string;
   sessionId?: string;
   pagePath?: string;
+  learnerEmail?: string;
+  learnerName?: string;
+  lmsContext?: LmsChatContext;
+  history?: ChatHistoryItem[];
 }): Promise<{ ok: true; reply: string } | { ok: false; message: string }> {
   const message = input.message.trim();
   if (!message) {
@@ -58,7 +64,12 @@ export async function sendChatToN8n(input: {
     message,
     sessionId: input.sessionId?.trim() || "lms-guest",
     pagePath: input.pagePath?.trim() || undefined,
+    learnerEmail: input.learnerEmail?.trim() || undefined,
+    learnerName: input.learnerName?.trim() || undefined,
     source: "lms",
+    lmsContext: input.lmsContext,
+    contextSummary: input.lmsContext?.summary,
+    history: input.history?.length ? input.history : undefined,
   };
 
   try {
@@ -104,4 +115,8 @@ export async function sendChatToN8n(input: {
 
 export function isChatConfigured(): boolean {
   return Boolean(chatWebhookUrl());
+}
+
+export function isN8nChatConfigured(): boolean {
+  return isChatConfigured();
 }

@@ -57,6 +57,7 @@ import {
 } from "@/components/CourseCompletionCelebration";
 import { CourseCompletionRewards } from "@/components/CourseCompletionRewards";
 import { CoursePlayerFeedbackSection } from "@/components/CoursePlayerFeedbackSection";
+import { CoursePlayerExploreCourses } from "@/components/CoursePlayerExploreCourses";
 import { CoursePlayerProgressSnapshot } from "@/components/CoursePlayerProgressSnapshot";
 import {
   COURSE_PROGRESS_UPDATED_EVENT,
@@ -208,6 +209,8 @@ export default function CourseLearningPlayerPage() {
   const [resourcesPanelOpen, setResourcesPanelOpen] = useState(false);
   const [activeLessonTab, setActiveLessonTab] = useState<"notes" | "resources">("notes");
   const certRequestRef = useRef<string | null>(null);
+  const leftColumnRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
   const [watermarkUser, setWatermarkUser] = useState("Learner");
   const [watermarkTime, setWatermarkTime] = useState("");
 
@@ -710,6 +713,11 @@ export default function CourseLearningPlayerPage() {
 
   const activeToolItem = toolItems.find((t) => t.label === activeLearningTool) ?? toolItems[0];
   const logoUrl = learningCopy.brandLogoUrl?.trim() || "/SF-WHITE-LOGO.png";
+  const lessonVideoClass = activeVideoStoredUrl
+    ? "h-[320px] w-full bg-black object-contain md:h-[460px] xl:h-[560px]"
+    : "h-[200px] w-full bg-black object-contain md:h-[220px] xl:h-[240px]";
+  const sidebarLayoutVersion =
+    curriculum.length + selectedModuleIdx + expandedModules.size + (resourcesPanelOpen ? 1 : 0);
   const moduleTitle = (module: CourseCurriculumModule, idx: number) =>
     module.title?.trim() || `Module ${idx + 1}`;
 
@@ -760,7 +768,7 @@ export default function CourseLearningPlayerPage() {
   if (tutorLedResolved) {
     if (!isPurchased) {
       return (
-        <div className="min-h-screen bg-[#060b17] text-white">
+        <div className="my-learning-course-player">
           <main className="mx-auto max-w-[1760px] px-4 py-8 md:px-6 xl:px-8">
             <Link href="/my-learning?tab=learning" className="text-xs text-gray-400 hover:text-amber-200">
               ← My Learning
@@ -785,7 +793,7 @@ export default function CourseLearningPlayerPage() {
 
   if (!tutorLedResolved && !isPurchased) {
     return (
-      <div className="min-h-screen bg-[#060b17] text-white">
+      <div className="my-learning-course-player">
         <main className="mx-auto max-w-[1760px] px-4 py-16 md:px-6 xl:px-8">
           <Link href="/my-learning?tab=learning" className="text-xs text-gray-400 hover:text-amber-200">
             ← My Learning
@@ -815,7 +823,7 @@ export default function CourseLearningPlayerPage() {
 
   if ((hasIssuedCertificate || completedModules.length > 0) && !completionStateReady) {
     return (
-      <div className="min-h-screen bg-[#060b17] text-white">
+      <div className="my-learning-course-player">
         <main className="mx-auto flex max-w-[1760px] items-center justify-center px-4 py-24">
           <p className="text-sm text-gray-400">Loading your course progress…</p>
         </main>
@@ -825,7 +833,7 @@ export default function CourseLearningPlayerPage() {
 
   if (showCompletionDashboard) {
     return (
-      <div className="min-h-screen bg-[#060b17] text-white">
+      <div className="my-learning-course-player">
         <main className="mx-auto max-w-[1760px] px-4 py-5 md:px-6 xl:px-8">
           <CourseCompletedDashboard
             courseSlug={slug}
@@ -847,7 +855,7 @@ export default function CourseLearningPlayerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#060b17] text-white">
+    <div className="my-learning-course-player">
       <main className="mx-auto max-w-[1760px] px-4 py-5 md:px-6 xl:px-8">
         <div className="mb-3 flex items-center gap-2 text-xs text-gray-400">
           <Link href="/my-learning?tab=learning" className="hover:text-amber-200">
@@ -859,8 +867,8 @@ export default function CourseLearningPlayerPage() {
 
         <h1 className="text-4xl font-bold">{apiCourseTitle || courseTitle}</h1>
 
-        <section className="mt-4 grid gap-3 xl:grid-cols-[1.9fr_1fr]">
-          <div className="space-y-3">
+        <section className="mt-4 grid gap-3 xl:grid-cols-[1.9fr_1fr] xl:items-start">
+          <div ref={leftColumnRef} className="space-y-3">
             <article className="overflow-hidden rounded-xl border border-white/10 bg-[#0c1324]">
               <div className="relative bg-black">
                 {activeVideoStoredUrl ? (
@@ -870,10 +878,12 @@ export default function CourseLearningPlayerPage() {
                     onTimeUpdate={(video) => recordVideoWatchProgress(selectedModuleNumber, video)}
                     onEnded={() => onVideoEnded(selectedModuleNumber)}
                     onError={(message) => setVideoLoadError(message)}
-                    className="h-[320px] w-full bg-black object-contain md:h-[460px] xl:h-[560px]"
+                    className={lessonVideoClass}
                   />
                 ) : (
-                  <div className="flex h-[320px] w-full flex-col items-center justify-center gap-3 bg-black text-sm text-gray-400 md:h-[460px] xl:h-[560px]">
+                  <div
+                    className={`${lessonVideoClass} flex flex-col items-center justify-center gap-3 text-sm text-gray-400`}
+                  >
                     <Image
                       src={logoUrl}
                       alt="SF Trainings"
@@ -1201,9 +1211,16 @@ export default function CourseLearningPlayerPage() {
                 </div>
               </div>
             </article>
+
+            <CoursePlayerExploreCourses
+              currentSlug={slug}
+              leftColumnRef={leftColumnRef}
+              sidebarRef={sidebarRef}
+              layoutVersion={sidebarLayoutVersion}
+            />
           </div>
 
-          <aside className="space-y-3">
+          <aside ref={sidebarRef} className="space-y-3">
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
               <div className="rounded-md border border-white/10 bg-black/30 p-2">
                 <p className="text-xs text-gray-400">{learningCopy.progressLabel}</p>

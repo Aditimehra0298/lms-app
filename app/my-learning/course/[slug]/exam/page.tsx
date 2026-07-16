@@ -371,9 +371,9 @@ function CourseExamPageInner() {
 
   if (courseMeta === undefined) {
     return (
-      <div className="min-h-screen bg-[#060b17] text-white">
+      <div className="my-learning-course-player">
 
-        <main className="mx-auto flex max-w-[600px] flex-col items-center justify-center px-4 py-24 text-center">
+        <main className="mx-auto flex max-w-[600px] flex-col items-center px-4 py-12 text-center">
           <p className="text-sm text-gray-400">Loading exam…</p>
         </main>
 
@@ -383,7 +383,7 @@ function CourseExamPageInner() {
 
   if (courseMeta === null || !examRuntime) {
     return (
-      <div className="min-h-screen bg-[#060b17] text-white">
+      <div className="my-learning-course-player">
 
         <main className="mx-auto max-w-[600px] px-4 py-16 text-center">
           <p className="text-lg font-semibold">Course not found</p>
@@ -398,8 +398,8 @@ function CourseExamPageInner() {
 
   if (questionsLoading || loadedModuleNumber !== (isFinalExam ? -1 : moduleNumber)) {
     return (
-      <div className="min-h-screen bg-[#060b17] text-white">
-        <main className="mx-auto flex max-w-[600px] flex-col items-center justify-center px-4 py-24 text-center">
+      <div className="my-learning-course-player">
+        <main className="mx-auto flex max-w-[600px] flex-col items-center px-4 py-12 text-center">
           <p className="text-sm text-gray-400">
             Loading exam for module {moduleNumber}…
           </p>
@@ -410,7 +410,7 @@ function CourseExamPageInner() {
 
   if (!questions.length && questionsError) {
     return (
-      <div className="min-h-screen bg-[#060b17] text-white">
+      <div className="my-learning-course-player">
         <main className="mx-auto max-w-[600px] px-4 py-16 text-center">
           <p className="text-lg font-semibold text-amber-200">Exam not available</p>
           <p className="mt-2 text-sm text-gray-300">{questionsError}</p>
@@ -430,7 +430,7 @@ function CourseExamPageInner() {
       courseMeta?.deliveryKind === "tutor-led" &&
       typeof courseMeta.trainingDays === "number";
     return (
-      <div className="min-h-screen bg-[#060b17] text-white">
+      <div className="my-learning-course-player">
         <main className="mx-auto max-w-[760px] px-4 py-16 text-center">
           <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-6">
             <p className="inline-flex items-center gap-2 text-amber-200">
@@ -462,7 +462,7 @@ function CourseExamPageInner() {
 
   if (!isFinalExam && !previewGate.unlocked) {
     return (
-      <div className="min-h-screen bg-[#060b17] text-white">
+      <div className="my-learning-course-player">
         <main className="mx-auto max-w-[760px] px-4 py-16 text-center">
           <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-6">
             <p className="inline-flex items-center gap-2 text-amber-200">
@@ -489,7 +489,7 @@ function CourseExamPageInner() {
     const percentage = questions.length ? Math.round((score / questions.length) * 100) : 0;
     const passed = percentage >= examRuntime.passingScorePercent;
     return (
-      <div className="min-h-screen bg-[#060b17] text-white">
+      <div className="my-learning-course-player">
 
         <main className="mx-auto max-w-[1100px] px-4 py-8">
           <section className="rounded-xl border border-white/10 bg-[#0c1324] p-6">
@@ -577,7 +577,7 @@ function CourseExamPageInner() {
   }
 
   return (
-    <div className="min-h-screen bg-[#060b17] text-white">
+    <div className="my-learning-course-player">
 
       <main className="mx-auto max-w-[1760px] px-4 py-5 md:px-6 xl:px-8">
         <div className="mb-3 flex items-center gap-2 text-xs text-gray-400">
@@ -588,7 +588,7 @@ function CourseExamPageInner() {
           <span>Exam</span>
         </div>
 
-        <section className="grid gap-3 xl:grid-cols-[0.35fr_1.65fr_1fr]">
+        <section className="grid gap-3 xl:grid-cols-[0.35fr_1.65fr_1fr] xl:items-start">
           <aside className="space-y-2 rounded-xl border border-white/10 bg-[#0c1324] p-3">
             {(
               [
@@ -786,9 +786,9 @@ function CourseExamPageInner() {
 
 function ExamLoadingFallback() {
   return (
-    <div className="min-h-screen bg-[#060b17] text-white">
+    <div className="my-learning-course-player">
 
-      <main className="mx-auto flex max-w-[600px] flex-col items-center justify-center px-4 py-24 text-center">
+      <main className="mx-auto flex max-w-[600px] flex-col items-center px-4 py-12 text-center">
         <p className="text-sm text-gray-400">Loading exam…</p>
       </main>
 

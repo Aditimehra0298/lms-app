@@ -24,6 +24,7 @@ export const N8N_WEBHOOK_PATHS = {
   meetingReminder: "meeting-reminder",
   courseCompletion: "course-completion",
   reviews: "reviews",
+  newsletter: "newsletter",
 } as const;
 
 export function resolveN8nWebhookUrlFromEnv(

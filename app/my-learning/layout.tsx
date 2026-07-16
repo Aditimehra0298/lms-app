@@ -12,11 +12,11 @@ export default function MyLearningLayout({ children }: { children: React.ReactNo
   );
 
   if (!loggedIn) {
-    return <div className="my-learning-page bg-[#0a0a0a] text-white">{children}</div>;
+    return <div className="my-learning-page">{children}</div>;
   }
 
   return (
-    <div className="my-learning-page bg-[#0a0a0a] text-white">
+    <div className="my-learning-page">
       <MyLearningDashboardNav />
       {children}
     </div>

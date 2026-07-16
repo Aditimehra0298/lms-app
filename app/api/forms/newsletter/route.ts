@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createFormSubmission } from "@/lib/server/form-submissions-store";
+import { sendNewsletterViaN8n } from "@/lib/server/n8n-newsletter-service";
 
 export const dynamic = "force-dynamic";
 
@@ -16,12 +17,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Please enter a valid email address." }, { status: 400 });
   }
 
+  const pagePath = body.pagePath?.trim() || "/";
+
   try {
     await createFormSubmission({
       formType: "newsletter",
       email,
-      pagePath: body.pagePath?.trim() || "/",
+      pagePath,
     });
+
+    const n8n = await sendNewsletterViaN8n({ email, pagePath });
+    if (!n8n.ok) {
+      console.warn(`[api/forms/newsletter] saved ${email}; n8n: ${n8n.message ?? "failed"}`);
+    }
+
     return NextResponse.json({
       ok: true,
       message: "Thank you for subscribing to our newsletter.",

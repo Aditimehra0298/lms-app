@@ -3,10 +3,9 @@
 import dynamic from "next/dynamic";
 import { Suspense, useEffect, useState } from "react";
 
-const CourseChatbot = dynamic(() => import("@/components/CourseChatbot"), { ssr: false });
 const LmsChatbot = dynamic(() => import("@/components/LmsChatbot"), { ssr: false });
 
-/** Load heavy chat widgets after first paint so pages render faster. */
+/** Load chat widget after first paint so pages render faster. */
 export default function DeferredChatbots() {
   const [show, setShow] = useState(false);
 
@@ -23,7 +22,6 @@ export default function DeferredChatbots() {
 
   return (
     <Suspense fallback={null}>
-      <CourseChatbot />
       <LmsChatbot />
     </Suspense>
   );
