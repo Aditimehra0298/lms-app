@@ -159,6 +159,20 @@ export async function sendChat(input: ChatSendInput): Promise<ChatSendResult> {
     }
   }
 
+  void import("@/lib/server/admin-system-notifications")
+    .then(({ pushAdminNotification }) =>
+      pushAdminNotification({
+        dedupeKey: "runtime:chat-unavailable",
+        title: "Site chat is down",
+        detail:
+          "A visitor tried to use the chat helper, but no reply could be generated. Check chat setup with your technical team.",
+        severity: "warning",
+        source: "chat",
+        panelHint: "Settings",
+      }),
+    )
+    .catch(() => undefined);
+
   return {
     ok: false,
     message:

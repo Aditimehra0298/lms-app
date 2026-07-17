@@ -1,0 +1,11 @@
+{
+  "panelPasswordHash": null,
+  "requirePanelPassword": true,
+  "requireGoogleVerification": true,
+  "requireEmailVerificationForSensitive": true,
+  "platformName": "SecureFutureTech LMS",
+  "supportEmail": "",
+  "supportPhone": "",
+  "updatedAt": null,
+  "updatedByEmail": null
+}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 import {
   adminUpdateCertificateManual,
   setCertificateVisibility,
@@ -11,6 +12,9 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const denied = assertMainAdmin(request);
+  if (denied) return denied;
+
   const { id } = await context.params;
   let body: {
     visibleToLearner?: boolean;

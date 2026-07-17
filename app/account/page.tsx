@@ -4,6 +4,7 @@ import Image from "next/image";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import EmailOtpField from "@/components/EmailOtpField";
 import ForgotPasswordForm from "@/components/ForgotPasswordForm";
 import Galaxy from "@/components/Galaxy";
@@ -122,9 +123,9 @@ function RegisterSection({
   description?: string;
 }) {
   return (
-    <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
-      <h3 className="text-sm font-bold uppercase tracking-wide text-amber-200">{title}</h3>
-      {description ? <p className="mt-1 text-xs text-gray-400">{description}</p> : null}
+    <div className="col-span-full border-t border-white/10 pt-5 first:border-t-0 first:pt-0">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-200/90">{title}</h3>
+      {description ? <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-400">{description}</p> : null}
     </div>
   );
 }
@@ -242,8 +243,15 @@ export default function AccountPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [loginNotice, setLoginNotice] = useState("");
   const [adminSetupHint, setAdminSetupHint] = useState<string | null>(null);
+  const [adminRequirePassword, setAdminRequirePassword] = useState(true);
+  const [adminRequireGoogle, setAdminRequireGoogle] = useState(true);
   const [isLightTheme, setIsLightTheme] = useState(false);
+  const [authPortalReady, setAuthPortalReady] = useState(false);
   const googleConfigured = Boolean(getGoogleClientId());
+
+  useEffect(() => {
+    setAuthPortalReady(true);
+  }, []);
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search);
@@ -254,6 +262,10 @@ export default function AccountPage() {
       setAuthView("login");
       setShowAuthStep(true);
       return;
+    }
+    if (nextMode === "login" || nextMode === "register") {
+      setAuthView(nextMode === "login" ? "login" : "register");
+      setShowAuthStep(true);
     }
     const loggedIn = window.localStorage.getItem("sft_logged_in") === "true";
     const learnerEmail = window.localStorage.getItem("sft_learner_email")?.trim();
@@ -300,6 +312,8 @@ export default function AccountPage() {
           mainAdminEmail?: string | null;
           googleConfigured?: boolean;
           passwordConfigured?: boolean;
+          requirePanelPassword?: boolean;
+          requireGoogleVerification?: boolean;
           appUrl?: string;
         }) => {
           if (cancelled) return;
@@ -307,16 +321,26 @@ export default function AccountPage() {
             setSelfEmail(data.mainAdminEmail);
             setAdminEmailLocked(true);
           }
-          if (!data.passwordConfigured) {
-            setAdminSetupHint("Set ADMIN_PASSWORD in .env.local and restart npm run dev.");
-          } else if (!data.googleConfigured) {
+          setAdminRequirePassword(data.requirePanelPassword !== false);
+          setAdminRequireGoogle(Boolean(data.requireGoogleVerification));
+          if (data.requirePanelPassword !== false && !data.passwordConfigured) {
             setAdminSetupHint(
-              "Set GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local, then restart.",
+              "Admin password is not set yet. Ask your developer to set the first password, or use Settings once you have access.",
             );
-          } else {
+          } else if (data.requireGoogleVerification && !data.googleConfigured) {
+            setAdminSetupHint(
+              "Google verification is required, but Google sign-in is not connected yet. Contact your platform owner.",
+            );
+          } else if (data.requireGoogleVerification) {
             const origin = getBrowserOrigin() || data.appUrl || "http://localhost:3000";
             setAdminSetupHint(
-              `Google must use only ${data.mainAdminEmail ?? "(MAIN_ADMIN_EMAIL)"}. ${googleOriginSetupHint(origin)}`,
+              `Sign in with Google using ${data.mainAdminEmail ?? "the main admin email"} only. ${googleOriginSetupHint(origin)}`,
+            );
+          } else {
+            setAdminSetupHint(
+              data.requirePanelPassword === false
+                ? "Password step is off — continue with the main admin email."
+                : "Enter the admin panel password to continue.",
             );
           }
         },
@@ -357,6 +381,16 @@ export default function AccountPage() {
     adminGoogleTriggered.current = false;
     setShowForgotPassword(false);
     setLoginNotice("");
+    setAuthError("");
+    setShowAuthStep(true);
+  };
+
+  const closeAuthModal = () => {
+    setShowAuthStep(false);
+    setAuthError("");
+    setAdminAwaitingGoogle(false);
+    setAdminVerifyToken(null);
+    adminGoogleTriggered.current = false;
   };
 
   useEffect(() => {
@@ -370,6 +404,20 @@ export default function AccountPage() {
     setRegisterEmail("");
     setEmailOtpVerified(false);
   }, [authView, selectedAccountType]);
+
+  useEffect(() => {
+    if (!showAuthStep) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeAuthModal();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [showAuthStep]);
 
   useEffect(() => {
     if (!showAuthStep) return;
@@ -389,11 +437,6 @@ export default function AccountPage() {
       cachePricingRegionFromCountryCode(registerCountryCode);
     }
   }, [registerCountryCode]);
-
-  const handleContinue = () => {
-    if (selectedAccountType === "self") setAuthView("login");
-    setShowAuthStep(true);
-  };
 
   const handleAuthSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -455,7 +498,7 @@ export default function AccountPage() {
 
     if (selectedAccountType === "self") {
       setAuthError("");
-      if (!passwordValue) {
+      if (adminRequirePassword && !passwordValue) {
         setAuthError("Admin password is required.");
         return;
       }
@@ -471,8 +514,29 @@ export default function AccountPage() {
           email?: string;
           verifyToken?: string;
           requiresGoogleVerification?: boolean;
+          profile?: LmsUserProfilePayload;
+          role?: string;
+          accountType?: string;
         };
-        if (!res.ok || !data.ok || !data.verifyToken) {
+        if (!res.ok || !data.ok) {
+          setAuthError(data.message ?? "Admin sign-in failed.");
+          return;
+        }
+
+        if (data.requiresGoogleVerification === false) {
+          if (data.profile) {
+            applyDbProfileToSession(data.profile);
+          } else {
+            window.localStorage.setItem("sft_learner_email", data.email ?? normalizedEmail);
+            window.localStorage.setItem("sft_user_role", "admin");
+          }
+          window.localStorage.setItem("sft_logged_in", "true");
+          setAuthError("");
+          window.location.href = "/admin";
+          return;
+        }
+
+        if (!data.verifyToken) {
           setAuthError(data.message ?? "Admin sign-in failed.");
           return;
         }
@@ -766,39 +830,41 @@ export default function AccountPage() {
         {...accountGalaxyProps}
       />
       <main className="relative z-10 w-full flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
-        <div className="mx-auto w-full max-w-[1760px]">
-          {!showAuthStep && (
-            <div className="mx-auto flex w-full max-w-6xl flex-col py-4 md:py-8">
+        <div className="relative mx-auto w-full max-w-[1760px]">
+          <div className="mx-auto flex w-full max-w-6xl flex-col py-4 md:py-10">
             <div className="text-center">
-              <h2 className="account-hero-title bg-linear-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
-                Choose your avatar and account type
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-300/80">
+                Get started
+              </p>
+              <h2 className="account-hero-title mt-2 bg-linear-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-3xl font-bold text-transparent md:text-4xl">
+                Choose your avatar
               </h2>
-              <p className="mt-2 text-sm text-gray-300">
-                Pick one profile to continue with a futuristic access experience.
+              <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-gray-300">
+                Select a profile. Register and login open in a popup on this page.
               </p>
             </div>
-            <div className="mt-6">
-              <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+            <div className="mt-8">
+              <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
                 {accountTypes.map((type) => {
-                  const active = selectedAccountType === type.id;
+                  const active = selectedAccountType === type.id && showAuthStep;
                   return (
                     <button
                       key={type.id}
                       type="button"
                       onClick={() => handleAccountTypeChange(type.id)}
-                      className={`account-type-card relative w-full overflow-hidden rounded-3xl border p-3 text-left transition-all duration-300 ${
+                      className={`account-type-card group relative w-full overflow-hidden rounded-[1.75rem] border p-3.5 text-left transition-all duration-300 ${
                         active
                           ? "border-amber-300/90 bg-amber-500/15 shadow-[0_0_45px_rgba(235,148,34,0.45)]"
-                          : "border-white/15 bg-white/5 hover:border-amber-500/40 hover:shadow-[0_0_30px_rgba(235,148,34,0.2)]"
+                          : "border-white/15 bg-white/[0.04] hover:-translate-y-1 hover:border-amber-500/45 hover:shadow-[0_0_34px_rgba(235,148,34,0.22)]"
                       }`}
                     >
                       <div
-                        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(235,148,34,0.35),rgba(235,148,34,0.08)_35%,transparent_70%)]"
+                        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(235,148,34,0.32),rgba(235,148,34,0.06)_35%,transparent_70%)]"
                         aria-hidden
                       />
-                      <div className="relative flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-amber-500/20 bg-black/40 p-2 sm:h-48 lg:h-52">
+                      <div className="relative flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-amber-500/20 bg-black/45 p-2 sm:h-48 lg:h-52">
                         <div
-                          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(249,177,77,0.25),transparent_70%)]"
+                          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(249,177,77,0.22),transparent_70%)]"
                           aria-hidden
                         />
                         <Image
@@ -806,60 +872,142 @@ export default function AccountPage() {
                           alt={`${type.title} avatar`}
                           width={420}
                           height={300}
-                          className="relative h-full w-full object-contain"
+                          className="relative h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.04]"
                         />
                       </div>
-                      <div className="relative mt-3 text-center">
-                        <div className="text-lg font-bold">{type.title}</div>
-                        <p className="mt-1 text-xs text-gray-200">{type.desc}</p>
+                      <div className="relative mt-4 text-center">
+                        <div className="text-lg font-bold tracking-tight">{type.title}</div>
+                        <p className="mt-1.5 text-xs leading-relaxed text-gray-300">{type.desc}</p>
+                        <span
+                          className={`mt-4 inline-flex min-w-[10.5rem] items-center justify-center rounded-full px-5 py-2.5 text-xs font-bold text-black shadow-[0_8px_24px_rgba(235,148,34,0.35)] transition ${goldGradient} group-hover:-translate-y-0.5 group-hover:brightness-110 ${
+                            active ? "ring-2 ring-amber-200/80" : ""
+                          }`}
+                        >
+                          {active ? "Opened" : "Tap to continue"}
+                        </span>
                       </div>
                     </button>
                   );
                 })}
               </div>
             </div>
-            <div className="mt-8 flex justify-center">
-              <button
-                type="button"
-                onClick={handleContinue}
-                className={`rounded-full px-10 py-3.5 font-bold text-black transition-all hover:-translate-y-0.5 hover:brightness-110 ${goldGradient}`}
-              >
-                Continue
-              </button>
-            </div>
-            </div>
-          )}
+          </div>
 
-          {showAuthStep && (
-          <div className="account-auth-panel mx-auto w-full overflow-visible rounded-3xl border border-white/15 bg-black/65 p-5 shadow-[0_0_45px_rgba(0,0,0,0.45)] sm:p-6 md:p-8 xl:p-10">
-            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4">
-              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-amber-500/30">
-                <Image
-                  src={avatarForAccountType(selectedAccountType)}
-                  alt="Selected avatar"
-                  width={64}
-                  height={64}
-                  className="h-full w-full object-cover"
+          {authPortalReady &&
+            showAuthStep &&
+            createPortal(
+              <div
+                className="account-auth-overlay fixed inset-0 flex items-start justify-center overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 sm:py-8"
+                style={{ zIndex: 100000 }}
+                role="presentation"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget) closeAuthModal();
+                }}
+              >
+                <div
+                  className="pointer-events-none fixed inset-0 bg-black/45 backdrop-blur-[3px]"
+                  aria-hidden
                 />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-amber-200/80">Selected profile</p>
-                <p className="text-lg font-bold capitalize">{selectedAccountType}</p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Edit organisation, industry & learning preferences anytime under Profile & settings.
-                </p>
-              </div>
-            </div>
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setShowAuthStep(false)}
-                className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm hover:border-amber-500/40"
-              >
-                Back
-              </button>
-            </div>
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="account-auth-modal-title"
+                  className="account-auth-panel relative my-auto w-full max-w-3xl rounded-[1.75rem] border border-amber-400/30 bg-gradient-to-b from-[#14110c] via-[#0c0c0c] to-[#080808] shadow-[0_25px_80px_rgba(0,0,0,0.75),0_0_0_1px_rgba(255,255,255,0.04)_inset]"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <div
+                    className="pointer-events-none absolute inset-x-0 top-0 h-32 rounded-t-[1.75rem] bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.18),transparent_70%)]"
+                    aria-hidden
+                  />
+                  <button
+                    type="button"
+                    onClick={closeAuthModal}
+                    className="absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/55 text-sm text-gray-200 transition hover:border-amber-400/50 hover:bg-amber-500/15 hover:text-white"
+                    aria-label="Close"
+                  >
+                    ✕
+                  </button>
 
+                <div className="relative border-b border-white/10 px-5 pb-5 pt-5 sm:px-7 sm:pb-6 sm:pt-6">
+                  <div className="flex items-start gap-4 pr-10">
+                    <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-2xl border border-amber-400/35 bg-black/40 shadow-[0_0_24px_rgba(245,158,11,0.2)]">
+                      <Image
+                        src={avatarForAccountType(selectedAccountType)}
+                        alt="Selected avatar"
+                        width={72}
+                        height={72}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 pt-0.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300/85">
+                        Selected profile
+                      </p>
+                      <h2
+                        id="account-auth-modal-title"
+                        className="mt-1 text-2xl font-bold capitalize tracking-tight text-white"
+                      >
+                        {selectedAccountType === "self" ? "Admin" : selectedAccountType}
+                      </h2>
+                      <p className="mt-1.5 text-sm leading-relaxed text-gray-400">
+                        {isSelf
+                          ? "Sign in to open the admin control panel."
+                          : "Create an account or sign in. You can update profile details later."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!isSelf ? (
+                    <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+                      <div className="inline-flex w-full rounded-2xl border border-white/10 bg-black/35 p-1">
+                        <button
+                          type="button"
+                          onClick={() => setAuthView("register")}
+                          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                            authView === "register"
+                              ? `${goldGradient} text-black shadow-sm`
+                              : "text-gray-300 hover:bg-white/5 hover:text-white"
+                          }`}
+                        >
+                          Register
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthView("login");
+                            setShowForgotPassword(false);
+                          }}
+                          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                            authView === "login"
+                              ? `${goldGradient} text-black shadow-sm`
+                              : "text-gray-300 hover:bg-white/5 hover:text-white"
+                          }`}
+                        >
+                          Login
+                        </button>
+                      </div>
+                      {!showForgotPassword && googleConfigured ? (
+                        <button
+                          type="button"
+                          onClick={handleGoogleSignIn}
+                          disabled={googleLoading || !googleScriptReady}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-2.5 text-sm font-semibold text-white transition hover:border-amber-400/40 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <GoogleMark />
+                          <span className="whitespace-nowrap">
+                            {googleLoading
+                              ? "Signing in…"
+                              : !googleScriptReady
+                                ? "Loading…"
+                                : "Google"}
+                          </span>
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="relative px-5 py-5 sm:px-7 sm:py-6">
             {browserOrigin && shouldShowGoogleWifiOriginHint(browserOrigin) && googleConfigured ? (
               <p className="mb-4 rounded-xl border border-sky-400/35 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
                 <strong className="text-sky-200">Wi‑Fi login:</strong> Google must allow this exact address — add{" "}
@@ -877,29 +1025,8 @@ export default function AccountPage() {
               </p>
             ) : null}
 
-            <div className="mb-6 flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
-              {!isSelf && (
-                <div className="inline-flex shrink-0 rounded-full border border-white/10 bg-black/20 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setAuthView("register")}
-                    className={`rounded-full px-4 py-2 text-sm font-bold sm:px-5 ${authView === "register" ? `${goldGradient} text-black` : "text-gray-300"}`}
-                  >
-                    Register
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthView("login");
-                      setShowForgotPassword(false);
-                    }}
-                    className={`rounded-full px-4 py-2 text-sm font-bold sm:px-5 ${authView === "login" ? `${goldGradient} text-black` : "text-gray-300"}`}
-                  >
-                    Login
-                  </button>
-                </div>
-              )}
-              {isSelf && adminAwaitingGoogle && (
+            {isSelf && adminAwaitingGoogle && (
+              <div className="mb-4 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -912,47 +1039,19 @@ export default function AccountPage() {
                 >
                   Back
                 </button>
-              )}
-              {isSelf && googleConfigured && (
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={googleLoading || !googleScriptReady}
-                  title={
-                    !adminAwaitingGoogle
-                      ? "Complete Sign in to Admin first, or use this after password is accepted"
-                      : undefined
-                  }
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm sm:px-4 ${
-                    adminAwaitingGoogle
-                      ? "border-amber-400/60 bg-amber-500/20 text-amber-50 hover:border-amber-300"
-                      : "border-white/20 bg-white/5 text-gray-200 hover:border-amber-500/40"
-                  } disabled:cursor-not-allowed disabled:opacity-60`}
-                >
-                  <GoogleMark />
-                  <span className="whitespace-nowrap">
+                {googleConfigured && (
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={googleLoading || !googleScriptReady}
+                    className="inline-flex items-center gap-2 rounded-full border border-amber-400/60 bg-amber-500/20 px-4 py-2 text-sm text-amber-50 hover:border-amber-300 disabled:opacity-60"
+                  >
+                    <GoogleMark />
                     {googleLoading ? "Signing in…" : "Continue with Google"}
-                  </span>
-                </button>
-              )}
-              {!isSelf && !showForgotPassword && googleConfigured && (
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={googleLoading || !googleScriptReady}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-sm hover:border-amber-500/40 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4"
-                >
-                  <GoogleMark />
-                  <span className="whitespace-nowrap">
-                    {googleLoading
-                      ? "Signing in…"
-                      : !googleScriptReady
-                        ? "Loading Google…"
-                        : "Continue with Google"}
-                  </span>
-                </button>
-              )}
-            </div>
+                  </button>
+                )}
+              </div>
+            )}
             {isSelf && adminAwaitingGoogle && (
               <div className="mb-6 space-y-3">
                 <p className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
@@ -975,12 +1074,12 @@ export default function AccountPage() {
                         : "Continue with Google"}
                   </button>
                 ) : (
-                  <p className="text-sm text-rose-300">Google sign-in is not configured in .env.local.</p>
+                  <p className="text-sm text-rose-300">Google sign-in is not configured.</p>
                 )}
               </div>
             )}
 
-              <form className="grid gap-4 overflow-visible sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5" onSubmit={handleAuthSubmit}>
+              <form className="grid gap-4 overflow-visible sm:grid-cols-2" onSubmit={handleAuthSubmit}>
               {selectedAccountType === "individual" && authView === "register" && (
                 <>
                   <RegisterSection
@@ -999,7 +1098,7 @@ export default function AccountPage() {
                       onPhoneChange={setRegisterPhone}
                     />
                   </div>
-                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                  <div className="col-span-full">
                     <EmailOtpField
                       email={registerEmail}
                       onEmailChange={setRegisterEmail}
@@ -1010,7 +1109,7 @@ export default function AccountPage() {
                     />
                   </div>
 
-                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                  <div className="col-span-full">
                     <PasswordConfirmFields />
                   </div>
                 </>
@@ -1034,8 +1133,8 @@ export default function AccountPage() {
 
               {selectedAccountType === "individual" && authView === "login" && !showForgotPassword && (
                 <>
-                  <input name="login_email" type="email" placeholder="Email" required className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none" />
-                  <div className="space-y-2">
+                  <input name="login_email" type="email" placeholder="Email" required className="col-span-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none sm:col-span-1" />
+                  <div className="col-span-full space-y-2 sm:col-span-1">
                     <PasswordField name="login_password" placeholder="Password" autoComplete="current-password" />
                     <button
                       type="button"
@@ -1069,11 +1168,11 @@ export default function AccountPage() {
                       onPhoneChange={setRegisterPhone}
                     />
                   </div>
-                  <label className="block sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                  <label className="block col-span-full">
                     <span className={profileLabelClass}>Company name</span>
                     <input name="company_name" type="text" required placeholder="Legal company name" className={profileFieldClass} />
                   </label>
-                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                  <div className="col-span-full">
                     <EmailOtpField
                       email={registerEmail}
                       onEmailChange={setRegisterEmail}
@@ -1112,7 +1211,7 @@ export default function AccountPage() {
                     </select>
                   </label>
 
-                  <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                  <div className="col-span-full">
                     <PasswordConfirmFields />
                   </div>
                 </>
@@ -1136,8 +1235,8 @@ export default function AccountPage() {
 
               {selectedAccountType === "organisation" && authView === "login" && !showForgotPassword && (
                 <>
-                  <input name="login_work_email" type="email" placeholder="Work Email" required className="rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none" />
-                  <div className="space-y-2">
+                  <input name="login_work_email" type="email" placeholder="Work Email" required className="col-span-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none sm:col-span-1" />
+                  <div className="col-span-full space-y-2 sm:col-span-1">
                     <PasswordField name="login_password" placeholder="Password" autoComplete="current-password" />
                     <button
                       type="button"
@@ -1155,27 +1254,24 @@ export default function AccountPage() {
 
               {isSelf && !adminAwaitingGoogle && (
                 <>
-                  <p className="text-sm text-amber-100/90 md:col-span-2">
-                    <strong className="text-amber-200">Admin Google account:</strong>{" "}
-                    <strong className="text-amber-200">{selfEmail || "social.sftrainings@gmail.com"}</strong> only.
-                    Enter password → <strong className="text-amber-200">Sign in to Admin</strong> →{" "}
-                    <strong className="text-amber-200">Continue with Google</strong> (that account only).
+                  <p className="col-span-full text-sm leading-relaxed text-amber-100/90">
+                    <strong className="text-amber-200">Main admin:</strong>{" "}
+                    <strong className="text-amber-200">{selfEmail || "admin@example.com"}</strong>
+                    {adminRequirePassword && adminRequireGoogle
+                      ? " — enter password, then verify with Google."
+                      : adminRequirePassword
+                        ? " — enter the admin panel password to continue."
+                        : adminRequireGoogle
+                          ? " — continue with Google to open the admin panel."
+                          : " — continue to open the admin panel."}
                   </p>
                   {adminSetupHint ? (
-                    <p className="text-xs text-amber-200/80 md:col-span-2">{adminSetupHint}</p>
+                    <p className="col-span-full text-xs text-amber-200/80">{adminSetupHint}</p>
                   ) : null}
-                  {!googleConfigured && (
-                    <p className="text-sm text-rose-300 md:col-span-2">
-                      Google sign-in is not configured. Add{" "}
-                      <code className="text-xs">GOOGLE_CLIENT_ID</code> and{" "}
-                      <code className="text-xs">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> to{" "}
-                      <code className="text-xs">.env.local</code>, then restart{" "}
-                      <code className="text-xs">npm run dev</code>. Also add{" "}
-                      <code className="text-xs">
-                        {browserOrigin || "http://localhost:3000"}
-                      </code>{" "}
-                      and <code className="text-xs">http://localhost:3000</code> in Google Cloud → Authorized
-                      JavaScript origins.
+                  {adminRequireGoogle && !googleConfigured && (
+                    <p className="col-span-full text-sm text-rose-300">
+                      Google verification is turned on, but Google sign-in is not connected yet. Contact your
+                      platform owner.
                     </p>
                   )}
                   <input
@@ -1187,17 +1283,19 @@ export default function AccountPage() {
                     readOnly={adminEmailLocked}
                     autoComplete="username"
                     required
-                    className={`rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none md:col-span-2 ${adminEmailLocked ? "cursor-default text-amber-100/90" : ""}`}
+                    className={`col-span-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 placeholder:text-gray-500 focus:border-amber-400/50 focus:outline-none ${adminEmailLocked ? "cursor-default text-amber-100/90" : ""}`}
                   />
-                  <PasswordField
-                    name="admin_password"
-                    placeholder="Admin password"
-                    value={selfPassword}
-                    onChange={setSelfPassword}
-                    autoComplete="current-password"
-                    className="md:col-span-2"
-                  />
-                  <div className="md:col-span-2">
+                  {adminRequirePassword ? (
+                    <PasswordField
+                      name="admin_password"
+                      placeholder="Admin password"
+                      value={selfPassword}
+                      onChange={setSelfPassword}
+                      autoComplete="current-password"
+                      className="col-span-full"
+                    />
+                  ) : null}
+                  <div className="col-span-full">
                     {!adminAwaitingGoogle && authError && (
                       <p className="mb-2 text-sm text-rose-300">{authError}</p>
                     )}
@@ -1208,8 +1306,8 @@ export default function AccountPage() {
                       Sign in to Admin
                     </button>
                   </div>
-                  {googleConfigured && (
-                    <div className="md:col-span-2">
+                  {adminRequireGoogle && googleConfigured && (
+                    <div className="col-span-full">
                       <div className="my-1 flex items-center gap-3">
                         <span className="h-px flex-1 bg-white/10" aria-hidden />
                         <span className="text-xs font-medium uppercase tracking-wide text-gray-400">or</span>
@@ -1237,7 +1335,7 @@ export default function AccountPage() {
               )}
 
               {!isSelf && !(authView === "login" && showForgotPassword) && (
-                <div className="md:col-span-2">
+                <div className="col-span-full pt-1">
                   {loginNotice && authView === "login" && (
                     <p className="mb-2 text-sm text-emerald-300">{loginNotice}</p>
                   )}
@@ -1246,14 +1344,17 @@ export default function AccountPage() {
                     type="submit"
                     className={`w-full rounded-xl px-6 py-3.5 font-bold text-black transition-all hover:-translate-y-0.5 hover:brightness-110 ${goldGradient}`}
                   >
-                    {authView === "login" ? "Sign in" : "Submit"}
+                    {authView === "login" ? "Sign in" : "Create account"}
                   </button>
                 </div>
               )}
 
             </form>
-          </div>
-        )}
+                </div>
+              </div>
+            </div>,
+              document.body,
+            )}
         </div>
       </main>
     </div>

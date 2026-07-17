@@ -6,7 +6,7 @@ export const OTP_VERIFIED_WINDOW_MINUTES = 30;
 export const OTP_MAX_SENDS_PER_WINDOW = 5;
 export const OTP_SEND_WINDOW_MINUTES = 15;
 
-export type OtpPurpose = "register" | "reset_password";
+export type OtpPurpose = "register" | "reset_password" | "admin_security";
 
 export function generateOtpCode(): string {
   return String(randomInt(0, 10 ** OTP_LENGTH)).padStart(OTP_LENGTH, "0");

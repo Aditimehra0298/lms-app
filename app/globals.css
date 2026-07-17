@@ -1549,6 +1549,30 @@ body.tutor-led-marketing-body {
   color: #ffffff;
 }
 
+@keyframes accountAuthModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.account-auth-panel {
+  animation: accountAuthModalIn 0.28s ease-out;
+}
+
+/* Account auth popup sits over the avatar chooser (page stays visible) */
+.account-auth-overlay {
+  isolation: isolate;
+}
+
+.account-auth-panel {
+  animation: accountAuthModalIn 0.28s ease-out;
+}
+
 @keyframes qmarkFloatA {
   0%,
   100% {

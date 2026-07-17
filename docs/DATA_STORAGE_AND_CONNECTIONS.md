@@ -23,7 +23,7 @@ This LMS uses **(1) a JSON file on the server**, **(2) browser `localStorage`**,
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**MySQL:** see **`docs/MYSQL_WORKBENCH.md`**, **`prisma/schema.prisma`**, and **`GET /api/health/mysql`**. Connection template: **`.env.example`**.  
+**MySQL:** see **`docs/DATABASE_FOR_MANAGEMENT.md`** (boss / auditor FAQ — phpMyAdmin optional), **`docs/MYSQL_WORKBENCH.md`**, **`prisma/schema.prisma`**, and **`GET /api/health/mysql`**. Connection template: **`.env.example`**.  
 **Senior walkthrough (queries + what to show):** **`docs/SENIOR_DEMO_DATABASE_STEPS.md`**.
 
 ---

@@ -65,10 +65,17 @@ export async function PUT(request: Request) {
 
     await writeAdminContent(nextContent);
 
+    const prevSlugs = new Set((existing.managedCourses ?? []).map((c) => c.slug.trim()).filter(Boolean));
+    const nextSlugs = new Set((nextContent.managedCourses ?? []).map((c) => c.slug.trim()).filter(Boolean));
+    const removed = [...prevSlugs].filter((s) => !nextSlugs.has(s));
+    const added = [...nextSlugs].filter((s) => !prevSlugs.has(s));
+    const renames =
+      removed.length === 1 && added.length === 1 ? [{ from: removed[0], to: added[0] }] : [];
+
     // Do not block the admin UI on MySQL — sync in the background (slow or missing DB was freezing saves).
     void (async () => {
       try {
-        await syncManagedCoursesToMysql(nextContent.managedCourses ?? []);
+        await syncManagedCoursesToMysql(nextContent.managedCourses ?? [], { renames });
         await syncAllCourseContentToMysql(nextContent.managedCourses ?? []);
       } catch (err) {
         console.error("[admin/content PUT] course MySQL sync", err);

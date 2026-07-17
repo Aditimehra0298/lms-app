@@ -29,7 +29,7 @@ function otpModel() {
 }
 
 function mailKindForPurpose(purpose: OtpPurpose): OtpEmailKind {
-  return purpose === "reset_password" ? "reset_password" : "register";
+  return purpose === "reset_password" || purpose === "admin_security" ? "reset_password" : "register";
 }
 
 export async function countRecentOtpSends(email: string, purpose: OtpPurpose): Promise<number> {
@@ -89,6 +89,10 @@ export async function sendRegistrationOtp(email: string): Promise<OtpSendResult>
 
 export async function sendPasswordResetOtp(email: string): Promise<OtpSendResult> {
   return sendOtpForPurpose(email, "reset_password");
+}
+
+export async function sendAdminSecurityOtp(email: string): Promise<OtpSendResult> {
+  return sendOtpForPurpose(email, "admin_security");
 }
 
 export async function verifyOtpForPurpose(

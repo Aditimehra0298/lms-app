@@ -70,6 +70,7 @@ export default function AdminCourseCertificateApprovals({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [localCourseFilter, setLocalCourseFilter] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [learnerQuery, setLearnerQuery] = useState("");
 
   const courseFilter = hideCourseFilter ? courseSlugProp : localCourseFilter;
 
@@ -84,7 +85,13 @@ export default function AdminCourseCertificateApprovals({
       const q = courseFilter.trim()
         ? `?courseSlug=${encodeURIComponent(courseFilter.trim())}`
         : "";
-      const res = await fetch(`/api/admin/certificates${q}`, { cache: "no-store" });
+      const res = await fetch(`/api/admin/certificates${q}`, {
+        cache: "no-store",
+        headers: (() => {
+          const email = getLearnerEmail();
+          return email ? { "x-admin-email": email } : {};
+        })(),
+      });
       const data = (await res.json()) as { ok?: boolean; certificates?: AdminCertificateRowDto[] };
       if (data.ok && data.certificates) {
         setRows(data.certificates);
@@ -106,12 +113,32 @@ export default function AdminCourseCertificateApprovals({
     [rows, selectedId],
   );
 
+  const filteredRows = useMemo(() => {
+    const q = learnerQuery.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) => {
+      const hay = [
+        r.learnerEmail,
+        r.learnerName ?? "",
+        r.courseTitle ?? "",
+        r.courseSlug ?? "",
+        r.certificateNumber ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [rows, learnerQuery]);
+
   const patchCert = async (id: string, body: Record<string, unknown>): Promise<boolean> => {
     setBusyId(id);
     setMsg("");
     const res = await fetch(`/api/admin/certificates/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(getLearnerEmail() ? { "x-admin-email": getLearnerEmail()! } : {}),
+      },
       body: JSON.stringify(body),
     });
     const data = (await res.json()) as { ok?: boolean; message?: string };
@@ -146,10 +173,21 @@ export default function AdminCourseCertificateApprovals({
             </select>
           </div>
         ) : null}
-        <div className={`flex flex-wrap items-center gap-2 ${hideCourseFilter ? "ml-auto" : ""}`}>
+        <div className="min-w-[200px] flex-1">
+          <label className="block text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+            Find learner
+          </label>
+          <input
+            value={learnerQuery}
+            onChange={(e) => setLearnerQuery(e.target.value)}
+            placeholder="Email, name, certificate #…"
+            className="mt-1 w-full max-w-md rounded-lg border border-white/15 bg-[#0a1020] px-3 py-2 text-xs text-white outline-none focus:border-amber-400/40"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <p className="text-xs text-gray-500">
-            {rows.length} certificate{rows.length === 1 ? "" : "s"}
-            {courseFilter ? " (filtered)" : ""}
+            {filteredRows.length} certificate{filteredRows.length === 1 ? "" : "s"}
+            {courseFilter || learnerQuery.trim() ? " (filtered)" : ""}
           </p>
           <button
             type="button"
@@ -167,10 +205,9 @@ export default function AdminCourseCertificateApprovals({
           <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
           Loading…
         </p>
-      ) : rows.length === 0 ? (
+      ) : filteredRows.length === 0 ? (
         <p className="mt-4 text-xs text-gray-600">
-          No certificates yet{courseFilter ? " for this course" : ""}. They appear here after learners pass the
-          exam.
+          No certificates match{courseFilter || learnerQuery.trim() ? " these filters" : " yet"}.
         </p>
       ) : (
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]">
@@ -189,7 +226,7 @@ export default function AdminCourseCertificateApprovals({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((c) => {
+                {filteredRows.map((c) => {
                   const active = c.id === selectedId;
                   return (
                     <tr

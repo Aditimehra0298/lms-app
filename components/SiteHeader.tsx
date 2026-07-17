@@ -30,9 +30,11 @@ const AUDIENCE_TABS = [
 
 function AudienceTabLabel({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-baseline gap-1">
-      <span className="font-serif text-[15px] font-bold italic lowercase tracking-wide">for</span>
-      <span>{label}</span>
+    <span className="inline-flex max-w-full items-baseline gap-1.5 truncate">
+      <span className="shrink-0 font-serif text-[14px] font-bold italic lowercase tracking-wide text-amber-300">
+        for
+      </span>
+      <span className="truncate text-[14px] font-bold tracking-tight">{label}</span>
     </span>
   );
 }
@@ -41,7 +43,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [activeAudience, setActiveAudience] = useState<string | null>(null);
+  const [activeAudience, setActiveAudience] = useState<string>("associators");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -174,50 +176,76 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
   return (
     <>
       <header
-        className={`sticky top-0 z-50 border-b backdrop-blur-md ${
+        className={`site-header sticky top-0 z-50 border-b backdrop-blur-md ${
           isLight
             ? "border-[#b4965a]/45 bg-linear-to-b from-[#f8f4ec]/95 to-[#efe7da]/95 text-slate-900 shadow-[0_10px_28px_rgba(148,118,59,0.16)]"
             : "border-white/5 bg-[#0a0a0a]/90 text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
         }`}
       >
         <div
-          className={`hidden border-b md:block ${compactHeader ? "!hidden" : ""} ${
+          className={`hidden md:block ${compactHeader ? "!hidden" : ""} ${
             isLight
-              ? "border-[#b4965a]/35 bg-linear-to-r from-[#efe7da] via-[#f3ede3] to-[#efe7da]"
-              : "border-white/10 bg-[#0a0f1a]"
+              ? "border-b border-[#b4965a]/40 bg-[#dccfba]"
+              : "border-b border-amber-500/25 bg-[#05070c]"
           }`}
         >
-          <div className="mx-auto flex h-11 w-full max-w-[1760px] items-center gap-8 px-4 xl:px-6">
-            {audienceTabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveAudience(tab.id)}
-                className={`relative px-1 py-1.5 text-sm font-semibold transition-colors ${
-                  activeAudience === tab.id
-                    ? isLight
-                      ? "text-[#7a5610]"
-                      : "text-amber-100"
-                    : isLight
-                      ? "text-slate-700 hover:text-[#7a5610]"
-                      : "text-amber-100/85 hover:text-amber-50"
-                }`}
-              >
-                <span
-                  className={`pointer-events-none absolute inset-x-[-10px] bottom-[-4px] top-[-4px] -z-10 rounded-lg blur-lg ${
-                    activeAudience === tab.id
+          <div className="mx-auto flex w-full max-w-[1760px] items-end gap-1.5 px-4 pt-2.5 xl:px-6">
+            {audienceTabs.map((tab) => {
+              const active = activeAudience === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveAudience(tab.id)}
+                  className={`chrome-audience-tab group relative -mb-px inline-flex min-h-11 min-w-0 max-w-[17rem] flex-1 items-center justify-center truncate px-5 pb-3 pt-2.5 outline-none transition-[background-color,color,box-shadow,transform,border-color] sm:flex-none sm:max-w-none ${
+                    active
                       ? isLight
-                        ? "bg-amber-300/55"
-                        : "bg-amber-400/50"
+                        ? "z-10 rounded-t-xl border border-b-0 border-[#b4965a]/70 bg-linear-to-b from-[#fff8ec] to-[#f8f4ec] text-[#6a4a0c] shadow-[0_-4px_18px_rgba(212,160,23,0.28)]"
+                        : "z-10 rounded-t-xl border border-b-0 border-amber-400/55 bg-linear-to-b from-[#1c160c] via-[#12100a] to-[#0a0a0a] text-amber-50 shadow-[0_-4px_20px_rgba(245,158,11,0.28)]"
                       : isLight
-                        ? "bg-amber-200/35"
-                        : "bg-amber-400/28"
+                        ? "rounded-t-lg border border-[#b4965a]/35 bg-[#cbb89a] text-slate-800 hover:-translate-y-0.5 hover:border-[#9a7222] hover:bg-[#d8c6a6] hover:text-[#6a4a0c]"
+                        : "rounded-t-lg border border-amber-400/25 bg-[#141922] text-amber-100 hover:-translate-y-0.5 hover:border-amber-400/50 hover:bg-[#1c2433] hover:text-white"
                   }`}
-                  aria-hidden
-                />
-                <AudienceTabLabel label={tab.label} />
-              </button>
-            ))}
+                >
+                  {active ? (
+                    <span
+                      className={`pointer-events-none absolute inset-x-3 top-0 h-[3px] rounded-b-full ${
+                        isLight
+                          ? "bg-gradient-to-r from-[#d4a017] via-[#f0c14b] to-[#d4a017]"
+                          : "bg-gradient-to-r from-[#eb9422] via-[#f9b14d] to-[#eb9422]"
+                      }`}
+                      aria-hidden
+                    />
+                  ) : null}
+                  {active ? (
+                    <>
+                      <span
+                        className={`pointer-events-none absolute -left-2 bottom-0 h-2.5 w-2.5 ${
+                          isLight ? "bg-[#f8f4ec]" : "bg-[#0a0a0a]"
+                        }`}
+                        style={{
+                          maskImage: "radial-gradient(circle at 0 0, transparent 70%, #000 72%)",
+                          WebkitMaskImage: "radial-gradient(circle at 0 0, transparent 70%, #000 72%)",
+                        }}
+                        aria-hidden
+                      />
+                      <span
+                        className={`pointer-events-none absolute -right-2 bottom-0 h-2.5 w-2.5 ${
+                          isLight ? "bg-[#f8f4ec]" : "bg-[#0a0a0a]"
+                        }`}
+                        style={{
+                          maskImage: "radial-gradient(circle at 100% 0, transparent 70%, #000 72%)",
+                          WebkitMaskImage: "radial-gradient(circle at 100% 0, transparent 70%, #000 72%)",
+                        }}
+                        aria-hidden
+                      />
+                    </>
+                  ) : null}
+                  <AudienceTabLabel label={tab.label} />
+                </button>
+              );
+            })}
+            <div className="min-w-4 flex-1" aria-hidden />
           </div>
         </div>
         <div

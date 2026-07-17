@@ -1,16 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { AdminContent, ManagedCourse } from "@/lib/content-schema";
+import type { AdminContent } from "@/lib/content-schema";
 import { defaultAdminContent } from "@/lib/content-schema";
 import AdminGlobalCertificatesPanel from "@/components/admin/AdminGlobalCertificatesPanel";
 import type { AdminCertificateCourseOption } from "@/components/admin/AdminCourseCertificateApprovals";
 
-function isSelfPaced(c: ManagedCourse): boolean {
-  return !c.learningFormat || c.learningFormat === "self-paced";
-}
-
-/** Certificates under Users & Access — templates + all issued certs (no course required). */
+/** Certificates under Users & Access — issue, review, and control learner access. */
 export default function AdminCertificatesWorkspace() {
   const [content, setContent] = useState<AdminContent | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -33,16 +29,27 @@ export default function AdminCertificatesWorkspace() {
   }, [load]);
 
   const certificateCourses = useMemo((): AdminCertificateCourseOption[] => {
-    const selfPaced = (content?.managedCourses ?? []).filter(isSelfPaced).map((c) => ({
-      slug: c.slug,
-      title: c.title?.trim() || c.slug,
-    }));
-    const tutorLed = (content?.tutorLedPrograms ?? []).map((p) => ({
-      slug: p.slug,
-      title: `${p.title?.trim() || p.slug} (Tutor-led)`,
-    }));
+    const selfPaced = (content?.managedCourses ?? []).map((c) => {
+      const format =
+        c.learningFormat === "interactive"
+          ? "Interactive"
+          : c.learningFormat === "live"
+            ? "Live"
+            : "Self-paced";
+      return {
+        slug: c.slug,
+        title: `${c.title?.trim() || c.slug} (${format})`,
+      };
+    });
+    const livePrograms = (content?.tutorLedPrograms ?? []).map((p) => {
+      const kind = p.programKind === "workshop" ? "Workshop" : "Tutor-led";
+      return {
+        slug: p.slug,
+        title: `${p.title?.trim() || p.slug} (${kind})`,
+      };
+    });
     const bySlug = new Map<string, AdminCertificateCourseOption>();
-    for (const row of [...selfPaced, ...tutorLed]) {
+    for (const row of [...selfPaced, ...livePrograms]) {
       if (!bySlug.has(row.slug)) bySlug.set(row.slug, row);
     }
     return [...bySlug.values()].sort((a, b) => a.title.localeCompare(b.title));
@@ -64,11 +71,6 @@ export default function AdminCertificatesWorkspace() {
         </p>
       ) : null}
       <AdminGlobalCertificatesPanel certificateCourses={certificateCourses} />
-      <p className="text-[11px] text-gray-500">
-        Upload global defaults under <strong className="text-gray-400">All courses</strong>, or per-program samples in{" "}
-        <strong className="text-gray-400">Self-paced → Certificate</strong> or{" "}
-        <strong className="text-gray-400">Tutor Led → Certificate</strong>.
-      </p>
     </div>
   );
 }

@@ -37,8 +37,8 @@ export default function SiteFooter({ forceDarkChrome = false }: { forceDarkChrom
   const useLightTheme = isLightTheme && !forceDarkChrome;
   const sectionShell = "mx-auto max-w-[1760px] px-4 md:px-6 xl:px-8";
   const footerShell = useLightTheme
-    ? "relative z-20 border-t border-[#b4965a]/25 bg-[#f8f4ec]"
-    : "relative z-20 border-t border-amber-500/20 bg-[#070707]";
+    ? "site-footer relative z-20 border-t border-[#b4965a]/25 bg-[#f8f4ec]"
+    : "site-footer relative z-20 border-t border-amber-500/20 bg-[#070707]";
   const cardShell = useLightTheme
     ? "bg-linear-to-b from-[#f8f4ec] via-[#f3ede3] to-[#efe7db]"
     : "bg-linear-to-b from-[#181107] via-[#100c08] to-[#090808]";

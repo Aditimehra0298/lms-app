@@ -34,7 +34,7 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
         }${tutorLedMarketing ? " bg-black text-white" : ""}`}
       >
         {children}
-</div>
+      </div>
       <SiteFooter forceDarkChrome={tutorLedMarketing} />
       <CartAbandonmentTracker />
       <DeferredChatbots />

@@ -76,6 +76,19 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("[api/payments/razorpay/create-order]", err);
+    void import("@/lib/server/admin-system-notifications")
+      .then(({ pushAdminNotification }) =>
+        pushAdminNotification({
+          dedupeKey: "runtime:razorpay-create-order",
+          title: "Checkout could not start",
+          detail:
+            "A learner tried to pay online, but the payment order could not be created. Online checkout may be broken right now.",
+          severity: "critical",
+          source: "payments",
+          panelHint: "Payments",
+        }),
+      )
+      .catch(() => undefined);
     return NextResponse.json(
       { ok: false, message: "Could not create Razorpay order. Check your API keys and try again." },
       { status: 503 },

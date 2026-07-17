@@ -56,6 +56,7 @@ import AdminImageUrlUpload from "@/components/admin/AdminImageUrlUpload";
 import AdminCoursePublishPanel from "@/components/admin/AdminCoursePublishPanel";
 import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
 import AdminCourseSubscriptionPanel from "@/components/admin/AdminCourseSubscriptionPanel";
+import AdminBulkFoodCoursesImport from "@/components/admin/AdminBulkFoodCoursesImport";
 import AdminLessonEditor from "@/components/admin/AdminLessonEditor";
 import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
 import { describeCertificateIdFormat } from "@/lib/certificate-ids";
@@ -386,8 +387,8 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     return "";
   }, [selectedCourse?.slug, isCreating, draft.slug, draft.title]);
 
-  const persistManagedCourses = async (nextCourses: ManagedCourse[]) => {
-    if (!content) return;
+  const persistManagedCourses = async (nextCourses: ManagedCourse[]): Promise<boolean> => {
+    if (!content) return false;
     setSavingCatalog(true);
     setLoadError(null);
     setSaveNotice(null);
@@ -397,8 +398,10 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       setContent(payload);
       setSaveNotice("Course saved.");
       void load();
+      return true;
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Save failed. Try again.");
+      return false;
     } finally {
       setSavingCatalog(false);
     }
@@ -423,9 +426,18 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
   const saveCatalogDraft = async (opts?: { goToCurriculumAfter?: boolean }) => {
     if (!content) return;
-    const slug = editingSlug ?? slugify(draft.slug || draft.title);
+    const previousSlug = editingSlug;
+    const slug = slugify((draft.slug || draft.title || "").trim());
     if (!slug.trim()) {
       setLoadError("Slug or title is required.");
+      return;
+    }
+    const others = (content.managedCourses ?? []).filter((c) => {
+      if (previousSlug) return c.slug !== previousSlug;
+      return c.slug !== slug;
+    });
+    if (others.some((c) => c.slug === slug)) {
+      setLoadError("That URL slug is already used by another course. Pick a different slug.");
       return;
     }
     const normalized: ManagedCourse = sanitizeManagedCourse({
@@ -435,11 +447,9 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       faqs: (draft.faqs ?? []).filter((f) => f.q.trim() && f.a.trim()),
       finalExam: undefined,
     });
-    const others = (content.managedCourses ?? []).filter((c) => {
-      if (editingSlug) return c.slug !== editingSlug;
-      return c.slug !== slug;
-    });
-    await persistManagedCourses([...others, normalized]);
+    const ok = await persistManagedCourses([...others, normalized]);
+    if (!ok) return;
+    setDraft(normalized);
     setIsCreating(false);
     setEditingSlug(slug);
     setSelectedSlug(slug);
@@ -543,12 +553,16 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     if (workspaceTab !== "Pricing") return;
     if (isCreating) return;
     if (!selectedCourse) return;
-    setDraft((prev) =>
-      prev.slug === selectedCourse.slug ? prev : { ...selectedCourse, learningFormat: "self-paced" },
-    );
-    setEditingSlug(selectedCourse.slug);
+    // Hydrate pricing draft from the selected course, but never wipe an in-progress
+    // Course-tab edit (including a pending slug rename) for the same course.
+    setDraft((prev) => {
+      if (editingSlug && editingSlug === selectedCourse.slug) return prev;
+      if (prev.slug === selectedCourse.slug) return prev;
+      return { ...selectedCourse, learningFormat: "self-paced" };
+    });
+    if (!editingSlug) setEditingSlug(selectedCourse.slug);
     setIsCreating(false);
-  }, [workspaceTab, selectedCourse?.slug, isCreating]);
+  }, [workspaceTab, selectedCourse?.slug, isCreating, editingSlug]);
 
   const saveCurriculumOnly = async () => {
     if (!content) {
@@ -974,8 +988,12 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
   const catalogFormOpen = isCreating || !!editingSlug;
   const previewSlug = useMemo(() => {
+    const fromDraft = slugify(draft.slug || draft.title || "");
     const raw =
-      editingSlug ?? selectedSlug ?? (isCreating ? slugify(draft.slug || draft.title) : "");
+      fromDraft ||
+      editingSlug ||
+      selectedSlug ||
+      (isCreating ? slugify(draft.title || "") : "");
     const s = raw.trim();
     return s.length >= 2 ? s : null;
   }, [editingSlug, selectedSlug, isCreating, draft.slug, draft.title]);
@@ -1124,6 +1142,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
       {workspaceTab === "Catalog" ? (
         <>
+          {!isLessonsMode ? <AdminBulkFoodCoursesImport onSaved={() => void load()} /> : null}
           <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0b1224] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/20 px-4 py-4 sm:px-5">
               <div className="flex items-center gap-3">
@@ -1314,7 +1333,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                       <span className="text-violet-200">This course only</span> = title, about, FAQs, modules.
                       Save here, then use <strong className="text-gray-300">Content</strong> for lessons. URL:{" "}
                       <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-[11px] text-violet-200">
-                        /courses/{editingSlug ?? slugify(draft.slug || draft.title || "slug")}
+                        /courses/{slugify(draft.slug || draft.title || "slug") || "slug"}
                       </code>
                     </p>
                   </div>
@@ -1327,21 +1346,33 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                 description="Title, cover, instructor, and catalog listing — unique for every course."
               >
               <div className="grid gap-4 md:grid-cols-2 md:gap-5">
-                {!editingSlug || isCreating ? (
-                  <label className="block md:col-span-2">
-                    <span className="text-[11px] text-gray-500">URL slug</span>
-                    <input
-                      value={draft.slug}
-                      onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
-                      className={`${spField} font-mono text-xs`}
-                      placeholder="my-course-slug"
-                    />
-                  </label>
-                ) : (
-                  <p className="md:col-span-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2 font-mono text-[11px] text-gray-400">
-                    Slug: {editingSlug}
+                <label className="block md:col-span-2">
+                  <span className="text-[11px] text-gray-500">URL slug</span>
+                  <input
+                    value={draft.slug}
+                    onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
+                    onBlur={() =>
+                      setDraft((d) => {
+                        const next = slugify((d.slug || d.title || "").trim());
+                        return next && next !== d.slug ? { ...d, slug: next } : d;
+                      })
+                    }
+                    className={`${spField} font-mono text-xs`}
+                    placeholder="my-course-slug"
+                  />
+                  <p className="mt-1 text-[10px] text-gray-500">
+                    Public URL:{" "}
+                    <code className="font-mono text-violet-200/90">
+                      /courses/{slugify(draft.slug || draft.title || "slug") || "slug"}
+                    </code>
+                    {editingSlug && editingSlug !== slugify(draft.slug || draft.title) ? (
+                      <span className="mt-1 block text-amber-200/90">
+                        Will rename from <code className="font-mono">{editingSlug}</code> when you click Save
+                        course.
+                      </span>
+                    ) : null}
                   </p>
-                )}
+                </label>
                 <label className="block">
                   <span className="text-[11px] text-gray-500">Title</span>
                   <input

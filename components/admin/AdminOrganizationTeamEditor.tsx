@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Building2, Save, Trash2, Users } from "lucide-react";
+import { Building2, Plus, Save, Trash2, Users, Cpu } from "lucide-react";
 import { type AdminContent } from "@/lib/content-schema";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/lib/organization-team-config";
 
 const inputCls =
-  "mt-1 w-full rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs text-white placeholder:text-gray-500";
+  "mt-1 w-full rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs text-white placeholder:text-gray-500 outline-none focus:border-sky-400/40";
 const labelCls = "block text-[10px] font-semibold uppercase tracking-wider text-gray-500";
 
 type OrgListRow = { workEmail: string; companyName: string; identificationNumber: number };
@@ -30,7 +30,15 @@ export function AdminOrganizationTeamEditor() {
   const [loading, setLoading] = useState(true);
   const [savingPlans, setSavingPlans] = useState(false);
   const [savingTeam, setSavingTeam] = useState(false);
+  const [creatingOrg, setCreatingOrg] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [newOrg, setNewOrg] = useState({
+    companyName: "",
+    workEmail: "",
+    industryType: "",
+    companySize: "",
+    planId: "monthly-premium" as OrgPremiumPlanId,
+  });
 
   const adminHeaders = useCallback((): Record<string, string> => {
     const email = getLearnerEmail();
@@ -49,7 +57,7 @@ export function AdminOrganizationTeamEditor() {
         : "/api/admin/organization-teams";
       const [contentRes, orgsRes, teamsRes] = await Promise.all([
         fetch("/api/admin/content", { cache: "no-store" }),
-        fetch("/api/admin/organizations", { cache: "no-store" }),
+        fetch("/api/admin/organizations", { cache: "no-store", headers: adminHeaders() }),
         fetch(teamUrl, { cache: "no-store", headers: adminHeaders() }),
       ]);
       if (contentRes.ok) {
@@ -78,7 +86,7 @@ export function AdminOrganizationTeamEditor() {
       }
       setStatus(null);
     } catch {
-      setStatus("Could not load organisation team settings.");
+      setStatus("Could not load organisation settings.");
     } finally {
       setLoading(false);
     }
@@ -113,11 +121,64 @@ export function AdminOrganizationTeamEditor() {
       });
       if (!put.ok) throw new Error("save");
       setPlanConfig(cleaned);
-      setStatus("Plan tiers saved — organisation invite/assign screens will use these limits.");
+      setStatus("Plan tiers saved.");
     } catch {
       setStatus("Failed to save plan configuration.");
     } finally {
       setSavingPlans(false);
+    }
+  };
+
+  const createOrganisation = async () => {
+    setCreatingOrg(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/admin/organizations", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          companyName: newOrg.companyName.trim(),
+          workEmail: newOrg.workEmail.trim(),
+          industryType: newOrg.industryType.trim() || undefined,
+          companySize: newOrg.companySize.trim() || undefined,
+          planId: newOrg.planId,
+        }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        message?: string;
+        organization?: OrgListRow;
+        team?: OrganizationTeamRecord;
+      };
+      if (!res.ok || !data.ok || !data.organization) {
+        throw new Error(data.message ?? "Could not create organisation");
+      }
+      setOrgs((rows) => {
+        const next = rows.filter((r) => r.workEmail !== data.organization!.workEmail);
+        return [...next, data.organization!].sort((a, b) =>
+          a.companyName.localeCompare(b.companyName),
+        );
+      });
+      if (data.team) {
+        setTeams((rows) => {
+          const next = rows.filter((r) => r.workEmail !== data.team!.workEmail);
+          return [...next, data.team!];
+        });
+        setTeamDraft(data.team);
+        setSelectedOrg(data.organization.workEmail);
+      }
+      setNewOrg({
+        companyName: "",
+        workEmail: "",
+        industryType: "",
+        companySize: "",
+        planId: planConfig.defaultPlanId,
+      });
+      setStatus(`Organisation “${data.organization.companyName}” is ready.`);
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Could not create organisation.");
+    } finally {
+      setCreatingOrg(false);
     }
   };
 
@@ -158,9 +219,9 @@ export function AdminOrganizationTeamEditor() {
           return [...next, data.team!];
         });
       }
-      setStatus(`Saved team data for ${teamDraft.workEmail}.`);
+      setStatus(`Saved team settings for ${teamDraft.companyName ?? teamDraft.workEmail}.`);
     } catch {
-      setStatus("Failed to save organisation team roster.");
+      setStatus("Failed to save organisation team.");
     } finally {
       setSavingTeam(false);
     }
@@ -189,16 +250,131 @@ export function AdminOrganizationTeamEditor() {
   };
 
   if (loading) {
-    return <p className="mt-4 text-sm text-gray-400">Loading organisation team settings…</p>;
+    return <p className="mt-4 text-sm text-gray-400">Loading organisation control…</p>;
   }
 
   return (
-    <div className="mt-4 space-y-5">
+    <div className="space-y-5">
+      <div className="relative overflow-hidden rounded-2xl border border-sky-400/20 bg-gradient-to-br from-[#0a1628] via-[#0c1428] to-[#070b14]">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(56,189,248,0.55) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.55) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+          aria-hidden
+        />
+        <div className="relative px-4 py-5 sm:px-6">
+          <div className="flex gap-4">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-sky-500/20 ring-1 ring-sky-400/35 shadow-[0_0_28px_rgba(56,189,248,0.22)]">
+              <Building2 className="h-6 w-6 text-sky-200" aria-hidden />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-sky-300/90">
+                Users &amp; access
+              </p>
+              <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">Organisation control</h1>
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-gray-400">
+                Add companies from the admin panel, set seat plans, and manage who sits on each organisation team.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2 text-[10px]">
+            {["Add from web", "Seat plans", "Team roster", `${orgs.length} organisations`].map((chip) => (
+              <span
+                key={chip}
+                className="inline-flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-sky-100"
+              >
+                <Cpu className="h-3 w-3" aria-hidden />
+                {chip}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {status ? (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-100">
+        <p className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-2 text-xs text-sky-100">
           {status}
         </p>
       ) : null}
+
+      <article className="rounded-2xl border border-emerald-400/25 bg-gradient-to-br from-emerald-500/[0.08] via-[#0d1528] to-[#0a1120] p-4 sm:p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Plus className="h-4 w-4 text-emerald-300" />
+          <h2 className="text-sm font-semibold text-white">Add organisation</h2>
+        </div>
+        <p className="mb-4 text-xs text-gray-400">
+          Create a company account here — no website registration needed. Then set seats and roster below.
+        </p>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <label className="block text-xs text-gray-400">
+            Company name
+            <input
+              className={inputCls}
+              value={newOrg.companyName}
+              onChange={(e) => setNewOrg((o) => ({ ...o, companyName: e.target.value }))}
+              placeholder="Acme Learning Pvt Ltd"
+            />
+          </label>
+          <label className="block text-xs text-gray-400">
+            Work email
+            <input
+              type="email"
+              className={inputCls}
+              value={newOrg.workEmail}
+              onChange={(e) => setNewOrg((o) => ({ ...o, workEmail: e.target.value }))}
+              placeholder="learning@company.com"
+            />
+          </label>
+          <label className="block text-xs text-gray-400">
+            Plan
+            <select
+              className={inputCls}
+              value={newOrg.planId}
+              onChange={(e) =>
+                setNewOrg((o) => ({ ...o, planId: e.target.value as OrgPremiumPlanId }))
+              }
+            >
+              {ORG_PREMIUM_PLAN_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {planConfig.plans.find((p) => p.id === id)?.name ?? id}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs text-gray-400">
+            Industry (optional)
+            <input
+              className={inputCls}
+              value={newOrg.industryType}
+              onChange={(e) => setNewOrg((o) => ({ ...o, industryType: e.target.value }))}
+              placeholder="Technology / Healthcare…"
+            />
+          </label>
+          <label className="block text-xs text-gray-400">
+            Company size (optional)
+            <input
+              className={inputCls}
+              value={newOrg.companySize}
+              onChange={(e) => setNewOrg((o) => ({ ...o, companySize: e.target.value }))}
+              placeholder="50–200"
+            />
+          </label>
+          <div className="flex items-end">
+            <button
+              type="button"
+              onClick={() => void createOrganisation()}
+              disabled={creatingOrg || !newOrg.companyName.trim() || !newOrg.workEmail.trim()}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-400 px-4 py-2 text-sm font-bold text-black shadow-[0_0_24px_rgba(16,185,129,0.25)] disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              {creatingOrg ? "Saving…" : "Create organisation"}
+            </button>
+          </div>
+        </div>
+      </article>
 
       <article className="rounded-xl border border-[#FFC107]/25 bg-gradient-to-br from-[#FFC107]/5 to-[#0d1528] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -340,11 +516,10 @@ export function AdminOrganizationTeamEditor() {
               <Building2 className="h-5 w-5 text-sky-300" aria-hidden />
             </span>
             <div>
-              <h3 className="text-sm font-semibold text-white">Per-organisation team data</h3>
+              <h3 className="text-sm font-semibold text-white">Organisation team & seats</h3>
               <p className="mt-0.5 max-w-2xl text-[11px] text-gray-400">
-                Roster, active plan, seat override, and course assignments stored in{" "}
-                <code className="text-gray-300">data/organization-teams.json</code>. Changes here
-                appear on the organisation My Learning dashboard immediately.
+                Pick a company to edit plan, seat limit, and employee roster. Changes show on their My Learning
+                dashboard.
               </p>
             </div>
           </div>

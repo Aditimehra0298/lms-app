@@ -6,9 +6,9 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
 import {
-  Bell,
   BookOpen,
   Briefcase,
+  Building2,
   Calendar,
   CreditCard,
   Eye,
@@ -31,11 +31,14 @@ import {
   Star,
   TicketCheck,
   Trash2,
+  Undo2,
   Users,
   Video,
   Award,
   HelpCircle,
   Shield,
+  BarChart3,
+  FileBarChart,
 } from "lucide-react";
 import AdminCoursesWorkspace from "@/components/admin/AdminCoursesWorkspace";
 import AdminCertificatesWorkspace from "@/components/admin/AdminCertificatesWorkspace";
@@ -48,7 +51,15 @@ import AdminLessonsWorkspace from "@/components/admin/AdminLessonsWorkspace";
 import AdminBatchesWorkspace from "@/components/admin/AdminBatchesWorkspace";
 import AdminUsersWorkspace from "@/components/admin/AdminUsersWorkspace";
 import AdminPaymentsWorkspace from "@/components/admin/AdminPaymentsWorkspace";
+import AdminOrdersWorkspace from "@/components/admin/AdminOrdersWorkspace";
+import AdminInvoicesWorkspace from "@/components/admin/AdminInvoicesWorkspace";
+import AdminRefundsWorkspace from "@/components/admin/AdminRefundsWorkspace";
+import AdminRecentOrders from "@/components/admin/AdminRecentOrders";
 import AdminRolesPermissionsWorkspace from "@/components/admin/AdminRolesPermissionsWorkspace";
+import AdminSettingsWorkspace from "@/components/admin/AdminSettingsWorkspace";
+import AdminAnalyticsWorkspace from "@/components/admin/AdminAnalyticsWorkspace";
+import AdminReportsWorkspace from "@/components/admin/AdminReportsWorkspace";
+import AdminNotificationsBell from "@/components/admin/AdminNotificationsBell";
 import { AdminCommunityConnectEditor } from "@/components/admin/AdminCommunityConnectEditor";
 import { AdminDashboardCalendarEditor } from "@/components/admin/AdminDashboardCalendarEditor";
 import { AdminOrganizationTeamEditor } from "@/components/admin/AdminOrganizationTeamEditor";
@@ -63,7 +74,7 @@ import CategoryPreviewIframe from "@/components/admin/CategoryPreviewIframe";
 import type { AdminContent, ManagedCategory } from "@/lib/content-schema";
 import AdminAccessDenied from "@/components/AdminAccessDenied";
 import { defaultAdminContent } from "@/lib/content-schema";
-import { getLearnerEmail, isLearnerLoggedIn } from "@/lib/learner-session-client";
+import { clearLearnerProfileStorage, getLearnerEmail, isLearnerLoggedIn } from "@/lib/learner-session-client";
 
 const menuSections = [
   {
@@ -149,6 +160,13 @@ const menuIcons: Record<string, typeof Home> = {
   "Support Tickets": TicketCheck,
   "FAQ Page": HelpCircle,
   Testimonials: Star,
+  Orders: ShoppingCart,
+  Payments: CreditCard,
+  Invoices: FileText,
+  Refunds: Undo2,
+  Analytics: BarChart3,
+  Reports: FileBarChart,
+  "Organization Team": Building2,
 };
 
 type AdminAccessState = {
@@ -167,11 +185,43 @@ const MENU_PANEL_QUERY: Record<string, string> = {
   Users: "users",
   Certificates: "certificates",
   "Roles & Permissions": "roles",
+  Orders: "orders",
+  Payments: "payments",
+  Invoices: "invoices",
+  Refunds: "refunds",
+  Settings: "settings",
+  Analytics: "analytics",
+  Reports: "reports",
 };
 
 const PANEL_MENU_QUERY: Record<string, string> = Object.fromEntries(
   Object.entries(MENU_PANEL_QUERY).map(([menu, panel]) => [panel, menu]),
 );
+
+function formatAdminHeaderDate(now = new Date()): string {
+  const start = new Date(now);
+  const day = start.getDay(); // 0 Sun … 6 Sat
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  start.setDate(start.getDate() + mondayOffset);
+  start.setHours(12, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  const sameMonth = start.getMonth() === end.getMonth();
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const monthDay = (d: Date) =>
+    d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const withYear = (d: Date) =>
+    d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+  if (sameMonth && sameYear) {
+    return `${monthDay(start)} – ${end.getDate()}, ${end.getFullYear()}`;
+  }
+  if (sameYear) {
+    return `${monthDay(start)} – ${withYear(end)}`;
+  }
+  return `${withYear(start)} – ${withYear(end)}`;
+}
 
 function AdminAccessLoading() {
   return (
@@ -202,6 +252,7 @@ function AdminPageInner() {
   });
   const [categoryRows, setCategoryRows] = useState<string[][]>([]);
   const [categoriesReady, setCategoriesReady] = useState(false);
+  const [headerDateLabel, setHeaderDateLabel] = useState(() => formatAdminHeaderDate());
   const [categoriesLoadError, setCategoriesLoadError] = useState<string | null>(null);
 
   const panelQuery = searchParams.get("panel");
@@ -228,6 +279,13 @@ function AdminPageInner() {
     const menu = PANEL_MENU_QUERY[panelQuery];
     if (menu) setActiveMenu(menu);
   }, [panelQuery]);
+
+  useEffect(() => {
+    const tick = () => setHeaderDateLabel(formatAdminHeaderDate());
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const authCheckStarted = useRef(false);
 
@@ -381,6 +439,12 @@ function AdminPageInner() {
   const showCertificatesWorkspace = activeMenu === "Certificates";
   const showUsersWorkspace = activeMenu === "Users";
   const showPaymentsWorkspace = activeMenu === "Payments";
+  const showOrdersWorkspace = activeMenu === "Orders";
+  const showInvoicesWorkspace = activeMenu === "Invoices";
+  const showRefundsWorkspace = activeMenu === "Refunds";
+  const showSettingsWorkspace = activeMenu === "Settings";
+  const showAnalyticsWorkspace = activeMenu === "Analytics";
+  const showReportsWorkspace = activeMenu === "Reports";
   const showOrganizationTeam = activeMenu === "Organization Team";
   const showRolesWorkspace = activeMenu === "Roles & Permissions";
   const hasMainPanel =
@@ -402,6 +466,12 @@ function AdminPageInner() {
     showCertificatesWorkspace ||
     showUsersWorkspace ||
     showPaymentsWorkspace ||
+    showOrdersWorkspace ||
+    showInvoicesWorkspace ||
+    showRefundsWorkspace ||
+    showSettingsWorkspace ||
+    showAnalyticsWorkspace ||
+    showReportsWorkspace ||
     showOrganizationTeam ||
     showRolesWorkspace ||
     activeMenu === "Categories";
@@ -512,7 +582,19 @@ function AdminPageInner() {
                 </div>
               </div>
             ))}
-            <button className="mt-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-300 hover:bg-red-500/10">
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  clearLearnerProfileStorage();
+                  sessionStorage.removeItem("sft_admin_access_email");
+                } catch {
+                  /* ignore */
+                }
+                window.location.href = "/";
+              }}
+              className="mt-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-300 hover:bg-red-500/10"
+            >
               <LogOut size={13} />
               Logout
             </button>
@@ -552,14 +634,12 @@ function AdminPageInner() {
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <button className="rounded-lg border border-white/10 bg-[#0a1120] p-2">
-                <Bell size={14} />
-              </button>
+              <AdminNotificationsBell onNavigate={(menu) => selectMenu(menu)} />
               <button className="rounded-lg border border-white/10 bg-[#0a1120] p-2">
                 <Moon size={14} />
               </button>
               <div className="hidden rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs sm:block">
-                Apr 21 - Apr 27, 2026
+                {headerDateLabel}
               </div>
               <div className="rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs">Admin</div>
             </div>
@@ -663,43 +743,7 @@ function AdminPageInner() {
           </div>
 
           <div className="mt-4 grid gap-4 xl:grid-cols-[2fr_1.1fr_1fr]">
-            <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="font-semibold">Recent Orders</h3>
-                <button className="rounded-md border border-white/10 bg-[#0a1120] px-2 py-1 text-xs">View All</button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[620px] text-left text-xs">
-                  <thead className="text-gray-400">
-                    <tr>
-                      {["Order ID", "User", "Course", "Amount", "Status", "Date"].map((h) => (
-                        <th key={h} className="border-b border-white/10 py-2 pr-3">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      ["ORD-2025-041", "Aditi Sharma", "Cyber Security Fundamentals", "₹2,999", "Paid", "Apr 27, 2026"],
-                      ["ORD-2025-040", "Rohan Verma", "Data Science with Python", "₹5,999", "Paid", "Apr 27, 2026"],
-                      ["ORD-2025-039", "Priya Mehta", "ESG & Sustainability", "₹3,999", "Paid", "Apr 26, 2026"],
-                    ].map((row) => (
-                      <tr key={row[0]} className="border-b border-white/5">
-                        <td className="py-2 pr-3">{row[0]}</td>
-                        <td className="py-2 pr-3">{row[1]}</td>
-                        <td className="py-2 pr-3">{row[2]}</td>
-                        <td className="py-2 pr-3">{row[3]}</td>
-                        <td className="py-2 pr-3">
-                          <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-emerald-300">{row[4]}</span>
-                        </td>
-                        <td className="py-2 pr-3">{row[5]}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </article>
+            <AdminRecentOrders onViewAll={() => selectMenu("Orders")} />
 
             <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
               <div className="mb-2 flex items-center justify-between">
@@ -875,7 +919,23 @@ function AdminPageInner() {
 
           {showUsersWorkspace && <AdminUsersWorkspace />}
 
+          {showOrdersWorkspace && <AdminOrdersWorkspace />}
+
           {showPaymentsWorkspace && <AdminPaymentsWorkspace />}
+
+          {showInvoicesWorkspace && <AdminInvoicesWorkspace />}
+
+          {showRefundsWorkspace && <AdminRefundsWorkspace />}
+
+          {showSettingsWorkspace && (
+            <AdminSettingsWorkspace onNavigate={(menu) => selectMenu(menu)} />
+          )}
+
+          {showAnalyticsWorkspace && (
+            <AdminAnalyticsWorkspace onNavigate={(menu) => selectMenu(menu)} />
+          )}
+
+          {showReportsWorkspace && <AdminReportsWorkspace />}
 
           {showOrganizationTeam && <AdminOrganizationTeamEditor />}
 

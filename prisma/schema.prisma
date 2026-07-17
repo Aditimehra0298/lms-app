@@ -180,7 +180,7 @@ model LmsPayment {
   /// Amount in smallest currency unit (paise for INR).
   amount            Int       @default(0)
   currency          String    @default("INR") @db.VarChar(8)
-  /// pending | paid | failed | waived | demo
+  /// pending | paid | failed | waived | demo | refunded
   status            String    @default("pending") @db.VarChar(32)
   /// razorpay | demo | admin_grant
   method            String    @default("razorpay") @db.VarChar(32)

@@ -96,8 +96,8 @@ export default function AdminSelfPacedCoursesPanel() {
     setEditorOpen(true);
   };
 
-  const persistManagedCourses = async (nextCourses: ManagedCourse[]) => {
-    if (!content) return;
+  const persistManagedCourses = async (nextCourses: ManagedCourse[]): Promise<boolean> => {
+    if (!content) return false;
     setSaving(true);
     setLoadError(null);
     try {
@@ -113,8 +113,10 @@ export default function AdminSelfPacedCoursesPanel() {
       if (!put.ok) throw new Error("save");
       await load();
       setEditorOpen(false);
+      return true;
     } catch {
       setLoadError("Save failed. Try again.");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -129,9 +131,18 @@ export default function AdminSelfPacedCoursesPanel() {
 
   const saveDraft = async () => {
     if (!content) return;
-    const slug = editingSlug ?? slugify(draft.slug || draft.title);
+    const previousSlug = editingSlug;
+    const slug = slugify((draft.slug || draft.title || "").trim());
     if (!slug.trim()) {
       setLoadError("Slug or title is required.");
+      return;
+    }
+    const others = (content.managedCourses ?? []).filter((c) => {
+      if (previousSlug) return c.slug !== previousSlug;
+      return c.slug !== slug;
+    });
+    if (others.some((c) => c.slug === slug)) {
+      setLoadError("That URL slug is already used by another course.");
       return;
     }
     const normalized: ManagedCourse = {
@@ -139,11 +150,10 @@ export default function AdminSelfPacedCoursesPanel() {
       slug,
       learningFormat: "self-paced",
     };
-    const others = (content.managedCourses ?? []).filter((c) => {
-      if (editingSlug) return c.slug !== editingSlug;
-      return c.slug !== slug;
-    });
-    await persistManagedCourses([...others, normalized]);
+    const ok = await persistManagedCourses([...others, normalized]);
+    if (!ok) return;
+    setDraft(normalized);
+    setEditingSlug(slug);
   };
 
   const deleteCourse = async (slug: string) => {
@@ -316,21 +326,26 @@ export default function AdminSelfPacedCoursesPanel() {
               <p className="text-[11px] text-gray-500">Posts saved here are always self-paced.</p>
             </div>
             <div className="space-y-3 overflow-y-auto p-4 text-xs">
-              {!editingSlug ? (
-                <label className="block">
-                  <span className="text-gray-500">URL slug</span>
-                  <input
-                    value={draft.slug}
-                    onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono outline-none focus:border-violet-500/40"
-                    placeholder="my-course-slug"
-                  />
-                </label>
-              ) : (
-                <p className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 font-mono text-gray-400">
-                  Slug: {editingSlug}
-                </p>
-              )}
+              <label className="block">
+                <span className="text-gray-500">URL slug</span>
+                <input
+                  value={draft.slug}
+                  onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
+                  onBlur={() =>
+                    setDraft((d) => {
+                      const next = slugify((d.slug || d.title || "").trim());
+                      return next && next !== d.slug ? { ...d, slug: next } : d;
+                    })
+                  }
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono outline-none focus:border-violet-500/40"
+                  placeholder="my-course-slug"
+                />
+                {editingSlug && editingSlug !== slugify(draft.slug || draft.title) ? (
+                  <p className="mt-1.5 text-[10px] text-amber-200/90">
+                    Will rename from <code className="font-mono">{editingSlug}</code> when you save.
+                  </p>
+                ) : null}
+              </label>
               <label className="block">
                 <span className="text-gray-500">Title</span>
                 <input

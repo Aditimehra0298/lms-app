@@ -43,6 +43,19 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("[api/payments/razorpay/verify]", err);
+    void import("@/lib/server/admin-system-notifications")
+      .then(({ pushAdminNotification }) =>
+        pushAdminNotification({
+          dedupeKey: "runtime:razorpay-verify",
+          title: "Payment verification failed",
+          detail:
+            "A learner completed checkout, but the payment could not be confirmed. They may not have received course access.",
+          severity: "critical",
+          source: "payments",
+          panelHint: "Orders",
+        }),
+      )
+      .catch(() => undefined);
     return NextResponse.json({ ok: false, message: "Could not verify payment." }, { status: 503 });
   }
 }
