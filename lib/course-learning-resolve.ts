@@ -1,5 +1,10 @@
 import type { ManagedCourse, ManagedCourseLearningSection } from "@/lib/content-schema";
 import { learningOutcomeBullets } from "@/lib/course-detail-template";
+import { BRAND_LOGO_PUBLIC_PATH } from "@/lib/brand-logo";
+import {
+  sanitizeCourseLearningTools,
+  type CourseLearningTools,
+} from "@/lib/course-learning-tools";
 
 export type ResolvedLearningSection = {
   brandLogoUrl: string;
@@ -10,6 +15,7 @@ export type ResolvedLearningSection = {
   noVideoMessage: string;
   learningToolsTitle: string;
   learningToolsHint: string;
+  courseTools: CourseLearningTools;
   bookmarkLabel: string;
   markCompleteLabel: string;
   previousLabel: string;
@@ -25,7 +31,7 @@ export type ResolvedLearningSection = {
   quickToolsTitle: string;
 };
 
-const DEFAULT_LOGO = "/SF-WHITE-LOGO.png";
+const DEFAULT_LOGO = BRAND_LOGO_PUBLIC_PATH;
 
 function lines(raw: string[] | undefined): string[] {
   return (raw ?? []).map((s) => s.trim()).filter(Boolean);
@@ -44,6 +50,7 @@ export function sanitizeLearningSection(
     noVideoMessage: raw.noVideoMessage?.trim(),
     learningToolsTitle: raw.learningToolsTitle?.trim(),
     learningToolsHint: raw.learningToolsHint?.trim(),
+    courseTools: sanitizeCourseLearningTools(raw.courseTools),
     bookmarkLabel: raw.bookmarkLabel?.trim(),
     markCompleteLabel: raw.markCompleteLabel?.trim(),
     previousLabel: raw.previousLabel?.trim(),
@@ -83,7 +90,8 @@ export function resolveLearningSection(
     learningToolsTitle: l?.learningToolsTitle?.trim() || "Learning Tools",
     learningToolsHint:
       l?.learningToolsHint?.trim() ||
-      "Select a tool — highlighted items have content for this lesson",
+      "Course materials — same tools for every module. Green dots mean a file is ready.",
+    courseTools: sanitizeCourseLearningTools(l?.courseTools) ?? {},
     bookmarkLabel: l?.bookmarkLabel?.trim() || "Bookmark",
     markCompleteLabel: l?.markCompleteLabel?.trim() || "Mark as Complete",
     previousLabel: l?.previousLabel?.trim() || "Previous",

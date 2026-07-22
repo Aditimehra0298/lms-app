@@ -5,13 +5,7 @@ import {
   ClipboardList,
   Clock3,
   FileText,
-  FolderOpen,
-  Headphones,
-  Link2,
   Loader2,
-  Presentation,
-  StickyNote,
-  Subtitles,
   Upload,
   Video,
 } from "lucide-react";
@@ -49,45 +43,6 @@ export type LessonRowPatch = Partial<{
   examUploadUrl: string;
   examPassingScorePercent: number;
 }>;
-
-type LearningToolKey =
-  | "notes"
-  | "captions"
-  | "pdf"
-  | "ppt"
-  | "podcast"
-  | "documents"
-  | "webhook";
-
-const TOOL_ACCEPT_LABEL: Record<LearningToolKey, string> = {
-  notes: "Text notes only",
-  captions: ".vtt, .srt, .txt",
-  pdf: ".pdf, .doc, .docx",
-  ppt: ".ppt, .pptx",
-  podcast: ".mp3, .wav",
-  documents: ".pdf, .doc, .docx, .ppt, .pptx, .txt",
-  webhook: "URL only",
-};
-
-const LEARNING_TOOLS: {
-  key: LearningToolKey;
-  label: string;
-  icon: typeof StickyNote;
-  field: keyof Pick<
-    CourseCurriculumItem,
-    "notes" | "captions" | "pdfUrl" | "pptUrl" | "podcastUrl" | "resourceUrl" | "webhookUrl"
-  >;
-  multiline?: boolean;
-  urlOnly?: boolean;
-}[] = [
-  { key: "notes", label: "Notes", icon: StickyNote, field: "notes", multiline: true },
-  { key: "captions", label: "Captions", icon: Subtitles, field: "captions" },
-  { key: "pdf", label: "PDF", icon: FileText, field: "pdfUrl" },
-  { key: "ppt", label: "PPT", icon: Presentation, field: "pptUrl" },
-  { key: "podcast", label: "Podcast", icon: Headphones, field: "podcastUrl" },
-  { key: "documents", label: "Documents", icon: FolderOpen, field: "resourceUrl" },
-  { key: "webhook", label: "Webhook", icon: Link2, field: "webhookUrl", urlOnly: true },
-];
 
 function kindLabel(kind: CourseCurriculumKind): string {
   switch (kind) {
@@ -133,16 +88,13 @@ export default function AdminLessonEditor({
   const [videoSource, setVideoSource] = useState<"upload" | "url">("upload");
   const [documentSource, setDocumentSource] = useState<"upload" | "url">("upload");
   const [examSource, setExamSource] = useState<"upload" | "url">("upload");
-  const [activeTool, setActiveTool] = useState<LearningToolKey | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingExam, setUploadingExam] = useState(false);
   const [uploadingDocument, setUploadingDocument] = useState(false);
-  const [uploadingTool, setUploadingTool] = useState<LearningToolKey | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [selectedVideoMeta, setSelectedVideoMeta] = useState<{ sizeMb: number } | null>(null);
 
   useEffect(() => {
-    setActiveTool(null);
     setUploadError(null);
     if (lesson.videoUrl?.trim()) setVideoSource("url");
     else setVideoSource("upload");
@@ -165,27 +117,6 @@ export default function AdminLessonEditor({
       onPatch({ downloadUrl: url });
     }
   };
-
-  const uploadToolField = async (key: LearningToolKey, file: File) => {
-    const tool = LEARNING_TOOLS.find((t) => t.key === key);
-    if (!tool || tool.multiline) return;
-    setUploadingTool(key);
-    try {
-      const url = await uploadAdminFile(file);
-      onPatch({ [tool.field]: url } as LessonRowPatch);
-    } finally {
-      setUploadingTool(null);
-    }
-  };
-
-  const toolHasValue = (key: LearningToolKey) => {
-    const tool = LEARNING_TOOLS.find((t) => t.key === key);
-    if (!tool) return false;
-    const v = lesson[tool.field];
-    return typeof v === "string" && v.trim().length > 0;
-  };
-
-  const activeToolDef = LEARNING_TOOLS.find((t) => t.key === activeTool);
 
   return (
     <div className="space-y-4">
@@ -598,11 +529,12 @@ export default function AdminLessonEditor({
       {lesson.kind === "video" ? (
         <>
           <label className="block">
-            <span className="mb-1 block text-[11px] text-gray-500">About this lesson (shown below video)</span>
+            <span className="mb-1 block text-[11px] text-gray-500">About this module / lesson (shown below video)</span>
             <textarea
               value={lesson.about ?? ""}
               onChange={(e) => onPatch({ about: e.target.value })}
               rows={3}
+              placeholder="What this module covers…"
               className="w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/40"
             />
           </label>
@@ -625,60 +557,13 @@ export default function AdminLessonEditor({
         </>
       ) : null}
 
-      {/* Learning tools — icon strip */}
-      <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-        <p className="mb-2 text-[11px] font-medium text-violet-100">Module learning tools</p>
-        <p className="mb-3 text-[10px] text-gray-500">
-          Click an icon to open its editor — upload a file or paste a URL.
+      {/* Learning tools are course-wide — edit under Course tab → page content */}
+      <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] px-3 py-2.5 text-[11px] text-amber-100/90">
+        <p className="font-semibold text-amber-100">Learning tools (whole course)</p>
+        <p className="mt-1 text-[10px] text-gray-400">
+          E-Workbook, Transcript, PPT, Podcast, and Webhook are set once for the entire course. Open the{" "}
+          <strong className="text-gray-300">Learning Tools</strong> tab (after Content).
         </p>
-        <div className="flex flex-wrap gap-2">
-          {LEARNING_TOOLS.map((tool) => {
-            const Icon = tool.icon;
-            const active = activeTool === tool.key;
-            const filled = toolHasValue(tool.key);
-            return (
-              <button
-                key={tool.key}
-                type="button"
-                title={`${tool.label} (${TOOL_ACCEPT_LABEL[tool.key]})`}
-                onClick={() => setActiveTool(active === tool.key ? null : tool.key)}
-                className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
-                  active
-                    ? "border-amber-300/80 bg-gradient-to-br from-amber-400/40 via-orange-400/25 to-violet-500/30 text-amber-50 ring-2 ring-amber-300/45 shadow-[0_0_18px_rgba(251,191,36,0.35)]"
-                    : filled
-                      ? "border-violet-300/45 bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 text-violet-100 shadow-[0_0_14px_rgba(168,85,247,0.22)]"
-                      : "border-cyan-400/25 bg-gradient-to-br from-slate-900 to-[#1a2340] text-cyan-200/75 hover:border-cyan-300/55 hover:text-cyan-100"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-              </button>
-            );
-          })}
-        </div>
-
-        {activeToolDef ? (
-          <div className="mt-3 border-t border-white/10 pt-3">
-            <p className="mb-2 text-[10px] text-gray-500">
-              Format: <span className="text-gray-300">{TOOL_ACCEPT_LABEL[activeToolDef.key]}</span>
-            </p>
-            <AdminAssetUrlField
-              label={activeToolDef.label}
-              value={(lesson[activeToolDef.field] as string | undefined) ?? ""}
-              onChange={(v) => onPatch({ [activeToolDef.field]: v } as LessonRowPatch)}
-              onUpload={(file) => uploadToolField(activeToolDef.key, file)}
-              uploading={uploadingTool === activeToolDef.key}
-              accept={DOC_FILE_ACCEPT}
-              multiline={activeToolDef.multiline}
-              urlOnly={activeToolDef.urlOnly}
-              uploadLabel={`Upload ${activeToolDef.label.toLowerCase()}`}
-              urlPlaceholder={
-                activeToolDef.key === "webhook"
-                  ? "https://…/webhook"
-                  : `https://…/${activeToolDef.label.toLowerCase()}`
-              }
-            />
-          </div>
-        ) : null}
       </div>
 
       <div className="flex justify-end gap-2 border-t border-white/10 pt-4">

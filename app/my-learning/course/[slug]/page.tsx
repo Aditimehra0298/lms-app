@@ -6,10 +6,17 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { ResolvedLearningSection } from "@/lib/course-learning-resolve";
 import { resolveLearningSection } from "@/lib/course-learning-resolve";
+import {
+  courseToolResourceLinks,
+  resolveCourseLearningToolItems,
+} from "@/lib/course-learning-tools";
+import { BRAND_LOGO_PUBLIC_PATH } from "@/lib/brand-logo";
+import BrandLogo from "@/components/BrandLogo";
 import { SecureCourseVideoPlayer } from "@/components/SecureCourseVideoPlayer";
 import {
   BadgeCheck,
   Bookmark,
+  BookOpen,
   CheckCheck,
   CheckCircle2,
   ChevronDown,
@@ -18,7 +25,6 @@ import {
   Circle,
   Download,
   FileText,
-  FolderOpen,
   Headphones,
   Link2,
   Lock,
@@ -26,8 +32,7 @@ import {
   Play,
   PlayCircle,
   Presentation,
-  StickyNote,
-  Subtitles,
+  ScrollText,
 } from "lucide-react";
 import TutorLedProgramClient from "@/components/TutorLedProgramClient";
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
@@ -184,7 +189,7 @@ export default function CourseLearningPlayerPage() {
       published: true,
     }),
   );
-  const [activeLearningTool, setActiveLearningTool] = useState<string>("Notes");
+  const [activeLearningTool, setActiveLearningTool] = useState<string>("E-Workbook");
   const [tutorLedResolved, setTutorLedResolved] = useState<TutorLedProgramStored | null>(
     () => defaultTutorLedPrograms.find((p) => p.slug === slug) ?? null,
   );
@@ -685,34 +690,28 @@ export default function CourseLearningPlayerPage() {
   };
 
   const resourceLinks = useMemo(() => {
-    const out: Array<{ label: string; url: string }> = [];
-    if (activeItem?.pdfUrl?.trim()) out.push({ label: "PDF", url: activeItem.pdfUrl.trim() });
-    if (activeItem?.pptUrl?.trim()) out.push({ label: "PPT", url: activeItem.pptUrl.trim() });
-    if (activeItem?.podcastUrl?.trim()) out.push({ label: "Podcast", url: activeItem.podcastUrl.trim() });
-    if (activeItem?.resourceUrl?.trim()) out.push({ label: "Documents", url: activeItem.resourceUrl.trim() });
-    if (activeItem?.webhookUrl?.trim()) out.push({ label: "Webhook", url: activeItem.webhookUrl.trim() });
+    const out = courseToolResourceLinks(learningCopy.courseTools);
     if (activeItem?.kind === "exam" && activeItem.examUploadUrl?.trim()) {
       out.push({ label: "Exam File", url: activeItem.examUploadUrl.trim() });
     }
     return out;
-  }, [activeItem]);
+  }, [learningCopy.courseTools, activeItem]);
 
   const toolItems = useMemo(
-    () => [
-      { label: "Notes", value: activeItem?.notes?.trim() || "", icon: StickyNote },
-      { label: "Captions", value: activeItem?.captions?.trim() || "", icon: Subtitles },
-      { label: "PDF", value: activeItem?.pdfUrl?.trim() || "", icon: FileText },
-      { label: "PPT", value: activeItem?.pptUrl?.trim() || "", icon: Presentation },
-      { label: "Podcast", value: activeItem?.podcastUrl?.trim() || "", icon: Headphones },
-      { label: "Documents", value: activeItem?.resourceUrl?.trim() || "", icon: FolderOpen },
-      { label: "Webhook", value: activeItem?.webhookUrl?.trim() || "", icon: Link2 },
-      // Security: do not show "Download" tool in the learner dashboard.
-    ],
-    [activeItem],
+    () => resolveCourseLearningToolItems(learningCopy.courseTools),
+    [learningCopy.courseTools],
   );
+  const toolItemLabelsKey = useMemo(() => toolItems.map((t) => t.label).join("|"), [toolItems]);
 
   const activeToolItem = toolItems.find((t) => t.label === activeLearningTool) ?? toolItems[0];
-  const logoUrl = learningCopy.brandLogoUrl?.trim() || "/SF-WHITE-LOGO.png";
+  const customBrandLogo = learningCopy.brandLogoUrl?.trim() || "";
+  const isDefaultBrandPath =
+    !customBrandLogo ||
+    customBrandLogo === BRAND_LOGO_PUBLIC_PATH ||
+    customBrandLogo === "/SF-WHITE-LOGO.png" ||
+    customBrandLogo.endsWith("/SF-WHITE-LOGO.png");
+  const logoUrl = customBrandLogo || BRAND_LOGO_PUBLIC_PATH;
+  const useHeaderBrandLogo = isDefaultBrandPath;
   const lessonVideoClass = activeVideoStoredUrl
     ? "h-[320px] w-full bg-black object-contain md:h-[460px] xl:h-[560px]"
     : "h-[200px] w-full bg-black object-contain md:h-[220px] xl:h-[240px]";
@@ -750,8 +749,13 @@ export default function CourseLearningPlayerPage() {
   }, [showCompletionDashboard]);
 
   useEffect(() => {
-    setActiveLearningTool("Notes");
-  }, [selectedModuleIdx, selectedEntryIdx]);
+    setActiveLearningTool((prev) => {
+      if (toolItems.some((t) => t.label === prev)) return prev;
+      return toolItems[0]?.label ?? "E-Workbook";
+    });
+    // Only re-run when the available tool labels change (not on every tools object identity).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- toolItemLabelsKey is the intentional trigger
+  }, [toolItemLabelsKey]);
 
   const learningToolButtonClass = (tool: (typeof toolItems)[number]) => {
     const selected = activeLearningTool === tool.label;
@@ -884,13 +888,17 @@ export default function CourseLearningPlayerPage() {
                   <div
                     className={`${lessonVideoClass} flex flex-col items-center justify-center gap-3 text-sm text-gray-400`}
                   >
-                    <Image
-                      src={logoUrl}
-                      alt="SF Trainings"
-                      className="h-8 w-auto opacity-40"
-                      width={160}
-                      height={40}
-                    />
+                    {useHeaderBrandLogo ? (
+                      <BrandLogo forceDark className="h-8 w-auto opacity-40" width={160} height={40} />
+                    ) : (
+                      <Image
+                        src={logoUrl}
+                        alt="SF Trainings"
+                        className="h-8 w-auto opacity-40"
+                        width={160}
+                        height={40}
+                      />
+                    )}
                     {learningCopy.noVideoMessage}
                   </div>
                 )}
@@ -927,13 +935,17 @@ export default function CourseLearningPlayerPage() {
                   ) : null}
                 </div>
                 <div className="pointer-events-none absolute bottom-3 right-3 rounded-lg border border-white/10 bg-black/55 px-2 py-1.5 backdrop-blur-sm">
-                  <Image
-                    src={logoUrl}
-                    alt="SF Trainings"
-                    className="h-6 w-auto opacity-90"
-                    width={120}
-                    height={28}
-                  />
+                  {useHeaderBrandLogo ? (
+                    <BrandLogo forceDark className="h-6 w-auto opacity-90" width={120} height={28} />
+                  ) : (
+                    <Image
+                      src={logoUrl}
+                      alt="SF Trainings"
+                      className="h-6 w-auto opacity-90"
+                      width={120}
+                      height={28}
+                    />
+                  )}
                 </div>
               </div>
             </article>
@@ -967,7 +979,7 @@ export default function CourseLearningPlayerPage() {
                     {learningCopy.learningToolsTitle}
                   </p>
                   <p className="mt-0.5 text-[11px] text-violet-200/80">{learningCopy.learningToolsHint}</p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
                     {toolItems.map((tool) => {
                       const Icon = tool.icon;
                       const available = Boolean(tool.value);
@@ -989,49 +1001,43 @@ export default function CourseLearningPlayerPage() {
                   </div>
                   <div className="mt-3 rounded-md border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-gray-300">
                     {activeToolItem?.value ? (
-                      activeToolItem.label === "PDF" ||
-                      activeToolItem.label === "PPT" ||
-                      activeToolItem.label === "Podcast" ||
-                      activeToolItem.label === "Documents" ||
-                      activeToolItem.label === "Webhook" ||
-                      activeToolItem.label === "Download" ? (
-                        <a
-                          href={activeToolItem.value}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-semibold text-amber-200 underline hover:text-amber-100"
-                        >
-                          Open {activeToolItem.label} →
-                        </a>
-                      ) : (
-                        <p className="whitespace-pre-wrap leading-relaxed">{activeToolItem.value}</p>
-                      )
+                      <a
+                        href={activeToolItem.value}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-amber-200 underline hover:text-amber-100"
+                      >
+                        Open {activeToolItem.label} →
+                      </a>
                     ) : (
                       <p className="text-gray-500">
-                        No {activeToolItem?.label?.toLowerCase() ?? "content"} uploaded for this lesson
+                        No {activeToolItem?.label?.toLowerCase() ?? "content"} uploaded for this course
                         yet. Check back after your instructor adds materials.
                       </p>
                     )}
                   </div>
                 </div>
-                <p className="text-sm font-semibold text-violet-100">About the Course</p>
+                <p className="text-sm font-semibold text-violet-100">About the Module</p>
                 <p className="mt-2 text-sm leading-7 text-gray-300">
                   {activeItem?.about?.trim()
                     ? activeItem.about.trim()
-                    : learningCopy.defaultLessonAbout}
+                    : `Welcome to ${moduleTitle(activeModule ?? {}, selectedModuleIdx)}. Work through the lessons in this module, then complete the module assessment when it unlocks.`}
                 </p>
-                <p className="mt-2 text-sm leading-7 text-gray-300">
-                  {activeItem?.description?.trim()
-                    ? activeItem.description.trim()
-                    : learningCopy.defaultLessonDescription}
-                </p>
+                {activeItem?.description?.trim() ? (
+                  <p className="mt-2 text-sm leading-7 text-gray-300">{activeItem.description.trim()}</p>
+                ) : null}
 
                 <p className="mt-4 text-sm font-semibold text-violet-100">Learning Outcomes</p>
                 <div className="mt-2 grid gap-2 md:grid-cols-2">
                   {(
                     activeItem?.learningOutcomes?.length
                       ? activeItem.learningOutcomes
-                      : learningCopy.defaultLearningOutcomes
+                      : [
+                          `Understand the key ideas covered in ${moduleTitle(activeModule ?? {}, selectedModuleIdx)}`,
+                          "Apply practical techniques from this module’s lessons",
+                          "Complete the module lessons and supporting materials in order",
+                          "Prepare for the module examination with confidence",
+                        ]
                   ).map((point) => (
                     <div key={point} className="rounded-md border border-white/10 bg-black/30 p-2 text-xs text-gray-300">
                       {point}
@@ -1159,11 +1165,12 @@ export default function CourseLearningPlayerPage() {
                     {resourceLinks.length > 0 ? (
                       resourceLinks.map((res) => {
                         const iconMap: Record<string, typeof FileText> = {
-                          PDF: FileText,
+                          "E-Workbook": BookOpen,
+                          Transcript: ScrollText,
                           PPT: Presentation,
                           Podcast: Headphones,
-                          Documents: FolderOpen,
                           Webhook: Link2,
+                          "Exam File": FileText,
                         };
                         const Icon = iconMap[res.label] ?? FileText;
                         return (
@@ -1193,14 +1200,18 @@ export default function CourseLearningPlayerPage() {
                 </div>
 
                 <div className="flex flex-col items-center justify-center rounded-lg border border-amber-300/35 bg-gradient-to-b from-amber-500/10 to-violet-950/20 p-4 text-center">
-                  <Image
-                    src={logoUrl}
-                    alt="SF Trainings"
-                    className="h-10 w-auto"
-                    width={160}
-                    height={44}
-                    unoptimized={logoUrl.startsWith("http")}
-                  />
+                  {useHeaderBrandLogo ? (
+                    <BrandLogo forceDark className="h-10 w-auto" width={160} height={44} />
+                  ) : (
+                    <Image
+                      src={logoUrl}
+                      alt="SF Trainings"
+                      className="h-10 w-auto"
+                      width={160}
+                      height={44}
+                      unoptimized={logoUrl.startsWith("http")}
+                    />
+                  )}
                   <p className="mt-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-200">
                     <BadgeCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     {learningCopy.accreditedBadgeLabel}
@@ -1295,19 +1306,6 @@ export default function CourseLearningPlayerPage() {
                       <div className="mt-2 space-y-1.5 rounded-md border border-white/10 bg-black/30 p-2">
                         {moduleCurriculumRows(module as PreviewGateModule).map((entry, entryIdx) => {
                           const entryKey = `${moduleTitle(module, idx)}-${entry.label ?? "entry"}-${entry.kind ?? "item"}-${entryIdx}`;
-                          const lessonTools = [
-                            entry.notes?.trim() ? { key: "notes", label: "Notes", icon: StickyNote } : null,
-                            entry.pdfUrl?.trim() ? { key: "pdf", label: "PDF", icon: FileText } : null,
-                            entry.pptUrl?.trim() ? { key: "ppt", label: "PPT", icon: Presentation } : null,
-                            entry.podcastUrl?.trim() ? { key: "podcast", label: "Podcast", icon: Headphones } : null,
-                            entry.resourceUrl?.trim()
-                              ? { key: "docs", label: "Docs", icon: FolderOpen }
-                              : null,
-                          ].filter(Boolean) as Array<{
-                            key: string;
-                            label: string;
-                            icon: typeof StickyNote;
-                          }>;
                           return entry.kind === "exam" ? (
                             (() => {
                               const progress = moduleWatchProgress(idx + 1);
@@ -1390,22 +1388,6 @@ export default function CourseLearningPlayerPage() {
                                     <Lock size={9} />
                                   </span>
                                 ) : null}
-                                {lessonTools.length > 0 ? (
-                                  <span className="inline-flex items-center gap-1">
-                                    {lessonTools.slice(0, 3).map((tool) => {
-                                      const ToolIcon = tool.icon;
-                                      return (
-                                        <span
-                                          key={`${entryKey}-${tool.key}`}
-                                          className="inline-flex items-center gap-1 rounded border border-violet-300/30 bg-violet-500/15 px-1 py-0.5 text-[9px] text-violet-100"
-                                        >
-                                          <ToolIcon size={9} />
-                                          {tool.label}
-                                        </span>
-                                      );
-                                    })}
-                                  </span>
-                                ) : null}
                               </span>
                             </button>
                           );
@@ -1437,13 +1419,20 @@ export default function CourseLearningPlayerPage() {
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
               <h3 className="text-sm font-semibold">{learningCopy.quickToolsTitle}</h3>
-              <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
                 <button
                   type="button"
-                  onClick={() => setActiveLearningTool("Notes")}
+                  onClick={() => setActiveLearningTool("E-Workbook")}
                   className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
                 >
-                  {activeItem?.notes?.trim() || learnerNote.trim() ? "Notes Added" : "No Notes"}
+                  {learningCopy.courseTools?.eWorkbookUrl?.trim() ? "E-Workbook Ready" : "No E-Workbook"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveLearningTool("Transcript")}
+                  className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
+                >
+                  {learningCopy.courseTools?.transcriptUrl?.trim() ? "Transcript Ready" : "No Transcript"}
                 </button>
                 <button
                   type="button"
@@ -1455,13 +1444,6 @@ export default function CourseLearningPlayerPage() {
                 >
                   {resourceLinks.length > 0 ? "Resources Ready" : "No Resources"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveLearningTool("Captions")}
-                  className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
-                >
-                  {activeItem?.captions?.trim() ? "Captions Ready" : "No Captions"}
-                </button>
               </div>
               <Link
                 href="/my-learning?tab=community"
@@ -1469,14 +1451,14 @@ export default function CourseLearningPlayerPage() {
               >
                 <MessageCircle size={12} /> Ask mentor in community
               </Link>
-              {activeItem?.pdfUrl?.trim() ? (
+              {learningCopy.courseTools?.pptUrl?.trim() ? (
                 <a
-                  href={activeItem.pdfUrl.trim()}
+                  href={learningCopy.courseTools.pptUrl.trim()}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-2 inline-flex items-center gap-2 text-xs text-violet-300 underline"
                 >
-                  <FileText size={12} /> Open lesson PDF
+                  <Presentation size={12} /> Open course PPT
                 </a>
               ) : null}
               <div className="mt-2 inline-flex items-center gap-2 text-xs text-gray-400">

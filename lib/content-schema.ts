@@ -161,6 +161,15 @@ export type ManagedCourseOverviewSection = {
   faqSectionTitle?: string;
 };
 
+/** Course-wide materials shown in My Learning → Learning Tools (all modules). */
+export type ManagedCourseLearningTools = {
+  eWorkbookUrl?: string;
+  transcriptUrl?: string;
+  pptUrl?: string;
+  podcastUrl?: string;
+  webhookUrl?: string;
+};
+
 /** My Learning course player — after payment (`/my-learning/course/[slug]`). */
 export type ManagedCourseLearningSection = {
   brandLogoUrl?: string;
@@ -171,6 +180,8 @@ export type ManagedCourseLearningSection = {
   noVideoMessage?: string;
   learningToolsTitle?: string;
   learningToolsHint?: string;
+  /** Shared tools for the whole course (not per lesson). */
+  courseTools?: ManagedCourseLearningTools;
   bookmarkLabel?: string;
   markCompleteLabel?: string;
   previousLabel?: string;

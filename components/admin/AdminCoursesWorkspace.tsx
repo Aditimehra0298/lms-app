@@ -25,6 +25,7 @@ import {
   Users,
   Video,
   Award,
+  Wrench,
 } from "lucide-react";
 import AdminCourseLivePreview from "@/components/admin/AdminCourseLivePreview";
 import LessonTypeAddControl from "@/components/admin/LessonTypeAddControl";
@@ -56,6 +57,7 @@ import AdminImageUrlUpload from "@/components/admin/AdminImageUrlUpload";
 import AdminCoursePublishPanel from "@/components/admin/AdminCoursePublishPanel";
 import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
 import AdminCourseSubscriptionPanel from "@/components/admin/AdminCourseSubscriptionPanel";
+import AdminCourseLearningToolsPanel from "@/components/admin/AdminCourseLearningToolsPanel";
 import AdminBulkFoodCoursesImport from "@/components/admin/AdminBulkFoodCoursesImport";
 import AdminLessonEditor from "@/components/admin/AdminLessonEditor";
 import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
@@ -80,6 +82,7 @@ const PRIMARY_WORKSPACE_TABS = [
   "Catalog",
   "Course",
   "Content",
+  "Learning Tools",
   "Pricing",
   "Students",
   "Certificate",
@@ -1047,7 +1050,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                     </>
                   ) : (
                     <span className="inline-flex flex-wrap items-center gap-2">
-                      {(["Catalog", "Course", "Content", "Publish"] as const).map((step, i) => (
+                      {(["Catalog", "Course", "Content", "Learning Tools", "Publish"] as const).map((step, i) => (
                         <span key={step} className="inline-flex items-center gap-2">
                           {i > 0 ? <span className="text-gray-600">→</span> : null}
                           <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-0.5 text-[10px] font-medium text-gray-300">
@@ -1103,6 +1106,11 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                   <span className="inline-flex items-center gap-1.5">
                     <Award className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     {tab}
+                  </span>
+                ) : tab === "Learning Tools" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Wrench className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Tools
                   </span>
                 ) : (
                   tab
@@ -1905,7 +1913,8 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                   </h2>
                   <p className="mt-1 text-xs text-gray-400">
                     {catLabel} · Build <strong className="font-medium text-gray-300">modules</strong>, add video / document /
-                    exam lessons, and attach learning tools (notes, PDF, captions, etc.) per lesson.
+                    exam lessons. Course learning tools (E-Workbook, Transcript, PPT, Podcast, Webhook) are set once
+                    for the whole course on the Course tab.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -2302,6 +2311,17 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
             </>
           )}
         </>
+      ) : null}
+
+      {workspaceTab === "Learning Tools" ? (
+        <AdminCourseLearningToolsPanel
+          draft={draft}
+          setDraft={setDraft}
+          canEdit={canEditPricing}
+          saving={savingCatalog}
+          onSave={() => void saveCatalogDraft()}
+          onGoCourseInfo={() => setWorkspaceTab("Course")}
+        />
       ) : null}
 
       {workspaceTab === "Pricing" ? (

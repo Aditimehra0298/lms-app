@@ -76,15 +76,31 @@ function CourseExamPageInner() {
   const [reviewedQuestions, setReviewedQuestions] = useState<number[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [timeRemainingSec, setTimeRemainingSec] = useState<number | null>(null);
   const [examStartedAtMs, setExamStartedAtMs] = useState<number | null>(null);
   const [watchedSecondsByModule, setWatchedSecondsByModule] = useState<Record<number, number>>({});
   const completionEmailSentRef = useRef(false);
   const currentQuestion = questions[currentQuestionIndex];
+  const isLastQuestion = questions.length > 0 && currentQuestionIndex >= questions.length - 1;
+  const unansweredCount = useMemo(
+    () => selectedAnswers.filter((answer) => answer === null).length,
+    [selectedAnswers],
+  );
   const answeredQuestions = useMemo(
     () => selectedAnswers.map((answer, idx) => (answer !== null ? idx : -1)).filter((idx) => idx >= 0),
     [selectedAnswers],
   );
+
+  const requestSubmitExam = () => {
+    if (isSubmitted) return;
+    setConfirmSubmitOpen(true);
+  };
+
+  const confirmSubmitExam = () => {
+    setConfirmSubmitOpen(false);
+    setIsSubmitted(true);
+  };
 
   const score = useMemo(
     () =>
@@ -701,38 +717,63 @@ function CourseExamPageInner() {
                   {reviewedQuestions.includes(currentQuestionIndex) ? "Marked for Review" : "Mark for Review"}
                 </button>
               </div>
-              <h2 className="text-3xl font-bold">{currentQuestion?.question ?? "No questions loaded"}</h2>
+              <h2 className="text-3xl font-bold leading-snug text-white">
+                {currentQuestion?.question ?? "No questions loaded"}
+                <span className="mt-1.5 block text-sm font-normal text-gray-400">
+                  (Select the right answer from the below given options)
+                </span>
+              </h2>
 
               <div className="mt-4 space-y-2">
-                {(currentQuestion?.options ?? []).map((option, idx) => (
-                  <button
-                    key={option}
-                    onClick={() =>
-                      setSelectedAnswers((prev) => {
-                        const next = [...prev];
-                        next[currentQuestionIndex] = idx;
-                        return next;
-                      })
-                    }
-                    className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
-                      selectedAnswers[currentQuestionIndex] === idx
-                        ? "border-violet-300/40 bg-violet-500/10 text-violet-100"
-                        : "border-white/10 bg-black/25 hover:bg-white/5"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
+                {(currentQuestion?.options ?? []).map((option, idx) => {
+                  const letter = String.fromCharCode(97 + idx); // a, b, c, d…
+                  const cleaned = option
+                    .replace(/^\s*[a-dA-D][\).\:\-]\s*/, "")
+                    .replace(/^\s*[a-dA-D]\s+/, "")
+                    .trim();
+                  const selected = selectedAnswers[currentQuestionIndex] === idx;
+                  return (
+                    <button
+                      key={`${idx}-${option}`}
+                      type="button"
+                      onClick={() =>
+                        setSelectedAnswers((prev) => {
+                          const next = [...prev];
+                          next[currentQuestionIndex] = idx;
+                          return next;
+                        })
+                      }
+                      className={`flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left text-sm transition ${
+                        selected
+                          ? "border-violet-300/40 bg-violet-500/10 text-violet-100"
+                          : "border-white/10 bg-black/25 hover:bg-white/5"
+                      }`}
+                    >
+                      <span
+                        className={`mt-0.5 inline-flex h-6 w-7 shrink-0 items-center justify-center rounded-md border font-semibold tabular-nums ${
+                          selected
+                            ? "border-violet-300/50 bg-violet-500/25 text-violet-100"
+                            : "border-white/15 bg-black/40 text-gray-300"
+                        }`}
+                      >
+                        {letter})
+                      </span>
+                      <span className="min-w-0 flex-1 leading-relaxed">{cleaned || option}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="mt-4 grid gap-2 sm:grid-cols-3">
                 <button
+                  type="button"
                   onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
                   className="rounded-md border border-white/15 bg-black/25 px-3 py-2 text-sm"
                 >
                   Previous Question
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     setSelectedAnswers((prev) => {
                       const next = [...prev];
@@ -744,19 +785,29 @@ function CourseExamPageInner() {
                 >
                   Clear Response
                 </button>
-                <button
-                  onClick={() => setCurrentQuestionIndex((prev) => Math.min(questions.length - 1, prev + 1))}
-                  className="rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold"
-                >
-                  Next Question
-                </button>
+                {isLastQuestion ? (
+                  <button
+                    type="button"
+                    onClick={requestSubmitExam}
+                    className="rounded-md border border-emerald-300/40 bg-emerald-500/20 px-3 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/30"
+                  >
+                    Submit Exam
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentQuestionIndex((prev) => Math.min(questions.length - 1, prev + 1))}
+                    className="rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold"
+                  >
+                    Next Question
+                  </button>
+                )}
               </div>
-              <button
-                onClick={() => setIsSubmitted(true)}
-                className="mt-2 rounded-md border border-emerald-300/35 bg-emerald-500/15 px-3 py-2 text-sm text-emerald-200"
-              >
-                Submit Exam
-              </button>
+              {isLastQuestion ? (
+                <p className="mt-2 text-center text-[11px] text-gray-500">
+                  You are on the last question. Review your answers, then submit.
+                </p>
+              ) : null}
             </article>
           </div>
 
@@ -765,7 +816,7 @@ function CourseExamPageInner() {
               timed={examRuntime.timed}
               timeRemainingSec={timeRemainingSec}
               startedAtMs={examStartedAtMs ?? Date.now()}
-              onEndExam={() => setIsSubmitted(true)}
+              onEndExam={requestSubmitExam}
             />
 
             <ExamProgressPanel
@@ -779,6 +830,51 @@ function CourseExamPageInner() {
           </aside>
         </section>
       </main>
+
+      {confirmSubmitOpen ? (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="exam-submit-confirm-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#0c1324] p-5 shadow-2xl">
+            <h2 id="exam-submit-confirm-title" className="text-lg font-semibold text-white">
+              Submit your exam?
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-300">
+              Are you sure you want to submit your answers? You will not be able to change them after
+              submitting.
+            </p>
+            {unansweredCount > 0 ? (
+              <p className="mt-3 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                You still have <strong>{unansweredCount}</strong> unanswered question
+                {unansweredCount === 1 ? "" : "s"}. You can go back and complete them, or submit anyway.
+              </p>
+            ) : (
+              <p className="mt-3 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+                All questions are answered.
+              </p>
+            )}
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmSubmitOpen(false)}
+                className="rounded-lg border border-white/15 bg-black/30 px-4 py-2 text-sm font-medium text-gray-200 hover:bg-white/5"
+              >
+                {unansweredCount > 0 ? "Go back & review" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                onClick={confirmSubmitExam}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+              >
+                Yes, submit exam
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
     </div>
   );

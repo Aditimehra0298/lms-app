@@ -199,6 +199,10 @@ export default function AdminSelfPacedPageContentEditor({
               className={fieldClass}
             />
           </label>
+          <p className="md:col-span-2 rounded-lg border border-amber-500/20 bg-amber-500/[0.05] px-3 py-2 text-[11px] text-amber-100/90">
+            Upload E-Workbook, Transcript, PPT, Podcast, and Webhook on the{" "}
+            <strong className="text-white">Learning Tools</strong> tab (after Content) — course-wide, not per module.
+          </p>
           <label className="block">
             <span className="text-[10px] text-gray-500">Certified badge (on video)</span>
             <input
@@ -330,7 +334,7 @@ export default function AdminSelfPacedPageContentEditor({
                 value={draft.learningSection?.brandLogoUrl ?? ""}
                 onChange={(e) => patchLearning(setDraft, { brandLogoUrl: e.target.value })}
                 className={fieldClass}
-                placeholder="/SF-WHITE-LOGO.png"
+                placeholder="/SF-WHITE-LOGO.png (same as site header — leave blank to use header logo)"
               />
             </label>
             <label className="block">
@@ -338,14 +342,6 @@ export default function AdminSelfPacedPageContentEditor({
               <input
                 value={draft.learningSection?.accreditedBadgeLabel ?? ""}
                 onChange={(e) => patchLearning(setDraft, { accreditedBadgeLabel: e.target.value })}
-                className={fieldClass}
-              />
-            </label>
-            <label className="block">
-              <span className="text-[10px] text-gray-500">Learning tools hint</span>
-              <input
-                value={draft.learningSection?.learningToolsHint ?? ""}
-                onChange={(e) => patchLearning(setDraft, { learningToolsHint: e.target.value })}
                 className={fieldClass}
               />
             </label>

@@ -26,7 +26,7 @@ import {
   refreshPricingRegion,
   saveLearnerPricingCountry,
 } from "@/lib/learner-session-client";
-import { setPricingRevealed } from "@/lib/pricing-reveal";
+import { PRICING_REVEALED_KEY, setPricingRevealed } from "@/lib/pricing-reveal";
 
 type PricingContextValue = {
   ready: boolean;
@@ -84,14 +84,19 @@ export function PricingProvider({ children }: { children: ReactNode }) {
       }
       if (next) {
         applyRegion(next);
-        setPricingRevealed(true);
+        // Avoid dispatching window events during provider mount — update storage quietly.
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(PRICING_REVEALED_KEY, "true");
+        }
       }
       setReady(true);
       return;
     }
 
     applyRegion(null);
-    setPricingRevealed(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(PRICING_REVEALED_KEY);
+    }
     setReady(true);
   }, [applyRegion]);
 
