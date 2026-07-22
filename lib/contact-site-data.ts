@@ -1,6 +1,6 @@
 /** Legal / public brand name — use in UI instead of SFT or Sustainable Futures Trainings. */
 export const COMPANY_LEGAL_NAME = "Sustainable Futuristic Training LLP";
-export const COMPANY_DISPLAY_NAME = "Sustainable Futuristic Training";
+export const COMPANY_DISPLAY_NAME = "Sustainable Futuristic Trainings";
 
 export const SFT_ABOUT_BLURB =
   "Sustainable Futuristic Training LLP is a team of 40 Quality Management Systems professionals. We have leveraged our QMS auditing experience and synergistic relationships with experts and platforms to deliver experiential QMS/ISO/IEC training online and offline.";

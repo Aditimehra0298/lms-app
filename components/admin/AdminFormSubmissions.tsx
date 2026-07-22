@@ -178,7 +178,7 @@ export default function AdminFormSubmissions() {
   const replyMailto = (row: Submission) => {
     const subject =
       row.formType === "newsletter"
-        ? "Newsletter — Sustainable Futuristic Training"
+        ? "Newsletter — Sustainable Futuristic Trainings"
         : `Re: Your contact inquiry`;
     const body =
       row.formType === "contact" && row.message
