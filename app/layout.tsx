@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import SiteChrome from "@/components/SiteChrome";
+import { COMPANY_DISPLAY_NAME } from "@/lib/contact-site-data";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sustainable Futures Training — SF Trainings LMS",
-  description:
-    "Transformative learning and professional development through the Sustainable Futures Training Learning Management System.",
+  title: `${COMPANY_DISPLAY_NAME} — SF Trainings LMS`,
+  description: `Transformative learning and professional development through the ${COMPANY_DISPLAY_NAME} Learning Management System.`,
 };
 
 export default function RootLayout({
