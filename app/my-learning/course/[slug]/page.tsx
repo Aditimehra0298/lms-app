@@ -706,7 +706,6 @@ export default function CourseLearningPlayerPage() {
   );
   const toolItemLabelsKey = useMemo(() => toolItems.map((t) => t.label).join("|"), [toolItems]);
 
-  const activeToolItem = toolItems.find((t) => t.label === activeLearningTool) ?? toolItems[0];
   const customBrandLogo = learningCopy.brandLogoUrl?.trim() || "";
   const isDefaultBrandPath =
     !customBrandLogo ||
