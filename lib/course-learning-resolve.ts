@@ -87,10 +87,18 @@ export function resolveLearningSection(
       "Certification rule: overall module exam score must be at least 60%.",
     noVideoMessage:
       l?.noVideoMessage?.trim() || "No video uploaded for this lesson yet.",
-    learningToolsTitle: l?.learningToolsTitle?.trim() || "Learning Tools",
-    learningToolsHint:
-      l?.learningToolsHint?.trim() ||
-      "Course materials — same tools for every module. Green dots mean a file is ready.",
+    learningToolsTitle: (() => {
+      const title = l?.learningToolsTitle?.trim();
+      if (!title || /^learning tools$/i.test(title)) return "Course Learning tools";
+      return title;
+    })(),
+    learningToolsHint: (() => {
+      const hint = l?.learningToolsHint?.trim();
+      if (!hint || /^learning tools hint$/i.test(hint)) {
+        return "Course materials — same tools for every module. Green dots mean a file is ready.";
+      }
+      return hint;
+    })(),
     courseTools: sanitizeCourseLearningTools(l?.courseTools) ?? {},
     bookmarkLabel: l?.bookmarkLabel?.trim() || "Bookmark",
     markCompleteLabel: l?.markCompleteLabel?.trim() || "Mark as Complete",

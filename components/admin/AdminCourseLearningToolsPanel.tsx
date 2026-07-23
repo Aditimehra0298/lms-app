@@ -72,7 +72,7 @@ export default function AdminCourseLearningToolsPanel({
                 }))
               }
               className={fieldClass}
-              placeholder="Learning Tools"
+              placeholder="Course Learning tools"
             />
           </label>
           <label className="block">

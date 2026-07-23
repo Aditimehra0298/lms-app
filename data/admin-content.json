@@ -56,10 +56,10 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
-        "n8nCertificateTemplateName": "ISOIEC 27001 2022 Awareness Course",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
-        "requireAdminApproval": false
+        "requireAdminApproval": false,
+        "n8nCertificateTemplateName": "ISOIEC 27001 2022 Awareness Course"
       },
       "organizationSeatPricing": []
     },
@@ -84,10 +84,10 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
-        "n8nCertificateTemplateName": "Mastering EU MDR Essentials Practical Compliance for Medical Devices",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
-        "requireAdminApproval": false
+        "requireAdminApproval": false,
+        "n8nCertificateTemplateName": "Mastering EU MDR Essentials Practical Compliance for Medical Devices"
       },
       "organizationSeatPricing": []
     },
@@ -283,10 +283,10 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
-        "n8nCertificateTemplateName": "DIPLOMA in Cybersecurity & Ethical Hacking (FOUNDATIONS)",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
-        "requireAdminApproval": false
+        "requireAdminApproval": false,
+        "n8nCertificateTemplateName": "DIPLOMA in Cybersecurity & Ethical Hacking (FOUNDATIONS)"
       },
       "organizationSeatPricing": []
     },
@@ -482,10 +482,10 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
-        "n8nCertificateTemplateName": "DIPLOMA IN HACCP FOOD SAFETY STANDARDS (LEVEL 2)",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
-        "requireAdminApproval": false
+        "requireAdminApproval": false,
+        "n8nCertificateTemplateName": "DIPLOMA IN HACCP FOOD SAFETY STANDARDS (LEVEL 2)"
       },
       "organizationSeatPricing": []
     },
@@ -687,8 +687,8 @@
         "accreditedDescription": "This training program is designed to support professional development in ESG management, sustainability practices, compliance, and responsible business operations.\n\nThe course content is structured by the SFT Expert Team to provide practical, industry-relevant learning aligned with current ESG expectations and organizational needs.\n\nUpon successful completion, learners receive a certificate that reflects their participation, learning achievement, and understanding of ESG principles and implementation practices.",
         "certificationRuleText": "Learners must complete all required course modules, learning activities, and assessments to become eligible for certification.\n\nA certificate will be issued only after successful course completion and meeting the minimum assessment requirements set by SFT.\n\nThe certificate confirms the learnerâ€™s participation, completion, and understanding of the ESG Management Development Training Program.",
         "noVideoMessage": "preview this video",
-        "learningToolsTitle": "Learning tools",
-        "learningToolsHint": "Learning tools hint",
+        "learningToolsTitle": "Course Learning tools",
+        "learningToolsHint": "Course materials — same tools for every module. Green dots mean a file is ready.",
         "markCompleteLabel": "Mark as Complete",
         "previousLabel": "Previous",
         "nextLabel": "Next",
@@ -922,10 +922,10 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
-        "n8nCertificateTemplateName": "ESG Management Development Training Program",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
-        "requireAdminApproval": false
+        "requireAdminApproval": false,
+        "n8nCertificateTemplateName": "ESG Management Development Training Program"
       },
       "organizationSeatPricing": []
     },
@@ -1149,7 +1149,7 @@
         "accreditedDescription": "Upon successful completion, learners will receive a course completion certificate from Sustainable Futures Training (SFT).",
         "certificationRuleText": "Certification is awarded after the learner successfully completes all required course modules and passes the final assessment as per the course completion criteria.",
         "noVideoMessage": "Preview loading",
-        "learningToolsTitle": "Learning tools",
+        "learningToolsTitle": "Course Learning tools",
         "learningToolsHint": "Accredited label Learning tools hint",
         "markCompleteLabel": "Mark as Complete",
         "previousLabel": "Previous",
@@ -1403,10 +1403,10 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
-        "n8nCertificateTemplateName": "Advanced Food Fraud Mitigation and Auditing FSSC 220002018 VERSION 6",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
-        "requireAdminApproval": false
+        "requireAdminApproval": false,
+        "n8nCertificateTemplateName": "Advanced Food Fraud Mitigation and Auditing FSSC 220002018 VERSION 6"
       },
       "organizationSeatPricing": []
     },
@@ -1632,8 +1632,11 @@
         "accreditedDescription": "Developed by Sustainable Futures Trainings to support practical workplace awareness and professional learning, with certification issued as per course policy.",
         "certificationRuleText": "Learners will receive a course completion certificate after successfully completing all required lessons, assessments, and course activities as per the course completion criteria.",
         "noVideoMessage": "Video not available for this lesson. Please continue with the provided learning content.",
-        "learningToolsTitle": "Learning tools",
-        "learningToolsHint": "Learning tools hint",
+        "learningToolsTitle": "Course Learning tools",
+        "learningToolsHint": "Course materials — same tools for every module. Green dots mean a file is ready.",
+        "courseTools": {
+          "eWorkbookUrl": "/api/media/serve/1784803041253-mzelyj0a-food_defence_whole_book.pdf"
+        },
         "markCompleteLabel": "Mark as complete",
         "previousLabel": "Previous",
         "nextLabel": "Next",
@@ -1806,10 +1809,10 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
-        "n8nCertificateTemplateName": "Cybersecurity awareness phishness",
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false,
+        "n8nCertificateTemplateName": "Cybersecurity awareness phishness",
         "templateImage": "/api/media/serve/1781500493102-vyvhmj3x-A4.png",
         "badgeImage": "/api/media/serve/1781500553481-nt52wht7-Copy_of_badge_-_iso_45001_lv_1_.png",
         "transcriptFile": "/api/media/serve/1781500506185-3oqljd7i-A4_2_.png"
