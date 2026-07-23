@@ -12,7 +12,9 @@ import {
 } from "@/lib/course-learning-tools";
 import { BRAND_LOGO_PUBLIC_PATH } from "@/lib/brand-logo";
 import BrandLogo from "@/components/BrandLogo";
-import CourseLearningResourceLink from "@/components/CourseLearningResourceLink";
+import CourseLearningResourceLink, {
+  openCourseLearningResource,
+} from "@/components/CourseLearningResourceLink";
 import { SecureCourseVideoPlayer } from "@/components/SecureCourseVideoPlayer";
 import {
   BadgeCheck,
@@ -988,8 +990,18 @@ export default function CourseLearningPlayerPage() {
                         <button
                           key={tool.label}
                           type="button"
-                          onClick={() => setActiveLearningTool(tool.label)}
+                          onClick={() => {
+                            setActiveLearningTool(tool.label);
+                            if (tool.value) {
+                              void openCourseLearningResource(tool.value, slug, "open");
+                            }
+                          }}
                           className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs font-semibold transition ${learningToolButtonClass(tool)}`}
+                          title={
+                            available
+                              ? `Open ${tool.label}`
+                              : `${tool.label} not uploaded yet`
+                          }
                         >
                           <Icon className="h-4 w-4 shrink-0" aria-hidden />
                           {tool.label}
@@ -999,37 +1011,6 @@ export default function CourseLearningPlayerPage() {
                         </button>
                       );
                     })}
-                  </div>
-                  <div className="mt-3 rounded-lg border border-amber-300/30 bg-black/50 px-3 py-3">
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-amber-200/90">
-                      {activeToolItem?.label ?? "Tool"} — choose Open or Download
-                    </p>
-                    {activeToolItem?.value ? (
-                      <div className="flex flex-wrap gap-2">
-                        <CourseLearningResourceLink
-                          href={activeToolItem.value}
-                          courseSlug={slug}
-                          mode="open"
-                          className="inline-flex items-center justify-center rounded-md bg-amber-500 px-4 py-2 text-xs font-bold text-black hover:bg-amber-400"
-                        >
-                          Open {activeToolItem.label}
-                        </CourseLearningResourceLink>
-                        <CourseLearningResourceLink
-                          href={activeToolItem.value}
-                          courseSlug={slug}
-                          mode="download"
-                          className="inline-flex items-center justify-center gap-1.5 rounded-md border border-violet-300/50 bg-violet-500/20 px-4 py-2 text-xs font-bold text-violet-100 hover:bg-violet-500/30"
-                        >
-                          <Download size={14} aria-hidden />
-                          Download
-                        </CourseLearningResourceLink>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-500">
-                        No {activeToolItem?.label?.toLowerCase() ?? "file"} uploaded for this course yet.
-                        Ask your instructor to add it in Learning Tools.
-                      </p>
-                    )}
                   </div>
                 </div>
                 <p className="text-sm font-semibold text-violet-100">About the Module</p>
