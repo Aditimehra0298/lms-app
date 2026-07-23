@@ -68,7 +68,7 @@ export type CourseCurriculumItem = {
   /** Lesson PPT/slide deck URL (ppt/pptx) for the learner tools panel. */
   pptUrl?: string;
   podcastUrl?: string;
-  /** Optional learner webhook URL (stored as a URL string). */
+  /** Optional additional resource URL or uploaded file for learners. */
   webhookUrl?: string;
   resourceUrl?: string;
   downloadUrl?: string;

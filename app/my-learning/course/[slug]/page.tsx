@@ -1002,8 +1002,7 @@ export default function CourseLearningPlayerPage() {
                   </div>
                   <div className="mt-3 rounded-lg border border-amber-300/30 bg-black/50 px-3 py-3">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-amber-200/90">
-                      {activeToolItem?.label ?? "Tool"} — choose Open
-                      {activeToolItem?.key !== "webhook" ? " or Download" : ""}
+                      {activeToolItem?.label ?? "Tool"} — choose Open or Download
                     </p>
                     {activeToolItem?.value ? (
                       <div className="flex flex-wrap gap-2">
@@ -1015,21 +1014,15 @@ export default function CourseLearningPlayerPage() {
                         >
                           Open {activeToolItem.label}
                         </CourseLearningResourceLink>
-                        {activeToolItem.key !== "webhook" ? (
-                          <CourseLearningResourceLink
-                            href={activeToolItem.value}
-                            courseSlug={slug}
-                            mode="download"
-                            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-violet-300/50 bg-violet-500/20 px-4 py-2 text-xs font-bold text-violet-100 hover:bg-violet-500/30"
-                          >
-                            <Download size={14} aria-hidden />
-                            Download
-                          </CourseLearningResourceLink>
-                        ) : (
-                          <span className="inline-flex items-center text-[11px] text-gray-400">
-                            Opens the external link in a new tab (no download).
-                          </span>
-                        )}
+                        <CourseLearningResourceLink
+                          href={activeToolItem.value}
+                          courseSlug={slug}
+                          mode="download"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-md border border-violet-300/50 bg-violet-500/20 px-4 py-2 text-xs font-bold text-violet-100 hover:bg-violet-500/30"
+                        >
+                          <Download size={14} aria-hidden />
+                          Download
+                        </CourseLearningResourceLink>
                       </div>
                     ) : (
                       <p className="text-xs text-gray-500">
@@ -1164,7 +1157,7 @@ export default function CourseLearningPlayerPage() {
                           >
                             {res.label}
                           </CourseLearningResourceLink>
-                          {res.label !== "Webhook" ? (
+                          {res.label !== "Additional Resources" || !/^https?:\/\//i.test(res.url) ? (
                             <CourseLearningResourceLink
                               href={res.url}
                               courseSlug={slug}
@@ -1205,7 +1198,7 @@ export default function CourseLearningPlayerPage() {
                           Transcript: ScrollText,
                           PPT: Presentation,
                           Podcast: Headphones,
-                          Webhook: Link2,
+                          "Additional Resources": Link2,
                           "Exam File": FileText,
                         };
                         const Icon = iconMap[res.label] ?? FileText;
@@ -1228,7 +1221,7 @@ export default function CourseLearningPlayerPage() {
                                 Open resource
                               </p>
                             </CourseLearningResourceLink>
-                            {res.label !== "Webhook" ? (
+                            {res.label !== "Additional Resources" || !/^https?:\/\//i.test(res.url) ? (
                               <CourseLearningResourceLink
                                 href={res.url}
                                 courseSlug={slug}

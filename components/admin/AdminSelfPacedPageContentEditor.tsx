@@ -200,7 +200,7 @@ export default function AdminSelfPacedPageContentEditor({
             />
           </label>
           <p className="md:col-span-2 rounded-lg border border-amber-500/20 bg-amber-500/[0.05] px-3 py-2 text-[11px] text-amber-100/90">
-            Upload E-Workbook, Transcript, PPT, Podcast, and Webhook on the{" "}
+            Upload E-Workbook, Transcript, PPT, Podcast, and Additional Resources on the{" "}
             <strong className="text-white">Learning Tools</strong> tab (after Content) — course-wide, not per module.
           </p>
           <label className="block">

@@ -37,7 +37,7 @@ export default function AdminCourseLearningToolsPanel({
     <AdminCourseTabShell
       courseTitle={draft.title}
       tabTitle="Learning Tools"
-      description="Upload course-wide materials learners see in My Learning — E-Workbook, Transcript, PPT, Podcast, and Webhook. Same for every module."
+      description="Upload course-wide materials learners see in My Learning — E-Workbook, Transcript, PPT, Podcast, and Additional Resources. Same for every module."
       icon={<Wrench className="h-6 w-6 text-amber-300" aria-hidden />}
       onSave={onSave}
       saving={saving}

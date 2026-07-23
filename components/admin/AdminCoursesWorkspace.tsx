@@ -1913,7 +1913,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                   </h2>
                   <p className="mt-1 text-xs text-gray-400">
                     {catLabel} · Build <strong className="font-medium text-gray-300">modules</strong>, add video / document /
-                    exam lessons. Course learning tools (E-Workbook, Transcript, PPT, Podcast, Webhook) are set once
+                    exam lessons. Course learning tools (E-Workbook, Transcript, PPT, Podcast, Additional Resources) are set once
                     for the whole course on the Course tab.
                   </p>
                 </div>

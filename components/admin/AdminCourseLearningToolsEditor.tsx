@@ -63,7 +63,7 @@ export default function AdminCourseLearningToolsEditor({ draft, setDraft, fieldC
         <p className="text-sm font-semibold text-amber-100">Course learning tools</p>
         <p className="mt-0.5 text-[10px] text-gray-500">
           Same for the <strong className="text-gray-300">whole course</strong> — not per module. Learners see:
-          E-Workbook, Transcript, PPT, Podcast, Webhook.
+          E-Workbook, Transcript, PPT, Podcast, Additional Resources.
         </p>
       </div>
       {error ? (
@@ -109,16 +109,17 @@ export default function AdminCourseLearningToolsEditor({ draft, setDraft, fieldC
                   }
                 }}
                 className={`${fieldClass} mt-2 font-mono text-[11px]`}
-                placeholder={tool.key === "webhook" ? "https://example.com/your-tool" : "/api/media/serve/…"}
+                placeholder={
+                  tool.key === "webhook" ? "https://… or upload a file below" : "/api/media/serve/…"
+                }
               />
               {tool.key === "webhook" ? (
                 <p className="mt-1.5 text-[10px] text-gray-500">
-                  Paste a full link. Learners click <strong className="text-gray-300">Webhook</strong> and it opens in a
-                  new tab. Example: <code className="text-amber-200/80">https://…</code>
+                  Paste a link or upload a file. Learners see this as{" "}
+                  <strong className="text-gray-300">Additional Resources</strong> — they can Open or Download.
                 </p>
               ) : null}
-              {tool.key !== "webhook" ? (
-                <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-violet-400/35 bg-violet-500/[0.07] px-3 py-2 text-[11px] font-semibold text-violet-100 hover:bg-violet-500/15">
+              <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-violet-400/35 bg-violet-500/[0.07] px-3 py-2 text-[11px] font-semibold text-violet-100 hover:bg-violet-500/15">
                   {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                   {busy ? "Uploading…" : "Upload file"}
                   <input
@@ -133,7 +134,6 @@ export default function AdminCourseLearningToolsEditor({ draft, setDraft, fieldC
                     }}
                   />
                 </label>
-              ) : null}
             </div>
           );
         })}

@@ -61,10 +61,12 @@ export const COURSE_LEARNING_TOOL_DEFS: Array<{
   },
   {
     key: "webhook",
-    label: "Webhook",
+    label: "Additional Resources",
     field: "webhookUrl",
     icon: Link2,
-    hint: "External tool / integration URL (URL only)",
+    hint: "Extra learner links or files (URL or upload)",
+    accept:
+      ".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.mp3,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation",
   },
 ];
 

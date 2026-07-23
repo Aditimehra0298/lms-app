@@ -561,7 +561,7 @@ export default function AdminLessonEditor({
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] px-3 py-2.5 text-[11px] text-amber-100/90">
         <p className="font-semibold text-amber-100">Learning tools (whole course)</p>
         <p className="mt-1 text-[10px] text-gray-400">
-          E-Workbook, Transcript, PPT, Podcast, and Webhook are set once for the entire course. Open the{" "}
+          E-Workbook, Transcript, PPT, Podcast, and Additional Resources are set once for the entire course. Open the{" "}
           <strong className="text-gray-300">Learning Tools</strong> tab (after Content).
         </p>
       </div>
