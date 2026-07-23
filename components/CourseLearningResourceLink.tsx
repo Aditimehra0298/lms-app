@@ -12,16 +12,14 @@ type Props = {
   mode?: "open" | "download";
 };
 
-/** Turn pasted webhook / external links into a browser-openable absolute URL. */
+/** Turn pasted links into a browser-openable absolute URL. */
 export function normalizeExternalLearningUrl(raw: string): string {
   let url = raw.trim();
   if (!url) return "";
 
-  // Already absolute
   if (/^https?:\/\//i.test(url)) return url;
   if (/^\/\//.test(url)) return `https:${url}`;
 
-  // Local protected paths — leave alone
   if (
     url.startsWith("/api/media/serve/") ||
     url.startsWith("/uploads/") ||
@@ -30,7 +28,6 @@ export function normalizeExternalLearningUrl(raw: string): string {
     return url;
   }
 
-  // Common paste without protocol: example.com/path or www.example.com
   if (/^[a-z0-9.-]+\.[a-z]{2,}([/:?]|$)/i.test(url)) {
     return `https://${url}`;
   }
@@ -51,7 +48,22 @@ function withDownloadParam(url: string): string {
   }
 }
 
-/** Open or download course learning-tool files / webhook links. */
+function clickAnchor(url: string, opts?: { download?: boolean }) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  if (opts?.download) a.setAttribute("download", "");
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function looksSigned(url: string): boolean {
+  return url.includes("?t=") || url.includes("&t=");
+}
+
+/** Open or download course learning-tool files / additional resource links. */
 export async function openCourseLearningResource(
   href: string,
   courseSlug: string,
@@ -60,52 +72,63 @@ export async function openCourseLearningResource(
   const raw = normalizeExternalLearningUrl(href);
   if (!raw) return false;
 
-  // External webhook / http(s) links — open immediately (no token).
+  // External https links (Additional Resources URL) — open directly, never about:blank
   if (!isProtectedMediaUrl(raw)) {
-    if (mode === "download") {
-      const a = document.createElement("a");
-      a.href = raw;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.download = "";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      return true;
-    }
-    // Prefer a synthetic <a> click — more reliable than window.open for webhooks
-    const a = document.createElement("a");
-    a.href = raw;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    clickAnchor(raw, { download: mode === "download" });
     return true;
   }
 
-  const popup = mode === "open" ? window.open("about:blank", "_blank", "noopener,noreferrer") : null;
+  // Protected LMS files (PDF, PPT, podcast, etc.):
+  // Open a temporary tab WITHOUT noopener so we can navigate it after the token is ready.
+  // (Using noopener left users stuck on about:blank.)
+  const popup =
+    mode === "open"
+      ? window.open("", "_blank")
+      : null;
+  if (popup) {
+    try {
+      popup.document.write(
+        "<!doctype html><title>Opening…</title><body style='font-family:system-ui;padding:2rem;background:#0b1220;color:#fff'>Opening file…</body>",
+      );
+      popup.document.close();
+    } catch {
+      /* ignore */
+    }
+  }
+
   try {
     let signed = await resolveProtectedMediaUrl(raw, { courseSlug, scope: "learner" });
-    if (!signed) {
-      popup?.close();
+    if (!signed || (isProtectedMediaUrl(signed) && !looksSigned(signed))) {
+      if (popup && !popup.closed) {
+        try {
+          popup.document.body.innerHTML =
+            "<p style='font-family:system-ui;padding:2rem'>Could not open this file. Sign in and try again.</p>";
+        } catch {
+          popup.close();
+        }
+      }
       return false;
     }
+
     if (mode === "download") {
       signed = withDownloadParam(signed);
-      const a = document.createElement("a");
-      a.href = signed;
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      popup?.close();
+      clickAnchor(signed);
       return true;
     }
+
+    const absolute =
+      signed.startsWith("http://") || signed.startsWith("https://")
+        ? signed
+        : `${window.location.origin}${signed.startsWith("/") ? "" : "/"}${signed}`;
+
     if (popup && !popup.closed) {
-      popup.location.href = signed;
+      popup.location.replace(absolute);
       return true;
     }
-    window.open(signed, "_blank", "noopener,noreferrer");
+
+    // Popup blocked — open via anchor as fallback
+    clickAnchor(absolute);
     return true;
   } catch {
     popup?.close();
@@ -113,7 +136,7 @@ export async function openCourseLearningResource(
   }
 }
 
-/** Opens course learning-tool files (PPT, PDF, podcast, webhook) with signed media URLs when needed. */
+/** Opens course learning-tool files (PPT, PDF, podcast, additional resources). */
 export default function CourseLearningResourceLink({
   href,
   courseSlug,
@@ -122,21 +145,14 @@ export default function CourseLearningResourceLink({
   mode = "open",
 }: Props) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const normalized = normalizeExternalLearningUrl(href);
   const isExternal = Boolean(normalized) && !isProtectedMediaUrl(normalized);
 
-  // Webhooks / external URLs: let the browser open natively (most reliable).
+  // External Additional Resources URLs: native browser open (never blank)
   if (isExternal && mode === "open") {
     return (
-      <a
-        href={normalized}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={className}
-        onClick={() => {
-          // Still fire our helper so button grid + link stay consistent if needed later
-        }}
-      >
+      <a href={normalized} target="_blank" rel="noopener noreferrer" className={className}>
         {children}
       </a>
     );
@@ -146,16 +162,21 @@ export default function CourseLearningResourceLink({
     e.preventDefault();
     if (!normalized || busy) return;
     setBusy(true);
+    setError(null);
     try {
-      await openCourseLearningResource(normalized, courseSlug, mode);
+      const ok = await openCourseLearningResource(normalized, courseSlug, mode);
+      if (!ok) setError("Could not open file. Sign in and try again.");
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <a href={normalized || href} onClick={(e) => void onClick(e)} className={className}>
-      {busy ? (mode === "download" ? "Downloading…" : "Opening…") : children}
-    </a>
+    <span className="inline-flex flex-col gap-1">
+      <a href={normalized || href} onClick={(e) => void onClick(e)} className={className}>
+        {busy ? (mode === "download" ? "Downloading…" : "Opening…") : children}
+      </a>
+      {error ? <span className="text-[10px] font-normal text-rose-300">{error}</span> : null}
+    </span>
   );
 }
