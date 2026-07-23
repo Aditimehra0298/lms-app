@@ -14,24 +14,32 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ fileName: string }> };
 
-function secureVideoHeaders(mime: string, extra: Record<string, string> = {}): Record<string, string> {
+function contentDisposition(fileName: string, forceDownload: boolean): string {
+  const safe = fileName.replace(/["\r\n]/g, "_");
+  const encoded = encodeURIComponent(safe);
+  const type = forceDownload ? "attachment" : "inline";
+  return `${type}; filename="${safe}"; filename*=UTF-8''${encoded}`;
+}
+
+function mediaHeaders(
+  mime: string,
+  fileName: string,
+  forceDownload: boolean,
+  extra: Record<string, string> = {},
+): Record<string, string> {
   const isVideo = mime.startsWith("video/");
+  const isAudio = mime.startsWith("audio/");
   return {
     "Cache-Control": "private, no-store, max-age=0, must-revalidate",
-    "Pragma": "no-cache",
+    Pragma: "no-cache",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
     "X-Robots-Tag": "noindex, noarchive, nosnippet, noimageindex",
     "Cross-Origin-Resource-Policy": "same-site",
-    "X-Frame-Options": "DENY",
-    ...(isVideo
-      ? {
-          "Content-Disposition": "inline",
-          "Accept-Ranges": "bytes",
-        }
-      : {
-          "Content-Disposition": "inline",
-        }),
+    // Allow PDF/audio to open in the browser tab; keep videos non-embeddable.
+    ...(isVideo ? { "X-Frame-Options": "DENY" } : {}),
+    "Content-Disposition": contentDisposition(fileName, forceDownload),
+    ...(isVideo || isAudio ? { "Accept-Ranges": "bytes" } : { "Accept-Ranges": "bytes" }),
     ...extra,
   };
 }
@@ -49,7 +57,12 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid file" }, { status: 400 });
   }
 
-  const token = new URL(request.url).searchParams.get("t")?.trim();
+  const requestUrl = new URL(request.url);
+  const token = requestUrl.searchParams.get("t")?.trim();
+  const forceDownload =
+    requestUrl.searchParams.get("download") === "1" ||
+    requestUrl.searchParams.get("dl") === "1";
+
   if (!token) {
     return NextResponse.json({ error: "Missing access token" }, { status: 401 });
   }
@@ -59,17 +72,21 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
   }
 
+  const filePathEarly = await resolveMediaFilePath(fileName);
+  const mimeEarly = filePathEarly ? mimeFromFileName(fileName) : "application/octet-stream";
+  const isVideo = mimeEarly.startsWith("video/");
+
   const fetchDest = request.headers.get("sec-fetch-dest")?.trim().toLowerCase();
-  if (payload.scope === "learner" && fetchDest === "document") {
+  if (payload.scope === "learner" && fetchDest === "document" && isVideo) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (payload.scope === "learner" && !learnerMediaStreamAllowed(request)) {
+  if (payload.scope === "learner" && !learnerMediaStreamAllowed(request, { allowDocument: !isVideo })) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const requestEmail =
-    new URL(request.url).searchParams.get("email")?.trim().toLowerCase() ||
+    requestUrl.searchParams.get("email")?.trim().toLowerCase() ||
     request.headers.get("x-learner-email")?.trim().toLowerCase();
   if (payload.email && !requestEmail) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -82,13 +99,13 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const filePath = await resolveMediaFilePath(fileName);
+  const filePath = filePathEarly;
   if (!filePath) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const info = await stat(filePath);
-  const mime = mimeFromFileName(fileName);
+  const mime = mimeEarly;
   const range = parseByteRange(request.headers.get("range"), info.size);
 
   if (range) {
@@ -96,7 +113,7 @@ export async function GET(request: Request, { params }: Params) {
     const stream = createReadStream(filePath, { start, end });
     return new Response(Readable.toWeb(stream) as ReadableStream, {
       status: 206,
-      headers: secureVideoHeaders(mime, {
+      headers: mediaHeaders(mime, fileName, forceDownload, {
         "Content-Type": mime,
         "Content-Length": String(end - start + 1),
         "Content-Range": `bytes ${start}-${end}/${info.size}`,
@@ -107,7 +124,7 @@ export async function GET(request: Request, { params }: Params) {
   const stream = createReadStream(filePath);
   return new Response(Readable.toWeb(stream) as ReadableStream, {
     status: 200,
-    headers: secureVideoHeaders(mime, {
+    headers: mediaHeaders(mime, fileName, forceDownload, {
       "Content-Type": mime,
       "Content-Length": String(info.size),
     }),

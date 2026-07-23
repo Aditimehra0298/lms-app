@@ -1,13 +1,18 @@
 /** Request guards for learner video streams (reduce link sharing / hotlinking). */
 
-export function learnerMediaStreamAllowed(request: Request): boolean {
+export function learnerMediaStreamAllowed(
+  request: Request,
+  options?: { allowDocument?: boolean },
+): boolean {
   if (process.env.MEDIA_REQUIRE_SAME_SITE === "false") return true;
 
   const site = request.headers.get("sec-fetch-site")?.trim().toLowerCase();
   if (site === "cross-site") return false;
 
   const dest = request.headers.get("sec-fetch-dest")?.trim().toLowerCase();
-  if (dest === "document" || dest === "iframe" || dest === "embed") return false;
+  if (!options?.allowDocument && (dest === "document" || dest === "iframe" || dest === "embed")) {
+    return false;
+  }
 
   const host = request.headers.get("host")?.split(":")[0]?.toLowerCase();
   if (!host) return true;

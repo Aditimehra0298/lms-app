@@ -94,6 +94,7 @@ export function CoursePlayerFeedbackSection({ courseSlug, courseTitle, activeMod
       setBody("");
       setRating(0);
       setSuccess("Thanks — your review is visible to other learners.");
+      window.dispatchEvent(new CustomEvent("sft_course_review_submitted", { detail: { courseSlug } }));
       await loadReviews();
     } catch {
       setError("Could not reach the server.");

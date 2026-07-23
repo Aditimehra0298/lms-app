@@ -1,11 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, Star, ThumbsUp } from "lucide-react";
 import type { ManagedCourse } from "@/lib/content-schema";
 import type { ResolvedCourseHero } from "@/lib/course-hero-resolve";
 import { getCurriculumForCourse } from "@/lib/course-detail-template";
-import { resolveReviewsCopy, resolveReviewsSection } from "@/lib/course-reviews-section";
+import { qaApiHeaders } from "@/lib/course-qa-client";
+import {
+  buildReviewsSectionFromApi,
+  resolveReviewsCopy,
+  resolveReviewsSection,
+  type CourseReview,
+} from "@/lib/course-reviews-section";
+import { getLearnerEmail } from "@/lib/learner-session-client";
+import { readJsonResponse } from "@/lib/safe-json";
 import ReviewsTabSidebar from "@/components/ReviewsTabSidebar";
 
 type StarFilter = "all" | 1 | 2 | 3 | 4 | 5;
@@ -54,10 +62,76 @@ export default function SelfPacedReviewsSection({
   includesLines,
   onWriteReview,
 }: Props) {
-  const data = resolveReviewsSection(course, ratingCountLabel);
+  const [liveReviews, setLiveReviews] = useState<CourseReview[] | null>(null);
   const reviewsCopy = useMemo(() => resolveReviewsCopy(course), [course]);
   const [starFilter, setStarFilter] = useState<StarFilter>("all");
   const [sort, setSort] = useState<SortKey>("recent");
+
+  const loadReviews = useCallback(async () => {
+    try {
+      const email = getLearnerEmail();
+      const qs = email ? `?email=${encodeURIComponent(email)}` : "";
+      const res = await fetch(`/api/courses/${encodeURIComponent(course.slug)}/reviews${qs}`, {
+        cache: "no-store",
+        headers: qaApiHeaders(),
+      });
+      const data = await readJsonResponse(
+        res,
+        {} as {
+          ok?: boolean;
+          reviews?: Array<{
+            id: string;
+            name: string;
+            rating: number;
+            body: string;
+            daysAgo: string;
+            helpful?: number;
+            verified?: boolean;
+          }>;
+        },
+      );
+      if (res.ok && Array.isArray(data.reviews)) {
+        setLiveReviews(
+          data.reviews.map((r) => ({
+            id: r.id,
+            name: r.name,
+            rating: r.rating,
+            daysAgo: r.daysAgo,
+            body: r.body,
+            helpful: r.helpful ?? 0,
+            verified: r.verified ?? true,
+          })),
+        );
+      } else {
+        setLiveReviews([]);
+      }
+    } catch {
+      setLiveReviews([]);
+    }
+  }, [course.slug]);
+
+  useEffect(() => {
+    void loadReviews();
+  }, [loadReviews]);
+
+  useEffect(() => {
+    const refresh = () => {
+      void loadReviews();
+    };
+    window.addEventListener("sft_course_review_submitted", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener("sft_course_review_submitted", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [loadReviews]);
+
+  const data = useMemo(() => {
+    if (liveReviews === null) {
+      return { ...resolveReviewsSection(course, ratingCountLabel), reviews: [] as CourseReview[] };
+    }
+    return buildReviewsSectionFromApi(course, liveReviews, ratingCountLabel);
+  }, [course, ratingCountLabel, liveReviews]);
 
   const moduleCount = useMemo(
     () =>
@@ -171,9 +245,13 @@ export default function SelfPacedReviewsSection({
         </div>
 
         <div className="space-y-4">
-          {filtered.length === 0 ? (
+          {liveReviews === null ? (
+            <p className={`${card} px-4 py-8 text-center text-sm text-zinc-500`}>Loading reviews…</p>
+          ) : filtered.length === 0 ? (
             <p className={`${card} px-4 py-8 text-center text-sm text-zinc-500`}>
-              No reviews match this filter yet.
+              {liveReviews.length === 0
+                ? "No reviews yet — be the first to share feedback after you enroll."
+                : "No reviews match this filter yet."}
             </p>
           ) : (
             filtered.map((review) => (

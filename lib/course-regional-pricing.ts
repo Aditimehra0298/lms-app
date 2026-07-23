@@ -1,6 +1,7 @@
 import type { CourseRegionalPriceRow, ManagedCourse } from "@/lib/content-schema";
-import { localizePriceString, parseStoredPriceString, type PricingRegion } from "@/lib/country-pricing";
+import { localizePriceString, parseStoredPriceString, pricingRegionForCountry, type PricingRegion } from "@/lib/country-pricing";
 import { countryDisplayName } from "@/lib/iso-country-list";
+import { detectCurrencyFromPrice } from "@/lib/price-currency-detect";
 
 export type ResolvedCoursePrices = {
   price: string;
@@ -43,6 +44,31 @@ function findRegionalRow(
   return rows?.find((r) => r.countryCode.trim().toUpperCase() === code);
 }
 
+/** Format a regional admin price with the country's currency sign when missing. */
+export function formatPriceForCountry(priceStr: string, countryCode: string): string {
+  const trimmed = priceStr.trim();
+  if (!trimmed) return trimmed;
+  if (detectCurrencyFromPrice(trimmed)) return trimmed;
+
+  const amount = parseStoredPriceString(trimmed);
+  if (amount === null) return trimmed;
+
+  const region = pricingRegionForCountry(countryCode);
+  if (region.countryCode === "IN") {
+    return `₹${amount.toLocaleString("en-IN")}`;
+  }
+
+  try {
+    return new Intl.NumberFormat(region.locale, {
+      style: "currency",
+      currency: region.currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${region.currencySymbol}${amount.toLocaleString(region.locale)}`;
+  }
+}
+
 /** Resolve sale + list price for a learner region (regional override or global + FX). */
 export function resolveCoursePrices(
   course: Pick<ManagedCourse, "price" | "oldPrice" | "regionalPrices">,
@@ -52,8 +78,10 @@ export function resolveCoursePrices(
   const regional = findRegionalRow(course.regionalPrices, countryCode);
 
   if (regional?.price?.trim()) {
-    const price = regional.price.trim();
-    const oldPrice = regional.oldPrice?.trim() ?? "";
+    const price = formatPriceForCountry(regional.price.trim(), countryCode);
+    const oldPrice = regional.oldPrice?.trim()
+      ? formatPriceForCountry(regional.oldPrice.trim(), countryCode)
+      : "";
     return {
       price,
       oldPrice,

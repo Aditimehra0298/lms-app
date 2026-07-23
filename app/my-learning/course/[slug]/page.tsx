@@ -12,6 +12,9 @@ import {
 } from "@/lib/course-learning-tools";
 import { BRAND_LOGO_PUBLIC_PATH } from "@/lib/brand-logo";
 import BrandLogo from "@/components/BrandLogo";
+import CourseLearningResourceLink, {
+  openCourseLearningResource,
+} from "@/components/CourseLearningResourceLink";
 import { SecureCourseVideoPlayer } from "@/components/SecureCourseVideoPlayer";
 import {
   BadgeCheck,
@@ -987,7 +990,12 @@ export default function CourseLearningPlayerPage() {
                         <button
                           key={tool.label}
                           type="button"
-                          onClick={() => setActiveLearningTool(tool.label)}
+                          onClick={() => {
+                            setActiveLearningTool(tool.label);
+                            if (tool.value) {
+                              void openCourseLearningResource(tool.value, slug, "open");
+                            }
+                          }}
                           className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs font-semibold transition ${learningToolButtonClass(tool)}`}
                         >
                           <Icon className="h-4 w-4 shrink-0" aria-hidden />
@@ -1001,14 +1009,27 @@ export default function CourseLearningPlayerPage() {
                   </div>
                   <div className="mt-3 rounded-md border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-gray-300">
                     {activeToolItem?.value ? (
-                      <a
-                        href={activeToolItem.value}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-semibold text-amber-200 underline hover:text-amber-100"
-                      >
-                        Open {activeToolItem.label} →
-                      </a>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <CourseLearningResourceLink
+                          href={activeToolItem.value}
+                          courseSlug={slug}
+                          mode="open"
+                          className="font-semibold text-amber-200 underline hover:text-amber-100"
+                        >
+                          Open {activeToolItem.label} →
+                        </CourseLearningResourceLink>
+                        {activeToolItem.key !== "webhook" ? (
+                          <CourseLearningResourceLink
+                            href={activeToolItem.value}
+                            courseSlug={slug}
+                            mode="download"
+                            className="inline-flex items-center gap-1 font-semibold text-violet-200 underline hover:text-violet-100"
+                          >
+                            <Download size={12} aria-hidden />
+                            Download
+                          </CourseLearningResourceLink>
+                        ) : null}
+                      </div>
                     ) : (
                       <p className="text-gray-500">
                         No {activeToolItem?.label?.toLowerCase() ?? "content"} uploaded for this course
@@ -1130,15 +1151,29 @@ export default function CourseLearningPlayerPage() {
                   <div className="grid gap-2 sm:grid-cols-2">
                     {resourceLinks.length > 0 ? (
                       resourceLinks.map((res) => (
-                        <a
+                        <div
                           key={`${res.label}-${res.url}`}
-                          href={res.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-md border border-white/10 bg-black/30 p-2 text-xs text-violet-200 underline hover:border-violet-300/40"
+                          className="rounded-md border border-white/10 bg-black/30 p-2 text-xs"
                         >
-                          {res.label}
-                        </a>
+                          <CourseLearningResourceLink
+                            href={res.url}
+                            courseSlug={slug}
+                            mode="open"
+                            className="font-semibold text-violet-200 underline hover:border-violet-300/40"
+                          >
+                            {res.label}
+                          </CourseLearningResourceLink>
+                          {res.label !== "Webhook" ? (
+                            <CourseLearningResourceLink
+                              href={res.url}
+                              courseSlug={slug}
+                              mode="download"
+                              className="ml-2 text-[10px] font-semibold text-amber-200 underline"
+                            >
+                              Download
+                            </CourseLearningResourceLink>
+                          ) : null}
+                        </div>
                       ))
                     ) : (
                       <p className="text-sm text-gray-500">No resources uploaded for this lesson yet.</p>
@@ -1174,21 +1209,36 @@ export default function CourseLearningPlayerPage() {
                         };
                         const Icon = iconMap[res.label] ?? FileText;
                         return (
-                          <a
+                          <div
                             key={`${res.label}-${res.url}`}
-                            href={res.url}
-                            target="_blank"
-                            rel="noreferrer"
                             className="group rounded-md border border-white/10 bg-black/30 p-2 transition hover:border-violet-300/35 hover:bg-white/5"
                           >
-                            <div className="inline-flex items-center gap-1.5 rounded border border-violet-300/30 bg-violet-500/15 px-2 py-1 text-[10px] font-semibold text-violet-100">
-                              <Icon size={12} />
-                              {res.label}
-                            </div>
-                            <p className="mt-2 text-xs text-gray-400 group-hover:text-violet-200">
-                              Open resource
-                            </p>
-                          </a>
+                            <CourseLearningResourceLink
+                              href={res.url}
+                              courseSlug={slug}
+                              mode="open"
+                              className="block"
+                            >
+                              <div className="inline-flex items-center gap-1.5 rounded border border-violet-300/30 bg-violet-500/15 px-2 py-1 text-[10px] font-semibold text-violet-100">
+                                <Icon size={12} />
+                                {res.label}
+                              </div>
+                              <p className="mt-2 text-xs text-gray-400 group-hover:text-violet-200">
+                                Open resource
+                              </p>
+                            </CourseLearningResourceLink>
+                            {res.label !== "Webhook" ? (
+                              <CourseLearningResourceLink
+                                href={res.url}
+                                courseSlug={slug}
+                                mode="download"
+                                className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-amber-200 underline"
+                              >
+                                <Download size={10} aria-hidden />
+                                Download
+                              </CourseLearningResourceLink>
+                            ) : null}
+                          </div>
                         );
                       })
                     ) : (
@@ -1452,14 +1502,13 @@ export default function CourseLearningPlayerPage() {
                 <MessageCircle size={12} /> Ask mentor in community
               </Link>
               {learningCopy.courseTools?.pptUrl?.trim() ? (
-                <a
+                <CourseLearningResourceLink
                   href={learningCopy.courseTools.pptUrl.trim()}
-                  target="_blank"
-                  rel="noreferrer"
+                  courseSlug={slug}
                   className="mt-2 inline-flex items-center gap-2 text-xs text-violet-300 underline"
                 >
                   <Presentation size={12} /> Open course PPT
-                </a>
+                </CourseLearningResourceLink>
               ) : null}
               <div className="mt-2 inline-flex items-center gap-2 text-xs text-gray-400">
                 <MessageCircle size={12} /> Need help? Use community or contact support below.

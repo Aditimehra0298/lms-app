@@ -472,6 +472,9 @@ export function MyLearningCommunityHub({
           ? "Shared with the team — employees and organisation can both see this view."
           : "Thank you — your feedback was shared with the community.",
       );
+      window.dispatchEvent(
+        new CustomEvent("sft_course_review_submitted", { detail: { courseSlug: selectedCourse } }),
+      );
       void loadFeed();
     } catch {
       setFeedbackMessage("Could not reach the server. Try again.");

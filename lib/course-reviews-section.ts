@@ -110,6 +110,54 @@ export function resolveReviewsCopy(course: ManagedCourse): ResolvedReviewsCopy {
   };
 }
 
+export function computeAverageRating(reviews: CourseReview[]): string {
+  if (reviews.length === 0) return "0.0";
+  const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+  return avg.toFixed(1);
+}
+
+export function computeReviewDistribution(reviews: CourseReview[]): RatingDistribution[] {
+  if (reviews.length === 0) {
+    return DEFAULT_DISTRIBUTION.map((row) => ({ ...row, percent: 0 }));
+  }
+  const counts = [0, 0, 0, 0, 0];
+  for (const review of reviews) {
+    const star = Math.min(5, Math.max(1, Math.round(review.rating)));
+    counts[star - 1] += 1;
+  }
+  const total = reviews.length;
+  return [5, 4, 3, 2, 1].map((stars) => ({
+    stars,
+    percent: Math.round((counts[stars - 1] / total) * 100),
+  }));
+}
+
+/** Merge live API reviews into the resolved section (replaces sample cards when learners have posted). */
+export function buildReviewsSectionFromApi(
+  course: ManagedCourse,
+  apiReviews: CourseReview[],
+  ratingCountFromHero?: string,
+): ResolvedReviewsSection {
+  const base = resolveReviewsSection(course, ratingCountFromHero);
+  if (apiReviews.length === 0) {
+    return {
+      ...base,
+      averageRating: course.rating?.trim() || "—",
+      totalReviews: "0 Reviews",
+      distribution: computeReviewDistribution([]),
+      reviews: [],
+    };
+  }
+
+  return {
+    ...base,
+    averageRating: computeAverageRating(apiReviews),
+    totalReviews: `${apiReviews.length.toLocaleString()} Review${apiReviews.length === 1 ? "" : "s"}`,
+    distribution: computeReviewDistribution(apiReviews),
+    reviews: apiReviews,
+  };
+}
+
 export function resolveReviewsSection(
   course: ManagedCourse,
   ratingCountFromHero?: string,

@@ -113,11 +113,18 @@ export function mimeFromFileName(fileName: string): string {
     ".webm": "video/webm",
     ".mov": "video/quicktime",
     ".m4v": "video/x-m4v",
+    ".mp3": "audio/mpeg",
+    ".m4a": "audio/mp4",
+    ".wav": "audio/wav",
+    ".ogg": "audio/ogg",
     ".pdf": "application/pdf",
+    ".epub": "application/epub+zip",
     ".csv": "text/csv",
     ".txt": "text/plain",
     ".doc": "application/msword",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".ppt": "application/vnd.ms-powerpoint",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   };
   return map[ext] ?? "application/octet-stream";
 }

@@ -72,12 +72,22 @@ export function sanitizeCourseLearningTools(
   raw: CourseLearningTools | undefined,
 ): CourseLearningTools | undefined {
   if (!raw || typeof raw !== "object") return undefined;
+
+  const normalizeWebhook = (value?: string) => {
+    const t = value?.trim();
+    if (!t) return undefined;
+    if (/^https?:\/\//i.test(t) || t.startsWith("/")) return t;
+    if (/^\/\//.test(t)) return `https:${t}`;
+    if (/^[a-z0-9.-]+\.[a-z]{2,}/i.test(t)) return `https://${t}`;
+    return t;
+  };
+
   const next: CourseLearningTools = {
     eWorkbookUrl: raw.eWorkbookUrl?.trim() || undefined,
     transcriptUrl: raw.transcriptUrl?.trim() || undefined,
     pptUrl: raw.pptUrl?.trim() || undefined,
     podcastUrl: raw.podcastUrl?.trim() || undefined,
-    webhookUrl: raw.webhookUrl?.trim() || undefined,
+    webhookUrl: normalizeWebhook(raw.webhookUrl),
   };
   return Object.values(next).some(Boolean) ? next : undefined;
 }

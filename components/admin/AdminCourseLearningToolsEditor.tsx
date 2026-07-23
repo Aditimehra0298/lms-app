@@ -85,10 +85,38 @@ export default function AdminCourseLearningToolsEditor({ draft, setDraft, fieldC
               <p className="mt-1 text-[10px] text-gray-500">{tool.hint}</p>
               <input
                 value={value}
-                onChange={(e) => patchCourseTools(setDraft, { [tool.field]: e.target.value })}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (tool.key === "webhook") {
+                    const trimmed = next.trim();
+                    // Auto-add https:// when user pastes a bare domain (after they finish a space/blur is better — keep raw while typing)
+                    patchCourseTools(setDraft, { [tool.field]: next });
+                    return;
+                  }
+                  patchCourseTools(setDraft, { [tool.field]: next });
+                }}
+                onBlur={(e) => {
+                  if (tool.key !== "webhook") return;
+                  const raw = e.target.value.trim();
+                  if (!raw) return;
+                  let next = raw;
+                  if (!/^https?:\/\//i.test(next) && !next.startsWith("/")) {
+                    if (/^\/\//.test(next)) next = `https:${next}`;
+                    else if (/^[a-z0-9.-]+\.[a-z]{2,}/i.test(next)) next = `https://${next}`;
+                  }
+                  if (next !== raw) {
+                    patchCourseTools(setDraft, { [tool.field]: next });
+                  }
+                }}
                 className={`${fieldClass} mt-2 font-mono text-[11px]`}
-                placeholder={tool.key === "webhook" ? "https://…" : "/api/media/serve/…"}
+                placeholder={tool.key === "webhook" ? "https://example.com/your-tool" : "/api/media/serve/…"}
               />
+              {tool.key === "webhook" ? (
+                <p className="mt-1.5 text-[10px] text-gray-500">
+                  Paste a full link. Learners click <strong className="text-gray-300">Webhook</strong> and it opens in a
+                  new tab. Example: <code className="text-amber-200/80">https://…</code>
+                </p>
+              ) : null}
               {tool.key !== "webhook" ? (
                 <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-violet-400/35 bg-violet-500/[0.07] px-3 py-2 text-[11px] font-semibold text-violet-100 hover:bg-violet-500/15">
                   {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}

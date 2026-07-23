@@ -3,6 +3,16 @@
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import { readJsonResponse } from "@/lib/safe-json";
 
+/** True for LMS private storage paths that need a signed token. */
+export function isProtectedMediaUrl(url: string): boolean {
+  const t = url.trim();
+  return (
+    t.startsWith("/api/media/serve/") ||
+    t.startsWith("/uploads/admin/") ||
+    t.startsWith("/storage/private/")
+  );
+}
+
 /** Turn a stored media path into a short-lived URL the browser can load (video/img/link). */
 export async function resolveProtectedMediaUrl(
   storedUrl: string,
@@ -10,9 +20,6 @@ export async function resolveProtectedMediaUrl(
 ): Promise<string> {
   const url = storedUrl.trim();
   if (!url) return "";
-  if (options?.scope === "learner" && (url.startsWith("http://") || url.startsWith("https://"))) {
-    return "";
-  }
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   if (url.includes("?t=")) return url;
   const isLocal =
