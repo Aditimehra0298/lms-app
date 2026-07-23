@@ -977,7 +977,7 @@ export default function CourseLearningPlayerPage() {
 
               <div className="mt-4 rounded-lg border border-white/10 bg-black/25 p-3">
                 <div className="mb-3 rounded-lg border border-violet-400/35 bg-gradient-to-br from-violet-600/15 via-[#121a32] to-amber-500/10 p-3 shadow-[0_0_28px_rgba(139,92,246,0.12)]">
-                  <p className="text-xs font-bold uppercase tracking-wider text-amber-200">
+                  <p className="text-xs font-bold tracking-wider text-amber-200">
                     {learningCopy.learningToolsTitle}
                   </p>
                   <p className="mt-0.5 text-[11px] text-violet-200/80">{learningCopy.learningToolsHint}</p>
