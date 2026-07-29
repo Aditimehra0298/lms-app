@@ -8,7 +8,7 @@ import {
   SOCIAL_BRAND_LABEL,
 } from "@/components/SocialBrandIcon";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { ManagedCourse } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { getCurriculumForCourse, totalCurriculumSteps } from "@/lib/course-detail-template";
@@ -64,6 +64,7 @@ import {
   Shield,
   Star,
   Users,
+  X,
 } from "lucide-react";
 
 /** Full-width layout to match SF Trainings course marketing pages */
@@ -381,6 +382,9 @@ export default function SelfPacedCourseLanding({ course }: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [wishlisted, setWishlisted] = useState(false);
   const [orgSeatCount, setOrgSeatCount] = useState<number | "">("");
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [enrollForm, setEnrollForm] = useState({ name: "", phone: "", email: "", organization: "" });
+  const [enrollSubmitting, setEnrollSubmitting] = useState(false);
   const isOrganisation = isOrganisationLearner(readLearnerProfileFromStorage());
   const { region } = useLearnerPricing();
 
@@ -435,6 +439,10 @@ export default function SelfPacedCourseLanding({ course }: Props) {
   }, [course]);
 
   const enroll = () => {
+    setShowEnrollModal(true);
+  };
+
+  const proceedAfterEnroll = useCallback(() => {
     markCourseLandingViewed(course.slug);
     if (!isLearnerLoggedIn()) {
       router.push(loginRedirectHref(courseLandingHref(course.slug, course.learningFormat, null, true)));
@@ -456,6 +464,31 @@ export default function SelfPacedCourseLanding({ course }: Props) {
       image: course.image,
     });
     router.push("/cart");
+  }, [course, resolved, isOrganisation, orgSeatCount, region, router]);
+
+  const handleEnrollSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (enrollSubmitting) return;
+    setEnrollSubmitting(true);
+    try {
+      await fetch("/api/enrollment-inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: enrollForm.name,
+          email: enrollForm.email,
+          phone: enrollForm.phone,
+          organization: enrollForm.organization || undefined,
+          courseSlug: course.slug,
+          courseTitle: course.title,
+        }),
+      });
+    } catch {
+      /* best-effort — proceed regardless */
+    }
+    setShowEnrollModal(false);
+    setEnrollSubmitting(false);
+    proceedAfterEnroll();
   };
 
   const heroStats: HeroStat[] = [
@@ -525,6 +558,78 @@ export default function SelfPacedCourseLanding({ course }: Props) {
 
   return (
     <div className="self-paced-course-page min-h-screen bg-[#0a0a0a] text-white">
+      {/* Enrollment inquiry modal */}
+      {showEnrollModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#141414] p-6 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setShowEnrollModal(false)}
+              className="absolute right-4 top-4 rounded-full p-1 text-gray-400 transition hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h2 className="text-xl font-bold text-white">Enroll in this course</h2>
+            <p className="mt-1 text-sm text-zinc-400">{course.title}</p>
+            <form onSubmit={handleEnrollSubmit} className="mt-5 space-y-4">
+              <label className="block">
+                <span className="text-xs font-medium text-zinc-300">Name <span className="text-red-400">*</span></span>
+                <input
+                  type="text"
+                  required
+                  minLength={2}
+                  value={enrollForm.name}
+                  onChange={(e) => setEnrollForm((f) => ({ ...f, name: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30"
+                  placeholder="Your full name"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-zinc-300">Email <span className="text-red-400">*</span></span>
+                <input
+                  type="email"
+                  required
+                  value={enrollForm.email}
+                  onChange={(e) => setEnrollForm((f) => ({ ...f, email: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30"
+                  placeholder="you@example.com"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-zinc-300">Phone <span className="text-red-400">*</span></span>
+                <input
+                  type="tel"
+                  required
+                  minLength={6}
+                  value={enrollForm.phone}
+                  onChange={(e) => setEnrollForm((f) => ({ ...f, phone: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30"
+                  placeholder="+91 98765 43210"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-zinc-300">Organization <span className="text-zinc-600">(optional)</span></span>
+                <input
+                  type="text"
+                  value={enrollForm.organization}
+                  onChange={(e) => setEnrollForm((f) => ({ ...f, organization: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30"
+                  placeholder="Company or institution"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={enrollSubmitting}
+                className={`${goldBtn} mt-2 w-full disabled:opacity-60`}
+              >
+                {enrollSubmitting ? "Processing…" : "Continue to Payment"}
+                <ChevronRight className="ml-1.5 h-4 w-4" strokeWidth={2.5} />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Hero — two-column info + enroll card + integrated stats bar */}
       <section className="relative overflow-hidden border-b border-white/10 bg-[#0a0a0a] self-paced-hero">
         <div className="absolute inset-0">

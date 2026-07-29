@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export type FormSubmissionType = "contact" | "newsletter";
+export type FormSubmissionType = "contact" | "newsletter" | "enrollment";
 export type FormSubmissionStatus = "new" | "read" | "done" | "archived";
 
 export type FormSubmissionView = "active" | "done" | "archived" | "all";

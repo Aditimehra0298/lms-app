@@ -185,7 +185,7 @@ function ImageUploader({ value, onChange, label, compact, aspect, cropEnabled = 
     try {
       const fd = new FormData();
       fd.append("file", new File([b], b instanceof File ? b.name : "cropped.jpg", { type: b.type || "image/jpeg" }));
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
       if (res.ok) {
         const { url } = await res.json();
         setPreview(url);

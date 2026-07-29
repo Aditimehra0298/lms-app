@@ -196,7 +196,7 @@ function ImageUploader({ value, onChange, label, compact, aspect, cropEnabled = 
       const form = new FormData();
       const name = fileOrBlob instanceof File ? fileOrBlob.name : "cropped.jpg";
       form.append("file", new File([fileOrBlob], name, { type: fileOrBlob.type || "image/jpeg" }));
-      const res = await fetch("/api/admin/upload", { method: "POST", body: form });
+      const res = await fetch("/api/admin/upload-cover", { method: "POST", body: form });
       if (res.ok) {
         const { url } = await res.json();
         onChange(url);

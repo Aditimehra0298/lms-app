@@ -922,33 +922,16 @@ export default function CourseLearningPlayerPage() {
                     {videoLoadError}
                   </div>
                 ) : null}
-                <div
-                  className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent px-3 py-2"
-                  aria-hidden
-                >
-                  <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-300/35 bg-black/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-100">
-                    <BadgeCheck className="h-3.5 w-3.5 text-amber-300" />
-                    {learningCopy.certifiedBadgeLabel}
-                  </span>
-                  {activeItem?.kind === "video" ? (
+                {activeItem?.kind === "video" ? (
+                  <div
+                    className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-end gap-2 bg-gradient-to-b from-black/70 to-transparent px-3 py-2"
+                    aria-hidden
+                  >
                     <span className="rounded-md bg-black/50 px-2 py-1 text-[10px] font-medium text-violet-200">
                       {activeModule?.title?.trim() || "Course module"}
                     </span>
-                  ) : null}
-                </div>
-                <div className="pointer-events-none absolute bottom-3 right-3 rounded-lg border border-white/10 bg-black/55 px-2 py-1.5 backdrop-blur-sm">
-                  {useHeaderBrandLogo ? (
-                    <BrandLogo forceDark className="h-6 w-auto opacity-90" width={120} height={28} />
-                  ) : (
-                    <Image
-                      src={logoUrl}
-                      alt="SF Trainings"
-                      className="h-6 w-auto opacity-90"
-                      width={120}
-                      height={28}
-                    />
-                  )}
-                </div>
+                  </div>
+                ) : null}
               </div>
             </article>
 

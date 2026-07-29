@@ -64,7 +64,6 @@ import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
 import { describeCertificateIdFormat } from "@/lib/certificate-ids";
 import { sanitizeCourseSeo, sanitizeCourseSettings } from "@/lib/course-workspace-panels";
 import AdminCurrencyBadge from "@/components/admin/AdminCurrencyBadge";
-import AdminPriceInput from "@/components/admin/AdminPriceInput";
 import { sanitizeRegionalPrices } from "@/lib/course-regional-pricing";
 import { sanitizeOrganizationSeatPricing } from "@/lib/organization-course-pricing";
 import { currencyDisplayForCountry, resolvePriceCurrency } from "@/lib/price-currency-detect";
@@ -487,8 +486,12 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     setUploadingImage(true);
     setLoadError(null);
     try {
-      const url = await uploadAdminFile(file);
-      setDraft((d) => ({ ...d, image: url }));
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
+      const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
+      setDraft((d) => ({ ...d, image: data.url }));
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Image upload failed.");
     } finally {
@@ -503,8 +506,12 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     setUploadingHeroField(field);
     setLoadError(null);
     try {
-      const url = await uploadAdminFile(file);
-      updateDraftHero(setDraft, { [field]: url });
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
+      const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
+      updateDraftHero(setDraft, { [field]: data.url });
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Image upload failed.");
     } finally {
@@ -1238,8 +1245,13 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                               onClick={() => openEditTableRow(c)}
                               className="flex w-full max-w-md items-center gap-3 text-left"
                             >
-                              <div className="relative h-11 w-16 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/50 shadow-inner">
+                              <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/50 shadow-inner">
                                 <Image src={c.image} alt="" fill unoptimized className="object-cover" />
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 pb-1 pt-3">
+                                  <p className="truncate text-[10px] font-bold tabular-nums text-amber-300">
+                                    {c.price?.trim() || "Set in Pricing"}
+                                  </p>
+                                </div>
                               </div>
                               <div className="min-w-0">
                                 <p className="font-semibold text-white">{c.title}</p>
@@ -1477,10 +1489,14 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                         setUploadingTeamImage(true);
                         setLoadError(null);
                         try {
-                          const url = await uploadAdminFile(file);
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
+                          const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+                          if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
                           setDraft((d) => ({
                             ...d,
-                            instructorSection: { ...d.instructorSection, teamImage: url },
+                            instructorSection: { ...d.instructorSection, teamImage: data.url },
                           }));
                         } catch (e) {
                           setLoadError(e instanceof Error ? e.message : "Team image upload failed.");
@@ -1733,20 +1749,8 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                     />
                   </label>
                 </div>
-                <div className="grid grid-cols-2 gap-2 md:col-span-2">
-                  <AdminPriceInput
-                    label="Sale price"
-                    value={draft.price}
-                    onChange={(price) => setDraft((d) => ({ ...d, price }))}
-                  />
-                  <AdminPriceInput
-                    label="Old price (list)"
-                    value={draft.oldPrice}
-                    onChange={(oldPrice) => setDraft((d) => ({ ...d, oldPrice }))}
-                  />
-                </div>
                 <p className="md:col-span-2 text-[10px] text-gray-600">
-                  Discount vs list price: use the{" "}
+                  Set country-wise prices in the{" "}
                   <button
                     type="button"
                     onClick={() => setWorkspaceTab("Pricing")}
@@ -1754,7 +1758,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                   >
                     Pricing
                   </button>{" "}
-                  tab for a live preview.
+                  tab.
                 </p>
                 <label className="block md:col-span-2">
                   <span className="text-[11px] text-gray-500">Cover image URL</span>

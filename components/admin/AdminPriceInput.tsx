@@ -11,6 +11,7 @@ type Props = {
   inputClassName?: string;
   label?: string;
   hint?: string;
+  showCurrencyBadges?: boolean;
 };
 
 const baseInput =
@@ -24,6 +25,7 @@ export default function AdminPriceInput({
   inputClassName = "",
   label,
   hint,
+  showCurrencyBadges = true,
 }: Props) {
   const currency = resolvePriceCurrency(value, countryCode);
 
@@ -32,18 +34,20 @@ export default function AdminPriceInput({
       {label ? (
         <span className="mb-1 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
           {label}
-          <AdminCurrencyBadge currency={currency} />
+          {showCurrencyBadges ? <AdminCurrencyBadge currency={currency} /> : null}
         </span>
       ) : null}
       <div className="relative">
-        <div className="pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2">
-          <AdminCurrencyBadge currency={currency} showCode={false} />
-        </div>
+        {showCurrencyBadges ? (
+          <div className="pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2">
+            <AdminCurrencyBadge currency={currency} showCode={false} />
+          </div>
+        ) : null}
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder ?? `${currency.symbol}0`}
-          className={`${baseInput} pl-[3.25rem] ${inputClassName}`}
+          className={`${baseInput} ${showCurrencyBadges ? "pl-[3.25rem]" : "pl-3"} ${inputClassName}`}
         />
       </div>
       {hint ? <p className="mt-1 text-[10px] text-gray-600">{hint}</p> : null}

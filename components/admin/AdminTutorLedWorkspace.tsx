@@ -435,7 +435,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
       const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
       apply(data.url);

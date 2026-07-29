@@ -123,13 +123,34 @@ const menuSections = [
   },
 ];
 
-const stats = [
-  ["Total Users", "12,458", "12.5%"],
-  ["Total Courses", "156", "8.2%"],
-  ["Total Revenue", "₹52,450", "18.2%"],
-  ["Orders", "1,245", "15.3%"],
-  ["Active Students", "7,856", "10.1%"],
-];
+type DashboardStats = {
+  totalUsers: number;
+  totalStudents: number;
+  totalAdmins: number;
+  totalOrganizations: number;
+  totalCourses: number;
+  publishedCourses: number;
+  totalCategories: number;
+  totalPurchases: number;
+  totalPayments: number;
+  totalRevenue: number;
+  totalCertificates: number;
+  totalReviews: number;
+  totalFormSubmissions: number;
+  newsletterSubs: number;
+};
+type DashboardRecentUser = { name: string | null; email: string; createdAt: string; role: string };
+type DashboardRecentPayment = {
+  id: string;
+  learnerEmail: string;
+  amount: number;
+  currency: string;
+  status: string;
+  method: string;
+  items: unknown;
+  createdAt: string;
+};
+type DashboardTopCourse = { slug: string; title: string; enrollments: number };
 
 const quickActions = [
   "Add New Course",
@@ -223,6 +244,27 @@ function formatAdminHeaderDate(now = new Date()): string {
   return `${withYear(start)} – ${withYear(end)}`;
 }
 
+function fmtNum(n: number): string {
+  return n.toLocaleString("en-IN");
+}
+
+function fmtCurrency(n: number): string {
+  if (n >= 10_000_000) return `₹${(n / 10_000_000).toFixed(1)}Cr`;
+  if (n >= 100_000) return `₹${(n / 100_000).toFixed(1)}L`;
+  return `₹${n.toLocaleString("en-IN")}`;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min${mins === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
 function AdminAccessLoading() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-zinc-400">
@@ -254,6 +296,10 @@ function AdminPageInner() {
   const [categoriesReady, setCategoriesReady] = useState(false);
   const [headerDateLabel, setHeaderDateLabel] = useState(() => formatAdminHeaderDate());
   const [categoriesLoadError, setCategoriesLoadError] = useState<string | null>(null);
+  const [dashStats, setDashStats] = useState<DashboardStats | null>(null);
+  const [dashRecentUsers, setDashRecentUsers] = useState<DashboardRecentUser[]>([]);
+  const [dashRecentPayments, setDashRecentPayments] = useState<DashboardRecentPayment[]>([]);
+  const [dashTopCourses, setDashTopCourses] = useState<DashboardTopCourse[]>([]);
 
   const panelQuery = searchParams.get("panel");
 
@@ -373,6 +419,22 @@ function AdminPageInner() {
       "—",
       c.isActive ? "Published" : "Draft",
     ]);
+
+  useEffect(() => {
+    if (access.status !== "allowed") return;
+    let cancelled = false;
+    fetch("/api/admin/dashboard-stats", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: { ok?: boolean; stats?: DashboardStats; recentUsers?: DashboardRecentUser[]; recentPayments?: DashboardRecentPayment[]; topCourses?: DashboardTopCourse[] }) => {
+        if (cancelled) return;
+        if (data.stats) setDashStats(data.stats);
+        if (data.recentUsers) setDashRecentUsers(data.recentUsers);
+        if (data.recentPayments) setDashRecentPayments(data.recentPayments);
+        if (data.topCourses) setDashTopCourses(data.topCourses);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [access.status]);
 
   useEffect(() => {
     if (access.status !== "allowed") return;
@@ -655,14 +717,25 @@ function AdminPageInner() {
           </section>
 
           <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            {stats.map(([label, value, up], i) => (
+            {(dashStats ? [
+              ["Total Users", fmtNum(dashStats.totalUsers), Users],
+              ["Total Courses", fmtNum(dashStats.totalCourses), BookOpen],
+              ["Total Revenue", fmtCurrency(dashStats.totalRevenue), CreditCard],
+              ["Orders", fmtNum(dashStats.totalPayments), ShoppingCart],
+              ["Active Students", fmtNum(dashStats.totalStudents), Users],
+            ] as [string, string, typeof Users][] : [
+              ["Total Users", "—", Users],
+              ["Total Courses", "—", BookOpen],
+              ["Total Revenue", "—", CreditCard],
+              ["Orders", "—", ShoppingCart],
+              ["Active Students", "—", Users],
+            ] as [string, string, typeof Users][]).map(([label, value, Icon]) => (
               <article key={label} className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
                 <div className="mb-2 inline-flex rounded-md bg-[#6f55ff]/20 p-1.5 text-[#b5a8ff]">
-                  {i % 2 === 0 ? <Users size={14} /> : <BookOpen size={14} />}
+                  <Icon size={14} />
                 </div>
                 <p className="text-[11px] text-gray-400">{label}</p>
                 <p className="mt-1 text-2xl font-semibold">{value}</p>
-                <p className="text-[11px] text-emerald-300">↑ {up}</p>
               </article>
             ))}
           </div>
@@ -698,22 +771,22 @@ function AdminPageInner() {
               <div className="mt-4 flex items-center gap-3">
                 <div className="grid h-28 w-28 place-items-center rounded-full border-12 border-[#6f55ff] bg-[#0a1120]">
                   <div className="text-center">
-                    <p className="text-xl font-semibold">12,458</p>
+                    <p className="text-xl font-semibold">{dashStats ? fmtNum(dashStats.totalUsers) : "—"}</p>
                     <p className="text-[10px] text-gray-400">Total Users</p>
                   </div>
                 </div>
                 <div className="space-y-2 text-xs text-gray-300">
                   <p>
                     <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#6f55ff]" />
-                    Students: 9,125
+                    Students: {dashStats ? fmtNum(dashStats.totalStudents) : "—"}
                   </p>
                   <p>
                     <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#3b82f6]" />
-                    Instructors: 2,145
+                    Organizations: {dashStats ? fmtNum(dashStats.totalOrganizations) : "—"}
                   </p>
                   <p>
                     <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#f59e0b]" />
-                    Admins: 1,188
+                    Admins: {dashStats ? fmtNum(dashStats.totalAdmins) : "—"}
                   </p>
                 </div>
               </div>
@@ -748,26 +821,26 @@ function AdminPageInner() {
             <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="font-semibold">User Registrations</h3>
-                <button className="rounded-md border border-white/10 bg-[#0a1120] px-2 py-1 text-xs">View All</button>
+                <button onClick={() => selectMenu("Users")} className="rounded-md border border-white/10 bg-[#0a1120] px-2 py-1 text-xs">View All</button>
               </div>
               <div className="space-y-3">
-                {[
-                  ["Arti Kumar", "2 mins ago"],
-                  ["Neha Patel", "15 mins ago"],
-                  ["Viram Singh", "1 hour ago"],
-                  ["Neha Gupta", "2 hours ago"],
-                ].map(([name, time]) => (
-                  <div key={name} className="flex items-center justify-between rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2">
+                {(dashRecentUsers.length > 0 ? dashRecentUsers : []).map((u) => (
+                  <div key={u.email} className="flex items-center justify-between rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-[#6f55ff]/30" />
+                      <div className="grid h-8 w-8 place-items-center rounded-full bg-[#6f55ff]/30 text-[10px] font-bold text-white">
+                        {(u.name || u.email).charAt(0).toUpperCase()}
+                      </div>
                       <div>
-                        <p className="text-xs font-medium">{name}</p>
+                        <p className="text-xs font-medium">{u.name || u.email.split("@")[0]}</p>
                         <p className="text-[10px] text-gray-500">new user registered</p>
                       </div>
                     </div>
-                    <p className="text-[10px] text-gray-400">{time}</p>
+                    <p className="text-[10px] text-gray-400">{timeAgo(u.createdAt)}</p>
                   </div>
                 ))}
+                {dashRecentUsers.length === 0 && (
+                  <p className="py-4 text-center text-xs text-gray-500">No registrations yet</p>
+                )}
               </div>
             </article>
 
@@ -777,14 +850,21 @@ function AdminPageInner() {
                 <Settings size={14} className="text-gray-400" />
               </div>
               <div className="space-y-2 text-xs">
-                {[
-                  ["Total Categories", "28"],
-                  ["Total Lessons", "1,248"],
-                  ["Total Students", "7,856"],
-                  ["Total Instructors", "96"],
-                  ["Total Reviews", "4,856"],
-                  ["Newsletter Subscribers", "3,245"],
-                ].map(([k, v]) => (
+                {(dashStats ? [
+                  ["Total Categories", fmtNum(dashStats.totalCategories)],
+                  ["Published Courses", fmtNum(dashStats.publishedCourses)],
+                  ["Total Students", fmtNum(dashStats.totalStudents)],
+                  ["Certificates Issued", fmtNum(dashStats.totalCertificates)],
+                  ["Total Reviews", fmtNum(dashStats.totalReviews)],
+                  ["Newsletter Subscribers", fmtNum(dashStats.newsletterSubs)],
+                ] : [
+                  ["Total Categories", "—"],
+                  ["Published Courses", "—"],
+                  ["Total Students", "—"],
+                  ["Certificates Issued", "—"],
+                  ["Total Reviews", "—"],
+                  ["Newsletter Subscribers", "—"],
+                ]).map(([k, v]) => (
                   <div key={k} className="flex items-center justify-between rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2">
                     <span className="inline-flex items-center gap-2 text-gray-300">
                       <FileText size={12} />
@@ -865,19 +945,17 @@ function AdminPageInner() {
             <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="font-semibold">Top Courses</h3>
-                <button className="rounded-md border border-white/10 bg-[#0a1120] px-2 py-1 text-xs">View All</button>
+                <button onClick={() => selectMenu("Self-paced courses")} className="rounded-md border border-white/10 bg-[#0a1120] px-2 py-1 text-xs">View All</button>
               </div>
               <div className="space-y-2">
-                {[
-                  ["Cyber Security Fundamentals", "512 Enrollments"],
-                  ["Data Science with Python", "428 Enrollments"],
-                  ["Ethical Hacking with Kali Linux", "316 Enrollments"],
-                ].map(([title, sub]) => (
-                  <div key={title} className="rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2">
-                    <p className="text-xs font-medium">{title}</p>
-                    <p className="text-[10px] text-gray-400">{sub}</p>
+                {dashTopCourses.length > 0 ? dashTopCourses.map((c) => (
+                  <div key={c.slug} className="rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2">
+                    <p className="text-xs font-medium">{c.title}</p>
+                    <p className="text-[10px] text-gray-400">{fmtNum(c.enrollments)} Enrollment{c.enrollments !== 1 ? "s" : ""}</p>
                   </div>
-                ))}
+                )) : (
+                  <p className="py-4 text-center text-xs text-gray-500">No enrollment data yet</p>
+                )}
               </div>
             </article>
           </div>
