@@ -59,3 +59,9 @@ env
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# FileZilla packaging output
+deploy-filezilla/
+
+deploy-filezilla-ready/
+
