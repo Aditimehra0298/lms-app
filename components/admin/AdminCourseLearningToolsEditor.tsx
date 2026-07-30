@@ -15,11 +15,21 @@ type Props = {
   fieldClass: string;
 };
 
+const MAX_LEARNING_TOOL_BYTES = 1024 * 1024 * 1024; // 1 GB
+
 async function uploadAdminFile(file: File): Promise<string> {
+  if (file.size > MAX_LEARNING_TOOL_BYTES) {
+    throw new Error("File too large (max 1 GB)");
+  }
   const fd = new FormData();
   fd.append("file", file);
   const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-  const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+  let data: { ok?: boolean; url?: string; error?: string } = {};
+  try {
+    data = (await res.json()) as typeof data;
+  } catch {
+    throw new Error(res.ok ? "Upload failed" : `Upload failed (HTTP ${res.status})`);
+  }
   if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
   return data.url;
 }
@@ -45,6 +55,21 @@ export default function AdminCourseLearningToolsEditor({ draft, setDraft, fieldC
   const onUpload = async (key: CourseLearningToolKey, file: File) => {
     const def = COURSE_LEARNING_TOOL_DEFS.find((t) => t.key === key);
     if (!def) return;
+
+    const name = file.name.toLowerCase();
+    if (key === "podcast" && !/\.(mp3|m4a)$/i.test(name) && !/^audio\/(mpeg|mp3|mp4|x-m4a|m4a)/i.test(file.type)) {
+      setError("Podcast must be an audio file: MP3 or M4A only.");
+      return;
+    }
+    if (
+      key === "ppt" &&
+      !/\.(ppt|pptx)$/i.test(name) &&
+      !/powerpoint|presentation/i.test(file.type)
+    ) {
+      setError("PPT must be a PowerPoint file: .ppt or .pptx only.");
+      return;
+    }
+
     setUploading(key);
     setError(null);
     try {
@@ -63,7 +88,9 @@ export default function AdminCourseLearningToolsEditor({ draft, setDraft, fieldC
         <p className="text-sm font-semibold text-amber-100">Course learning tools</p>
         <p className="mt-0.5 text-[10px] text-gray-500">
           Same for the <strong className="text-gray-300">whole course</strong> — not per module. Learners see:
-          E-Workbook, Transcript, PPT, Podcast, Additional Resources.
+          E-Workbook, Transcript, PPT, Podcast, Additional Resources. Max upload size:{" "}
+          <strong className="text-gray-300">1 GB</strong> per file. Click{" "}
+          <strong className="text-gray-300">Save</strong> after uploading.
         </p>
       </div>
       {error ? (

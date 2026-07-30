@@ -38,5 +38,6 @@ export function mediaKindFromMime(
 ): MediaAssetKind {
   if (mimeType.startsWith("image/")) return "image";
   if (mimeType.startsWith("video/") || /\.(mp4|webm|mov|m4v)$/i.test(fileName)) return "video";
+  // Audio (podcast) and docs share "document" kind in the registry.
   return "document";
 }

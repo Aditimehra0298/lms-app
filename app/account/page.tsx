@@ -1254,17 +1254,6 @@ export default function AccountPage() {
 
               {isSelf && !adminAwaitingGoogle && (
                 <>
-                  <p className="col-span-full text-sm leading-relaxed text-amber-100/90">
-                    <strong className="text-amber-200">Main admin:</strong>{" "}
-                    <strong className="text-amber-200">{selfEmail || "admin@example.com"}</strong>
-                    {adminRequirePassword && adminRequireGoogle
-                      ? " — enter password, then verify with Google."
-                      : adminRequirePassword
-                        ? " — enter the admin panel password to continue."
-                        : adminRequireGoogle
-                          ? " — continue with Google to open the admin panel."
-                          : " — continue to open the admin panel."}
-                  </p>
                   {adminSetupHint ? (
                     <p className="col-span-full text-xs text-amber-200/80">{adminSetupHint}</p>
                   ) : null}

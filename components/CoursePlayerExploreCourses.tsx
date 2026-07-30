@@ -11,70 +11,33 @@ import { rankExploreCourses } from "@/lib/learner-course-recommendations";
 import { readPurchasedCourses } from "@/lib/tutor-led-enrollment-client";
 import { readJsonResponse } from "@/lib/safe-json";
 
-const GAP_THRESHOLD_PX = 140;
 const PREVIEW_LIMIT = 3;
 
 type Props = {
   currentSlug: string;
-  leftColumnRef: RefObject<HTMLElement | null>;
-  sidebarRef: RefObject<HTMLElement | null>;
+  /** Kept for call-site compatibility; no longer used for show/hide. */
+  leftColumnRef?: RefObject<HTMLElement | null>;
+  sidebarRef?: RefObject<HTMLElement | null>;
   layoutVersion?: number;
 };
 
-function useSidebarHasGap(
-  leftColumnRef: RefObject<HTMLElement | null>,
-  sidebarRef: RefObject<HTMLElement | null>,
-  layoutVersion: number,
-) {
-  const [hasGap, setHasGap] = useState(false);
-
-  useEffect(() => {
-    const measure = () => {
-      const left = leftColumnRef.current;
-      const aside = sidebarRef.current;
-      if (!left || !aside || window.innerWidth < 1280) {
-        setHasGap(false);
-        return;
-      }
-      setHasGap(aside.offsetHeight - left.offsetHeight > GAP_THRESHOLD_PX);
-    };
-
-    measure();
-    const left = leftColumnRef.current;
-    const aside = sidebarRef.current;
-    const observer = new ResizeObserver(measure);
-    if (left) observer.observe(left);
-    if (aside) observer.observe(aside);
-    window.addEventListener("resize", measure);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, [leftColumnRef, sidebarRef, layoutVersion]);
-
-  return hasGap;
-}
-
-export function CoursePlayerExploreCourses({
-  currentSlug,
-  leftColumnRef,
-  sidebarRef,
-  layoutVersion = 0,
-}: Props) {
-  const hasGap = useSidebarHasGap(leftColumnRef, sidebarRef, layoutVersion);
+export function CoursePlayerExploreCourses({ currentSlug }: Props) {
   const [catalog, setCatalog] = useState<ManagedCourse[]>([]);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     void fetch("/api/admin/content", { cache: "no-store" })
       .then(async (res) => (res.ok ? readJsonResponse(res, null) : null))
       .then((data) => {
-        if (cancelled || !data) return;
-        const courses = (data as AdminContent).managedCourses ?? [];
+        if (cancelled) return;
+        const courses = data ? ((data as AdminContent).managedCourses ?? []) : [];
         setCatalog(Array.isArray(courses) ? courses : []);
+        setReady(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setReady(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -106,7 +69,8 @@ export function CoursePlayerExploreCourses({
     return ranked.slice(0, PREVIEW_LIMIT).map((row) => row.course);
   }, [catalog, currentSlug]);
 
-  if (!hasGap || exploreCourses.length === 0) return null;
+  // Wait until catalog load finishes so the block does not mount/unmount and flicker.
+  if (!ready || exploreCourses.length === 0) return null;
 
   return (
     <article className="rounded-xl border border-white/10 bg-[#0c1324] p-4">

@@ -15,6 +15,7 @@ import {
   Loader2,
   Lock,
   MessageCircle,
+  PlayCircle,
   Share2,
   Star,
   Trophy,
@@ -80,6 +81,8 @@ type Props = {
   >;
   certRequested: boolean;
   hasFinalExam?: boolean;
+  /** Open course player again to rewatch lessons/videos after completion. */
+  onReviewLessons?: () => void;
 };
 
 const CARD = "rounded-xl border border-white/[0.08] bg-[#141820]";
@@ -184,6 +187,7 @@ export function CourseCompletedDashboard({
   certificateLayout,
   certRequested,
   hasFinalExam = false,
+  onReviewLessons,
 }: Props) {
   const [phase, setPhase] = useState<"loading" | "ready">("loading");
   const [certificate, setCertificate] = useState<CertificateRowDto | null>(null);
@@ -547,6 +551,16 @@ export function CourseCompletedDashboard({
                     <span className="text-amber-300 text-xs">Exams pending</span>
                   ) : null}
                 </div>
+                {onReviewLessons ? (
+                  <button
+                    type="button"
+                    onClick={onReviewLessons}
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-amber-400/40 hover:bg-amber-500/10 hover:text-amber-100"
+                  >
+                    <PlayCircle size={16} className="text-amber-300" aria-hidden />
+                    Watch previous videos again
+                  </button>
+                ) : null}
               </div>
             </div>
 
@@ -1109,7 +1123,15 @@ export function CourseCompletedDashboard({
                         <FileText size={12} />
                         {examScore ? "Retake assessment" : "Take assessment"}
                       </Link>
-                    ) : null}
+                    ) : (
+                      <Link
+                        href={`/my-learning/course/${encodeURIComponent(courseSlug)}/exam?module=${moduleNumber}`}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/20"
+                      >
+                        <FileText size={12} />
+                        Retake to improve score
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   <p className="mt-3 text-xs text-gray-500">No assessment for this module.</p>

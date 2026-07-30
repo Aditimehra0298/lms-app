@@ -47,17 +47,17 @@ export const COURSE_LEARNING_TOOL_DEFS: Array<{
     label: "PPT",
     field: "pptUrl",
     icon: Presentation,
-    hint: "Slide deck (PPT / PDF)",
+    hint: "PowerPoint only (.ppt / .pptx) · max 1 GB",
     accept:
-      ".ppt,.pptx,.pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf",
+      ".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation",
   },
   {
     key: "podcast",
     label: "Podcast",
     field: "podcastUrl",
     icon: Headphones,
-    hint: "Audio podcast file or streaming URL",
-    accept: ".mp3,.m4a,.wav,.ogg,audio/mpeg,audio/mp3,audio/wav",
+    hint: "Audio only — MP3 or M4A · max 1 GB",
+    accept: ".mp3,.m4a,audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,audio/m4a",
   },
   {
     key: "webhook",
@@ -66,7 +66,7 @@ export const COURSE_LEARNING_TOOL_DEFS: Array<{
     icon: Link2,
     hint: "Extra learner links or files (URL or upload)",
     accept:
-      ".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.mp3,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      ".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.epub,.mp3,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/zip,application/epub+zip,audio/mpeg",
   },
 ];
 

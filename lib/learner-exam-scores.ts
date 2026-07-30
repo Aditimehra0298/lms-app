@@ -101,9 +101,19 @@ export function recordModuleExamAttempt(input: {
 
   if (typeof window !== "undefined") {
     const all = readModuleExamScores(input.courseSlug);
-    all[key] = entry;
+    // Keep the best score for certificates, but never lose a previous pass.
+    const best =
+      prev && prev.percent > percent
+        ? {
+            ...prev,
+            passed: prev.passed || passedThisAttempt,
+            updatedAt: new Date().toISOString(),
+          }
+        : entry;
+    all[key] = best;
     window.localStorage.setItem(examScoresStorageKey(input.courseSlug), JSON.stringify(all));
     window.dispatchEvent(new CustomEvent("sft-exam-scores-updated", { detail: { courseSlug: input.courseSlug } }));
+    return best;
   }
   return entry;
 }

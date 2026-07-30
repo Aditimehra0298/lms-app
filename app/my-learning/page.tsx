@@ -1254,20 +1254,59 @@ export default function MyLearningPage() {
                       </div>
 
                       <div>
-                        <p className="text-xs text-gray-400">Modules Progress</p>
+                        <p className="text-xs text-gray-400">
+                          Modules Progress{" "}
+                          <span className="text-gray-500">(click a completed number to reopen)</span>
+                        </p>
                         <div className="mt-2 flex flex-wrap gap-1">
-                          {Array.from({ length: safeModules }).map((_, idx) => (
-                            <span
-                              key={`${course.title}-${idx}`}
-                              className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] ${
-                                idx < course.completed
-                                  ? "bg-emerald-500/30 text-emerald-200"
-                                  : "border border-white/15 text-gray-400"
-                              }`}
-                            >
-                              {idx + 1}
-                            </span>
-                          ))}
+                          {Array.from({ length: safeModules }).map((_, idx) => {
+                            const moduleNumber = idx + 1;
+                            const isDone = idx < course.completed;
+                            const isCurrent =
+                              !isDone &&
+                              course.status !== "Completed" &&
+                              idx === course.completed;
+                            const courseDone =
+                              course.status === "Completed" ||
+                              course.completed >= safeModules;
+                            const canOpen = isDone || isCurrent || courseDone;
+                            const hrefBase = learningHrefFor(course).split("#")[0];
+                            const href = courseDone
+                              ? `${hrefBase}?review=1&module=${moduleNumber}`
+                              : `${hrefBase}?module=${moduleNumber}`;
+                            const className = `inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold transition ${
+                              isDone || courseDone
+                                ? "bg-emerald-500 text-white ring-1 ring-emerald-300/50 hover:bg-emerald-400"
+                                : isCurrent
+                                  ? "bg-violet-500/40 text-violet-100 ring-1 ring-violet-300/50 hover:bg-violet-500/55"
+                                  : "border border-white/15 text-gray-500"
+                            }`;
+                            if (!canOpen) {
+                              return (
+                                <span
+                                  key={`${course.title}-${idx}`}
+                                  title={`Module ${moduleNumber} locked`}
+                                  className={className}
+                                >
+                                  {moduleNumber}
+                                </span>
+                              );
+                            }
+                            return (
+                              <Link
+                                key={`${course.title}-${idx}`}
+                                href={href}
+                                title={
+                                  isDone || courseDone
+                                    ? `Reopen module ${moduleNumber} (review lessons / retake exam)`
+                                    : `Continue module ${moduleNumber}`
+                                }
+                                className={className}
+                              >
+                                {moduleNumber}
+                              </Link>
+                            );
+                          })}
                         </div>
                       </div>
 

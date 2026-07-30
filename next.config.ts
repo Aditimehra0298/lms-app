@@ -13,6 +13,13 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Allow large learning-tool / video uploads (admin /api/admin/upload up to ~1 GB).
+  experimental: {
+    proxyClientMaxBodySize: "1gb",
+    serverActions: {
+      bodySizeLimit: "1gb",
+    },
+  },
   serverExternalPackages: ["@prisma/client", "prisma", "nodemailer"],
   webpack: (config) => {
     config.resolve = config.resolve ?? {};

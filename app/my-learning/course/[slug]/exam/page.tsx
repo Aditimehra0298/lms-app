@@ -22,6 +22,7 @@ import {
   FINAL_EXAM_SCORE_KEY,
   computeCombinedExamGrade,
   learnerCredentialsEligible,
+  readModuleExamScores,
   recordModuleExamAttempt,
 } from "@/lib/learner-exam-scores";
 import { markModuleCompleted, normalizeCompletedModulesForCurriculum, readCompletedModules } from "@/lib/learner-course-progress";
@@ -31,6 +32,7 @@ import {
   queueCompletionCelebration,
 } from "@/components/CourseCompletionCelebration";
 import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
+import { getLearnerModuleAccess } from "@/lib/learner-module-access";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import { notifyCourseCompletionClient } from "@/lib/notify-course-completion-client";
 import {
@@ -218,6 +220,18 @@ function CourseExamPageInner() {
     return selfPacedFinalUnlocked;
   }, [courseMeta, isFinalExam, selfPacedFinalUnlocked]);
 
+  const sequentialModuleAccess = useMemo(() => {
+    if (isFinalExam || !courseMeta?.curriculum?.length) {
+      return { unlocked: true as const };
+    }
+    return getLearnerModuleAccess(
+      moduleIdx,
+      courseMeta.curriculum,
+      readCompletedModules(slug),
+      readModuleExamScores(slug),
+    );
+  }, [courseMeta, isFinalExam, moduleIdx, slug]);
+
   useEffect(() => {
     if (!courseMeta?.slug) return;
 
@@ -361,12 +375,24 @@ function CourseExamPageInner() {
   const courseCredentialsUnlocked = useMemo(() => {
     if (!isSubmitted || !courseMeta?.curriculum?.length || !examRuntime) return false;
     const percentage = questions.length ? Math.round((score / questions.length) * 100) : 0;
-    const passed = percentage >= examRuntime.passingScorePercent;
+    const scoreKey = isFinalExam ? FINAL_EXAM_SCORE_KEY : String(moduleNumber);
+    const best = readModuleExamScores(slug)[scoreKey];
+    const passed =
+      Boolean(best?.passed) || percentage >= examRuntime.passingScorePercent;
     if (!passed) return false;
     const completed = readCompletedModules(slug);
     const { allExamsPassed } = computeCombinedExamGrade(slug, courseMeta.curriculum);
     return learnerCredentialsEligible(courseMeta.curriculum, completed, allExamsPassed).eligible;
-  }, [isSubmitted, courseMeta, examRuntime, questions.length, score, slug]);
+  }, [
+    isSubmitted,
+    courseMeta,
+    examRuntime,
+    questions.length,
+    score,
+    slug,
+    isFinalExam,
+    moduleNumber,
+  ]);
 
   useEffect(() => {
     if (!courseCredentialsUnlocked || completionEmailSentRef.current) return;
@@ -461,11 +487,32 @@ function CourseExamPageInner() {
                 : "Pass every module exam and finish all module lessons to unlock the final examination."}
             </p>
             <Link
-              href={
-                tutorLocked
-                  ? `/my-learning/course/${slug}`
-                  : `/my-learning/course/${slug}`
-              }
+              href={`/my-learning/course/${slug}`}
+              className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold"
+            >
+              Back to course
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!isFinalExam && !sequentialModuleAccess.unlocked) {
+    return (
+      <div className="my-learning-course-player">
+        <main className="mx-auto max-w-[760px] px-4 py-16 text-center">
+          <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-6">
+            <p className="inline-flex items-center gap-2 text-amber-200">
+              <Lock size={18} /> Module locked
+            </p>
+            <h1 className="mt-3 text-2xl font-bold">Finish the previous module first</h1>
+            <p className="mt-2 text-sm text-amber-100/90">
+              {sequentialModuleAccess.reason ??
+                "Complete the previous module and pass its exam before opening this assessment."}
+            </p>
+            <Link
+              href={`/my-learning/course/${slug}`}
               className="mt-5 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold"
             >
               Back to course
@@ -503,7 +550,11 @@ function CourseExamPageInner() {
 
   if (isSubmitted) {
     const percentage = questions.length ? Math.round((score / questions.length) * 100) : 0;
-    const passed = percentage >= examRuntime.passingScorePercent;
+    const passedThisAttempt = percentage >= examRuntime.passingScorePercent;
+    const scoreKey = isFinalExam ? FINAL_EXAM_SCORE_KEY : String(moduleNumber);
+    const bestEntry = readModuleExamScores(slug)[scoreKey];
+    const bestPercent = bestEntry?.percent ?? percentage;
+    const passed = Boolean(bestEntry?.passed) || passedThisAttempt;
     return (
       <div className="my-learning-course-player">
 
@@ -514,10 +565,14 @@ function CourseExamPageInner() {
             <p className="mt-0.5 text-xs text-gray-500">
               Passing score: {examRuntime.passingScorePercent}% correct required
             </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="text-xs text-gray-400">Your score</p>
+                <p className="text-xs text-gray-400">This attempt</p>
                 <p className="text-2xl font-bold">{percentage}%</p>
+              </div>
+              <div className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-3">
+                <p className="text-xs text-emerald-200/80">Best score (certificate)</p>
+                <p className="text-2xl font-bold text-emerald-200">{bestPercent}%</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <p className="text-xs text-gray-400">Status</p>
@@ -534,8 +589,8 @@ function CourseExamPageInner() {
                 </p>
               ) : (
                 <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                  You passed this exam ({percentage}%). When you have passed every module exam, your combined
-                  percentage is used for your certificate grade.
+                  You passed this exam. Best score for your certificate: {bestPercent}%. You can retake anytime
+                  to try for a higher mark.
                 </p>
               )
             ) : (
@@ -580,9 +635,13 @@ function CourseExamPageInner() {
                   setTimeRemainingSec(examRuntime.timed ? examRuntime.durationSec : null);
                   setExamStartedAtMs(Date.now());
                 }}
-                className="rounded-md border border-white/15 bg-black/25 px-4 py-2 text-sm"
+                className={`rounded-md px-4 py-2 text-sm font-semibold ${
+                  passed
+                    ? "border border-amber-400/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25"
+                    : "border border-white/15 bg-black/25"
+                }`}
               >
-                {passed ? "Retake exam (optional)" : "Retake exam"}
+                {passed ? "Retake to improve score" : "Retake exam"}
               </button>
             </div>
           </section>

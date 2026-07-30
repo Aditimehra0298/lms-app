@@ -17,15 +17,14 @@ import CourseLearningResourceLink, {
 } from "@/components/CourseLearningResourceLink";
 import { SecureCourseVideoPlayer } from "@/components/SecureCourseVideoPlayer";
 import {
+  Award,
   BadgeCheck,
   Bookmark,
   BookOpen,
-  CheckCheck,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronUp,
-  Circle,
   Download,
   FileText,
   Headphones,
@@ -56,8 +55,14 @@ import {
   DEFAULT_MODULE_EXAM_PASS_PERCENT,
   examModuleNumbers,
   learnerCredentialsEligible,
+  readModuleExamScores,
+  type ModuleExamScore,
 } from "@/lib/learner-exam-scores";
 import { learnerExamDisplayLabel } from "@/lib/my-learning-exams";
+import {
+  getLearnerModuleAccess,
+  highestUnlockedModuleIdx,
+} from "@/lib/learner-module-access";
 import { CourseCompletedDashboard } from "@/components/CourseCompletedDashboard";
 import {
   clearPendingCompletionCelebration,
@@ -165,6 +170,10 @@ export default function CourseLearningPlayerPage() {
   const [completedModules, setCompletedModules] = useState<number[]>(() => readCompletedModules(slug));
   const [progressHydrated, setProgressHydrated] = useState(true);
   const [expandedModules, setExpandedModules] = useState<Set<number>>(() => new Set([0]));
+  /** After certificate page: allow learner to reopen lessons/videos without losing completion. */
+  const [reviewLessons, setReviewLessons] = useState(false);
+  const [moduleExamScores, setModuleExamScores] = useState<Record<string, ModuleExamScore>>({});
+  const [moduleLockNotice, setModuleLockNotice] = useState<string | null>(null);
   const isPurchased = useSyncExternalStore(
     subscribeTutorLedPurchases,
     () => isCoursePurchased(slug),
@@ -176,6 +185,11 @@ export default function CourseLearningPlayerPage() {
   const [watchedSecondsByModule, setWatchedSecondsByModule] = useState<Record<number, number>>({});
   const watchSampleRef = useRef<{ module: number; at: number; position: number } | null>(null);
   const watchAccumRef = useRef<Record<number, number>>({});
+  const deepLinkAppliedRef = useRef<string>("");
+
+  useEffect(() => {
+    deepLinkAppliedRef.current = "";
+  }, [slug]);
   const [learningCopy, setLearningCopy] = useState<ResolvedLearningSection>(() =>
     resolveLearningSection({
       slug,
@@ -359,14 +373,17 @@ export default function CourseLearningPlayerPage() {
   useEffect(() => {
     const load = () => {
       setCompletedModules(readCompletedModules(slug));
+      setModuleExamScores(readModuleExamScores(slug));
       setProgressHydrated(true);
     };
     load();
     window.addEventListener("storage", load);
     window.addEventListener(COURSE_PROGRESS_UPDATED_EVENT, load);
+    window.addEventListener("sft-exam-scores-updated", load);
     return () => {
       window.removeEventListener("storage", load);
       window.removeEventListener(COURSE_PROGRESS_UPDATED_EVENT, load);
+      window.removeEventListener("sft-exam-scores-updated", load);
     };
   }, [slug]);
 
@@ -660,9 +677,41 @@ export default function CourseLearningPlayerPage() {
     selectedModuleIdx,
     selectedEntryIdx,
   );
+
+  const canOpenModule = (idx: number) =>
+    getLearnerModuleAccess(idx, curriculum, completedModules, moduleExamScores, {
+      reviewMode: reviewLessons,
+    }).unlocked;
+
+  const tryOpenModule = (idx: number): boolean => {
+    const access = getLearnerModuleAccess(idx, curriculum, completedModules, moduleExamScores, {
+      reviewMode: reviewLessons,
+    });
+    if (!access.unlocked) {
+      setModuleLockNotice(access.reason ?? "Complete the previous module and exam first.");
+      return false;
+    }
+    setModuleLockNotice(null);
+    return true;
+  };
+
+  // If progress changes and current module becomes locked, snap back to the latest unlocked one.
+  useEffect(() => {
+    if (!curriculum.length || reviewLessons) return;
+    if (canOpenModule(selectedModuleIdx)) return;
+    const max = highestUnlockedModuleIdx(curriculum, completedModules, moduleExamScores, {
+      reviewMode: false,
+    });
+    setSelectedModuleIdx(max);
+    setSelectedEntryIdx(0);
+    setExpandedModules(new Set([max]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-clamp when access inputs change
+  }, [curriculum, completedModules, moduleExamScores, reviewLessons, selectedModuleIdx]);
+
   const goToLessonNavIdx = (navIdx: number) => {
     const target = navigableLessons[navIdx];
     if (!target) return;
+    if (!tryOpenModule(target.moduleIdx)) return;
     setSelectedModuleIdx(target.moduleIdx);
     setSelectedEntryIdx(target.entryIdx);
     setExpandedModules((prev) => new Set(prev).add(target.moduleIdx));
@@ -676,9 +725,11 @@ export default function CourseLearningPlayerPage() {
       badgeImageUrl: certAssets.badge || undefined,
     });
     setCompletedModules(readCompletedModules(slug));
+    setModuleExamScores(readModuleExamScores(slug));
   };
 
   const toggleModuleExpanded = (idx: number) => {
+    if (!tryOpenModule(idx)) return;
     setSelectedModuleIdx(idx);
     setExpandedModules((prev) => {
       const next = new Set(prev);
@@ -728,7 +779,71 @@ export default function CourseLearningPlayerPage() {
     allModulesDone ||
     (curriculum.length > 0 && completedModules.length >= curriculum.length);
   const showCompletionDashboard =
-    completionStateReady && (completionUnlocked || courseProgressComplete);
+    completionStateReady &&
+    (completionUnlocked || courseProgressComplete) &&
+    !reviewLessons;
+
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      setReviewLessons(q.get("review") === "1");
+    } catch {
+      setReviewLessons(false);
+    }
+  }, [slug]);
+
+  // Deep-link: ?module=2 (and optional ?review=1) opens that module when allowed.
+  useEffect(() => {
+    if (!curriculum.length) return;
+    let moduleParam = 0;
+    let review = false;
+    try {
+      const q = new URLSearchParams(window.location.search);
+      moduleParam = Number(q.get("module"));
+      review = q.get("review") === "1";
+    } catch {
+      return;
+    }
+    if (!Number.isFinite(moduleParam) || moduleParam < 1 || moduleParam > curriculum.length) {
+      return;
+    }
+    const applyKey = `${slug}:${moduleParam}:${review ? "1" : "0"}`;
+    if (deepLinkAppliedRef.current === applyKey) return;
+    const idx = moduleParam - 1;
+    const access = getLearnerModuleAccess(idx, curriculum, completedModules, moduleExamScores, {
+      reviewMode: review || reviewLessons,
+    });
+    if (!access.unlocked) return;
+    deepLinkAppliedRef.current = applyKey;
+    if (review) setReviewLessons(true);
+    setSelectedModuleIdx(idx);
+    setSelectedEntryIdx(0);
+    setExpandedModules(new Set([idx]));
+    setModuleLockNotice(null);
+  }, [curriculum, completedModules, moduleExamScores, reviewLessons, slug]);
+
+  const openReviewLessons = () => {
+    setReviewLessons(true);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("review", "1");
+      url.hash = "";
+      window.history.replaceState(null, "", url.pathname + url.search);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const openCertificatePage = () => {
+    setReviewLessons(false);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("review");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}#credentials`);
+    } catch {
+      /* ignore */
+    }
+  };
 
   useEffect(() => {
     if (!showCompletionDashboard) return;
@@ -854,6 +969,7 @@ export default function CourseLearningPlayerPage() {
             certificateLayout={certLayout}
             certRequested={certRequested}
             hasFinalExam={hasFinalExam}
+            onReviewLessons={openReviewLessons}
           />
         </main>
       </div>
@@ -872,6 +988,22 @@ export default function CourseLearningPlayerPage() {
         </div>
 
         <h1 className="text-4xl font-bold">{apiCourseTitle || courseTitle}</h1>
+
+        {reviewLessons && (completionUnlocked || courseProgressComplete) ? (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3">
+            <p className="text-sm text-amber-100">
+              Review mode — you can watch previous videos again. Your completion and certificate stay saved.
+            </p>
+            <button
+              type="button"
+              onClick={openCertificatePage}
+              className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-black hover:bg-amber-400"
+            >
+              <Award className="h-3.5 w-3.5" aria-hidden />
+              Back to certificate
+            </button>
+          </div>
+        ) : null}
 
         <section className="mt-4 grid gap-3 xl:grid-cols-[1.9fr_1fr] xl:items-start">
           <div ref={leftColumnRef} className="space-y-3">
@@ -1025,16 +1157,20 @@ export default function CourseLearningPlayerPage() {
               </div>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={handleMarkModuleComplete}
-                  disabled={completedModules.includes(selectedModuleNumber)}
-                  className="rounded-md border border-violet-300/35 bg-violet-500/15 px-4 py-2 text-sm font-semibold text-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {completedModules.includes(selectedModuleNumber)
-                    ? "Module Completed"
-                    : learningCopy.markCompleteLabel}
-                </button>
+                {!completedModules.includes(selectedModuleNumber) ? (
+                  <button
+                    type="button"
+                    onClick={handleMarkModuleComplete}
+                    className="rounded-md border border-violet-300/35 bg-violet-500/15 px-4 py-2 text-sm font-semibold text-violet-100"
+                  >
+                    {learningCopy.markCompleteLabel}
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+                    Completed
+                  </span>
+                )}
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -1262,11 +1398,31 @@ export default function CourseLearningPlayerPage() {
                 </button>
               </div>
               <div className="space-y-2">
-                {curriculum.map((module, idx) => (
+                {moduleLockNotice ? (
+                  <div className="rounded-md border border-amber-400/35 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
+                    <span className="inline-flex items-center gap-1.5 font-semibold">
+                      <Lock size={12} aria-hidden />
+                      Module locked
+                    </span>
+                    <p className="mt-1 text-amber-100/90">{moduleLockNotice}</p>
+                  </div>
+                ) : null}
+                {curriculum.map((module, idx) => {
+                  const access = getLearnerModuleAccess(
+                    idx,
+                    curriculum,
+                    completedModules,
+                    moduleExamScores,
+                    { reviewMode: reviewLessons },
+                  );
+                  const locked = !access.unlocked;
+                  return (
                   <div
                     key={`${moduleTitle(module, idx)}-${idx}`}
                     className={`rounded-lg border px-2.5 py-2.5 text-sm shadow-sm ${
-                      completedModules.includes(idx + 1)
+                      locked
+                        ? "border-white/10 bg-black/20 text-gray-500 opacity-80"
+                        : completedModules.includes(idx + 1)
                         ? "border-emerald-300/35 bg-gradient-to-r from-emerald-500/20 to-[#13263a] text-emerald-100"
                         : idx === selectedModuleIdx
                           ? "border-violet-300/40 bg-gradient-to-r from-violet-500/25 to-[#121a32] text-violet-100"
@@ -1280,36 +1436,46 @@ export default function CourseLearningPlayerPage() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") toggleModuleExpanded(idx);
                       }}
-                      className="flex cursor-pointer items-center justify-between gap-3"
+                      className={`flex items-center justify-between gap-3 ${locked ? "cursor-not-allowed" : "cursor-pointer"}`}
                     >
                       <div className="inline-flex items-start gap-2">
                         <span
-                          className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded ${
-                            completedModules.includes(idx + 1)
-                              ? "bg-emerald-500/30 text-emerald-100"
+                          className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold ${
+                            locked
+                              ? "bg-white/5 text-gray-500"
+                              : completedModules.includes(idx + 1)
+                              ? "bg-emerald-500 text-white"
                               : idx === selectedModuleIdx
                                 ? "bg-violet-500/35 text-violet-100"
                                 : "bg-white/10 text-gray-200"
                           }`}
+                          title={
+                            locked
+                              ? `Module ${idx + 1} locked`
+                              : completedModules.includes(idx + 1)
+                                ? `Module ${idx + 1} completed — click to review`
+                                : `Module ${idx + 1}`
+                          }
                         >
-                          {completedModules.includes(idx + 1) ? (
-                            <CheckCheck size={12} />
-                          ) : (
-                            <Circle size={12} />
-                          )}
+                          {locked ? <Lock size={12} /> : idx + 1}
                         </span>
                         <span className="line-clamp-2 font-semibold">{moduleTitle(module, idx)}</span>
                       </div>
                       <div className="inline-flex items-center gap-2">
+                        {locked ? (
+                          <span className="rounded border border-amber-300/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-200">
+                            Locked
+                          </span>
+                        ) : null}
                         {completedModules.includes(idx + 1) && (
                           <span className="rounded border border-emerald-300/35 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-200">
                             Completed
                           </span>
                         )}
-                        {idx === selectedModuleIdx ? <ChevronUp size={13} className="text-gray-400" /> : <ChevronDown size={13} className="text-gray-400" />}
+                        {idx === selectedModuleIdx && !locked ? <ChevronUp size={13} className="text-gray-400" /> : <ChevronDown size={13} className="text-gray-400" />}
                       </div>
                     </div>
-                    {expandedModules.has(idx) && (
+                    {!locked && expandedModules.has(idx) && (
                       <div className="mt-2 space-y-1.5 rounded-md border border-white/10 bg-black/30 p-2">
                         {moduleCurriculumRows(module as PreviewGateModule).map((entry, entryIdx) => {
                           const entryKey = `${moduleTitle(module, idx)}-${entry.label ?? "entry"}-${entry.kind ?? "item"}-${entryIdx}`;
@@ -1347,19 +1513,39 @@ export default function CourseLearningPlayerPage() {
                                   </div>
                                 );
                               }
+                              const examPassed = Boolean(moduleExamScores[String(idx + 1)]?.passed);
+                              const examPercent = moduleExamScores[String(idx + 1)]?.percent;
                               return (
                                 <Link
                                   key={entryKey}
                                   href={`/my-learning/course/${slug}/exam?module=${idx + 1}`}
-                                  className="flex items-center justify-between rounded-md border border-emerald-300/30 bg-emerald-500/15 px-2 py-1.5 text-[11px] text-emerald-200 hover:bg-emerald-500/25"
+                                  className={`flex items-center justify-between rounded-md border px-2 py-1.5 text-[11px] hover:opacity-95 ${
+                                    examPassed
+                                      ? "border-amber-300/35 bg-amber-500/10 text-amber-100"
+                                      : "border-emerald-300/30 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25"
+                                  }`}
                                 >
-                                  <span className="inline-flex items-center gap-1.5">
-                                    <CheckCircle2 size={11} className="text-emerald-300" />
+                                  <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                                    <CheckCircle2
+                                      size={11}
+                                      className={examPassed ? "text-amber-300" : "text-emerald-300"}
+                                    />
                                     {examLabel}
+                                    {examPassed && typeof examPercent === "number" ? (
+                                      <span className="shrink-0 text-[10px] text-amber-200/90">
+                                        Best {examPercent}%
+                                      </span>
+                                    ) : null}
                                   </span>
-                                  <span className="inline-flex items-center gap-1 rounded border border-emerald-200/30 bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-100">
+                                  <span
+                                    className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] ${
+                                      examPassed
+                                        ? "border-amber-200/35 bg-amber-500/20 text-amber-50"
+                                        : "border-emerald-200/30 bg-emerald-500/20 text-emerald-100"
+                                    }`}
+                                  >
                                     <PlayCircle size={10} />
-                                    Start exam
+                                    {examPassed ? "Retake to improve" : "Start exam"}
                                   </span>
                                 </Link>
                               );
@@ -1369,6 +1555,7 @@ export default function CourseLearningPlayerPage() {
                               key={entryKey}
                               type="button"
                               onClick={() => {
+                                if (!tryOpenModule(idx)) return;
                                 setSelectedModuleIdx(idx);
                                 setSelectedEntryIdx(entryIdx);
                               }}
@@ -1401,8 +1588,12 @@ export default function CourseLearningPlayerPage() {
                         })}
                       </div>
                     )}
+                    {locked && access.reason ? (
+                      <p className="mt-2 text-[10px] leading-relaxed text-gray-500">{access.reason}</p>
+                    ) : null}
                   </div>
-                ))}
+                  );
+                })}
                 {curriculum.length === 0 ? (
                   <div className="rounded-md border border-white/10 bg-black/25 px-3 py-4 text-sm text-gray-400">
                     No modules found for this course yet.
