@@ -117,9 +117,10 @@ export function CourseCompletionCelebration({
     };
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reducedMotion) {
+    const lowPerf = document.documentElement.getAttribute("data-perf") === "low";
+    if (reducedMotion || lowPerf) {
       setPhase("celebrate");
-      const t = window.setTimeout(finish, 2800);
+      const t = window.setTimeout(finish, 2200);
       return () => window.clearTimeout(t);
     }
 
@@ -142,6 +143,13 @@ export function CourseCompletionCelebration({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      document.documentElement.getAttribute("data-perf") === "low"
+    ) {
+      return;
+    }
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -152,7 +160,7 @@ export function CourseCompletionCelebration({
     resize();
     window.addEventListener("resize", resize);
 
-    let pieces = spawnConfetti(canvas.width, canvas.height, 160);
+    let pieces = spawnConfetti(canvas.width, canvas.height, 64);
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);

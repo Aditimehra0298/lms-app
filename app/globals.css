@@ -1604,35 +1604,21 @@ body.tutor-led-marketing-body {
 }
 
 .qmark-orb {
-  animation: qmarkGlowPulse 2.8s ease-in-out infinite;
-  will-change: transform, filter;
+  animation: none;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
+  will-change: auto;
 }
 
-.qmark-orb-1 {
-  animation:
-    qmarkFloatA 2.6s ease-in-out infinite,
-    qmarkGlowPulse 2.8s ease-in-out infinite;
-}
-
-.qmark-orb-2 {
-  animation:
-    qmarkFloatB 2.2s ease-in-out infinite,
-    qmarkGlowPulse 2.5s ease-in-out infinite;
-  animation-delay: 0.2s;
-}
-
+.qmark-orb-1,
+.qmark-orb-2,
 .qmark-orb-3 {
-  animation:
-    qmarkFloatA 2.9s ease-in-out infinite,
-    qmarkGlowPulse 3s ease-in-out infinite;
-  animation-delay: 0.35s;
+  animation: none;
 }
 
 .qmark-hero {
-  animation:
-    qmarkFloatA 5.8s ease-in-out infinite,
-    qmarkGlowPulse 6.2s ease-in-out infinite;
-  will-change: transform, filter;
+  animation: none;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
+  will-change: auto;
 }
 
 /* My Learning — dark theme */
@@ -2530,54 +2516,16 @@ body.tutor-led-marketing-body {
   inset: -6px -14px -4px;
   border-radius: 10px 10px 4px 4px;
   overflow: hidden;
+  /* Static glow only — continuous spin/blur made low-end devices lag */
+  display: none;
 }
 
 .my-learning-dashboard-rays::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 140%;
-  height: 180%;
-  transform: translate(-50%, -50%);
-  background: conic-gradient(
-    from 0deg at 50% 50%,
-    transparent 0deg,
-    rgba(253, 230, 138, 0.55) 18deg,
-    transparent 36deg,
-    rgba(249, 177, 77, 0.5) 54deg,
-    transparent 72deg,
-    rgba(251, 191, 36, 0.55) 90deg,
-    transparent 108deg,
-    rgba(249, 177, 77, 0.5) 126deg,
-    transparent 144deg,
-    rgba(253, 230, 138, 0.55) 162deg,
-    transparent 180deg,
-    rgba(249, 177, 77, 0.5) 198deg,
-    transparent 216deg,
-    rgba(251, 191, 36, 0.55) 234deg,
-    transparent 252deg,
-    rgba(249, 177, 77, 0.5) 270deg,
-    transparent 288deg,
-    rgba(253, 230, 138, 0.55) 306deg,
-    transparent 324deg,
-    rgba(249, 177, 77, 0.45) 342deg,
-    transparent 360deg
-  );
-  animation: my-learning-rays-spin 12s linear infinite;
+  content: none;
 }
 
 .my-learning-dashboard-rays::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse 80% 120% at 50% 100%,
-    rgba(249, 177, 77, 0.5) 0%,
-    rgba(235, 148, 34, 0.2) 45%,
-    transparent 70%
-  );
-  animation: my-learning-rays-pulse 3s ease-in-out infinite;
+  content: none;
 }
 
 .my-learning-dashboard-glow {
@@ -2586,5 +2534,118 @@ body.tutor-led-marketing-body {
   box-shadow:
     0 -4px 28px rgba(249, 177, 77, 0.35),
     0 0 40px rgba(251, 191, 36, 0.2);
-  animation: my-learning-rays-pulse 3s ease-in-out infinite;
+  animation: none;
+}
+
+/* ---------- Low-power / reduced-motion: stop laggy loops ---------- */
+.account-galaxy-fallback {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(249, 177, 77, 0.18), transparent 42%),
+    radial-gradient(circle at 82% 12%, rgba(139, 92, 246, 0.12), transparent 38%),
+    linear-gradient(180deg, #0a0a0f 0%, #070707 100%);
+}
+
+:root[data-theme="light"] .account-galaxy-fallback {
+  background:
+    radial-gradient(circle at 14% 12%, rgba(212, 160, 23, 0.2), transparent 34%),
+    radial-gradient(circle at 86% 20%, rgba(101, 67, 33, 0.22), transparent 30%),
+    linear-gradient(180deg, #3d2b14 0%, #2a1a0a 48%, #1a1008 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .qmark-orb,
+  .qmark-orb-1,
+  .qmark-orb-2,
+  .qmark-orb-3,
+  .my-learning-dashboard-rays::before,
+  .my-learning-dashboard-rays::after,
+  .my-learning-dashboard-glow {
+    animation: none !important;
+    filter: none !important;
+  }
+
+  .my-learning-dashboard-rays {
+    display: none !important;
+  }
+}
+
+html[data-perf="low"] .qmark-orb,
+html[data-perf="low"] .qmark-orb-1,
+html[data-perf="low"] .qmark-orb-2,
+html[data-perf="low"] .qmark-orb-3,
+html[data-perf="low"] .my-learning-dashboard-rays::before,
+html[data-perf="low"] .my-learning-dashboard-rays::after,
+html[data-perf="low"] .my-learning-dashboard-glow {
+  animation: none !important;
+  filter: none !important;
+}
+
+html[data-perf="low"] .my-learning-dashboard-rays {
+  display: none !important;
+}
+
+html[data-perf="low"] .account-auth-panel {
+  animation: none !important;
+}
+
+html[data-perf="low"] .learnly-home .lh-path-card,
+html[data-perf="low"] .learnly-home .lh-category-card,
+html[data-perf="low"] .learnly-home .lh-course-card,
+html[data-perf="low"] .learnly-home .lh-invest-shell,
+html[data-perf="low"] .learnly-home .lh-invest-card,
+html[data-perf="low"] .learnly-home .lh-plan-card,
+html[data-perf="low"] .learnly-home .lh-help-card,
+html[data-perf="low"] .learnly-home .lh-why-card,
+html[data-perf="low"] .learnly-home .lh-testimonial-card,
+html[data-perf="low"] .learnly-home .lh-unlock-shell {
+  backdrop-filter: none !important;
+  transition: none !important;
+}
+
+html[data-perf="low"] .learnly-home .lh-path-card:hover,
+html[data-perf="low"] .learnly-home .lh-category-card:hover,
+html[data-perf="low"] .learnly-home .lh-course-card:hover,
+html[data-perf="low"] .learnly-home .lh-invest-card:hover,
+html[data-perf="low"] .learnly-home .lh-plan-card:hover,
+html[data-perf="low"] .learnly-home .lh-why-card:hover,
+html[data-perf="low"] .learnly-home .lh-testimonial-card:hover {
+  transform: none !important;
+}
+
+html[data-perf="low"] .animate-pulse,
+html[data-perf="low"] .animate-spin {
+  animation: none !important;
+}
+
+html[data-perf="low"] [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Soft default: even "high" devices avoid continuous filter animations that tank FPS */
+.qmark-orb,
+.qmark-orb-1,
+.qmark-orb-2,
+.qmark-orb-3 {
+  will-change: auto;
+}
+
+.my-learning-dashboard-rays::before,
+.my-learning-dashboard-rays::after,
+.my-learning-dashboard-glow {
+  will-change: auto;
+}
+
+/* Prefer static login look for everyone until JS opts into galaxy */
+.account-page .account-galaxy-fallback {
+  opacity: 1;
 }

@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import EmailOtpField from "@/components/EmailOtpField";
 import ForgotPasswordForm from "@/components/ForgotPasswordForm";
 import Galaxy from "@/components/Galaxy";
+import { canUseHeavyVisualEffects } from "@/lib/client-perf";
 import PasswordConfirmFields from "@/components/PasswordConfirmFields";
 import PasswordField from "@/components/PasswordField";
 import PhoneWithCountryCode from "@/components/PhoneWithCountryCode";
@@ -34,7 +35,6 @@ import {
 import {
   getBrowserOrigin,
   googleOriginMismatchHint,
-  googleOriginSetupHint,
   shouldShowGoogleWifiOriginHint,
 } from "@/lib/google-sign-in-origin";
 import { countryDisplayName } from "@/lib/iso-country-list";
@@ -236,6 +236,7 @@ export default function AccountPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleScriptReady, setGoogleScriptReady] = useState(false);
   const [browserOrigin, setBrowserOrigin] = useState("");
+  const [enableGalaxy, setEnableGalaxy] = useState(false);
   const [registerEmail, setRegisterEmail] = useState("");
   const [emailOtpVerified, setEmailOtpVerified] = useState(false);
   const [registerCountryCode, setRegisterCountryCode] = useState("");
@@ -251,6 +252,10 @@ export default function AccountPage() {
 
   useEffect(() => {
     setAuthPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    setEnableGalaxy(canUseHeavyVisualEffects());
   }, []);
 
   useEffect(() => {
@@ -317,12 +322,12 @@ export default function AccountPage() {
           appUrl?: string;
         }) => {
           if (cancelled) return;
-          if (data.mainAdminEmail) {
-            setSelfEmail(data.mainAdminEmail);
-            setAdminEmailLocked(true);
-          }
+          // Do not pre-fill the main admin email — learner/admin enters it themselves.
+          setAdminEmailLocked(false);
           setAdminRequirePassword(data.requirePanelPassword !== false);
           setAdminRequireGoogle(Boolean(data.requireGoogleVerification));
+          // Do not show developer/setup copy (email + Google Console origins) on admin login.
+          // Only surface real misconfiguration that blocks sign-in.
           if (data.requirePanelPassword !== false && !data.passwordConfigured) {
             setAdminSetupHint(
               "Admin password is not set yet. Ask your developer to set the first password, or use Settings once you have access.",
@@ -331,17 +336,8 @@ export default function AccountPage() {
             setAdminSetupHint(
               "Google verification is required, but Google sign-in is not connected yet. Contact your platform owner.",
             );
-          } else if (data.requireGoogleVerification) {
-            const origin = getBrowserOrigin() || data.appUrl || "http://localhost:3000";
-            setAdminSetupHint(
-              `Sign in with Google using ${data.mainAdminEmail ?? "the main admin email"} only. ${googleOriginSetupHint(origin)}`,
-            );
           } else {
-            setAdminSetupHint(
-              data.requirePanelPassword === false
-                ? "Password step is off — continue with the main admin email."
-                : "Enter the admin panel password to continue.",
-            );
+            setAdminSetupHint(null);
           }
         },
       )
@@ -784,7 +780,7 @@ export default function AccountPage() {
       if (!sdkReady) {
         setGoogleLoading(false);
         setAuthError(
-          `Google sign-in is still loading. Check your connection, disable ad blockers for this page, then try again. ${googleOriginSetupHint(getBrowserOrigin())}`,
+          `Google sign-in is still loading. Check your connection, disable ad blockers for this page, then try again.`,
         );
         return;
       }
@@ -818,17 +814,24 @@ export default function AccountPage() {
           }}
           onError={() => {
             setAuthError(
-              `Could not load Google sign-in. Check your internet connection. ${googleOriginSetupHint(getBrowserOrigin())}`,
+              `Could not load Google sign-in. Check your internet connection and try again.`,
             );
           }}
         />
       )}
-      <Galaxy
-        key={isLightTheme ? "account-galaxy-light" : "account-galaxy-dark"}
-        className="account-galaxy pointer-events-none absolute inset-0 z-0 min-h-full w-full"
-        aria-hidden
-        {...accountGalaxyProps}
-      />
+      {enableGalaxy ? (
+        <Galaxy
+          key={isLightTheme ? "account-galaxy-light" : "account-galaxy-dark"}
+          className="account-galaxy pointer-events-none absolute inset-0 z-0 min-h-full w-full"
+          aria-hidden
+          {...accountGalaxyProps}
+        />
+      ) : (
+        <div
+          className="account-galaxy-fallback pointer-events-none absolute inset-0 z-0 min-h-full w-full"
+          aria-hidden
+        />
+      )}
       <main className="relative z-10 w-full flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
         <div className="relative mx-auto w-full max-w-[1760px]">
           <div className="mx-auto flex w-full max-w-6xl flex-col py-4 md:py-10">
@@ -1008,7 +1011,10 @@ export default function AccountPage() {
                 </div>
 
                 <div className="relative px-5 py-5 sm:px-7 sm:py-6">
-            {browserOrigin && shouldShowGoogleWifiOriginHint(browserOrigin) && googleConfigured ? (
+            {browserOrigin &&
+            !isSelf &&
+            shouldShowGoogleWifiOriginHint(browserOrigin) &&
+            googleConfigured ? (
               <p className="mb-4 rounded-xl border border-sky-400/35 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
                 <strong className="text-sky-200">Wi‑Fi login:</strong> Google must allow this exact address — add{" "}
                 <code className="rounded bg-black/40 px-1.5 py-0.5 text-xs text-sky-50">{browserOrigin}</code> in{" "}
@@ -1055,8 +1061,10 @@ export default function AccountPage() {
             {isSelf && adminAwaitingGoogle && (
               <div className="mb-6 space-y-3">
                 <p className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                  <strong className="text-amber-200">Step 2 — Google:</strong> Choose only{" "}
-                  <strong>{selfEmail || "social.sftrainings@gmail.com"}</strong>. Other accounts will be rejected.
+                  <strong className="text-amber-200">Step 2 — Google:</strong>{" "}
+                  {selfEmail.trim()
+                    ? <>Continue with Google using <strong>{selfEmail.trim()}</strong>.</>
+                    : <>Continue with Google using your admin Gmail account.</>}
                 </p>
                 {authError ? <p className="text-sm text-rose-300">{authError}</p> : null}
                 {googleConfigured ? (
@@ -1315,9 +1323,6 @@ export default function AccountPage() {
                             ? "Loading Google…"
                             : "Continue with Google"}
                       </button>
-                      <p className="mt-2 text-center text-xs text-gray-400">
-                        Use after <strong className="text-gray-300">Sign in to Admin</strong> (same Gmail as above).
-                      </p>
                     </div>
                   )}
                 </>

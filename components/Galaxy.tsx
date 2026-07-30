@@ -348,7 +348,8 @@ function Galaxy({
     let resizeRaf = 0;
 
     function setResolution(width: number, height: number) {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // Cap DPR to ease GPU load on high-density phones.
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       const w = Math.max(1, Math.floor(width * dpr));
       const h = Math.max(1, Math.floor(height * dpr));
       if (canvas.width !== w || canvas.height !== h) {
@@ -378,9 +379,17 @@ function Galaxy({
     window.visualViewport?.addEventListener("resize", resize);
 
     let animateId = 0;
+    let running = true;
+    let lastFrameAt = 0;
+    const minFrameMs = 1000 / 30; // Cap ~30fps — enough for stars, half the GPU work
 
     function update(t: number) {
+      if (!running) return;
       animateId = requestAnimationFrame(update);
+
+      if (document.hidden) return;
+      if (t - lastFrameAt < minFrameMs) return;
+      lastFrameAt = t;
 
       gl.useProgram(program);
 
@@ -401,7 +410,17 @@ function Galaxy({
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 
+    function onVisibility() {
+      if (document.hidden) {
+        cancelAnimationFrame(animateId);
+        animateId = 0;
+      } else if (running && !animateId) {
+        animateId = requestAnimationFrame(update);
+      }
+    }
+
     ctn.appendChild(canvas);
+    document.addEventListener("visibilitychange", onVisibility);
     requestAnimationFrame(() => {
       resize();
       animateId = requestAnimationFrame(update);
@@ -425,8 +444,10 @@ function Galaxy({
     }
 
     return () => {
+      running = false;
       cancelAnimationFrame(animateId);
       cancelAnimationFrame(resizeRaf);
+      document.removeEventListener("visibilitychange", onVisibility);
       resizeObserver.disconnect();
       window.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("resize", resize);

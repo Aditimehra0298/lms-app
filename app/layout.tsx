@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import SiteChrome from "@/components/SiteChrome";
+import ClientPerfGuard from "@/components/ClientPerfGuard";
 import { COMPANY_DISPLAY_NAME } from "@/lib/contact-site-data";
 import "./globals.css";
 
@@ -22,8 +23,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    // data-perf starts as "low" on server+client; ClientPerfGuard may upgrade after mount.
+    // suppressHydrationWarning: theme/extensions may also touch <html> attributes.
+    <html lang="en" className="h-full antialiased" data-perf="low" suppressHydrationWarning>
       <body className="flex min-h-screen flex-col bg-background text-foreground">
+        <ClientPerfGuard />
         <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
