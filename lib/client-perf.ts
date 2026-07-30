@@ -57,9 +57,9 @@ export function detectClientPerfMode(): ClientPerfMode {
   return "high";
 }
 
-/** True when WebGL starfields, confetti storms, etc. are allowed. */
+/** Always allow galaxy / starfield — shown on every device. */
 export function canUseHeavyVisualEffects(): boolean {
-  return detectClientPerfMode() === "high" && !prefersReducedMotion();
+  return true;
 }
 
 export function applyClientPerfMode(mode?: ClientPerfMode): ClientPerfMode {

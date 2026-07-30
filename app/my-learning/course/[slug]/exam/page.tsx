@@ -294,17 +294,10 @@ function CourseExamPageInner() {
   }, [slug, moduleNumber, isFinalExam, courseMeta?.slug]);
 
   const previewGate = useMemo(() => {
-    if (!courseMeta || isFinalExam) {
-      return { requiredSec: 0, watchedSec: 0, unlocked: true };
-    }
-    const mod = courseMeta.curriculum?.[moduleIdx];
-    const progress = modulePreviewProgress(mod, watchedSecondsByModule[moduleNumber] ?? 0);
-    return {
-      requiredSec: progress.required,
-      watchedSec: progress.watched,
-      unlocked: progress.unlocked,
-    };
-  }, [courseMeta, isFinalExam, moduleIdx, moduleNumber, watchedSecondsByModule]);
+    // Coursera-style: module exams are available without forcing full video watch first.
+    // Certificate still requires every exam to be passed.
+    return { requiredSec: 0, watchedSec: 0, unlocked: true };
+  }, []);
 
   useEffect(() => {
     if (!examRuntime) return;

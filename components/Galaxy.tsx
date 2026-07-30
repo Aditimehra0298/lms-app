@@ -16,7 +16,7 @@ void main() {
 `;
 
 const fragmentShader = `
-precision highp float;
+precision mediump float;
 
 uniform float uTime;
 uniform vec3 uResolution;
@@ -269,15 +269,32 @@ function Galaxy({
     canvas.style.width = "100%";
     canvas.style.height = "100%";
 
-    const glContext = canvas.getContext("webgl", {
-      alpha: transparent,
-      premultipliedAlpha: false,
-      antialias: false,
-    });
+    let glContext: WebGLRenderingContext | null = null;
+    try {
+      glContext =
+        canvas.getContext("webgl", {
+          alpha: transparent,
+          premultipliedAlpha: false,
+          antialias: false,
+          powerPreference: "low-power",
+        }) ||
+        (canvas.getContext("experimental-webgl", {
+          alpha: transparent,
+          premultipliedAlpha: false,
+          antialias: false,
+        }) as WebGLRenderingContext | null);
+    } catch {
+      glContext = null;
+    }
     if (!glContext) return;
     const gl = glContext;
 
-    const program = createProgram(gl, vertexShader, fragmentShader);
+    let program: WebGLProgram;
+    try {
+      program = createProgram(gl, vertexShader, fragmentShader);
+    } catch {
+      return;
+    }
     gl.useProgram(program);
 
     const posLoc = gl.getAttribLocation(program, "position");

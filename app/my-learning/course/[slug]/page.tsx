@@ -58,10 +58,9 @@ import {
   readModuleExamScores,
   type ModuleExamScore,
 } from "@/lib/learner-exam-scores";
-import { learnerExamDisplayLabel } from "@/lib/my-learning-exams";
+import { learnerExamDisplayLabel, getFirstExamRowInModule } from "@/lib/my-learning-exams";
 import {
   getLearnerModuleAccess,
-  highestUnlockedModuleIdx,
 } from "@/lib/learner-module-access";
 import { CourseCompletedDashboard } from "@/components/CourseCompletedDashboard";
 import {
@@ -678,35 +677,42 @@ export default function CourseLearningPlayerPage() {
     selectedEntryIdx,
   );
 
-  const canOpenModule = (idx: number) =>
-    getLearnerModuleAccess(idx, curriculum, completedModules, moduleExamScores, {
-      reviewMode: reviewLessons,
-    }).unlocked;
-
   const tryOpenModule = (idx: number): boolean => {
     const access = getLearnerModuleAccess(idx, curriculum, completedModules, moduleExamScores, {
       reviewMode: reviewLessons,
     });
     if (!access.unlocked) {
-      setModuleLockNotice(access.reason ?? "Complete the previous module and exam first.");
+      setModuleLockNotice(access.reason ?? "This module is not available.");
       return false;
     }
     setModuleLockNotice(null);
     return true;
   };
 
-  // If progress changes and current module becomes locked, snap back to the latest unlocked one.
+  // Modules without an exam auto-complete when opened (Coursera-style free navigation).
+  // Modules with an exam complete when the exam is passed.
   useEffect(() => {
-    if (!curriculum.length || reviewLessons) return;
-    if (canOpenModule(selectedModuleIdx)) return;
-    const max = highestUnlockedModuleIdx(curriculum, completedModules, moduleExamScores, {
-      reviewMode: false,
+    if (!curriculum.length || !slug) return;
+    const mod = curriculum[selectedModuleIdx];
+    if (!mod) return;
+    const moduleNumber = selectedModuleIdx + 1;
+    if (completedModules.includes(moduleNumber)) return;
+    if (getFirstExamRowInModule(mod)) return;
+    markModuleCompleted(slug, moduleNumber, curriculum.length, {
+      courseTitle: apiCourseTitle || courseTitle,
+      moduleTitle: mod.title?.trim() || `Module ${moduleNumber}`,
+      badgeImageUrl: certAssets.badge || undefined,
     });
-    setSelectedModuleIdx(max);
-    setSelectedEntryIdx(0);
-    setExpandedModules(new Set([max]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-clamp when access inputs change
-  }, [curriculum, completedModules, moduleExamScores, reviewLessons, selectedModuleIdx]);
+    setCompletedModules(readCompletedModules(slug));
+  }, [
+    curriculum,
+    selectedModuleIdx,
+    slug,
+    completedModules,
+    apiCourseTitle,
+    courseTitle,
+    certAssets.badge,
+  ]);
 
   const goToLessonNavIdx = (navIdx: number) => {
     const target = navigableLessons[navIdx];
@@ -715,17 +721,6 @@ export default function CourseLearningPlayerPage() {
     setSelectedModuleIdx(target.moduleIdx);
     setSelectedEntryIdx(target.entryIdx);
     setExpandedModules((prev) => new Set(prev).add(target.moduleIdx));
-  };
-
-  const handleMarkModuleComplete = () => {
-    const moduleNumber = selectedModuleIdx + 1;
-    markModuleCompleted(slug, moduleNumber, curriculum.length, {
-      courseTitle: apiCourseTitle || courseTitle,
-      moduleTitle: moduleTitle(activeModule ?? {}, selectedModuleIdx),
-      badgeImageUrl: certAssets.badge || undefined,
-    });
-    setCompletedModules(readCompletedModules(slug));
-    setModuleExamScores(readModuleExamScores(slug));
   };
 
   const toggleModuleExpanded = (idx: number) => {
@@ -775,13 +770,9 @@ export default function CourseLearningPlayerPage() {
 
   const completionStateReady = progressHydrated && curriculum.length > 0;
   const completionUnlocked = eligible || hasIssuedCertificate;
-  const courseProgressComplete =
-    allModulesDone ||
-    (curriculum.length > 0 && completedModules.length >= curriculum.length);
+  // Certificate page only when all required exams are passed (and modules complete) — not just browsing.
   const showCompletionDashboard =
-    completionStateReady &&
-    (completionUnlocked || courseProgressComplete) &&
-    !reviewLessons;
+    completionStateReady && completionUnlocked && !reviewLessons;
 
   useEffect(() => {
     try {
@@ -989,7 +980,7 @@ export default function CourseLearningPlayerPage() {
 
         <h1 className="text-4xl font-bold">{apiCourseTitle || courseTitle}</h1>
 
-        {reviewLessons && (completionUnlocked || courseProgressComplete) ? (
+        {reviewLessons && completionUnlocked ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3">
             <p className="text-sm text-amber-100">
               Review mode — you can watch previous videos again. Your completion and certificate stay saved.
@@ -1107,7 +1098,15 @@ export default function CourseLearningPlayerPage() {
                           onClick={() => {
                             setActiveLearningTool(tool.label);
                             if (tool.value) {
-                              void openCourseLearningResource(tool.value, slug, "open");
+                              void openCourseLearningResource(tool.value, slug, "open", {
+                                title: tool.label,
+                              }).then((ok) => {
+                                if (!ok) {
+                                  window.alert(
+                                    `Could not open ${tool.label}. Make sure you are signed in, allow pop-ups for this site, then try again.`,
+                                  );
+                                }
+                              });
                             }
                           }}
                           className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs font-semibold transition ${learningToolButtonClass(tool)}`}
@@ -1157,19 +1156,17 @@ export default function CourseLearningPlayerPage() {
               </div>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                {!completedModules.includes(selectedModuleNumber) ? (
-                  <button
-                    type="button"
-                    onClick={handleMarkModuleComplete}
-                    className="rounded-md border border-violet-300/35 bg-violet-500/15 px-4 py-2 text-sm font-semibold text-violet-100"
-                  >
-                    {learningCopy.markCompleteLabel}
-                  </button>
-                ) : (
+                {completedModules.includes(selectedModuleNumber) ? (
                   <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200">
                     <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
                     Completed
                   </span>
+                ) : getFirstExamRowInModule(activeModule as CourseCurriculumModule) ? (
+                  <span className="text-xs text-amber-200/90">
+                    Pass this module exam (70%+) to complete it — you can still open other modules anytime.
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400">Continue lessons — next modules are open.</span>
                 )}
                 <div className="flex items-center gap-2">
                   <button
@@ -1310,6 +1307,7 @@ export default function CourseLearningPlayerPage() {
                               href={res.url}
                               courseSlug={slug}
                               mode="open"
+                              title={res.label}
                               className="block"
                             >
                               <div className="inline-flex items-center gap-1.5 rounded border border-violet-300/30 bg-violet-500/15 px-2 py-1 text-[10px] font-semibold text-violet-100">
@@ -1481,27 +1479,10 @@ export default function CourseLearningPlayerPage() {
                           const entryKey = `${moduleTitle(module, idx)}-${entry.label ?? "entry"}-${entry.kind ?? "item"}-${entryIdx}`;
                           return entry.kind === "exam" ? (
                             (() => {
-                              const progress = moduleWatchProgress(idx + 1);
                               const examLabel = learnerExamDisplayLabel(
                                 entry.label,
                                 `Module ${idx + 1} exam`,
                               );
-                              if (!progress.unlocked) {
-                                return (
-                                  <div
-                                    key={entryKey}
-                                    className="flex items-center justify-between gap-2 rounded-md border border-amber-300/25 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-100"
-                                  >
-                                    <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
-                                      {examLabel}
-                                    </span>
-                                    <span className="shrink-0 inline-flex items-center gap-1 rounded border border-amber-300/35 bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-100">
-                                      <Lock size={10} />
-                                      Locked
-                                    </span>
-                                  </div>
-                                );
-                              }
                               if (!entry.examUploadUrl?.trim()) {
                                 return (
                                   <div
@@ -1601,17 +1582,14 @@ export default function CourseLearningPlayerPage() {
                 ) : null}
               </div>
               <div className="mt-3 rounded-md border border-amber-300/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-                {learningCopy.certificationRuleText}
+                You can open any module anytime. Your certificate unlocks only after you pass every module exam
+                at {DEFAULT_MODULE_EXAM_PASS_PERCENT}%+ (unlimited retakes).
                 {combinedExamPercent !== null ? (
                   <span className="ml-2 inline-flex rounded bg-black/25 px-2 py-0.5 text-xs">
                     Combined grade: {combinedExamPercent}%
-                    {allExamsPassed ? " ✓ All exams passed" : ` ✗ Pass each exam at ${DEFAULT_MODULE_EXAM_PASS_PERCENT}%+`}
+                    {allExamsPassed ? " ✓ All exams passed" : " — exams still remaining"}
                   </span>
-                ) : (
-                  <span className="ml-2 inline-flex rounded bg-black/25 px-2 py-0.5 text-xs">
-                    Pass each module exam at {DEFAULT_MODULE_EXAM_PASS_PERCENT}%+ (unlimited retakes).
-                  </span>
-                )}
+                ) : null}
               </div>
             </article>
 
@@ -1717,7 +1695,7 @@ export default function CourseLearningPlayerPage() {
           </aside>
         </section>
 
-        {allModulesDone ? (
+        {eligible ? (
           <CourseCompletionRewards
             courseSlug={slug}
             courseTitle={apiCourseTitle || courseTitle}

@@ -181,7 +181,7 @@ export function areAllCurriculumModulesComplete(
   return inRange.size >= moduleCount;
 }
 
-/** Certificate + transcript unlock: all modules done, and every module exam passed when exams exist. */
+/** Certificate + transcript unlock: every module exam must be passed when exams exist. */
 export function learnerCredentialsEligible(
   curriculum: CourseCurriculumModule[],
   completedModules: number[],
@@ -192,7 +192,12 @@ export function learnerCredentialsEligible(
   eligible: boolean;
 } {
   const allModulesDone = areAllCurriculumModulesComplete(curriculum, completedModules);
-  const examsRequired = examModuleNumbers(curriculum).length > 0;
-  const eligible = allModulesDone && (!examsRequired || allExamsPassed);
+  const examNums = examModuleNumbers(curriculum);
+  const examsRequired = examNums.length > 0;
+  // Coursera-style: browsing is free; certificate requires all exams passed.
+  // Modules without exams count as done when visited/auto-completed.
+  const eligible = examsRequired
+    ? allExamsPassed && allModulesDone
+    : allModulesDone;
   return { allModulesDone, examsRequired, eligible };
 }

@@ -8,7 +8,6 @@ import { createPortal } from "react-dom";
 import EmailOtpField from "@/components/EmailOtpField";
 import ForgotPasswordForm from "@/components/ForgotPasswordForm";
 import Galaxy from "@/components/Galaxy";
-import { canUseHeavyVisualEffects } from "@/lib/client-perf";
 import PasswordConfirmFields from "@/components/PasswordConfirmFields";
 import PasswordField from "@/components/PasswordField";
 import PhoneWithCountryCode from "@/components/PhoneWithCountryCode";
@@ -60,37 +59,36 @@ function learnerDestinationAfterAuth(accountType: AccountType): string {
   return MY_LEARNING_DASHBOARD_HREF;
 }
 
-/** Stable props so Galaxy WebGL is not re-initialized on every keystroke. */
+/** Galaxy on every device — tuned for visibility + lighter GPU load. */
 const ACCOUNT_GALAXY_PROPS_DARK = {
   mouseRepulsion: false,
   mouseInteraction: false,
-  density: 1.2,
+  density: 1.15,
   glowIntensity: 0.55,
-  saturation: 0.15,
+  saturation: 0.18,
   hueShift: 140,
   twinkleIntensity: 0.35,
   rotationSpeed: 0.1,
-  repulsionStrength: 2,
+  repulsionStrength: 0,
   autoCenterRepulsion: 0,
-  starSpeed: 0.5,
-  speed: 1,
+  starSpeed: 0.45,
+  speed: 0.85,
   transparent: true,
 } as const;
 
-/** Golden starfield for light theme — brown page bg, gold galaxy particles. */
 const ACCOUNT_GALAXY_PROPS_LIGHT = {
   mouseRepulsion: false,
   mouseInteraction: false,
-  density: 1.2,
+  density: 1.15,
   glowIntensity: 0.68,
   saturation: 0.72,
   hueShift: 46,
   twinkleIntensity: 0.4,
   rotationSpeed: 0.1,
-  repulsionStrength: 2,
+  repulsionStrength: 0,
   autoCenterRepulsion: 0,
-  starSpeed: 0.5,
-  speed: 1,
+  starSpeed: 0.45,
+  speed: 0.85,
   transparent: true,
 } as const;
 
@@ -236,7 +234,6 @@ export default function AccountPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleScriptReady, setGoogleScriptReady] = useState(false);
   const [browserOrigin, setBrowserOrigin] = useState("");
-  const [enableGalaxy, setEnableGalaxy] = useState(false);
   const [registerEmail, setRegisterEmail] = useState("");
   const [emailOtpVerified, setEmailOtpVerified] = useState(false);
   const [registerCountryCode, setRegisterCountryCode] = useState("");
@@ -255,7 +252,13 @@ export default function AccountPage() {
   }, []);
 
   useEffect(() => {
-    setEnableGalaxy(canUseHeavyVisualEffects());
+    const syncTheme = () => {
+      setIsLightTheme(document.documentElement.dataset.theme === "light");
+    };
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -281,16 +284,6 @@ export default function AccountPage() {
 
   useEffect(() => {
     setBrowserOrigin(getBrowserOrigin());
-  }, []);
-
-  useEffect(() => {
-    const syncTheme = () => {
-      setIsLightTheme(document.documentElement.dataset.theme === "light");
-    };
-    syncTheme();
-    const observer = new MutationObserver(syncTheme);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -819,19 +812,22 @@ export default function AccountPage() {
           }}
         />
       )}
-      {enableGalaxy ? (
-        <Galaxy
-          key={isLightTheme ? "account-galaxy-light" : "account-galaxy-dark"}
-          className="account-galaxy pointer-events-none absolute inset-0 z-0 min-h-full w-full"
-          aria-hidden
-          {...accountGalaxyProps}
-        />
-      ) : (
-        <div
-          className="account-galaxy-fallback pointer-events-none absolute inset-0 z-0 min-h-full w-full"
-          aria-hidden
-        />
-      )}
+      {/* CSS starfield underlay — visible instantly; WebGL galaxy on top for all devices */}
+      <div
+        className="account-galaxy-fallback pointer-events-none absolute inset-0 z-0 min-h-full w-full overflow-hidden"
+        aria-hidden
+      >
+        <span className="account-galaxy-layer account-galaxy-layer--a" />
+        <span className="account-galaxy-layer account-galaxy-layer--b" />
+        <span className="account-galaxy-layer account-galaxy-layer--c" />
+        <span className="account-galaxy-glow" />
+      </div>
+      <Galaxy
+        key={isLightTheme ? "account-galaxy-light" : "account-galaxy-dark"}
+        className="account-galaxy pointer-events-none absolute inset-0 z-[1] min-h-full w-full"
+        aria-hidden
+        {...accountGalaxyProps}
+      />
       <main className="relative z-10 w-full flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
         <div className="relative mx-auto w-full max-w-[1760px]">
           <div className="mx-auto flex w-full max-w-6xl flex-col py-4 md:py-10">

@@ -10,6 +10,8 @@ type Props = {
   children: ReactNode;
   /** Open in browser (PDF/audio play) or force download */
   mode?: "open" | "download";
+  /** Shown in the audio player tab title (podcast) */
+  title?: string;
 };
 
 /** Turn pasted links into a browser-openable absolute URL. */
@@ -63,17 +65,68 @@ function looksSigned(url: string): boolean {
   return url.includes("?t=") || url.includes("&t=");
 }
 
+export function isLearningAudioUrl(url: string): boolean {
+  const t = url.trim();
+  if (!t) return false;
+  if (/\.(mp3|m4a|wav|ogg|aac|mpeg)(\?|#|$)/i.test(t)) return true;
+  if (/^audio\//i.test(t)) return true;
+  return false;
+}
+
+function absoluteMediaUrl(signed: string): string {
+  if (signed.startsWith("http://") || signed.startsWith("https://")) return signed;
+  return `${window.location.origin}${signed.startsWith("/") ? "" : "/"}${signed}`;
+}
+
+function writeAudioPlayerDocument(popup: Window, src: string, title = "Podcast") {
+  const safeSrc = src.replace(/"/g, "&quot;");
+  const safeTitle = title.replace(/</g, "&lt;");
+  try {
+    popup.document.open();
+    popup.document.write(`<!doctype html>
+<html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${safeTitle}</title>
+<style>
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1220;color:#fff;font-family:system-ui,sans-serif}
+  .card{width:min(520px,92vw);padding:1.5rem;border-radius:1rem;border:1px solid rgba(255,255,255,.12);background:#121a2e}
+  h1{margin:0 0 .75rem;font-size:1.1rem}
+  audio{width:100%;margin-top:.5rem}
+  p{margin:.75rem 0 0;font-size:.8rem;color:#94a3b8}
+</style></head><body>
+  <div class="card">
+    <h1>${safeTitle}</h1>
+    <audio controls autoplay preload="metadata" src="${safeSrc}"></audio>
+    <p>If audio does not start, use the player controls above.</p>
+  </div>
+</body></html>`);
+    popup.document.close();
+  } catch {
+    popup.location.replace(src);
+  }
+}
+
 /** Open or download course learning-tool files / additional resource links. */
 export async function openCourseLearningResource(
   href: string,
   courseSlug: string,
   mode: "open" | "download" = "open",
+  options?: { title?: string },
 ): Promise<boolean> {
   const raw = normalizeExternalLearningUrl(href);
   if (!raw) return false;
 
+  const audio = isLearningAudioUrl(raw);
+  const title = options?.title?.trim() || "Podcast";
+
   // External https links (Additional Resources URL) — open directly, never about:blank
   if (!isProtectedMediaUrl(raw)) {
+    if (mode === "open" && audio) {
+      const popup = window.open("", "_blank");
+      if (popup) {
+        writeAudioPlayerDocument(popup, raw, title);
+        return true;
+      }
+    }
     clickAnchor(raw, { download: mode === "download" });
     return true;
   }
@@ -117,17 +170,25 @@ export async function openCourseLearningResource(
       return true;
     }
 
-    const absolute =
-      signed.startsWith("http://") || signed.startsWith("https://")
-        ? signed
-        : `${window.location.origin}${signed.startsWith("/") ? "" : "/"}${signed}`;
+    const absolute = absoluteMediaUrl(signed);
 
     if (popup && !popup.closed) {
-      popup.location.replace(absolute);
+      if (audio || isLearningAudioUrl(absolute)) {
+        writeAudioPlayerDocument(popup, absolute, title);
+      } else {
+        popup.location.replace(absolute);
+      }
       return true;
     }
 
-    // Popup blocked — open via anchor as fallback
+  // Popup blocked — for audio, still try a same-tab player page; else anchor fallback
+    if (audio || isLearningAudioUrl(absolute)) {
+      const player = window.open("", "_blank");
+      if (player) {
+        writeAudioPlayerDocument(player, absolute, title);
+        return true;
+      }
+    }
     clickAnchor(absolute);
     return true;
   } catch {
@@ -143,14 +204,15 @@ export default function CourseLearningResourceLink({
   className = "",
   children,
   mode = "open",
+  title,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const normalized = normalizeExternalLearningUrl(href);
   const isExternal = Boolean(normalized) && !isProtectedMediaUrl(normalized);
 
-  // External Additional Resources URLs: native browser open (never blank)
-  if (isExternal && mode === "open") {
+  // External Additional Resources URLs: native browser open (never blank) — except audio
+  if (isExternal && mode === "open" && !isLearningAudioUrl(normalized)) {
     return (
       <a href={normalized} target="_blank" rel="noopener noreferrer" className={className}>
         {children}
@@ -164,8 +226,10 @@ export default function CourseLearningResourceLink({
     setBusy(true);
     setError(null);
     try {
-      const ok = await openCourseLearningResource(normalized, courseSlug, mode);
-      if (!ok) setError("Could not open file. Sign in and try again.");
+      const ok = await openCourseLearningResource(normalized, courseSlug, mode, {
+        title: title || (isLearningAudioUrl(normalized) ? "Podcast" : undefined),
+      });
+      if (!ok) setError("Could not open file. Sign in, allow pop-ups, and try again.");
     } finally {
       setBusy(false);
     }

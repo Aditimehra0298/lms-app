@@ -3,7 +3,6 @@ import {
   readModuleExamScores,
   type ModuleExamScore,
 } from "@/lib/learner-exam-scores";
-import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
 
 export type ModuleAccessResult = {
   unlocked: boolean;
@@ -18,45 +17,19 @@ type CurriculumModuleLike = {
 };
 
 /**
- * Sequential module gate: Module N+1 opens only after Module N is marked complete
- * and (if Module N has an exam) that exam is passed.
- * Module 1 is always open. Review mode unlocks everything.
+ * Coursera-style access: learners may open any module freely.
+ * Certificate / credentials stay gated separately via exam pass + completion rules.
  */
 export function getLearnerModuleAccess(
   moduleIdx: number,
   curriculum: CurriculumModuleLike[],
-  completedModules: number[],
-  examScores: Record<string, ModuleExamScore>,
-  options?: { reviewMode?: boolean },
+  _completedModules: number[],
+  _examScores: Record<string, ModuleExamScore>,
+  _options?: { reviewMode?: boolean },
 ): ModuleAccessResult {
-  if (options?.reviewMode) return { unlocked: true };
-  if (moduleIdx <= 0) return { unlocked: true };
-  if (moduleIdx >= curriculum.length) {
+  if (moduleIdx < 0 || moduleIdx >= curriculum.length) {
     return { unlocked: false, reason: "Module not found." };
   }
-
-  const prevIdx = moduleIdx - 1;
-  const prevNumber = prevIdx + 1;
-  const prevModule = curriculum[prevIdx];
-
-  if (!completedModules.includes(prevNumber)) {
-    return {
-      unlocked: false,
-      reason: `Complete Module ${prevNumber} first (mark as completed).`,
-    };
-  }
-
-  const examRow = getFirstExamRowInModule(prevModule as CourseCurriculumModule);
-  if (examRow) {
-    const score = examScores[String(prevNumber)];
-    if (!score?.passed) {
-      return {
-        unlocked: false,
-        reason: `Pass the Module ${prevNumber} exam before opening the next module.`,
-      };
-    }
-  }
-
   return { unlocked: true };
 }
 

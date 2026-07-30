@@ -30,10 +30,16 @@ export async function POST(request: Request) {
       const scope =
         body.scope ?? (body.courseSlug?.trim() ? "learner" : emailEarly && isAdminEmail(emailEarly) ? "admin" : "catalog");
       if (scope === "learner") {
-        return NextResponse.json(
-          { ok: false, error: "External video URLs are blocked for learners. Upload to protected storage." },
-          { status: 403 },
-        );
+        // Block external *video* embeds; allow podcast/audio and document links (https).
+        const looksVideo =
+          /\.(mp4|webm|mov|m4v|mkv)(\?|#|$)/i.test(url) ||
+          /youtube\.com|youtu\.be|vimeo\.com|wistia\.|loom\.com/i.test(url);
+        if (looksVideo) {
+          return NextResponse.json(
+            { ok: false, error: "External video URLs are blocked for learners. Upload to protected storage." },
+            { status: 403 },
+          );
+        }
       }
       return NextResponse.json({ ok: true, playUrl: url });
     }
