@@ -310,7 +310,7 @@ export default function CourseChatbot({ courseTitle = "SF Trainings", courseSlug
             {/* Initial Welcome Message */}
             <div className="flex max-w-[85%] flex-col rounded-2xl rounded-tl-none border border-white/5 bg-zinc-900/40 p-4 text-sm text-zinc-300 shadow-md">
               <p className="leading-relaxed">
-                Welcome! I’m SFT Assistant, your AI-powered LMS support guide.
+                Welcome! I’m Sustainable Futures Trainings Assistant, your AI-powered LMS support guide.
               </p>
               <p className="mt-2 leading-relaxed">
                 I can help you with course-related questions, training schedules, platform navigation, and common technical issues within the SFT Learning Management System.

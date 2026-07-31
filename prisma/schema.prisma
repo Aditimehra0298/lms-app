@@ -252,20 +252,50 @@ model LmsCertificate {
 
 /// Support tickets created by the AI chatbot when a technical issue is reported.
 model LmsIssue {
-  id          String   @id @default(cuid())
-  issueToken  String   @unique @db.VarChar(32)   // e.g. SFT-TECH-1023
-  userId      String?  @db.VarChar(255)
-  userName    String?  @db.VarChar(255)
-  userEmail   String?  @db.VarChar(255)
-  issueText   String   @db.Text
-  issueStatus String   @default("open") @db.VarChar(32)  // open | in_progress | closed
-  category    String?  @db.VarChar(32)            // TECH | QUIZ | VIDEO | AUTH | PAY | CERT | LMS
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String    @id @default(cuid())
+  issueToken      String    @unique @db.VarChar(32) // e.g. SFT-TECH-1023
+  userId          String?   @db.VarChar(255)
+  userName        String?   @db.VarChar(255)
+  userEmail       String?   @db.VarChar(255)
+  studentId       String?   @db.VarChar(64)
+  issueText       String    @db.Text
+  subject         String?   @db.VarChar(255)
+  issueStatus     String    @default("open") @db.VarChar(32) // open | in_progress | resolved | closed
+  category        String?   @db.VarChar(32) // TECH | QUIZ | VIDEO | AUTH | PAY | CERT | LMS | ASSIGN | FAQ
+  priority        String    @default("medium") @db.VarChar(16) // low | medium | high
+  sentiment       String?   @db.VarChar(32) // angry | frustrated | neutral | positive
+  transactionId   String?   @db.VarChar(128)
+  paymentDate     String?   @db.VarChar(64)
+  screenshotUrl   String?   @db.VarChar(1024)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([issueStatus])
+  @@index([priority])
   @@index([createdAt])
+  @@index([userEmail])
   @@map("lms_issue")
+}
+
+/// Persisted chatbot conversation turns (MySQL chat history).
+model LmsChatHistory {
+  id           String   @id @default(cuid())
+  sessionId    String   @db.VarChar(128)
+  learnerEmail String?  @db.VarChar(255)
+  learnerName  String?  @db.VarChar(255)
+  role         String   @db.VarChar(16) // user | assistant | system
+  content      String   @db.Text
+  intent       String?  @db.VarChar(64)
+  provider     String?  @db.VarChar(32)
+  pagePath     String?  @db.VarChar(512)
+  ticketToken  String?  @db.VarChar(32)
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([sessionId, createdAt])
+  @@index([learnerEmail, createdAt])
+  @@index([createdAt])
+  @@map("lms_chat_history")
 }
 
 /// Public website form submissions (contact, newsletter, etc.).

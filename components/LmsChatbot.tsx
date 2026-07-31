@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { MessageCircle, RotateCcw, Send, Sparkles, X } from "lucide-react";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
-import { learnerDisplayFirstName, readLearnerProfileFromStorage } from "@/lib/auth-profile";
+import { learnerDisplayFullName, readLearnerProfileFromStorage } from "@/lib/auth-profile";
 import {
   getLearnerEmail,
   isLearnerLoggedIn,
@@ -15,10 +15,61 @@ import {
 
 type ChatLine = { role: "user" | "assistant"; content: string };
 
-const CHATBOT_NAME = "SFT Assistant";
+const CHATBOT_NAME = "Sustainable Futures Trainings Assistant";
 const CHATBOT_FULL_NAME = "Sustainable Futures Trainings Assistant";
 const THREAD_KEY = "lms-openai-thread-id";
 const SESSION_KEY = "lms-chat-session-id";
+const GUEST_CONTACT_KEY = "lms-chat-guest-contact";
+
+type GuestContact = {
+  name: string;
+  email: string;
+  phone: string;
+};
+
+function readGuestContact(): GuestContact | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(GUEST_CONTACT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as GuestContact;
+    if (parsed?.name?.trim() && parsed?.email?.trim() && parsed?.phone?.trim()) {
+      return {
+        name: parsed.name.trim(),
+        email: parsed.email.trim().toLowerCase(),
+        phone: parsed.phone.trim(),
+      };
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function saveGuestContact(contact: GuestContact) {
+  try {
+    sessionStorage.setItem(GUEST_CONTACT_KEY, JSON.stringify(contact));
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearGuestContact() {
+  try {
+    sessionStorage.removeItem(GUEST_CONTACT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+function isValidPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 15;
+}
 
 const QUICK_PROMPTS = [
   { label: "Find a course", text: "I'm looking for a course — what do you recommend?" },
@@ -27,6 +78,18 @@ const QUICK_PROMPTS = [
   { label: "Can't sign in", text: "I'm having trouble signing in" },
   { label: "My progress", text: "Where can I see how far I've got in my course?" },
 ] as const;
+
+const LOGGED_IN_QUICK_PROMPTS = [
+  { label: "My courses", text: "What courses am I enrolled in?" },
+  { label: "My certificates", text: "Show my certificates" },
+  { label: "Payment issue", text: "I have a payment problem" },
+] as const;
+
+function looksLikePaymentChat(text: string): boolean {
+  return /\b(payment|paid|razorpay|refund|charged|transaction|invoice|checkout|student id|transaction id|payment date)\b/i.test(
+    text,
+  );
+}
 
 function getStoredThreadId(): string {
   if (typeof window === "undefined") return "";
@@ -66,12 +129,41 @@ function getOrCreateSessionId(): string {
   }
 }
 
-function buildWelcomeMessage(firstName: string, onDashboard: boolean): string {
-  const hi = firstName === "there" ? "Hey!" : `Hey ${firstName}!`;
-  if (onDashboard) {
-    return `${hi} Need help with a course, your progress, or a certificate?\n\nJust ask — I'm here.`;
+type GuestStep = "idle" | "name" | "email" | "phone" | "done";
+
+const GUEST_PENDING_KEY = "lms-chat-guest-pending-question";
+
+function saveGuestPendingQuestion(text: string) {
+  try {
+    sessionStorage.setItem(GUEST_PENDING_KEY, text);
+  } catch {
+    /* ignore */
   }
-  return `${hi} I'm your training assistant.\n\nAsk about courses, your account, or anything on the site.`;
+}
+
+function takeGuestPendingQuestion(): string {
+  try {
+    const q = sessionStorage.getItem(GUEST_PENDING_KEY)?.trim() || "";
+    if (q) sessionStorage.removeItem(GUEST_PENDING_KEY);
+    return q;
+  } catch {
+    return "";
+  }
+}
+
+function buildWelcomeMessage(displayName: string, onDashboard: boolean, loggedIn: boolean): string {
+  if (!loggedIn) {
+    return `Hey! I'm Sustainable Futures Trainings Assistant.\n\nTell me what you need — course info, help with learning, a payment or technical issue, certificates, or anything else.\n\nWhat can I help you with today?`;
+  }
+  const hi = displayName === "there" ? "Hey!" : `Hey ${displayName}!`;
+  if (onDashboard) {
+    return `${hi} Need help with a course, your progress, or a certificate?\n\nJust ask — I'll look up what's on your account.`;
+  }
+  return `${hi} I'm your training assistant.\n\nAsk about courses, your enrollments, certificates, or payments — I'll use your live account data.`;
+}
+
+function buildGuestReadyMessage(name: string): string {
+  return `Thanks, ${name}! I've got your details. One moment…`;
 }
 
 function cleanAssistantText(text: string): string {
@@ -79,7 +171,55 @@ function cleanAssistantText(text: string): string {
 }
 
 const URL_IN_TEXT =
-  /(https?:\/\/[^\s]+|\/(?:courses|my-learning|login|contact)(?:\/[^\s]*)?(?:\?[^\s]*)?)/g;
+  /(https?:\/\/[^\s]+|\/(?:courses|my-learning|account|login|contact)(?:\/[^\s]*)?(?:\?[^\s]*)?)/g;
+
+const PENDING_CHAT_KEY = "lms-chat-pending-question";
+
+function savePendingChatQuestion(text: string) {
+  try {
+    sessionStorage.setItem(PENDING_CHAT_KEY, text);
+  } catch {
+    /* ignore */
+  }
+}
+
+function takePendingChatQuestion(): string {
+  try {
+    const q = sessionStorage.getItem(PENDING_CHAT_KEY)?.trim() || "";
+    if (q) sessionStorage.removeItem(PENDING_CHAT_KEY);
+    return q;
+  } catch {
+    return "";
+  }
+}
+
+function replyAsksForLogin(text: string): boolean {
+  return /sign in first|please sign in|login:|\/account\?mode=login/i.test(text);
+}
+
+function looksLikeSpecificCourseTopic(text: string): boolean {
+  const q = text.toLowerCase();
+  return /\b(cyber|esg|food|hvac|phishing|medical|workplace|skill development|iso\s*27001|haccp|infosec|information security)\b/.test(
+    q,
+  );
+}
+
+function looksLikeGeneralCourseInfoQuestion(text: string): boolean {
+  const q = text.toLowerCase();
+  if (looksLikeSpecificCourseTopic(q)) return false;
+  return /course information|your courses|give me .*course|tell me .*course|what courses|which courses|show .*courses|catalog|lms course|training you offer|courses? (you|u) (have|offer)|can u give|can you give/.test(
+    q,
+  );
+}
+
+function looksLikeCourseInfoQuestion(text: string): boolean {
+  // Specific topic (e.g. cyber) → answer from catalog first.
+  // General "course information" → collect name/email/phone first, then categories.
+  if (looksLikeGeneralCourseInfoQuestion(text)) return false;
+  const q = text.toLowerCase();
+  if (/payment|refund|ticket|password|login problem|can't sign/.test(q)) return false;
+  return looksLikeSpecificCourseTopic(q) || /course|training|program|catalog|price|duration|tell me about|details/.test(q);
+}
 
 function ChatMessageContent({ text, isUser }: { text: string; isUser: boolean }) {
   const parts = text.split(/\n\n+/);
@@ -164,25 +304,42 @@ export default function LmsChatbot() {
   const [provider, setProvider] = useState<"openai" | "n8n" | "local" | null>(null);
   const [categories, setCategories] = useState<Array<{ slug: string; label: string; count: number; prompt: string }>>([]);
   const [threadId, setThreadId] = useState("");
-  const [learnerFirstName, setLearnerFirstName] = useState("there");
+  const [learnerDisplayName, setLearnerDisplayName] = useState("there");
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [guestContact, setGuestContact] = useState<GuestContact | null>(null);
+  const [guestStep, setGuestStep] = useState<GuestStep>("idle");
+  const [guestDraft, setGuestDraft] = useState({ name: "", email: "", phone: "" });
   const [lines, setLines] = useState<ChatLine[]>([
-    { role: "assistant", content: buildWelcomeMessage("there", false) },
+    { role: "assistant", content: buildWelcomeMessage("there", false, false) },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [sessionId, setSessionId] = useState("");
   const hasUserMessagedRef = useRef(false);
+  const pendingResumeRef = useRef(false);
+  const wasLoggedInRef = useRef(false);
+  const sendMessageRef = useRef<
+    ((text: string, options?: { skipUserBubble?: boolean }) => Promise<void>) | null
+  >(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const welcomeLine = useCallback(
-    () => buildWelcomeMessage(learnerFirstName, onDashboard),
-    [learnerFirstName, onDashboard],
-  );
+  const welcomeLine = useCallback(() => {
+    return buildWelcomeMessage(learnerDisplayName, onDashboard, loggedIn);
+  }, [learnerDisplayName, onDashboard, loggedIn]);
 
   useEffect(() => {
     setSessionId(getOrCreateSessionId());
     setThreadId(getStoredThreadId());
+    const guest = readGuestContact();
+    setGuestContact(guest);
+    if (guest) {
+      setGuestStep("done");
+      setGuestDraft(guest);
+      setLearnerDisplayName(guest.name);
+    } else {
+      setGuestStep("idle");
+    }
   }, []);
 
   useEffect(() => {
@@ -193,15 +350,55 @@ export default function LmsChatbot() {
 
   useEffect(() => {
     const applyProfile = async () => {
+      const nowLoggedIn = isLearnerLoggedIn();
       const email = getLearnerEmail()?.trim().toLowerCase() ?? "";
       let profile = readLearnerProfileFromStorage();
 
-      if (email && isLearnerLoggedIn()) {
+      if (email && nowLoggedIn) {
         const fromDb = await syncLearnerProfileFromServer(email);
         if (fromDb) profile = fromDb;
       }
 
-      setLearnerFirstName(learnerDisplayFirstName(profile.name, profile.email ?? email));
+      setLoggedIn(nowLoggedIn);
+      if (nowLoggedIn) {
+        clearGuestContact();
+        setGuestContact(null);
+        setLearnerDisplayName(learnerDisplayFullName(profile.name, profile.email ?? email));
+      } else {
+        const guest = readGuestContact();
+        setGuestContact(guest);
+        if (guest) {
+          setGuestStep("done");
+          setGuestDraft(guest);
+          setLearnerDisplayName(guest.name);
+        } else {
+          setGuestStep("idle");
+          setLearnerDisplayName("there");
+        }
+      }
+
+      const justLoggedIn = !wasLoggedInRef.current && nowLoggedIn;
+      wasLoggedInRef.current = nowLoggedIn;
+
+      if (justLoggedIn) {
+        const pending = takePendingChatQuestion();
+        if (pending && !pendingResumeRef.current) {
+          pendingResumeRef.current = true;
+          setOpen(true);
+          const fullName = learnerDisplayFullName(profile.name, email);
+          setLines((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: `You're signed in now${fullName !== "there" ? `, ${fullName}` : ""}. Pulling your real account details…`,
+            },
+          ]);
+          window.setTimeout(() => {
+            void sendMessageRef.current?.(pending);
+            pendingResumeRef.current = false;
+          }, 450);
+        }
+      }
     };
 
     void applyProfile();
@@ -220,6 +417,136 @@ export default function LmsChatbot() {
     if (hasUserMessagedRef.current) return;
     setLines([{ role: "assistant", content: welcomeLine() }]);
   }, [welcomeLine]);
+
+  const handleGuestIntakeTurn = useCallback(
+    (raw: string): boolean => {
+      if (loggedIn || guestContact) return false;
+      const answer = raw.trim();
+      if (!answer) return true;
+
+      // First message: course/catalog questions get answered from API first.
+      // Help/issue questions collect name → email → phone first.
+      if (guestStep === "idle") {
+        if (looksLikeCourseInfoQuestion(answer)) {
+          return false;
+        }
+        hasUserMessagedRef.current = true;
+        saveGuestPendingQuestion(answer);
+        setLines((prev) => [...prev, { role: "user", content: answer }]);
+        setGuestStep("name");
+        setLines((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content:
+              "Happy to help with that.\n\nBefore I continue, may I have your full name?",
+          },
+        ]);
+        return true;
+      }
+
+      if (guestStep !== "name" && guestStep !== "email" && guestStep !== "phone") {
+        return false;
+      }
+
+      hasUserMessagedRef.current = true;
+      setLines((prev) => [...prev, { role: "user", content: answer }]);
+
+      if (guestStep === "name") {
+        const name = answer.replace(/^(my name is|i am|i'm|this is)\s+/i, "").trim();
+        if (name.length < 2) {
+          setLines((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "Please type your full name (for example: Priya Sharma).",
+            },
+          ]);
+          return true;
+        }
+        setGuestDraft((prev) => ({ ...prev, name }));
+        setLearnerDisplayName(name);
+        setGuestStep("email");
+        setLines((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: `Nice to meet you, ${name}.\n\nWhat's your Gmail / email address?`,
+          },
+        ]);
+        return true;
+      }
+
+      if (guestStep === "email") {
+        const email = answer
+          .replace(/^(email|gmail|my email is|mail)\s*[:=]?\s*/i, "")
+          .trim()
+          .toLowerCase();
+        if (!isValidEmail(email)) {
+          setLines((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content:
+                "That doesn't look like a valid email. Please share your Gmail / email (example: name@gmail.com).",
+            },
+          ]);
+          return true;
+        }
+        setGuestDraft((prev) => ({ ...prev, email }));
+        setGuestStep("phone");
+        setLines((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "Got it.\n\nWhat's your phone number?",
+          },
+        ]);
+        return true;
+      }
+
+      if (guestStep === "phone") {
+        const phone = answer
+          .replace(/^(phone|mobile|number|my number is)\s*[:=]?\s*/i, "")
+          .trim();
+        if (!isValidPhone(phone)) {
+          setLines((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "Please enter a valid phone number (8–15 digits).",
+            },
+          ]);
+          return true;
+        }
+        const contact: GuestContact = {
+          name: guestDraft.name,
+          email: guestDraft.email,
+          phone,
+        };
+        saveGuestContact(contact);
+        setGuestContact(contact);
+        setGuestDraft(contact);
+        setGuestStep("done");
+        setLearnerDisplayName(contact.name);
+        setLines((prev) => [
+          ...prev,
+          { role: "assistant", content: buildGuestReadyMessage(contact.name) },
+        ]);
+
+        const pending = takeGuestPendingQuestion();
+        if (pending) {
+          window.setTimeout(() => {
+            void sendMessageRef.current?.(pending, { skipUserBubble: true });
+          }, 350);
+        }
+        return true;
+      }
+
+      return false;
+    },
+    [loggedIn, guestContact, guestStep, guestDraft.name, guestDraft.email],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -257,9 +584,14 @@ export default function LmsChatbot() {
   }, [open]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, options?: { skipUserBubble?: boolean }) => {
       const trimmed = text.trim();
       if (!trimmed || sending) return;
+
+      if (!loggedIn && !guestContact && guestStep !== "done") {
+        handleGuestIntakeTurn(trimmed);
+        return;
+      }
 
       hasUserMessagedRef.current = true;
       const priorHistory = lines
@@ -267,15 +599,24 @@ export default function LmsChatbot() {
         .slice(-8)
         .map((line) => ({ role: line.role, content: line.content }));
 
-      setLines((prev) => [...prev, { role: "user", content: trimmed }]);
+      if (!options?.skipUserBubble) {
+        setLines((prev) => [...prev, { role: "user", content: trimmed }]);
+      }
       setSending(true);
 
       const started = Date.now();
 
       try {
-        const email = getLearnerEmail()?.trim().toLowerCase() || undefined;
+        const signedIn = isLearnerLoggedIn();
+        const guest = !signedIn ? guestContact || readGuestContact() : null;
+        const email = signedIn
+          ? getLearnerEmail()?.trim().toLowerCase() || undefined
+          : guest?.email || undefined;
         const profile = readLearnerProfileFromStorage();
-        const learnerName = profile.name?.trim() || undefined;
+        const learnerName = signedIn
+          ? profile.name?.trim() || undefined
+          : guest?.name || undefined;
+        const learnerPhone = signedIn ? undefined : guest?.phone || undefined;
 
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -286,6 +627,8 @@ export default function LmsChatbot() {
             pagePath: pathname,
             learnerEmail: email,
             learnerName,
+            learnerPhone,
+            authenticated: signedIn,
             history: priorHistory,
             ...(threadId ? { threadId } : {}),
           }),
@@ -308,10 +651,11 @@ export default function LmsChatbot() {
           storeThreadId(data.threadId);
         }
         if (data.ok && data.reply) {
-          setLines((prev) => [
-            ...prev,
-            { role: "assistant", content: cleanAssistantText(data.reply!) },
-          ]);
+          const reply = cleanAssistantText(data.reply);
+          if (!signedIn && replyAsksForLogin(reply)) {
+            savePendingChatQuestion(trimmed);
+          }
+          setLines((prev) => [...prev, { role: "assistant", content: reply }]);
         } else {
           setLines((prev) => [
             ...prev,
@@ -335,8 +679,10 @@ export default function LmsChatbot() {
         setSending(false);
       }
     },
-    [pathname, sending, sessionId, threadId, lines],
+    [pathname, sending, sessionId, threadId, lines, guestContact, loggedIn, guestStep, handleGuestIntakeTurn],
   );
+
+  sendMessageRef.current = sendMessage;
 
   const send = useCallback(() => {
     const text = input.trim();
@@ -350,6 +696,24 @@ export default function LmsChatbot() {
     setThreadId("");
     clearStoredThreadId();
     setInput("");
+    try {
+      sessionStorage.removeItem(GUEST_PENDING_KEY);
+    } catch {
+      /* ignore */
+    }
+    if (!isLearnerLoggedIn()) {
+      const guest = readGuestContact();
+      setGuestContact(guest);
+      if (guest) {
+        setGuestStep("done");
+        setGuestDraft(guest);
+        setLearnerDisplayName(guest.name);
+      } else {
+        setGuestStep("idle");
+        setGuestDraft({ name: "", email: "", phone: "" });
+        setLearnerDisplayName("there");
+      }
+    }
     setLines([{ role: "assistant", content: welcomeLine() }]);
     inputRef.current?.focus();
   };
@@ -361,7 +725,16 @@ export default function LmsChatbot() {
     }
   };
 
-  const showQuickPrompts = !sending && !hasUserMessagedRef.current;
+  const paymentIssueActive = lines.some((line) => looksLikePaymentChat(line.content));
+
+  const showQuickPrompts =
+    !sending &&
+    !hasUserMessagedRef.current &&
+    !paymentIssueActive &&
+    (loggedIn || guestStep === "idle" || guestStep === "done");
+
+  const quickPrompts = loggedIn ? LOGGED_IN_QUICK_PROMPTS : QUICK_PROMPTS;
+  const showCategoryChips = showQuickPrompts && !loggedIn && categories.length > 0;
 
   const statusLabel =
     configured === false
@@ -371,6 +744,33 @@ export default function LmsChatbot() {
           ? "Here to help"
           : "Here to help"
         : "Connecting…";
+
+  const headerSubtitle = loggedIn && learnerDisplayName !== "there"
+    ? `Chatting with ${learnerDisplayName}`
+    : guestContact
+      ? `Guest: ${guestContact.name}`
+      : guestStep === "idle"
+        ? "Ask your question first"
+        : guestStep === "name"
+          ? "May I have your name?"
+          : guestStep === "email"
+            ? "Your email next"
+            : guestStep === "phone"
+              ? "Your phone next"
+              : statusLabel;
+
+  const inputPlaceholder =
+    configured === false
+      ? "Chat unavailable right now"
+      : guestStep === "idle" && !loggedIn && !guestContact
+        ? "Describe your question, help need, or issue…"
+        : guestStep === "name"
+          ? "Type your full name…"
+          : guestStep === "email"
+            ? "Type your Gmail / email…"
+            : guestStep === "phone"
+              ? "Type your phone number…"
+              : "Ask me anything…";
 
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-[90] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
@@ -388,12 +788,14 @@ export default function LmsChatbot() {
                 <ChatLogo size="sm" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-white">{CHATBOT_NAME}</p>
+                <p className="text-[13px] font-bold leading-snug text-white">
+                  {CHATBOT_NAME}
+                </p>
                 <p className="flex items-center gap-1.5 text-[10px] text-zinc-400">
                   {configured !== false ? (
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
                   ) : null}
-                  {statusLabel}
+                  {headerSubtitle}
                 </p>
               </div>
             </div>
@@ -446,7 +848,7 @@ export default function LmsChatbot() {
 
             {showQuickPrompts ? (
               <div className="space-y-3 pt-1">
-                {categories.length > 0 ? (
+                {showCategoryChips ? (
                   <div className="space-y-2">
                     <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
                       <Sparkles size={12} className="text-amber-400" />
@@ -473,7 +875,7 @@ export default function LmsChatbot() {
                     Quick questions
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {QUICK_PROMPTS.map((item) => (
+                    {quickPrompts.map((item) => (
                       <button
                         key={item.label}
                         type="button"
@@ -510,11 +912,7 @@ export default function LmsChatbot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder={
-                  configured === false
-                    ? "Chat unavailable right now"
-                    : "Ask me anything…"
-                }
+                placeholder={inputPlaceholder}
                 disabled={sending || configured === false}
                 className="min-h-[44px] flex-1 resize-none rounded-2xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none disabled:opacity-50"
               />

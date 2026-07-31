@@ -1632,6 +1632,21 @@ body.tutor-led-marketing-body {
   color: #fff;
 }
 
+/* Lesson section titles — brand gold (beats inherited white) */
+.my-learning-course-player .lesson-gold-heading {
+  color: #f9b14d !important;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 24px rgba(249, 177, 77, 0.35);
+}
+
+:root[data-theme="light"] .my-learning-course-player .lesson-gold-heading {
+  color: #b45309 !important;
+  text-shadow: none;
+}
+
 .my-learning-page,
 .my-learning-course-player {
   min-height: 0;

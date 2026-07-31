@@ -169,6 +169,13 @@ export function learnerDisplayFirstName(name?: string | null, email?: string | n
   return "there";
 }
 
+/** Full display name for chatbot / personal greetings. */
+export function learnerDisplayFullName(name?: string | null, email?: string | null): string {
+  const trimmed = name?.trim();
+  if (trimmed) return trimmed.replace(/\s+/g, " ");
+  return learnerDisplayFirstName(name, email);
+}
+
 export function timeOfDayGreeting(date = new Date()): "Good Morning" | "Good Afternoon" | "Good Evening" {
   const hour = date.getHours();
   if (hour < 12) return "Good Morning";

@@ -30,6 +30,8 @@ export async function POST(request: Request) {
     threadId?: string;
     learnerEmail?: string;
     learnerName?: string;
+    learnerPhone?: string;
+    authenticated?: boolean;
     history?: ChatHistoryItem[];
   };
 
@@ -47,6 +49,8 @@ export async function POST(request: Request) {
       threadId: body.threadId,
       learnerEmail: body.learnerEmail,
       learnerName: body.learnerName,
+      learnerPhone: body.learnerPhone,
+      authenticated: Boolean(body.authenticated),
       history: body.history,
     });
 
@@ -61,6 +65,8 @@ export async function POST(request: Request) {
       reply: result.reply,
       ...(result.threadId ? { threadId: result.threadId } : {}),
       ...(result.provider ? { provider: result.provider } : {}),
+      ...(result.ticketNumber ? { ticketNumber: result.ticketNumber } : {}),
+      ...(result.intent ? { intent: result.intent } : {}),
     });
   } catch (err) {
     console.error("[api/chat]", err);

@@ -19,15 +19,15 @@ export const SFT_SOCIAL = {
 export const SFT_QUICK_LINKS = [
   { label: "About Us", href: "/about" },
   { label: "Our Courses", href: "/courses" },
-  { label: "Accreditations", href: "#" },
+  { label: "Accreditations", href: "/about" },
   { label: "Candidate Register", href: "/account?mode=signup" },
   { label: "Contact Us", href: "/contact" },
-  { label: "Privacy Policy", href: "#" },
-  { label: "Blogs", href: "#" },
-  { label: "Refund Policy", href: "#" },
-  { label: "Terms & Conditions", href: "#" },
-  { label: "Podcasts", href: "#" },
-  { label: "Book a Call", href: "#" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Blogs", href: "/blogs" },
+  { label: "Refund Policy", href: "/refund-policy" },
+  { label: "Terms & Conditions", href: "/terms" },
+  { label: "Podcasts", href: "/podcasts" },
+  { label: "Book a Call", href: "/book-a-call" },
 ] as const;
 
 export type SftOffice = {

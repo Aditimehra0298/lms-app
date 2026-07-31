@@ -1061,7 +1061,9 @@ export default function CourseLearningPlayerPage() {
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-2xl font-bold">{activeItem?.label?.trim() || activeModule?.title || "Lesson"}</h3>
+                  <h3 className="lesson-gold-heading">
+                    {activeItem?.label?.trim() || activeModule?.title || "Lesson"}
+                  </h3>
                   <p className="mt-1 text-sm text-gray-300">
                     {activeItem?.description?.trim() ||
                       "Follow module lessons in order, then attempt module assessments and the final exam."}
@@ -1083,10 +1085,8 @@ export default function CourseLearningPlayerPage() {
 
               <div className="mt-4 rounded-lg border border-white/10 bg-black/25 p-3">
                 <div className="mb-3 rounded-lg border border-violet-400/35 bg-gradient-to-br from-violet-600/15 via-[#121a32] to-amber-500/10 p-3 shadow-[0_0_28px_rgba(139,92,246,0.12)]">
-                  <p className="text-xs font-bold tracking-wider text-amber-200">
-                    {learningCopy.learningToolsTitle}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-violet-200/80">{learningCopy.learningToolsHint}</p>
+                  <h3 className="lesson-gold-heading">{learningCopy.learningToolsTitle}</h3>
+                  <p className="mt-1 text-[11px] text-violet-200/80">{learningCopy.learningToolsHint}</p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
                     {toolItems.map((tool) => {
                       const Icon = tool.icon;
@@ -1126,7 +1126,7 @@ export default function CourseLearningPlayerPage() {
                     })}
                   </div>
                 </div>
-                <p className="text-sm font-semibold text-violet-100">About the Module</p>
+                <h3 className="lesson-gold-heading">About the Module</h3>
                 <p className="mt-2 text-sm leading-7 text-gray-300">
                   {activeItem?.about?.trim()
                     ? activeItem.about.trim()
@@ -1136,7 +1136,7 @@ export default function CourseLearningPlayerPage() {
                   <p className="mt-2 text-sm leading-7 text-gray-300">{activeItem.description.trim()}</p>
                 ) : null}
 
-                <p className="mt-4 text-sm font-semibold text-violet-100">Learning Outcomes</p>
+                <h3 className="lesson-gold-heading mt-4">Learning Outcomes</h3>
                 <div className="mt-2 grid gap-2 md:grid-cols-2">
                   {(
                     activeItem?.learningOutcomes?.length
