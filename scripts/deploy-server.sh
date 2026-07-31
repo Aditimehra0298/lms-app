@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Production deploy for SFT LMS (run on the VPS as the app user).
+# Usage: cd /var/www/lms && bash scripts/deploy-server.sh
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+echo "==> LMS deploy from $(pwd)"
+echo "==> Branch: $(git rev-parse --abbrev-ref HEAD)"
+echo "==> Commit: $(git rev-parse --short HEAD)"
+
+if [[ ! -f .env.local ]]; then
+  echo "ERROR: .env.local missing. Aborting so production secrets are not lost."
+  exit 1
+fi
+
+echo "==> Pull latest main"
+git fetch origin main
+git pull --ff-only origin main
+
+echo "==> Apply chatbot / ticket MySQL columns (safe to re-run)"
+node scripts/apply-chatbot-schema.js
+
+echo "==> Install deps + Prisma generate + production build"
+pm2 stop lms || true
+rm -rf .next
+npm ci
+npx prisma generate
+npm run build
+
+echo "==> Start PM2"
+pm2 start ecosystem.config.cjs || pm2 restart lms
+pm2 save
+
+echo "==> Done. Live commit: $(git rev-parse --short HEAD)"
+pm2 status lms
