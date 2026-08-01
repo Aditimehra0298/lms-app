@@ -489,7 +489,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   const audienceFor = searchParams.get("for");
   const audienceLabel =
     audienceFor === "auditor"
-      ? "Auditors & Trainers"
+      ? "Auditors & Auditor-Interns"
       : audienceFor === "university"
         ? "University/College Students"
         : audienceFor === "associators"

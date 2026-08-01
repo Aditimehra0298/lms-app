@@ -24,7 +24,7 @@ import { COMPANY_DISPLAY_NAME } from "@/lib/contact-site-data";
 
 const AUDIENCE_TABS = [
   { id: "industry", label: "Industry Professionals" },
-  { id: "auditor", label: "Auditors & Trainers" },
+  { id: "auditor", label: "Auditors & Auditor-Interns" },
   { id: "university", label: "University/College Students" },
   { id: "associators", label: "Associates & Trainers" },
 ] as const;
