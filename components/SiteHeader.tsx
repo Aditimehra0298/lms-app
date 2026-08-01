@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Bell, Globe, Menu, Moon, Search, ShoppingCart, Sun, X } from "lucide-react";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
@@ -23,18 +23,27 @@ import { PricingRegionBadge } from "@/components/PricingRegionBadge";
 import { COMPANY_DISPLAY_NAME } from "@/lib/contact-site-data";
 
 const AUDIENCE_TABS = [
-  { id: "associators", label: "Associators" },
   { id: "industry", label: "Industry Professionals" },
-  { id: "university", label: "University" },
+  { id: "auditor", label: "Auditors & Trainers" },
+  { id: "university", label: "University/College Students" },
+  { id: "associators", label: "Associates & Trainers" },
 ] as const;
+
+type AudienceId = (typeof AUDIENCE_TABS)[number]["id"];
+
+const AUDIENCE_STORAGE_KEY = "sft_audience";
+
+function isAudienceId(value: string | null | undefined): value is AudienceId {
+  return AUDIENCE_TABS.some((tab) => tab.id === value);
+}
 
 function AudienceTabLabel({ label }: { label: string }) {
   return (
-    <span className="inline-flex max-w-full items-baseline gap-1.5 truncate">
-      <span className="shrink-0 font-serif text-[14px] font-bold italic lowercase tracking-wide text-amber-300">
+    <span className="inline-flex max-w-full items-baseline gap-1 truncate">
+      <span className="shrink-0 font-serif text-[12px] font-bold italic lowercase tracking-wide text-amber-300 sm:text-[13px]">
         for
       </span>
-      <span className="truncate text-[14px] font-bold tracking-tight">{label}</span>
+      <span className="truncate text-[12px] font-bold tracking-tight sm:text-[13px]">{label}</span>
     </span>
   );
 }
@@ -43,7 +52,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [activeAudience, setActiveAudience] = useState<string>("associators");
+  const [activeAudience, setActiveAudience] = useState<AudienceId>("industry");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -72,12 +81,28 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
   ] as const;
   const audienceTabs = AUDIENCE_TABS;
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isContactPage = pathname === "/contact";
   const isMyLearningArea = pathname.startsWith("/my-learning");
   const useLearnerDashboardChrome = isLoggedIn && isMyLearningArea;
   const compactHeader = isContactPage && !useLearnerDashboardChrome;
   /** After login, home highlights My Learning (not Home). */
   const highlightMyLearningNav = isLoggedIn && (pathname === "/" || isMyLearningArea);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("for");
+    if (isAudienceId(fromUrl)) {
+      setActiveAudience(fromUrl);
+      window.localStorage.setItem(AUDIENCE_STORAGE_KEY, fromUrl);
+      return;
+    }
+    if (pathname === "/") {
+      setActiveAudience("industry");
+      return;
+    }
+    const saved = window.localStorage.getItem(AUDIENCE_STORAGE_KEY);
+    if (isAudienceId(saved)) setActiveAudience(saved);
+  }, [pathname, searchParams]);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("sft_theme");
@@ -176,14 +201,14 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
   return (
     <>
       <header
-        className={`site-header sticky top-0 z-50 border-b backdrop-blur-md ${
+        className={`site-header sticky top-0 z-[100] border-b backdrop-blur-md ${
           isLight
             ? "border-[#b4965a]/45 bg-linear-to-b from-[#f8f4ec]/95 to-[#efe7da]/95 text-slate-900 shadow-[0_10px_28px_rgba(148,118,59,0.16)]"
             : "border-white/5 bg-[#0a0a0a]/90 text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
         }`}
       >
         <div
-          className={`hidden md:block ${compactHeader ? "!hidden" : ""} ${
+          className={`relative z-[110] hidden pointer-events-auto md:block ${compactHeader ? "!hidden" : ""} ${
             isLight
               ? "border-b border-[#b4965a]/40 bg-[#dccfba]"
               : "border-b border-amber-500/25 bg-[#05070c]"
@@ -192,12 +217,17 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
           <div className="mx-auto flex w-full max-w-[1760px] items-end gap-1.5 px-4 pt-2.5 xl:px-6">
             {audienceTabs.map((tab) => {
               const active = activeAudience === tab.id;
+              const href = tab.id === "industry" ? "/" : `/?for=${tab.id}`;
               return (
-                <button
+                <Link
                   key={tab.id}
-                  type="button"
-                  onClick={() => setActiveAudience(tab.id)}
-                  className={`chrome-audience-tab group relative -mb-px inline-flex min-h-11 min-w-0 max-w-[17rem] flex-1 items-center justify-center truncate px-5 pb-3 pt-2.5 outline-none transition-[background-color,color,box-shadow,transform,border-color] sm:flex-none sm:max-w-none ${
+                  href={href}
+                  scroll={pathname === "/"}
+                  onClick={() => {
+                    setActiveAudience(tab.id);
+                    window.localStorage.setItem(AUDIENCE_STORAGE_KEY, tab.id);
+                  }}
+                  className={`chrome-audience-tab group relative -mb-px inline-flex min-h-11 min-w-0 max-w-[20rem] flex-1 cursor-pointer items-center justify-center truncate px-3 pb-3 pt-2.5 outline-none transition-[background-color,color,box-shadow,transform,border-color] sm:flex-none sm:max-w-none sm:px-4 ${
                     active
                       ? isLight
                         ? "z-10 rounded-t-xl border border-b-0 border-[#b4965a]/70 bg-linear-to-b from-[#fff8ec] to-[#f8f4ec] text-[#6a4a0c] shadow-[0_-4px_18px_rgba(212,160,23,0.28)]"
@@ -242,7 +272,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
                     </>
                   ) : null}
                   <AudienceTabLabel label={tab.label} />
-                </button>
+                </Link>
               );
             })}
             <div className="min-w-4 flex-1" aria-hidden />

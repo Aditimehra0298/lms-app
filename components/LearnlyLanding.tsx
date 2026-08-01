@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultAdminContent, defaultHomePageConfig, type AdminContent, type HomePageConfig, type ManagedCategory, type ManagedCourse } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
@@ -484,6 +485,16 @@ export type LearnlyLandingInitialData = {
 };
 
 export default function LearnlyLanding({ initialData }: { initialData?: LearnlyLandingInitialData }) {
+  const searchParams = useSearchParams();
+  const audienceFor = searchParams.get("for");
+  const audienceLabel =
+    audienceFor === "auditor"
+      ? "Auditors & Trainers"
+      : audienceFor === "university"
+        ? "University/College Students"
+        : audienceFor === "associators"
+          ? "Associates & Trainers"
+          : "Industry Professionals";
   const [isLightTheme, setIsLightTheme] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
   /** Default to self-paced so the course grid loads without an extra click (still switchable). */
@@ -723,15 +734,20 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
         </>
       ) : null}
 
-      <main className="relative z-10">
+      <main className="relative z-0">
         <div className="mx-auto flex max-w-[1760px] flex-col items-center gap-12 px-4 pb-20 pt-6 md:px-6 md:pt-8 lg:flex-row lg:items-start lg:gap-6 lg:pt-10 xl:gap-8 xl:px-8">
           <div className="w-full space-y-8 pt-2 text-center lg:max-w-none lg:shrink-0 lg:basis-[48%] lg:text-left xl:basis-[47%]">
             {isLightTheme ? (
               <span className="lh-premium-badge inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-amber-500">
                 <Sparkles size={14} className="text-amber-500" />
-                Premium accredited learning
+                For {audienceLabel}
               </span>
-            ) : null}
+            ) : (
+              <span className="lh-premium-badge inline-flex items-center gap-2 rounded-full border border-amber-400/35 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-amber-200">
+                <Sparkles size={14} className="text-amber-300" />
+                For {audienceLabel}
+              </span>
+            )}
             <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight text-white md:text-5xl lg:text-6xl">
               {homeConfig.hero.heading}
               <br />

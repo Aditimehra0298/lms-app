@@ -894,7 +894,9 @@ export default function MyLearningPage() {
                   )}
                 </p>
                 <p className="mt-1 text-sm text-amber-200">{formatDashboardDate(dashboardNow)}</p>
-                <h2 className="mt-3 text-2xl font-bold">Welcome to SF Trainings</h2>
+                <h2 className="mt-3 text-2xl font-bold">
+                  Welcome to <span className="sf-trainings-green">SF Trainings</span>
+                </h2>
                 <p className="mt-1 text-sm text-gray-300">
                   Elevate your professional skills with industry-led courses.
                 </p>

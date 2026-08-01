@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
@@ -27,9 +27,11 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
 
   return (
     <PricingProvider>
-      <SiteHeader forceDarkChrome={tutorLedMarketing} />
+      <Suspense fallback={<div className="h-[7.5rem] border-b border-white/5 bg-[#0a0a0a]" aria-hidden />}>
+        <SiteHeader forceDarkChrome={tutorLedMarketing} />
+      </Suspense>
       <div
-        className={`relative z-10 flex w-full min-w-0 flex-col${
+        className={`relative z-0 flex w-full min-w-0 flex-col${
           compactMainChrome ? " shrink-0" : " flex-1"
         }${tutorLedMarketing ? " bg-black text-white" : ""}`}
       >

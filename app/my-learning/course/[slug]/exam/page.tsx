@@ -703,7 +703,7 @@ function CourseExamPageInner() {
 
           <div className="space-y-3">
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
-              <h1 className="text-2xl font-bold md:text-3xl">{examRuntime.title}</h1>
+              <h1 className="text-2xl font-bold capitalize md:text-3xl">{examRuntime.title}</h1>
               {questionsError ? (
                 <p className="mt-2 rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
                   {questionsError}
@@ -728,16 +728,6 @@ function CourseExamPageInner() {
                   </span>
                 )}
               </div>
-              {examRuntime.materialsUrl ? (
-                <a
-                  href={examRuntime.materialsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex items-center gap-2 text-sm text-violet-300 underline hover:text-violet-200"
-                >
-                  <FileText size={16} /> Download exam materials
-                </a>
-              ) : null}
             </article>
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-4">

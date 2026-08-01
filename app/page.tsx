@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import LearnlyLanding from "@/components/LearnlyLanding";
 import { getManagedCourses } from "@/lib/server/course-catalog";
 import { readAdminContent } from "@/lib/server/content-store";
@@ -15,13 +16,15 @@ export default async function Page() {
   ]);
 
   return (
-    <LearnlyLanding
-      initialData={{
-        homeConfig,
-        categories: content.categories.filter((category) => category.isActive),
-        courses,
-        tutorLedPrograms,
-      }}
-    />
+    <Suspense fallback={<div className="min-h-screen bg-[#05070f]" aria-hidden />}>
+      <LearnlyLanding
+        initialData={{
+          homeConfig,
+          categories: content.categories.filter((category) => category.isActive),
+          courses,
+          tutorLedPrograms,
+        }}
+      />
+    </Suspense>
   );
 }
