@@ -356,6 +356,16 @@ export async function listCertificatesForEmail(email: string): Promise<IssuedCer
   return Promise.all(rows.map((r) => enrichCertificate(serializeCertificate(r))));
 }
 
+function maskEmailForPublic(email: string): string {
+  const trimmed = email.trim().toLowerCase();
+  const at = trimmed.indexOf("@");
+  if (at <= 0) return "***";
+  const local = trimmed.slice(0, at);
+  const domain = trimmed.slice(at + 1);
+  const visible = local.slice(0, Math.min(2, local.length));
+  return `${visible}***@${domain}`;
+}
+
 async function toPublishedCertificate(
   row: {
     id: string;
@@ -379,13 +389,24 @@ async function toPublishedCertificate(
     pdfUrl: string | null;
     issuedVia: string;
   } | null,
+  opts?: { forPublicVerify?: boolean },
 ): Promise<IssuedCertificateDto | null> {
-  if (!row || row.status !== "ready" || !row.visibleToLearner) return null;
+  if (!row || row.status !== "ready") return null;
+  // Dashboard list still requires visibility; public verify accepts any ready certificate.
+  if (!opts?.forPublicVerify && !row.visibleToLearner) return null;
   const cert = await enrichCertificate(serializeCertificate(row));
   const pdfReady = await isValidArchivedCertificatePdf(row.id, {
     minBytes: row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128,
   });
   const pdfUrl = await resolveStoredCertificatePdfUrl(row.id, row.pdfUrl);
+  if (opts?.forPublicVerify) {
+    return {
+      ...cert,
+      pdfReady,
+      pdfUrl,
+      learnerEmail: maskEmailForPublic(cert.learnerEmail),
+    };
+  }
   return { ...cert, pdfReady, pdfUrl };
 }
 
@@ -406,7 +427,7 @@ export async function verifyCertificateNumber(
   const row = await prisma.lmsCertificate.findUnique({
     where: { certificateNumber: certificateNumber.trim() },
   });
-  return toPublishedCertificate(row);
+  return toPublishedCertificate(row, { forPublicVerify: true });
 }
 
 export async function verifyCertificateByDelegate(
@@ -415,32 +436,78 @@ export async function verifyCertificateByDelegate(
   const row = await prisma.lmsCertificate.findUnique({
     where: { delegateNumber: delegateNumber.trim() },
   });
-  return toPublishedCertificate(row);
+  return toPublishedCertificate(row, { forPublicVerify: true });
 }
 
 export async function verifyCertificateById(id: string): Promise<IssuedCertificateDto | null> {
   const row = await prisma.lmsCertificate.findUnique({ where: { id: id.trim() } });
-  return toPublishedCertificate(row);
+  return toPublishedCertificate(row, { forPublicVerify: true });
 }
 
 export async function verifyCertificateLookup(input: {
   number?: string;
   delegate?: string;
   id?: string;
+  q?: string;
+  /** When set, certificate must belong to this learner email. */
+  email?: string;
 }): Promise<IssuedCertificateDto | null> {
+  const requireEmail = Boolean(input.email?.trim());
+  const email = input.email?.trim().toLowerCase();
+  if (requireEmail && (!email || !email.includes("@"))) return null;
+
+  let cert: IssuedCertificateDto | null = null;
+
   const id = input.id?.trim();
   if (id) {
-    const byId = await verifyCertificateById(id);
-    if (byId) return byId;
+    cert = await verifyCertificateById(id);
   }
-  const delegate = input.delegate?.trim();
-  if (delegate) {
-    const byDelegate = await verifyCertificateByDelegate(delegate);
-    if (byDelegate) return byDelegate;
+
+  if (!cert) {
+    const delegate = input.delegate?.trim();
+    if (delegate) {
+      cert = await verifyCertificateByDelegate(delegate);
+    }
   }
-  const number = input.number?.trim();
-  if (number) return verifyCertificateNumber(number);
-  return null;
+
+  if (!cert) {
+    const number = input.number?.trim();
+    if (number) {
+      cert = await verifyCertificateNumber(number);
+    }
+  }
+
+  if (!cert) {
+    const q = input.q?.trim();
+    if (q) {
+      if (/^\d{4}-\d+-\d+(-org)?$/i.test(q)) {
+        cert = await verifyCertificateByDelegate(q);
+      }
+      if (!cert) cert = await verifyCertificateNumber(q);
+      if (!cert) cert = await verifyCertificateByDelegate(q);
+    }
+  }
+
+  if (!cert) return null;
+
+  if (!requireEmail || !email) return cert;
+
+  const row =
+    (cert.delegateNumber
+      ? await prisma.lmsCertificate.findUnique({
+          where: { delegateNumber: cert.delegateNumber },
+          select: { learnerEmail: true, status: true },
+        })
+      : null) ??
+    (await prisma.lmsCertificate.findUnique({
+      where: { certificateNumber: cert.certificateNumber },
+      select: { learnerEmail: true, status: true },
+    }));
+
+  if (!row || row.status !== "ready") return null;
+  if (row.learnerEmail.trim().toLowerCase() !== email) return null;
+
+  return cert;
 }
 
 /** Resolve a published certificate row for public PDF streaming. */

@@ -139,6 +139,7 @@ export default function SiteFooter({ forceDarkChrome = false }: { forceDarkChrom
               <ul className={`mt-4 space-y-2 text-sm ${textTone}`}>
                 {[
                   { label: "Contact Us", href: "/contact" },
+                  { label: "Verify Certificate", href: "/certificates/verify" },
                   { label: "Help Center", href: "/contact" },
                   { label: "FAQs", href: "/faq" },
                   { label: "Testimonials", href: "/testimonials" },

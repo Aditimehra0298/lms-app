@@ -19,6 +19,7 @@ export const SFT_SOCIAL = {
 export const SFT_QUICK_LINKS = [
   { label: "About Us", href: "/about" },
   { label: "Our Courses", href: "/courses" },
+  { label: "Verify Certificate", href: "/certificates/verify" },
   { label: "Accreditations", href: "/about" },
   { label: "Candidate Register", href: "/account?mode=signup" },
   { label: "Contact Us", href: "/contact" },

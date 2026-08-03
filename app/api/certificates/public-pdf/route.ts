@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   }
 
   const row = await resolvePublicCertificateRow({ delegate, number });
-  if (!row || row.status !== "ready" || !row.visibleToLearner) {
+  if (!row || row.status !== "ready") {
     return NextResponse.json({ ok: false, message: "Certificate not found" }, { status: 404 });
   }
 
