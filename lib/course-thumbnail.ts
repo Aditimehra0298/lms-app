@@ -20,13 +20,17 @@ type ThumbSource = {
     backgroundImage?: string | null;
     certificatePreviewImage?: string | null;
   } | null;
+  certificateConfig?: {
+    templateImage?: string | null;
+    badgeImage?: string | null;
+  } | null;
   slug?: string | null;
   title?: string | null;
 };
 
 /**
  * My Learning / catalog card thumbnail for one course.
- * Prefer that course's own cover or hero art — never reuse the shared food-safety placeholder.
+ * Prefer that course's own cover, hero, or certificate art — never the shared food-safety placeholder.
  */
 export function resolveCourseListThumbnail(course: ThumbSource | null | undefined): string {
   if (!course) return "";
@@ -35,6 +39,8 @@ export function resolveCourseListThumbnail(course: ThumbSource | null | undefine
     course.hero?.previewImage,
     course.hero?.backgroundImage,
     course.hero?.certificatePreviewImage,
+    course.certificateConfig?.badgeImage,
+    course.certificateConfig?.templateImage,
   ];
   for (const raw of candidates) {
     const s = (raw ?? "").trim();

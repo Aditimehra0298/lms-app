@@ -26,13 +26,20 @@ export function curriculumItemHasLearnerContent(item: CourseCurriculumItem): boo
   return false;
 }
 
+/**
+ * Module should appear for learners when admin saved it in the curriculum editor.
+ * Previously we hid modules until media was uploaded — that made “22 modules” show as “4”.
+ */
 export function curriculumModuleHasLearnerContent(mod: CourseCurriculumModule): boolean {
+  const title = typeof mod.title === "string" ? mod.title.trim() : "";
+  if (title) return true;
   const items = curriculumItems(mod);
   if (items.length === 0) return false;
+  if (items.some((i) => (i.label ?? "").trim())) return true;
   return items.some(curriculumItemHasLearnerContent);
 }
 
-/** Learner UI + progress: only modules that exist in admin with real content. */
+/** Learner UI + progress: every admin-saved module (title or lesson rows). */
 export function curriculumModulesForLearner(
   modules: CourseCurriculumModule[] | null | undefined,
 ): CourseCurriculumModule[] {
@@ -45,4 +52,11 @@ export function countLearnerCurriculumModules(
   curriculum?: CourseCurriculumModule[] | null,
 ): number {
   return curriculumModulesForLearner(curriculum).length;
+}
+
+/** Raw admin module count (no filtering) — useful for admin stats. */
+export function countCurriculumModulesRaw(
+  curriculum?: CourseCurriculumModule[] | null,
+): number {
+  return Array.isArray(curriculum) ? curriculum.length : 0;
 }

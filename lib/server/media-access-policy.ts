@@ -37,8 +37,11 @@ async function isPublishedCatalogImage(courseSlug: string, fileName: string): Pr
       course.hero?.previewImage,
       course.hero?.certificatePreviewImage,
       course.instructorSection?.teamImage,
+      course.certificateConfig?.templateImage,
+      course.certificateConfig?.badgeImage,
+      course.certificateConfig?.transcriptFile,
     ];
-    return refs.some((ref) => ref?.includes(fileName));
+    return refs.some((ref) => typeof ref === "string" && ref.includes(fileName));
   } catch {
     return false;
   }

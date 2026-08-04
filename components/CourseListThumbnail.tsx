@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { isProtectedMediaUrl, resolveProtectedMediaUrl } from "@/lib/media-client";
 import { isGenericCoursePlaceholder } from "@/lib/course-thumbnail";
+import { getLearnerEmail } from "@/lib/learner-session-client";
 
 type Props = {
   image?: string | null;
@@ -36,12 +37,24 @@ export function CourseListThumbnail({ image, title, courseSlug, className }: Pro
       return;
     }
     setSrc("");
-    void resolveProtectedMediaUrl(next, {
-      courseSlug: courseSlug?.trim() || undefined,
-      scope: courseSlug?.trim() ? "learner" : "catalog",
-    }).then((resolved) => {
-      if (!cancelled) setSrc(resolved || "");
-    });
+    const slug = courseSlug?.trim() || undefined;
+    const email = getLearnerEmail()?.trim();
+    void (async () => {
+      const primary = await resolveProtectedMediaUrl(next, {
+        courseSlug: slug,
+        scope: email && slug ? "learner" : "catalog",
+      });
+      if (cancelled) return;
+      if (primary && primary !== next && primary.includes("?t=")) {
+        setSrc(primary);
+        return;
+      }
+      const fallback = await resolveProtectedMediaUrl(next, {
+        courseSlug: slug,
+        scope: "catalog",
+      });
+      if (!cancelled) setSrc(fallback || primary || "");
+    })();
     return () => {
       cancelled = true;
     };
