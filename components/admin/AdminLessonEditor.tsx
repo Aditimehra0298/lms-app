@@ -61,9 +61,10 @@ function labelToKind(label: string): CourseCurriculumKind {
   return "reading";
 }
 
-async function uploadAdminFile(file: File): Promise<string> {
+async function uploadAdminFile(file: File, courseSlug?: string): Promise<string> {
   const fd = new FormData();
   fd.append("file", file);
+  if (courseSlug?.trim()) fd.append("courseSlug", courseSlug.trim());
   const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
   const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
   if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
@@ -76,6 +77,8 @@ type Props = {
   onPatch: (patch: LessonRowPatch) => void;
   onSave: () => void | Promise<void>;
   saving?: boolean;
+  /** Links uploaded videos/files to this course in MySQL for later recovery. */
+  courseSlug?: string;
 };
 
 export default function AdminLessonEditor({
@@ -84,6 +87,7 @@ export default function AdminLessonEditor({
   onPatch,
   onSave,
   saving = false,
+  courseSlug,
 }: Props) {
   const [videoSource, setVideoSource] = useState<"upload" | "url">("upload");
   const [documentSource, setDocumentSource] = useState<"upload" | "url">("upload");
@@ -223,7 +227,7 @@ export default function AdminLessonEditor({
                     });
                     setUploadingVideo(true);
                     try {
-                      const url = await uploadAdminFile(f);
+                      const url = await uploadAdminFile(f, courseSlug);
                       onPatch({
                         videoUrl: url,
                         lessonVideoSizeMb: Number((f.size / (1024 * 1024)).toFixed(1)),
@@ -350,7 +354,7 @@ export default function AdminLessonEditor({
                     if (!f) return;
                     setUploadingDocument(true);
                     try {
-                      const url = await uploadAdminFile(f);
+                      const url = await uploadAdminFile(f, courseSlug);
                       setDocumentUrl(url);
                     } finally {
                       setUploadingDocument(false);
@@ -480,7 +484,7 @@ export default function AdminLessonEditor({
                       setUploadingExam(true);
                       setUploadError(null);
                       try {
-                        const url = await uploadAdminFile(f);
+                        const url = await uploadAdminFile(f, courseSlug);
                         onPatch({ examUploadUrl: url });
                       } catch (err) {
                         setUploadError(

@@ -45,6 +45,7 @@ export const N8N_CERTIFICATE_TEMPLATE_BY_SLUG: Record<string, N8nCertificateCour
   "fssc-22000-v6-food-fraud-mitigation-auditing":
     "Advanced Food Fraud Mitigation and Auditing FSSC 220002018 VERSION 6",
   "carbon-trading-reporting": "Carbon Trading & Reporting",
+  "essentials-of-carbon-trading-and-reporting": "Carbon Trading & Reporting",
   "cyber-security-phishing-awareness-training": "Cybersecurity awareness phishness",
   cybersecurity: "Cybersecurity awareness phishness",
   "diploma-cybersecurity-ethical-hacking-foundations":

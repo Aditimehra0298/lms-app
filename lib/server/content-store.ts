@@ -185,6 +185,31 @@ export async function writeAdminContent(content: AdminContent): Promise<void> {
         ? content.categoryPages
         : {},
   };
+
+  // Keep rolling backups before overwrite so accidental curriculum wipes can be restored.
+  try {
+    const prev = await fs.readFile(contentFilePath, "utf8");
+    if (prev.trimStart().startsWith("{") && prev.length > 50) {
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const bakPath = `${contentFilePath}.bak`;
+      const stamped = `${contentFilePath}.bak.${stamp}`;
+      await fs.writeFile(bakPath, prev, "utf8");
+      await fs.writeFile(stamped, prev, "utf8").catch(() => undefined);
+      const dir = path.dirname(contentFilePath);
+      const base = path.basename(contentFilePath);
+      const entries = await fs.readdir(dir);
+      const stampedBaks = entries
+        .filter((n) => n.startsWith(`${base}.bak.`) && n !== `${base}.bak`)
+        .sort()
+        .reverse();
+      for (const old of stampedBaks.slice(20)) {
+        await fs.unlink(path.join(dir, old)).catch(() => undefined);
+      }
+    }
+  } catch {
+    // First write / missing file — no prior snapshot.
+  }
+
   const payload = JSON.stringify(normalized, null, 2);
   const tmp = `${contentFilePath}.tmp`;
   await fs.writeFile(tmp, payload, "utf8");

@@ -7,6 +7,7 @@ import { readAdminContentFromDisk, writeAdminContent, normalizeManagedCategories
 
 /** Always read fresh JSON from disk — marketing/admin UIs must not serve a stale cached payload. */
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 const noStoreJson = { "Cache-Control": "private, no-store, max-age=0" };
 
@@ -14,6 +15,23 @@ const noStoreJson = { "Cache-Control": "private, no-store, max-age=0" };
  * Protect course modules: a Course-tab save that omits/empties curriculum must not
  * erase modules previously saved from the Content tab.
  */
+function curriculumMediaScore(mods?: ManagedCourse["curriculum"]): number {
+  if (!Array.isArray(mods) || mods.length === 0) return 0;
+  let media = 0;
+  for (const m of mods) {
+    const rows = [
+      ...(m.items ?? []),
+      ...((m.subModules ?? []).flatMap((s) => s.items ?? [])),
+    ];
+    for (const item of rows) {
+      if (item.videoUrl || item.examUploadUrl || item.pdfUrl || item.downloadUrl || item.pptUrl) {
+        media += 1;
+      }
+    }
+  }
+  return mods.length * 1000 + media;
+}
+
 function mergeManagedCoursesPreservingCurriculum(
   existing: ManagedCourse[],
   incoming: ManagedCourse[],
@@ -28,6 +46,12 @@ function mergeManagedCoursesPreservingCurriculum(
     if (!prev) return course;
     // Only when curriculum key is omitted (stale Course-tab payloads). Explicit [] clears.
     if (course.curriculum === undefined && Array.isArray(prev.curriculum) && prev.curriculum.length > 0) {
+      return { ...course, curriculum: prev.curriculum };
+    }
+    // Guard: never replace a richer curriculum (more modules/videos) with a poorer stale payload.
+    const inScore = curriculumMediaScore(course.curriculum);
+    const prevScore = curriculumMediaScore(prev.curriculum);
+    if (prevScore > 0 && inScore < prevScore && (course.curriculum?.length ?? 0) < (prev.curriculum?.length ?? 0)) {
       return { ...course, curriculum: prev.curriculum };
     }
     return course;

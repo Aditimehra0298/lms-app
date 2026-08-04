@@ -2,6 +2,15 @@ import type { ManagedCourse } from "@/lib/content-schema";
 import { prisma } from "@/lib/prisma";
 import { ensureCourseInMysql } from "@/lib/server/course-mysql-sync";
 
+/** Allow large curriculum JSON (many modules + video URLs) in one upsert. */
+async function ensureLargeMysqlPacket(): Promise<void> {
+  try {
+    await prisma.$executeRawUnsafe("SET SESSION max_allowed_packet = 67108864"); // 64 MB
+  } catch {
+    // Host may not allow SESSION max_allowed_packet — continue with server default.
+  }
+}
+
 /** Upsert full course content (curriculum, hero, URLs) into MySQL. */
 export async function syncCourseContentToMysql(
   course: ManagedCourse,
@@ -11,6 +20,8 @@ export async function syncCourseContentToMysql(
 
   const row = await ensureCourseInMysql(course);
   if (!row) return null;
+
+  await ensureLargeMysqlPacket();
 
   await prisma.lmsCourseContent.upsert({
     where: { courseSlug: slug },
@@ -32,6 +43,7 @@ export async function syncCourseContentToMysql(
 export async function syncAllCourseContentToMysql(
   courses: ManagedCourse[],
 ): Promise<{ synced: number }> {
+  await ensureLargeMysqlPacket();
   let synced = 0;
   for (const c of courses) {
     const result = await syncCourseContentToMysql(c);

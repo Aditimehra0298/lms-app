@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -310,6 +318,11 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
   const [expandedModuleIdx, setExpandedModuleIdx] = useState(0);
   const [selectedLesson, setSelectedLesson] = useState<LessonSelection | null>(null);
   const [finalExamDraft] = useState<CourseFinalExam>({});
+  /** Only hydrate modules when switching courses — not on every content refresh (that wiped unsaved videos). */
+  const curriculumHydratedSlugRef = useRef<string | null>(null);
+  const modulesRef = useRef<CourseCurriculumModule[]>([]);
+  const curriculumSaveChainRef = useRef<Promise<void>>(Promise.resolve());
+  modulesRef.current = modules;
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -356,6 +369,41 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       window.clearTimeout(timeoutId);
     }
   }, []);
+
+  /** One-course curriculum save → JSON + MySQL (does not re-PUT the whole catalog). */
+  const putCourseCurriculum = useCallback(
+    async (slug: string, curriculum: CourseCurriculumModule[], duration?: string) => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 180_000);
+      try {
+        const put = await fetch("/api/admin/course-curriculum", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug, curriculum, ...(duration ? { duration } : {}) }),
+          signal: controller.signal,
+        });
+        const body = (await put.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error?: string;
+          mysqlOk?: boolean;
+          mysqlError?: string;
+          moduleCount?: number;
+        };
+        if (!put.ok || !body.ok) {
+          throw new Error(body.error ?? `Curriculum save failed (${put.status})`);
+        }
+        return body;
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") {
+          throw new Error("Curriculum save timed out. Try again.");
+        }
+        throw e;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     void load();
@@ -494,6 +542,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
   const uploadAdminFile = async (file: File): Promise<string> => {
     const fd = new FormData();
     fd.append("file", file);
+    if (selectedCourse?.slug) fd.append("courseSlug", selectedCourse.slug);
     const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
     const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
     if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
@@ -543,13 +592,18 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
   }, [selectedSlug]);
 
   useEffect(() => {
-    if (!content || !selectedSlug || isCreating) {
+    if (!selectedSlug || isCreating) {
+      curriculumHydratedSlugRef.current = null;
       setModules([]);
       setSelectedLesson(null);
       return;
     }
+    if (!content) return;
+    // Do not reset modules when content refreshes after save — that dropped unsaved video URLs.
+    if (curriculumHydratedSlugRef.current === selectedSlug) return;
     const c = (content.managedCourses ?? []).find((x) => x.slug === selectedSlug && isSelfPaced(x));
     if (!c) return;
+    curriculumHydratedSlugRef.current = selectedSlug;
     setModules(cloneMods(getAdminCurriculumForCourse(c.curriculum)));
   }, [selectedSlug, content, isCreating]);
 
@@ -592,6 +646,47 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     setIsCreating(false);
   }, [workspaceTab, selectedCourse?.slug, isCreating, editingSlug]);
 
+  const applyCurriculumLocal = (
+    slug: string,
+    nextModules: CourseCurriculumModule[],
+    courses: ManagedCourse[],
+  ) => {
+    const base = courses.find((c) => c.slug === slug) ?? selectedCourse;
+    if (!base) return;
+    const updated: ManagedCourse = {
+      ...base,
+      curriculum: cloneMods(nextModules),
+      finalExam: undefined,
+    };
+    const nextCourses = courses.map((c) => (c.slug === slug ? updated : c));
+    if (!nextCourses.some((c) => c.slug === slug)) nextCourses.push(updated);
+    setContent((prev) => (prev ? { ...prev, managedCourses: nextCourses } : prev));
+    setDraft((d) => (d.slug === slug ? { ...d, curriculum: cloneMods(nextModules) } : d));
+  };
+
+  const durationLabelFromModules = (mods: CourseCurriculumModule[]) => {
+    let lessons = 0;
+    let explicitMinutes = 0;
+    let estimatedMinutes = 0;
+    const countItem = (it: CourseCurriculumItem) => {
+      lessons += 1;
+      const minutes =
+        typeof it.lessonDurationMinutes === "number" ? Math.max(0, Math.round(it.lessonDurationMinutes)) : 0;
+      if (minutes > 0) explicitMinutes += minutes;
+      else if (it.kind === "video") estimatedMinutes += 15;
+    };
+    for (const m of mods) {
+      for (const it of m.items) countItem(it);
+      for (const sm of m.subModules ?? []) {
+        for (const it of sm.items) countItem(it);
+      }
+    }
+    const estMinutes = Math.max(explicitMinutes + estimatedMinutes, lessons > 0 ? 15 : 0);
+    const h = Math.floor(estMinutes / 60);
+    const min = estMinutes % 60;
+    return lessons === 0 ? "—" : h > 0 ? `${h}h ${String(min).padStart(2, "0")}m` : `${min}m`;
+  };
+
   const saveCurriculumOnly = async () => {
     if (!content) {
       setLoadError("Admin content is still loading. Wait a moment and try again.");
@@ -605,18 +700,16 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     setLoadError(null);
     setSaveNotice(null);
     try {
-      const updated: ManagedCourse = {
-        ...selectedCourse,
-        curriculum: cloneMods(modules),
-        finalExam: undefined,
-      };
-      const others = (content.managedCourses ?? []).filter((c) => c.slug !== updated.slug);
-      const nextCourses = [...others, updated];
-      await putAdminContent({ managedCourses: nextCourses });
-      setContent({ ...content, managedCourses: nextCourses });
-      setDraft((d) => (d.slug === updated.slug ? { ...d, curriculum: cloneMods(modules) } : d));
-      setSaveNotice("Curriculum saved.");
-      void load();
+      const curriculum = cloneMods(modulesRef.current);
+      const duration = durationLabelFromModules(curriculum);
+      const result = await putCourseCurriculum(selectedCourse.slug, curriculum, duration);
+      applyCurriculumLocal(selectedCourse.slug, curriculum, content.managedCourses ?? []);
+      setDraft((d) => (d.slug === selectedCourse.slug ? { ...d, curriculum, duration } : d));
+      const mysqlNote =
+        result.mysqlOk === false
+          ? ` JSON saved (${result.moduleCount ?? curriculum.length} modules). MySQL sync pending: ${result.mysqlError ?? "check DB"}.`
+          : ` Saved to catalog + database (${result.moduleCount ?? curriculum.length} modules).`;
+      setSaveNotice(`Curriculum saved.${mysqlNote}`);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Curriculum save failed.");
     } finally {
@@ -624,25 +717,104 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     }
   };
 
-  const persistCurriculumSnapshot = async (nextModules: CourseCurriculumModule[]) => {
+  const persistCurriculumSnapshot = async (
+    nextModules: CourseCurriculumModule[],
+    notice = "Curriculum auto-saved (media linked).",
+  ) => {
     if (!content || !selectedCourse || isCreating) return;
+    modulesRef.current = nextModules;
+    const slug = selectedCourse.slug;
     setSavingCurriculum(true);
     setLoadError(null);
+
+    const run = async () => {
+      const curriculum = cloneMods(modulesRef.current);
+      const duration = durationLabelFromModules(curriculum);
+      const result = await putCourseCurriculum(slug, curriculum, duration);
+      setContent((prev) => {
+        if (!prev) return prev;
+        const base = (prev.managedCourses ?? []).find((c) => c.slug === slug);
+        if (!base) return prev;
+        const updated: ManagedCourse = {
+          ...base,
+          curriculum: cloneMods(curriculum),
+          duration,
+          finalExam: undefined,
+        };
+        return {
+          ...prev,
+          managedCourses: (prev.managedCourses ?? []).map((c) => (c.slug === slug ? updated : c)),
+        };
+      });
+      setDraft((d) => (d.slug === slug ? { ...d, curriculum: cloneMods(curriculum), duration } : d));
+      const mysqlHint =
+        result.mysqlOk === false ? ` (MySQL: ${result.mysqlError ?? "sync failed"})` : "";
+      setSaveNotice(`${notice} · ${curriculum.length} modules${mysqlHint}`);
+    };
+
+    const queued = curriculumSaveChainRef.current
+      .then(run)
+      .catch((e) => {
+        setLoadError(e instanceof Error ? e.message : "Curriculum save failed.");
+      })
+      .finally(() => {
+        setSavingCurriculum(false);
+      });
+    curriculumSaveChainRef.current = queued.then(
+      () => undefined,
+      () => undefined,
+    );
+    await queued;
+  };
+
+  const recoverVideosFromDatabase = async () => {
+    if (!selectedCourse || isCreating) {
+      setLoadError("Select a saved course first.");
+      return;
+    }
+    setSavingCurriculum(true);
+    setLoadError(null);
+    setSaveNotice(null);
     try {
-      const updated: ManagedCourse = {
-        ...selectedCourse,
-        curriculum: cloneMods(nextModules),
-        finalExam: undefined,
+      const { getLearnerEmail } = await import("@/lib/learner-session-client");
+      const email = getLearnerEmail();
+      const res = await fetch("/api/admin/course-curriculum/restore-from-media", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(email ? { "x-admin-email": email } : {}),
+        },
+        body: JSON.stringify({
+          slug: selectedCourse.slug,
+          includeOrphans: true,
+        }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        added?: number;
+        moduleCount?: number;
+        message?: string;
+        restored?: boolean;
       };
-      const others = (content.managedCourses ?? []).filter((c) => c.slug !== updated.slug);
-      const nextCourses = [...others, updated];
-      await putAdminContent({ managedCourses: nextCourses });
-      setContent({ ...content, managedCourses: nextCourses });
-      setDraft((d) => (d.slug === updated.slug ? { ...d, curriculum: cloneMods(nextModules) } : d));
-      setSaveNotice("Curriculum saved (exam file linked).");
-      void load();
+      if (!res.ok || !body.ok) {
+        throw new Error(body.error ?? `Recover failed (${res.status})`);
+      }
+      if (!body.restored || !(body.added && body.added > 0)) {
+        setSaveNotice(
+          body.message ??
+            "No extra videos found in the database for this course. New uploads will be recoverable going forward.",
+        );
+        return;
+      }
+      // Reload modules from server content
+      curriculumHydratedSlugRef.current = null;
+      await load();
+      setSaveNotice(
+        `Recovered ${body.added} video(s) from database → ${body.moduleCount} modules total. Review titles, then Save curriculum.`,
+      );
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Curriculum save failed.");
+      setLoadError(e instanceof Error ? e.message : "Video recover failed.");
     } finally {
       setSavingCurriculum(false);
     }
@@ -663,6 +835,27 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     ]);
     setExpandedModuleIdx(mi);
     setSelectedLesson({ scope: "module", mi, ri: 0 });
+  };
+
+  const addModulesBulk = (count: number) => {
+    const n = Math.max(1, Math.min(50, Math.floor(count)));
+    setModules((prev) => {
+      const next = [...prev];
+      for (let i = 0; i < n; i++) {
+        next.push({
+          title: `New module ${prev.length + i + 1}`,
+          items: [
+            { label: "Video — Lesson overview", kind: "video" as const },
+            { label: "Reading — Supporting material", kind: "reading" as const },
+            { label: "Module examination", kind: "exam" as const },
+          ],
+        });
+      }
+      return next;
+    });
+    setSaveNotice(
+      `Added ${n} modules (${modules.length + n} total). Click Save curriculum when titles/videos are ready.`,
+    );
   };
 
   const removeModule = (idx: number) => {
@@ -710,7 +903,17 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       nextModules = patchLessonRow(prev, sel, patch);
       return nextModules;
     });
-    if (patch.examUploadUrl?.trim()) {
+    // Uploaded media must hit disk/DB immediately — waiting for "Save curriculum" lost videos.
+    const mediaKeys: (keyof RowPatch)[] = [
+      "videoUrl",
+      "examUploadUrl",
+      "pdfUrl",
+      "pptUrl",
+      "podcastUrl",
+      "downloadUrl",
+      "resourceUrl",
+    ];
+    if (mediaKeys.some((k) => k in patch)) {
       void persistCurriculumSnapshot(nextModules);
     }
   };
@@ -1952,6 +2155,15 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                   </Link>
                   <button
                     type="button"
+                    onClick={() => void recoverVideosFromDatabase()}
+                    disabled={savingCurriculum}
+                    className="rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-50"
+                    title="Re-attach videos stored in MySQL that are missing from this curriculum"
+                  >
+                    Recover videos from DB
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => void saveCurriculumOnly()}
                     disabled={savingCurriculum}
                     className="inline-flex items-center gap-1 rounded-lg bg-[#6f55ff] px-4 py-2 text-xs font-semibold text-white shadow-[0_0_20px_rgba(111,85,255,0.35)] hover:bg-[#7d63ff] disabled:opacity-50"
@@ -1980,7 +2192,8 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                     </h3>
                     <p className="mt-1 max-w-3xl text-xs leading-relaxed text-gray-500">
                       Course structure, lessons, sub-modules, and <strong className="font-medium text-gray-400">per-module</strong>{" "}
-                      quizzes. Everything here is saved as the course curriculum.
+                      quizzes. <b>No module count limit</b> — add as many as you need ({modules.length} now).
+                      Videos auto-save when uploaded. Use <b>Save curriculum</b> after adding/renaming modules.
                     </p>
                   </div>
                 </header>
@@ -1989,15 +2202,28 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                   <div className="grid gap-4 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
                 {/* Left — Course structure */}
                 <div className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-white">Module tree</h3>
-                    <button
-                      type="button"
-                      onClick={addModule}
-                      className="inline-flex items-center gap-1 rounded-lg border border-violet-500/40 bg-violet-500/15 px-2 py-1 text-[11px] font-semibold text-violet-200 hover:bg-violet-500/25"
-                    >
-                      <Plus className="h-3 w-3" /> Add Module
-                    </button>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-white">
+                      Module tree{" "}
+                      <span className="font-normal text-gray-500">({modules.length} modules)</span>
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => addModulesBulk(10)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-[11px] font-semibold text-gray-200 hover:bg-white/10"
+                        title="Add 10 empty modules"
+                      >
+                        <Plus className="h-3 w-3" /> +10
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addModule}
+                        className="inline-flex items-center gap-1 rounded-lg border border-violet-500/40 bg-violet-500/15 px-2 py-1 text-[11px] font-semibold text-violet-200 hover:bg-violet-500/25"
+                      >
+                        <Plus className="h-3 w-3" /> Add Module
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1">
                     {modules.map((mod, mi) => {
@@ -2285,7 +2511,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                     onClick={addModule}
                     className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-white/15 py-2 text-[11px] text-gray-400 hover:border-violet-500/40 hover:text-violet-200"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Add New Module
+                    <Plus className="h-3.5 w-3.5" /> Add New Module ({modules.length} so far)
                   </button>
                 </div>
 
@@ -2298,6 +2524,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                       onPatch={(patch) => updateRow(selectedLesson, patch)}
                       onSave={() => void saveCurriculumOnly()}
                       saving={savingCurriculum}
+                      courseSlug={selectedCourse?.slug}
                     />
                   ) : (
                     <div className="flex min-h-[280px] flex-col items-center justify-center text-center text-sm text-gray-500">
