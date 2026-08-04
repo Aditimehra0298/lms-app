@@ -123,7 +123,8 @@ const emptyDraft = (): ManagedCourse => ({
   learners: "0",
   price: "$49.00",
   oldPrice: "$79.00",
-  image: "/course-food-safety.png",
+  // Empty until admin uploads a real cover — avoids every new course sharing /course-food-safety.png
+  image: "",
   published: true,
   learningFormat: "self-paced",
   instructorName: "",

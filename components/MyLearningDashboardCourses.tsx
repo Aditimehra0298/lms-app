@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -16,6 +15,8 @@ import type { ManagedCourse } from "@/lib/content-schema";
 import type { PurchasedCourseRow } from "@/lib/learner-course-progress";
 import type { TutorLedExploreCard, TutorLedLiveHubRow } from "@/lib/tutor-led-live-hub-enrich";
 import { liveTutorCourseHref, tutorLedLearnerLiveJoinHref } from "@/lib/tutor-led-routes";
+import { CourseListThumbnail } from "@/components/CourseListThumbnail";
+import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 
 const ACTIVE_SELF_PACED_VISIBLE = 3;
 const EXPLORE_SELF_PACED_VISIBLE = 4;
@@ -35,26 +36,22 @@ type Props = {
 function CourseThumb({
   image,
   title,
+  courseSlug,
   compact,
 }: {
   image?: string;
   title: string;
+  courseSlug?: string;
   compact?: boolean;
 }) {
   const h = compact ? "h-16" : "h-24";
-  if (image?.trim()) {
-    return (
-      <div className={`relative ${h} overflow-hidden rounded-lg border border-white/10 bg-black/30`}>
-        <Image src={image.trim()} alt={title} fill className="object-cover" sizes="200px" />
-      </div>
-    );
-  }
   return (
-    <div
-      className={`flex ${h} items-center justify-center rounded-lg border border-dashed border-white/15 bg-black/30 text-[10px] text-gray-500`}
-    >
-      No image
-    </div>
+    <CourseListThumbnail
+      image={image}
+      title={title}
+      courseSlug={courseSlug}
+      className={`relative ${h} w-full overflow-hidden rounded-lg border border-white/10 bg-black/30`}
+    />
   );
 }
 
@@ -137,7 +134,7 @@ export function MyLearningDashboardCourses({
                       key={`sp-${(course.slug ?? course.title).toLowerCase()}`}
                       className="flex flex-col rounded-xl border border-white/10 bg-black/25 p-3"
                     >
-                      <CourseThumb image={course.image} title={course.title} />
+                      <CourseThumb image={course.image} title={course.title} courseSlug={course.slug} />
                       <p className="mt-2 line-clamp-2 text-sm font-semibold">{course.title}</p>
                       <p className="mt-0.5 text-[11px] text-gray-400">
                         {course.modules} modules · {course.duration}
@@ -259,19 +256,12 @@ export function MyLearningDashboardCourses({
                             className="group flex gap-3 rounded-lg border border-white/10 bg-black/25 p-2 transition hover:border-amber-400/35 hover:bg-black/40"
                           >
                             <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/30">
-                              {course.image?.trim() ? (
-                                <Image
-                                  src={course.image.trim()}
-                                  alt={course.title}
-                                  fill
-                                  className="object-cover"
-                                  sizes="64px"
-                                />
-                              ) : (
-                                <div className="flex h-full items-center justify-center text-[8px] text-gray-600">
-                                  —
-                                </div>
-                              )}
+                              <CourseListThumbnail
+                                image={resolveCourseListThumbnail(course)}
+                                title={course.title}
+                                courseSlug={course.slug}
+                                className="relative h-14 w-16 overflow-hidden rounded-md border border-white/10 bg-black/30"
+                              />
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="line-clamp-2 text-xs font-semibold leading-snug group-hover:text-amber-100">
@@ -324,12 +314,11 @@ export function MyLearningDashboardCourses({
                           >
                             <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/30">
                               {course.image?.trim() ? (
-                                <Image
-                                  src={course.image.trim()}
-                                  alt={course.title}
-                                  fill
-                                  className="object-cover"
-                                  sizes="64px"
+                                <CourseListThumbnail
+                                  image={course.image}
+                                  title={course.title}
+                                  courseSlug={course.slug}
+                                  className="relative h-14 w-16 overflow-hidden rounded-md border border-white/10 bg-black/30"
                                 />
                               ) : (
                                 <div className="flex h-full items-center justify-center text-[8px] text-[#FFC107]">

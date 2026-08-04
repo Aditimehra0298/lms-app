@@ -5,6 +5,7 @@ import type {
 } from "@/lib/content-schema";
 import { canonicalCourseSlug, isAliasCourseSlug } from "@/lib/course-slug-aliases";
 import { countLearnerCurriculumModules } from "@/lib/curriculum-learner-filter";
+import { isGenericCoursePlaceholder, resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import {
   computeCombinedExamGrade,
   learnerCredentialsEligible,
@@ -86,7 +87,13 @@ export function enrichPurchasedCourse(
   const modules = modulesFromCatalog > 0 ? modulesFromCatalog : Math.max(0, row.modules || 0);
   const duration = catalog?.duration?.trim() || row.duration?.trim() || "—";
   const title = catalog?.title?.trim() || row.title?.trim() || "Course";
-  const image = catalog?.image?.trim() || row.image?.trim() || "";
+  // Prefer catalog cover / hero for this course — never keep a shared placeholder
+  // stuck in localStorage purchase rows (that made every card look identical).
+  const image = catalog
+    ? resolveCourseListThumbnail(catalog) || ""
+    : isGenericCoursePlaceholder(row.image)
+      ? ""
+      : row.image?.trim() || "";
   const completed = slug ? completedFromStorage : Math.min(row.completed ?? 0, modules);
   let { status, action } = deriveCourseProgress(completed, modules);
 
@@ -352,7 +359,9 @@ export function mergeCertificatesIntoPurchasedCourses(
         action: "View Certificate",
         tone: "emerald",
         deliveryKind: "managed",
-        image: catalogCourse?.image?.trim() || bySlug.get(slug)?.image || "",
+        image: catalogCourse
+          ? resolveCourseListThumbnail(catalogCourse) || ""
+          : bySlug.get(slug)?.image || "",
       },
       catalogCourse,
     );

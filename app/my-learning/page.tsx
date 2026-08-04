@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import loadDynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -94,6 +93,7 @@ import {
   type PurchasedCourseRow,
 } from "@/lib/learner-course-progress";
 import { BADGES_UPDATED_EVENT, readLearnerBadges } from "@/lib/learner-badges";
+import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 
 function TabPanelLoading() {
   return (
@@ -256,19 +256,8 @@ function formatDashboardDate(now: Date) {
   });
 }
 
-function CoursePoster({ image, title }: { image?: string; title: string }) {
-  if (image?.trim()) {
-    return (
-      <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/30">
-        <Image src={image.trim()} alt={title} fill className="object-cover" sizes="112px" />
-      </div>
-    );
-  }
-  return (
-    <div className="flex h-20 w-28 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/30 px-1 text-center text-[10px] leading-tight text-gray-500">
-      No image
-    </div>
-  );
+function CoursePoster({ image, title, courseSlug }: { image?: string; title: string; courseSlug?: string }) {
+  return <CourseListThumbnail image={image} title={title} courseSlug={courseSlug} />;
 }
 
 export default function MyLearningPage() {
@@ -1246,7 +1235,7 @@ export default function MyLearningPage() {
                       className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-3 xl:grid-cols-[320px_1fr_150px]"
                     >
                       <div className="flex gap-3">
-                        <CoursePoster image={course.image} title={course.title} />
+                        <CoursePoster image={course.image} title={course.title} courseSlug={course.slug} />
                         <div>
                           <p className="text-lg font-semibold">{course.title}</p>
                           <p className="mt-1 text-xs text-gray-400">

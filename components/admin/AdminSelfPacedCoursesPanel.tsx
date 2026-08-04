@@ -22,7 +22,7 @@ const emptyDraft = (): ManagedCourse => ({
   learners: "0",
   price: "$49.00",
   oldPrice: "$79.00",
-  image: "/course-food-safety.png",
+  image: "",
   published: true,
   learningFormat: "self-paced",
   instructorName: "",
