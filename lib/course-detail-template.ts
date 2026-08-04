@@ -182,6 +182,29 @@ export function getCurriculumForCourse(
   return buildGenericCurriculum(title);
 }
 
+/**
+ * Admin curriculum editor — show every saved module/lesson, including rows that
+ * do not yet have uploaded media. Does not apply learner content filters or
+ * flatten sub-modules (those are learner-only behaviors).
+ */
+export function getAdminCurriculumForCourse(
+  persisted?: CourseCurriculumModule[] | null,
+): CurriculumModule[] {
+  if (!Array.isArray(persisted) || persisted.length === 0) return [];
+  return persisted.map((m) => ({
+    ...m,
+    title: typeof m.title === "string" ? m.title : "Module",
+    items: Array.isArray(m.items) ? m.items.map((item) => ({ ...item })) : [],
+    subModules: Array.isArray(m.subModules)
+      ? m.subModules.map((sm) => ({
+          ...sm,
+          title: typeof sm.title === "string" ? sm.title : "Sub-module",
+          items: Array.isArray(sm.items) ? sm.items.map((item) => ({ ...item })) : [],
+        }))
+      : undefined,
+  }));
+}
+
 export function totalCurriculumSteps(modules: CurriculumModule[]): number {
   return modules.reduce((sum, m) => {
     let n = m.items.length;

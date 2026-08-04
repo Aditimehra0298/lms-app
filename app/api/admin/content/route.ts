@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { AdminContent } from "@/lib/content-schema";
+import { AdminContent, type ManagedCourse } from "@/lib/content-schema";
 import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
 import { syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
 import { syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
@@ -9,6 +9,30 @@ import { readAdminContentFromDisk, writeAdminContent, normalizeManagedCategories
 export const dynamic = "force-dynamic";
 
 const noStoreJson = { "Cache-Control": "private, no-store, max-age=0" };
+
+/**
+ * Protect course modules: a Course-tab save that omits/empties curriculum must not
+ * erase modules previously saved from the Content tab.
+ */
+function mergeManagedCoursesPreservingCurriculum(
+  existing: ManagedCourse[],
+  incoming: ManagedCourse[],
+): ManagedCourse[] {
+  const prevBySlug = new Map<string, ManagedCourse>();
+  for (const c of existing ?? []) {
+    const slug = c.slug?.trim();
+    if (slug) prevBySlug.set(slug, c);
+  }
+  return incoming.map((course) => {
+    const prev = prevBySlug.get(course.slug.trim());
+    if (!prev) return course;
+    // Only when curriculum key is omitted (stale Course-tab payloads). Explicit [] clears.
+    if (course.curriculum === undefined && Array.isArray(prev.curriculum) && prev.curriculum.length > 0) {
+      return { ...course, curriculum: prev.curriculum };
+    }
+    return course;
+  });
+}
 
 export async function GET() {
   // Bypass React cache so admin always sees the latest disk write.
@@ -68,7 +92,10 @@ export async function PUT(request: Request) {
           : existing.learningCourses,
       managedCourses:
         body.managedCourses && body.managedCourses.length > 0
-          ? body.managedCourses
+          ? mergeManagedCoursesPreservingCurriculum(
+              existing.managedCourses ?? [],
+              body.managedCourses,
+            )
           : existing.managedCourses,
       categories: nextCategories,
       categoryPages: nextCategoryPages,

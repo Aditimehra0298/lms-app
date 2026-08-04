@@ -67,7 +67,7 @@ import AdminCurrencyBadge from "@/components/admin/AdminCurrencyBadge";
 import { sanitizeRegionalPrices } from "@/lib/course-regional-pricing";
 import { sanitizeOrganizationSeatPricing } from "@/lib/organization-course-pricing";
 import { currencyDisplayForCountry, resolvePriceCurrency } from "@/lib/price-currency-detect";
-import { getCurriculumForCourse, totalCurriculumSteps } from "@/lib/course-detail-template";
+import { getAdminCurriculumForCourse, totalCurriculumSteps } from "@/lib/course-detail-template";
 
 /** Shared field chrome for the self-paced course editor */
 const spField =
@@ -442,12 +442,29 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       setLoadError("That URL slug is already used by another course. Pick a different slug.");
       return;
     }
+    // Never wipe modules: Course-tab "Save" used a stale draft.curriculum and erased
+    // curriculum saved from the Content tab. Prefer live editor modules, then disk.
+    const existingCourse =
+      (content.managedCourses ?? []).find((c) => c.slug === previousSlug) ??
+      (content.managedCourses ?? []).find((c) => c.slug === slug);
+    const editingThisCourse =
+      Boolean(selectedSlug) &&
+      (selectedSlug === slug || selectedSlug === previousSlug || selectedSlug === existingCourse?.slug);
+    const preservedCurriculum =
+      editingThisCourse && modules.length > 0
+        ? cloneMods(modules)
+        : Array.isArray(existingCourse?.curriculum) && existingCourse!.curriculum!.length > 0
+          ? cloneMods(existingCourse!.curriculum!)
+          : Array.isArray(draft.curriculum)
+            ? cloneMods(draft.curriculum)
+            : [];
     const normalized: ManagedCourse = sanitizeManagedCourse({
       ...draft,
       slug,
       learningFormat: "self-paced",
       faqs: (draft.faqs ?? []).filter((f) => f.q.trim() && f.a.trim()),
       finalExam: undefined,
+      curriculum: preservedCurriculum,
     });
     const ok = await persistManagedCourses([...others, normalized]);
     if (!ok) return;
@@ -532,7 +549,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     }
     const c = (content.managedCourses ?? []).find((x) => x.slug === selectedSlug && isSelfPaced(x));
     if (!c) return;
-    setModules(cloneMods(getCurriculumForCourse(c.slug, c.category, c.title, c.curriculum)));
+    setModules(cloneMods(getAdminCurriculumForCourse(c.curriculum)));
   }, [selectedSlug, content, isCreating]);
 
   useEffect(() => {
@@ -596,6 +613,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       const nextCourses = [...others, updated];
       await putAdminContent({ managedCourses: nextCourses });
       setContent({ ...content, managedCourses: nextCourses });
+      setDraft((d) => (d.slug === updated.slug ? { ...d, curriculum: cloneMods(modules) } : d));
       setSaveNotice("Curriculum saved.");
       void load();
     } catch (e) {
@@ -619,6 +637,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       const nextCourses = [...others, updated];
       await putAdminContent({ managedCourses: nextCourses });
       setContent({ ...content, managedCourses: nextCourses });
+      setDraft((d) => (d.slug === updated.slug ? { ...d, curriculum: cloneMods(nextModules) } : d));
       setSaveNotice("Curriculum saved (exam file linked).");
       void load();
     } catch (e) {

@@ -141,10 +141,18 @@ export default function AdminSelfPacedCoursesPanel() {
       setLoadError("That URL slug is already used by another course.");
       return;
     }
+    const existingCourse =
+      (content.managedCourses ?? []).find((c) => c.slug === previousSlug) ??
+      (content.managedCourses ?? []).find((c) => c.slug === slug);
     const normalized: ManagedCourse = {
       ...draft,
       slug,
       learningFormat: "self-paced",
+      // Keep modules if this panel's draft is missing / empty curriculum.
+      curriculum:
+        Array.isArray(draft.curriculum) && draft.curriculum.length > 0
+          ? draft.curriculum
+          : existingCourse?.curriculum ?? draft.curriculum ?? [],
     };
     const ok = await persistManagedCourses([...others, normalized]);
     if (!ok) return;
