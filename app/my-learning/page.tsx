@@ -96,7 +96,6 @@ import { BADGES_UPDATED_EVENT, readLearnerBadges } from "@/lib/learner-badges";
 import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 import { syncAllLearnerCourseProgressFromServer } from "@/lib/learner-progress-sync-client";
 import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
-import { countLearnerCurriculumModules } from "@/lib/curriculum-learner-filter";
 
 function TabPanelLoading() {
   return (
