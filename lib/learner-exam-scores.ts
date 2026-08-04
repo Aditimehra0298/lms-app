@@ -113,6 +113,9 @@ export function recordModuleExamAttempt(input: {
     all[key] = best;
     window.localStorage.setItem(examScoresStorageKey(input.courseSlug), JSON.stringify(all));
     window.dispatchEvent(new CustomEvent("sft-exam-scores-updated", { detail: { courseSlug: input.courseSlug } }));
+    void import("@/lib/learner-progress-sync-client").then((m) =>
+      m.pushLearnerCourseProgressToServer(input.courseSlug),
+    );
     return best;
   }
   return entry;

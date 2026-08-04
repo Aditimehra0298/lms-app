@@ -416,19 +416,28 @@ export default function MyLearningPage() {
     setEarnedBadges(readLearnerBadges());
     window.addEventListener("storage", loadPurchasedCourses);
     window.addEventListener("sft_purchases_updated", loadPurchasedCourses);
+    window.addEventListener("sft_purchased_courses_updated", loadPurchasedCourses);
     window.addEventListener("sft_auth_updated", syncFromServer);
     window.addEventListener("focus", syncFromServer);
-    const onProgress = () => setProgressTick((n) => n + 1);
+    const onProgress = () => {
+      loadPurchasedCourses();
+      setProgressTick((n) => n + 1);
+    };
     window.addEventListener(COURSE_PROGRESS_UPDATED_EVENT, onProgress);
     window.addEventListener("sft-exam-scores-updated", onProgress);
     window.addEventListener(PREVIEW_WATCH_UPDATED_EVENT, onProgress);
     window.addEventListener("storage", onProgress);
     window.addEventListener("focus", onProgress);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") onProgress();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     const onBadges = () => setEarnedBadges(readLearnerBadges());
     window.addEventListener(BADGES_UPDATED_EVENT, onBadges);
     return () => {
       window.removeEventListener("storage", loadPurchasedCourses);
       window.removeEventListener("sft_purchases_updated", loadPurchasedCourses);
+      window.removeEventListener("sft_purchased_courses_updated", loadPurchasedCourses);
       window.removeEventListener("sft_auth_updated", syncFromServer);
       window.removeEventListener("focus", syncFromServer);
       window.removeEventListener(COURSE_PROGRESS_UPDATED_EVENT, onProgress);
@@ -436,6 +445,7 @@ export default function MyLearningPage() {
       window.removeEventListener(PREVIEW_WATCH_UPDATED_EVENT, onProgress);
       window.removeEventListener("storage", onProgress);
       window.removeEventListener("focus", onProgress);
+      document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener(BADGES_UPDATED_EVENT, onBadges);
     };
   }, []);
@@ -508,6 +518,22 @@ export default function MyLearningPage() {
     adminContent.managedCourses,
     progressTick,
   ]);
+
+  // Keep My Learning module dots in sync with server + local completed modules.
+  useEffect(() => {
+    const slugs = coursesForLearning
+      .map((c) => c.slug?.trim())
+      .filter((s): s is string => Boolean(s));
+    if (slugs.length === 0) return;
+    let cancelled = false;
+    void import("@/lib/learner-progress-sync-client").then(async (m) => {
+      await m.syncAllLearnerCourseProgressFromServer(slugs);
+      if (!cancelled) setProgressTick((n) => n + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [purchasedCourses.length, effectiveCatalog.length]);
 
   const completedCoursesWithCerts = useMemo(
     () =>
@@ -1228,7 +1254,21 @@ export default function MyLearningPage() {
                 ) : (
                   sortedCoursesForLearning.map((course) => {
                   const safeModules = Math.max(1, course.modules);
-                  const percentage = Math.round((course.completed / safeModules) * 100);
+                  void progressTick;
+                  const doneSet = new Set(
+                    course.slug ? readCompletedModules(course.slug) : [],
+                  );
+                  // Only count modules that still exist in the current curriculum.
+                  const completedCount = Array.from(doneSet).filter(
+                    (n) => n >= 1 && n <= safeModules,
+                  ).length;
+                  const percentage = Math.round((completedCount / safeModules) * 100);
+                  const currentModule =
+                    Array.from({ length: safeModules }, (_, i) => i + 1).find(
+                      (n) => !doneSet.has(n),
+                    ) ?? null;
+                  const courseDone =
+                    course.status === "Completed" || completedCount >= safeModules;
                   return (
                     <article
                       key={courseRowKey(course)}
@@ -1252,17 +1292,14 @@ export default function MyLearningPage() {
                         <div className="mt-2 flex flex-wrap gap-1">
                           {Array.from({ length: safeModules }).map((_, idx) => {
                             const moduleNumber = idx + 1;
-                            const isDone = idx < course.completed;
+                            const isDone = doneSet.has(moduleNumber);
                             const isCurrent =
                               !isDone &&
-                              course.status !== "Completed" &&
-                              idx === course.completed;
-                            const courseDone =
-                              course.status === "Completed" ||
-                              course.completed >= safeModules;
-                            const canOpen = isDone || isCurrent || courseDone;
+                              !courseDone &&
+                              currentModule === moduleNumber;
+                            // Course player allows free module navigation — keep list clickable.
                             const hrefBase = learningHrefFor(course).split("#")[0];
-                            const href = courseDone
+                            const href = courseDone || isDone
                               ? `${hrefBase}?review=1&module=${moduleNumber}`
                               : `${hrefBase}?module=${moduleNumber}`;
                             const className = `inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold transition ${
@@ -1270,19 +1307,8 @@ export default function MyLearningPage() {
                                 ? "bg-emerald-500 text-white ring-1 ring-emerald-300/50 hover:bg-emerald-400"
                                 : isCurrent
                                   ? "bg-violet-500/40 text-violet-100 ring-1 ring-violet-300/50 hover:bg-violet-500/55"
-                                  : "border border-white/15 text-gray-500"
+                                  : "border border-white/15 text-gray-400 hover:border-violet-300/40 hover:text-violet-100"
                             }`;
-                            if (!canOpen) {
-                              return (
-                                <span
-                                  key={`${course.title}-${idx}`}
-                                  title={`Module ${moduleNumber} locked`}
-                                  className={className}
-                                >
-                                  {moduleNumber}
-                                </span>
-                              );
-                            }
                             return (
                               <Link
                                 key={`${course.title}-${idx}`}
@@ -1290,7 +1316,9 @@ export default function MyLearningPage() {
                                 title={
                                   isDone || courseDone
                                     ? `Reopen module ${moduleNumber} (review lessons / retake exam)`
-                                    : `Continue module ${moduleNumber}`
+                                    : isCurrent
+                                      ? `Continue module ${moduleNumber}`
+                                      : `Open module ${moduleNumber}`
                                 }
                                 className={className}
                               >
@@ -1301,32 +1329,14 @@ export default function MyLearningPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end justify-between">
-                        <div className="text-right">
-                          <p className="text-4xl font-bold">{percentage}%</p>
-                          <p className="text-xs text-gray-400">
-                            {course.completed} / {safeModules} Modules
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-[11px] ${
-                              course.status === "Completed"
-                                ? "bg-emerald-500/20 text-emerald-200"
-                                : course.status === "Not Started"
-                                  ? "bg-rose-500/20 text-rose-200"
-                                  : "bg-amber-500/20 text-amber-200"
-                            }`}
-                          >
-                            {course.status}
-                          </span>
-                          <Link
-                            href={learningHrefFor(course)}
-                            className="rounded-md border border-white/15 px-2.5 py-1 text-xs text-amber-200"
-                          >
-                            {course.action}
-                          </Link>
-                        </div>
+                      <div className="flex flex-col items-start justify-between gap-2 xl:items-end">
+                        <p className="text-sm font-semibold text-emerald-300">{percentage}%</p>
+                        <Link
+                          href={learningHrefFor(course)}
+                          className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-bold text-black hover:bg-amber-400"
+                        >
+                          {course.action || "Continue"}
+                        </Link>
                       </div>
                     </article>
                   );

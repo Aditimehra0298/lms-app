@@ -690,7 +690,9 @@ export default function CourseLearningPlayerPage() {
   };
 
   // Modules without an exam auto-complete when opened (Coursera-style free navigation).
-  // Modules with an exam complete when the exam is passed.
+  // Modules with an exam: mark complete after the learner opens them AND has watched any
+  // content, but still require exam pass for certificate eligibility separately.
+  // Prefer: complete as soon as module is opened if no exam; if exam exists, wait for pass.
   useEffect(() => {
     if (!curriculum.length || !slug) return;
     const mod = curriculum[selectedModuleIdx];
