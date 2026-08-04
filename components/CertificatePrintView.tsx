@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import { Award, Download, ShieldCheck } from "lucide-react";
 import type { IssuedCertificateDto } from "@/lib/server/certificate-service";
+import { buildCertificateQrVerifyUrl } from "@/lib/certificate-verify-url";
 
 type Props = {
   certificate: IssuedCertificateDto;
@@ -16,6 +18,45 @@ export default function CertificatePrintView({ certificate, showActions = true }
     year: "numeric",
   });
   const template = certificate.templateImage || "/certificates/haccp-certificate-template.jpg";
+
+  const verifyUrl = useMemo(() => {
+    if (typeof window === "undefined") return certificate.verifyUrl?.trim() || "";
+    return (
+      certificate.verifyUrl?.trim() ||
+      buildCertificateQrVerifyUrl(window.location.origin, {
+        certificateNumber: certificate.certificateNumber,
+        delegateNumber: certificate.delegateNumber,
+      })
+    );
+  }, [certificate.verifyUrl, certificate.certificateNumber, certificate.delegateNumber]);
+
+  const [qrDataUrl, setQrDataUrl] = useState("");
+
+  useEffect(() => {
+    if (!verifyUrl) {
+      setQrDataUrl("");
+      return;
+    }
+    let cancelled = false;
+    void import("qrcode")
+      .then((QR) =>
+        QR.toDataURL(verifyUrl, {
+          width: 280,
+          margin: 1,
+          errorCorrectionLevel: "M",
+          color: { dark: "#1a1a2e", light: "#ffffff" },
+        }),
+      )
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [verifyUrl]);
 
   return (
     <div className="space-y-6">
@@ -73,6 +114,20 @@ export default function CertificatePrintView({ certificate, showActions = true }
               <p className="mt-0.5 text-[11px] text-[#666]">Score: {certificate.scorePercent}%</p>
             ) : null}
           </div>
+
+          {qrDataUrl ? (
+            <div className="absolute bottom-[5%] right-[5%] flex w-[12%] flex-col items-center gap-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrDataUrl}
+                alt="Scan to verify certificate"
+                className="h-auto w-full rounded-sm border border-black/10 bg-white p-[3%]"
+              />
+              <span className="text-center text-[7px] font-semibold uppercase tracking-wide text-[#555] md:text-[9px]">
+                Scan to verify
+              </span>
+            </div>
+          ) : null}
         </div>
       </div>
 

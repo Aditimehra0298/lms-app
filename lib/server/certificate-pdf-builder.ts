@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import QRCode from "qrcode";
 import {
   isPngImage,
   loadCertificateTemplateBytes,
@@ -14,6 +15,8 @@ export type BuildTemplatedCertificatePdfInput = {
   scorePercent?: number | null;
   templateImageUrl: string;
   badgeImageUrl?: string | null;
+  /** Public verify URL embedded as QR on the certificate page. */
+  verifyUrl?: string | null;
   layout?: {
     nameTopPercent?: number;
     numberTopPercent?: number;
@@ -51,6 +54,7 @@ async function drawTemplatePage(input: {
   /** Transcript page uses simpler field layout. */
   mode?: "certificate" | "transcript";
   grade?: string | null;
+  verifyUrl?: string | null;
 }): Promise<void> {
   const embedded = await embedImage(input.pdfDoc, input.templateBytes);
   const pageWidth = embedded.width;
@@ -178,6 +182,41 @@ async function drawTemplatePage(input: {
       muted,
     );
   }
+
+  const verifyUrl = input.verifyUrl?.trim();
+  if (verifyUrl) {
+    try {
+      const qrPng = await QRCode.toBuffer(verifyUrl, {
+        type: "png",
+        width: 360,
+        margin: 1,
+        errorCorrectionLevel: "M",
+        color: { dark: "#1a1a2e", light: "#ffffff" },
+      });
+      const qrImage = await input.pdfDoc.embedPng(qrPng);
+      const qrSize = Math.max(64, pageHeight * 0.12);
+      const qrX = pageWidth * 0.92 - qrSize;
+      const qrY = pageHeight * 0.06;
+      page.drawImage(qrImage, {
+        x: qrX,
+        y: qrY,
+        width: qrSize,
+        height: qrSize,
+      });
+      const label = "Scan to verify";
+      const labelSize = Math.max(7, pageHeight * 0.011);
+      const labelWidth = font.widthOfTextAtSize(label, labelSize);
+      page.drawText(label, {
+        x: qrX + (qrSize - labelWidth) / 2,
+        y: qrY - labelSize - 2,
+        size: labelSize,
+        font,
+        color: muted,
+      });
+    } catch (err) {
+      console.error("[certificate-pdf] QR embed failed", err);
+    }
+  }
 }
 
 /** Certificate page only (legacy). */
@@ -200,6 +239,7 @@ export async function buildTemplatedCertificatePdf(
     courseTitle: input.courseTitle,
     scorePercent: input.scorePercent,
     mode: "certificate",
+    verifyUrl: input.verifyUrl,
   });
 
   return Buffer.from(await pdfDoc.save());
@@ -230,6 +270,7 @@ export async function buildCourseCertificateAndTranscriptPdf(
     courseTitle: input.courseTitle,
     scorePercent: input.scorePercent,
     mode: "certificate",
+    verifyUrl: input.verifyUrl,
   });
 
   const transcriptUrl = input.transcriptImageUrl?.trim();

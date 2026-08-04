@@ -782,11 +782,11 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               aria-hidden
             />
             <div className="relative z-20 w-full">
-              <div className="lh-hero-video-shell relative aspect-video w-full overflow-hidden rounded-2xl md:rounded-3xl">
+              <div className="lh-hero-video-shell relative aspect-video w-full overflow-hidden rounded-2xl bg-black md:rounded-3xl">
                 <video
                   key={heroVideoSrc}
                   ref={heroVideoRef}
-                  className="absolute inset-0 z-0 h-full w-full object-cover object-center will-change-transform transform-[translateZ(0)]"
+                  className="lh-hero-video absolute inset-0 z-0 h-full w-full object-cover object-center"
                   autoPlay
                   loop
                   muted
@@ -797,16 +797,45 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                   <source src={heroVideoSrc} type="video/mp4" />
                 </video>
 
-                <div className="lh-hero-badge absolute bottom-4 right-4 z-20 flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 shadow-none backdrop-blur-xl md:bottom-5 md:right-5 md:gap-4 md:rounded-2xl md:px-5 md:py-3.5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eb9422] shadow-[0_0_24px_rgba(235,148,34,0.35)] md:h-11 md:w-11">
-                    <Star fill={isLightTheme ? "#7c2d12" : "black"} size={20} className="md:h-[22px] md:w-[22px]" />
+                {/* Grid overlay — keeps full video visible, covers Veo corner */}
+                <div
+                  className="lh-hero-grid pointer-events-none absolute inset-0 z-[6]"
+                  aria-hidden
+                />
+
+                <div className="pointer-events-none absolute left-3 top-3 z-20 flex flex-wrap gap-2 md:left-4 md:top-4">
+                  <span className="lh-hero-tag inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-black/55 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-200 backdrop-blur-md">
+                    <Sparkles size={11} className="text-amber-300" />
+                    Live preview
+                  </span>
+                  <span className="lh-hero-tag inline-flex items-center rounded-full border border-white/15 bg-black/50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/90 backdrop-blur-md">
+                    SFT LMS
+                  </span>
+                </div>
+
+                <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-wrap items-end justify-between gap-2 md:bottom-4 md:left-4 md:right-4">
+                  <div className="flex flex-wrap gap-2">
+                    <span className="lh-hero-tag inline-flex items-center gap-1.5 rounded-lg border border-amber-400/35 bg-black/60 px-2.5 py-1.5 text-[10px] font-semibold text-amber-100 backdrop-blur-md">
+                      <GraduationCap size={12} className="text-amber-300" />
+                      Expert-led
+                    </span>
+                    <span className="lh-hero-tag inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/60 px-2.5 py-1.5 text-[10px] font-semibold text-white/90 backdrop-blur-md">
+                      <MonitorPlay size={12} className="text-amber-300" />
+                      Practical learning
+                    </span>
                   </div>
-                  <div className="min-w-0">
-                    <div className="lh-badge-label text-[9px] font-black uppercase tracking-[0.2em] text-amber-400/95 md:text-[10px]">
-                      Trusted
+
+                  <div className="lh-hero-badge flex max-w-[min(100%,240px)] items-center gap-3 rounded-xl border border-amber-400/30 bg-black/70 px-3.5 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.45)] backdrop-blur-xl md:max-w-[280px] md:gap-4 md:px-4 md:py-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eb9422] shadow-[0_0_24px_rgba(235,148,34,0.35)] md:h-11 md:w-11">
+                      <Star fill={isLightTheme ? "#7c2d12" : "black"} size={20} className="md:h-[22px] md:w-[22px]" />
                     </div>
-                    <div className="lh-badge-title text-sm font-semibold leading-tight text-white md:text-base">
-                      Accredited pathways
+                    <div className="min-w-0">
+                      <div className="lh-badge-label text-[9px] font-black uppercase tracking-[0.2em] text-amber-400/95 md:text-[10px]">
+                        Trusted
+                      </div>
+                      <div className="lh-badge-title text-sm font-semibold leading-tight text-white md:text-base">
+                        Accredited pathways
+                      </div>
                     </div>
                   </div>
                 </div>

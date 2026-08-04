@@ -20,6 +20,7 @@ import {
 } from "@/lib/learner-session-client";
 import MyLearningHeaderLink from "@/components/MyLearningHeaderLink";
 import { PricingRegionBadge } from "@/components/PricingRegionBadge";
+import HeaderExploreMenu from "@/components/HeaderExploreMenu";
 import { COMPANY_DISPLAY_NAME } from "@/lib/contact-site-data";
 
 const AUDIENCE_TABS = [
@@ -301,7 +302,8 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
             </div>
           </Link>
 
-          <div className="hidden max-w-[760px] grow items-center gap-3 md:flex">
+          <div className="hidden max-w-[860px] grow items-center gap-2.5 md:flex">
+            <HeaderExploreMenu isLight={isLight} />
             <div className="relative flex-1">
               <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
                 <Search className={`h-4 w-4 ${isLight ? "text-slate-500" : "text-amber-300/70"}`} />
@@ -587,6 +589,9 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
                 placeholder="Search courses and resources"
                 className="w-full rounded-md border border-white/10 bg-white/5 py-3 pl-10 pr-4"
               />
+            </div>
+            <div className="relative z-[70]">
+              <HeaderExploreMenu isLight={false} />
             </div>
             <nav className="flex flex-col gap-6 text-lg font-medium text-gray-300">
               {useLearnerDashboardChrome ? (

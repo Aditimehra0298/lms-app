@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import {
   BadgeCheck,
+  Camera,
   Copy,
   Download,
   Mail,
@@ -13,7 +14,10 @@ import {
   ShieldCheck,
   ShieldX,
 } from "lucide-react";
+import CertificateQrScanner from "@/components/CertificateQrScanner";
+import CertificateVerifyQrMaker from "@/components/CertificateVerifyQrMaker";
 import type { IssuedCertificateDto } from "@/lib/certificate-types";
+import { parseCertificateQrPayload } from "@/lib/certificate-qr-parse";
 import { buildLinkedInShareUrl } from "@/lib/certificate-verify-url";
 import { COMPANY_DISPLAY_NAME } from "@/lib/contact-site-data";
 import { readJsonResponse } from "@/lib/safe-json";
@@ -29,14 +33,17 @@ function VerifyContent({ isLight }: { isLight: boolean }) {
   const searchParams = useSearchParams();
   const initialNumber = searchParams.get("number")?.trim() ?? "";
   const initialQ = searchParams.get("q")?.trim() ?? "";
+  const initialDelegate = searchParams.get("delegate")?.trim() ?? "";
   const initialEmail = searchParams.get("email")?.trim() ?? "";
 
   const [email, setEmail] = useState(initialEmail);
-  const [query, setQuery] = useState(initialNumber || initialQ);
+  const [query, setQuery] = useState(initialNumber || initialDelegate || initialQ);
   const [certificate, setCertificate] = useState<IssuedCertificateDto | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ok" | "fail">("idle");
   const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanHint, setScanHint] = useState("");
 
   const card = isLight
     ? "rounded-2xl border border-[#b4965a]/30 bg-white/90 p-6 shadow-sm"
@@ -74,6 +81,7 @@ function VerifyContent({ isLight }: { isLight: boolean }) {
       const params = new URLSearchParams({
         email: emailValue,
         number: certValue,
+        q: certValue,
       });
       const res = await fetch(`/api/certificates/verify?${params.toString()}`, {
         cache: "no-store",
@@ -102,9 +110,9 @@ function VerifyContent({ isLight }: { isLight: boolean }) {
   }, []);
 
   useEffect(() => {
-    const seedCert = initialNumber || initialQ;
+    const seedCert = initialNumber || initialDelegate || initialQ;
     if (initialEmail && seedCert) void runVerify(initialEmail, seedCert);
-  }, [initialNumber, initialQ, initialEmail, runVerify]);
+  }, [initialNumber, initialDelegate, initialQ, initialEmail, runVerify]);
 
   const verifyPageUrl =
     typeof window !== "undefined" && certificate?.certificateNumber
@@ -126,6 +134,33 @@ function VerifyContent({ isLight }: { isLight: boolean }) {
 
   const canSubmit = Boolean(email.trim() && query.trim() && status !== "loading");
 
+  const handleQrScan = useCallback(
+    (raw: string) => {
+      const parsed = parseCertificateQrPayload(raw);
+      const nextNumber =
+        parsed.number?.trim() ||
+        parsed.delegate?.trim() ||
+        parsed.q?.trim() ||
+        parsed.id?.trim() ||
+        "";
+      const nextEmail = parsed.email?.trim() || email;
+
+      if (!nextNumber) {
+        setScanHint("QR code did not contain a certificate number. Enter it manually.");
+        return;
+      }
+
+      setQuery(nextNumber);
+      if (parsed.email?.trim()) setEmail(parsed.email.trim());
+      setScanHint("Certificate number filled from QR. Enter email if needed, then verify.");
+
+      if (nextEmail.trim() && nextNumber) {
+        void runVerify(nextEmail, nextNumber);
+      }
+    },
+    [email, runVerify],
+  );
+
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6">
       <form
@@ -135,6 +170,22 @@ function VerifyContent({ isLight }: { isLight: boolean }) {
           void runVerify(email, query);
         }}
       >
+        <button
+          type="button"
+          onClick={() => {
+            setScanHint("");
+            setScannerOpen(true);
+          }}
+          className={`mb-4 flex w-full items-center justify-center gap-2 rounded-xl border py-3 text-sm font-semibold transition ${
+            isLight
+              ? "border-[#b4965a]/45 bg-[#f8f4ec] text-[#8a6412] hover:bg-[#f1e8d8]"
+              : "border-white/15 bg-white/5 text-amber-200 hover:bg-white/10"
+          }`}
+        >
+          <Camera className="h-4 w-4" aria-hidden />
+          Scan QR code on certificate
+        </button>
+
         <label className={`block text-sm font-medium ${label}`}>
           Email address (Gmail / registered email)
           <div className="relative mt-2">
@@ -158,7 +209,7 @@ function VerifyContent({ isLight }: { isLight: boolean }) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter certificate number"
+              placeholder="Enter certificate number or scan QR"
               className={`${input} font-mono`}
               autoComplete="off"
               spellCheck={false}
@@ -166,6 +217,8 @@ function VerifyContent({ isLight }: { isLight: boolean }) {
             />
           </div>
         </label>
+
+        {scanHint ? <p className={`mt-2 text-xs ${isLight ? "text-emerald-700" : "text-emerald-400"}`}>{scanHint}</p> : null}
 
         <button
           type="submit"
@@ -175,9 +228,19 @@ function VerifyContent({ isLight }: { isLight: boolean }) {
           {status === "loading" ? "Verifying…" : "Verify certificate"}
         </button>
         <p className={`mt-3 text-xs leading-relaxed ${muted}`}>
-          Use the email from registration and the certificate number printed on the credential.
+          Scan the QR on the certificate, or enter the registration email and certificate number
+          manually.
         </p>
       </form>
+
+      <CertificateQrScanner
+        open={scannerOpen}
+        isLight={isLight}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleQrScan}
+      />
+
+      <CertificateVerifyQrMaker isLight={isLight} certificateNumber={query} />
 
       <div className={`${card} p-8 text-center`}>
         {status === "loading" ? (

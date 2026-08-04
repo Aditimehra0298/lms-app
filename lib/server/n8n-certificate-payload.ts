@@ -1,5 +1,5 @@
 import type { CertificateProgramRef } from "@/lib/certificate-program-resolve";
-import { buildCertificateVerifyUrl } from "@/lib/certificate-verify-url";
+import { buildCertificateQrVerifyUrl, buildCertificateVerifyUrl } from "@/lib/certificate-verify-url";
 import {
   formatGrade,
   formatIssueDate,
@@ -189,6 +189,10 @@ export function buildN8nCertificateWebhookPayload(input: {
     delegateNumber: row.delegateNumber,
     certificateNumber: row.certificateNumber,
   });
+  const qrVerifyUrl = buildCertificateQrVerifyUrl(appBaseUrlForVerify(), {
+    certificateNumber: row.certificateNumber,
+    delegateNumber: row.delegateNumber,
+  });
   const issueDate = formatIssueDate(issuedAt);
   const grade = formatGrade(scorePercent);
   const callbackBase = n8nCallbackBaseUrl();
@@ -281,7 +285,7 @@ export function buildN8nCertificateWebhookPayload(input: {
       delegateNumber,
       verifyNumber: row.verifyNumber,
       verifyUrl,
-      qrCodeData: verifyUrl,
+      qrCodeData: qrVerifyUrl,
     },
     // Flat aliases — n8n workflows often map $json.body.candidateName (not nested certificateFields)
     candidateName: displayName,

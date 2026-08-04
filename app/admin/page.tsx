@@ -284,6 +284,7 @@ function AdminPageInner() {
   } | null>(null);
   const [categoryPreviewSlug, setCategoryPreviewSlug] = useState<string | null>(null);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [editCategoryIndex, setEditCategoryIndex] = useState<number | null>(null);
   const [newCategory, setNewCategory] = useState({
     name: "",
     subtitle: "",
@@ -291,6 +292,15 @@ function AdminPageInner() {
     courses: "0",
     students: "0",
     status: "Published",
+  });
+  const [editCategory, setEditCategory] = useState({
+    name: "",
+    subtitle: "",
+    description: "",
+    courses: "0",
+    students: "0",
+    status: "Published",
+    slug: "",
   });
   const [categoryRows, setCategoryRows] = useState<string[][]>([]);
   const [categoriesReady, setCategoriesReady] = useState(false);
@@ -399,7 +409,7 @@ function AdminPageInner() {
 
   const toManagedCategories = (rows: string[][]): ManagedCategory[] =>
     rows.map((row, index) => ({
-      slug: toSlug(row[0]) || `category-${index + 1}`,
+      slug: (row[6]?.trim() || toSlug(row[0]) || `category-${index + 1}`),
       title: row[0],
       subtitle: row[1] || "General",
       description: row[2] || "Category description",
@@ -418,7 +428,11 @@ function AdminPageInner() {
       "—",
       "—",
       c.isActive ? "Published" : "Draft",
+      c.slug,
     ]);
+
+  const categorySlugAt = (row: string[], index: number) =>
+    row[6]?.trim() || toSlug(row[0]) || `category-${index + 1}`;
 
   useEffect(() => {
     if (access.status !== "allowed") return;
@@ -573,15 +587,17 @@ function AdminPageInner() {
 
   const addCategory = async () => {
     if (!newCategory.name.trim()) return;
+    const name = newCategory.name.trim();
     const nextRows = [
       ...categoryRows,
       [
-        newCategory.name.trim(),
+        name,
         newCategory.subtitle.trim() || "General",
         newCategory.description.trim() || "Category description",
         newCategory.courses.trim() || "0",
         newCategory.students.trim() || "0",
         newCategory.status,
+        toSlug(name) || `category-${categoryRows.length + 1}`,
       ],
     ];
     setCategoryRows(nextRows);
@@ -595,6 +611,41 @@ function AdminPageInner() {
       status: "Published",
     });
     setShowAddCategoryModal(false);
+  };
+
+  const openEditCategory = (index: number) => {
+    const row = categoryRows[index];
+    if (!row) return;
+    setEditCategoryIndex(index);
+    setEditCategory({
+      name: row[0] ?? "",
+      subtitle: row[1] ?? "",
+      description: row[2] ?? "",
+      courses: row[3] ?? "0",
+      students: row[4] ?? "0",
+      status: row[5] === "Draft" ? "Draft" : "Published",
+      slug: categorySlugAt(row, index),
+    });
+  };
+
+  const saveEditCategory = async () => {
+    if (editCategoryIndex === null || !editCategory.name.trim()) return;
+    const nextRows = categoryRows.map((row, i) => {
+      if (i !== editCategoryIndex) return row;
+      return [
+        editCategory.name.trim(),
+        editCategory.subtitle.trim() || "General",
+        editCategory.description.trim() || "Category description",
+        editCategory.courses.trim() || row[3] || "0",
+        editCategory.students.trim() || row[4] || "0",
+        editCategory.status,
+        // Keep slug stable so courses / Explore / URLs stay connected
+        row[6]?.trim() || editCategory.slug || toSlug(editCategory.name.trim()),
+      ];
+    });
+    setCategoryRows(nextRows);
+    await persistCategories(nextRows);
+    setEditCategoryIndex(null);
   };
 
   return (
@@ -1108,6 +1159,9 @@ function AdminPageInner() {
                           <td className="py-2 pr-3">
                             <p className="font-medium">{row[0]}</p>
                             <p className="text-[10px] text-gray-500">{row[1]}</p>
+                            <p className="mt-0.5 font-mono text-[10px] text-amber-200/70">
+                              /{categorySlugAt(row, i)}
+                            </p>
                           </td>
                           <td className="max-w-[360px] py-2 pr-3 text-gray-300">{row[2]}</td>
                           <td className="py-2 pr-3">{row[3]}</td>
@@ -1124,7 +1178,7 @@ function AdminPageInner() {
                                 title="Edit category page — hero, courses, instructors, filters"
                                 onClick={() =>
                                   setCategoryPageEditor({
-                                    slug: toSlug(row[0]) || `category-${i + 1}`,
+                                    slug: categorySlugAt(row, i),
                                     title: row[0],
                                   })
                                 }
@@ -1134,13 +1188,8 @@ function AdminPageInner() {
                               </button>
                               <button
                                 type="button"
-                                title="Same editor"
-                                onClick={() =>
-                                  setCategoryPageEditor({
-                                    slug: toSlug(row[0]) || `category-${i + 1}`,
-                                    title: row[0],
-                                  })
-                                }
+                                title="Rename / edit category name"
+                                onClick={() => openEditCategory(i)}
                                 className="rounded p-1 hover:bg-white/10 hover:text-white"
                               >
                                 <Pencil size={13} />
@@ -1148,9 +1197,7 @@ function AdminPageInner() {
                               <button
                                 type="button"
                                 title="Preview category page (popup — stay on admin)"
-                                onClick={() =>
-                                  setCategoryPreviewSlug(toSlug(row[0]) || `category-${i + 1}`)
-                                }
+                                onClick={() => setCategoryPreviewSlug(categorySlugAt(row, i))}
                                 className="rounded p-1 hover:bg-amber-500/20 hover:text-amber-100"
                               >
                                 <Eye size={13} />
@@ -1243,6 +1290,66 @@ function AdminPageInner() {
                         className="rounded-lg bg-[#f5b942] px-3 py-2 text-xs font-semibold text-black"
                       >
                         Add Category
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {editCategoryIndex !== null && (
+                <div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4">
+                  <div className="w-full max-w-xl rounded-xl border border-white/10 bg-[#0b1224] p-4">
+                    <h3 className="text-lg font-semibold">Edit Category Name</h3>
+                    <p className="mb-3 text-xs text-gray-400">
+                      Change the display name shown on the website. Course links stay connected.
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <input
+                        value={editCategory.name}
+                        onChange={(e) => setEditCategory((prev) => ({ ...prev, name: e.target.value }))}
+                        className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none sm:col-span-2"
+                        placeholder="Category Name"
+                      />
+                      <input
+                        value={editCategory.subtitle}
+                        onChange={(e) => setEditCategory((prev) => ({ ...prev, subtitle: e.target.value }))}
+                        className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none"
+                        placeholder="Subtitle"
+                      />
+                      <select
+                        value={editCategory.status}
+                        onChange={(e) => setEditCategory((prev) => ({ ...prev, status: e.target.value }))}
+                        className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none"
+                      >
+                        <option value="Published">Published</option>
+                        <option value="Draft">Draft</option>
+                      </select>
+                      <textarea
+                        value={editCategory.description}
+                        onChange={(e) => setEditCategory((prev) => ({ ...prev, description: e.target.value }))}
+                        className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none sm:col-span-2"
+                        placeholder="Description"
+                        rows={3}
+                      />
+                      <p className="sm:col-span-2 text-[11px] text-gray-500">
+                        URL slug (unchanged):{" "}
+                        <span className="font-mono text-amber-200/90">{editCategory.slug}</span>
+                      </p>
+                    </div>
+                    <div className="mt-4 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditCategoryIndex(null)}
+                        className="rounded-lg border border-white/15 px-3 py-2 text-xs"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void saveEditCategory()}
+                        className="rounded-lg bg-[#f5b942] px-3 py-2 text-xs font-semibold text-black"
+                      >
+                        Save name
                       </button>
                     </div>
                   </div>

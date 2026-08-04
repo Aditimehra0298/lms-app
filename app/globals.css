@@ -249,6 +249,34 @@ body.tutor-led-marketing-body {
   box-shadow:
     0 16px 40px rgba(148, 118, 59, 0.14),
     0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  background: #0a0a0a;
+}
+
+.learnly-home .lh-hero-video-shell {
+  isolation: isolate;
+}
+
+.learnly-home .lh-hero-video {
+  transform: none;
+}
+
+/* Subtle grid + corner veil to cover baked-in Veo watermark while keeping video full-frame */
+.learnly-home .lh-hero-grid {
+  background-image:
+    linear-gradient(to top right, rgba(5, 7, 15, 0.55) 0%, transparent 42%),
+    linear-gradient(to top, rgba(5, 7, 15, 0.35) 0%, transparent 28%),
+    linear-gradient(rgba(249, 177, 77, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(249, 177, 77, 0.05) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
+  background-position: bottom right, bottom center, center, center;
+  mask-image: linear-gradient(to top left, black 0%, black 22%, transparent 55%);
+  -webkit-mask-image: linear-gradient(to top left, black 0%, black 22%, transparent 55%);
+}
+
+:root[data-theme="light"] .learnly-home .lh-hero-tag {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(212, 160, 23, 0.4) !important;
+  color: #6a4a0c !important;
 }
 
 :root[data-theme="light"] .learnly-home .lh-hero-badge {

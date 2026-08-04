@@ -21,6 +21,8 @@ import {
   findCertificateConfigForSlug,
 } from "@/lib/global-certificate-assets";
 import { resolveCourseCertificateAssets } from "@/lib/server/certificate-generation-policy";
+import { appBaseUrl } from "@/lib/server/certificate-app-url";
+import { buildCertificateQrVerifyUrl } from "@/lib/certificate-verify-url";
 import type { LmsCertificate } from "@prisma/client";
 
 function pdfEscape(text: string): string {
@@ -119,6 +121,10 @@ async function buildCertificatePdfForRow(
     templateImageUrl,
     transcriptImageUrl: transcriptImage,
     badgeImageUrl: badgeImageUrl,
+    verifyUrl: buildCertificateQrVerifyUrl(appBaseUrl(), {
+      certificateNumber: row.certificateNumber,
+      delegateNumber: row.delegateNumber,
+    }),
     layout: {
       nameTopPercent: courseCfg?.nameTopPercent ?? cfg?.nameTopPercent,
       numberTopPercent: courseCfg?.numberTopPercent ?? cfg?.numberTopPercent,
@@ -309,6 +315,10 @@ export async function generateCertificateFromCourseTemplate(input: {
     templateImageUrl: templateImage,
     transcriptImageUrl: transcriptImage,
     badgeImageUrl: badgeImage,
+    verifyUrl: buildCertificateQrVerifyUrl(appBaseUrl(), {
+      certificateNumber: row.certificateNumber,
+      delegateNumber: row.delegateNumber,
+    }),
     layout: {
       nameTopPercent: courseCfg?.nameTopPercent ?? cfg?.nameTopPercent,
       numberTopPercent: courseCfg?.numberTopPercent ?? cfg?.numberTopPercent,
