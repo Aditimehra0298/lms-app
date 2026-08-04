@@ -95,6 +95,8 @@ import {
 import { BADGES_UPDATED_EVENT, readLearnerBadges } from "@/lib/learner-badges";
 import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 import { syncAllLearnerCourseProgressFromServer } from "@/lib/learner-progress-sync-client";
+import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
+import { countLearnerCurriculumModules } from "@/lib/curriculum-learner-filter";
 
 function TabPanelLoading() {
   return (
@@ -266,7 +268,15 @@ function formatCourseDuration(raw: string | undefined): string {
 }
 
 function CoursePoster({ image, title, courseSlug }: { image?: string; title: string; courseSlug?: string }) {
-  return <CourseListThumbnail image={image} title={title} courseSlug={courseSlug} />;
+  return (
+    <CourseListThumbnail
+      image={image}
+      title={title}
+      courseSlug={courseSlug}
+      fit="contain"
+      className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-[#0a0f1c]"
+    />
+  );
 }
 
 export default function MyLearningPage() {
@@ -956,6 +966,7 @@ export default function MyLearningPage() {
               tutorLedCourses={activeTutorLedForHub}
               exploreSelfPaced={sortedExploreSelfPaced}
               exploreTutorLed={sortedExploreTutorLed}
+              catalogCourses={effectiveCatalog}
               recommendedSelfPacedSlugs={recommendedSelfPacedSlugs}
               recommendedTutorSlugs={recommendedTutorSlugs}
               completedCount={completedDashboardCount}
@@ -1253,7 +1264,13 @@ export default function MyLearningPage() {
                   </p>
                 ) : (
                   sortedCoursesForLearning.map((course) => {
-                  const safeModules = Math.max(1, course.modules);
+                  const catalogCourse = findCatalogCourse(course, effectiveCatalog);
+                  const safeModules = Math.max(
+                    1,
+                    catalogCourse
+                      ? countLearnerCurriculumModules(catalogCourse.curriculum)
+                      : course.modules || 1,
+                  );
                   // Real per-module completion (not “first N modules”), so progress stays accurate
                   // when learners open modules out of order.
                   const doneSet = new Set(
@@ -1269,17 +1286,21 @@ export default function MyLearningPage() {
                   const percentage = Math.round((doneCount / safeModules) * 100);
                   const courseDone =
                     course.status === "Completed" || doneCount >= safeModules;
+                  const posterImage =
+                    (catalogCourse ? resolveCourseListThumbnail(catalogCourse) : "") ||
+                    course.image ||
+                    "";
                   return (
                     <article
                       key={courseRowKey(course)}
                       className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-3 xl:grid-cols-[320px_1fr_150px]"
                     >
                       <div className="flex gap-3">
-                        <CoursePoster image={course.image} title={course.title} courseSlug={course.slug} />
+                        <CoursePoster image={posterImage} title={course.title} courseSlug={course.slug} />
                         <div>
                           <p className="text-lg font-semibold">{course.title}</p>
                           <p className="mt-1 text-xs text-gray-400">
-                            {course.modules} Modules • {formatCourseDuration(course.duration)}
+                            {safeModules} Modules • {formatCourseDuration(catalogCourse?.duration || course.duration)}
                           </p>
                         </div>
                       </div>

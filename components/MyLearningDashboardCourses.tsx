@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import type { ManagedCourse } from "@/lib/content-schema";
 import type { PurchasedCourseRow } from "@/lib/learner-course-progress";
+import { readCompletedModules } from "@/lib/learner-course-progress";
+import { countLearnerCurriculumModules } from "@/lib/curriculum-learner-filter";
 import type { TutorLedExploreCard, TutorLedLiveHubRow } from "@/lib/tutor-led-live-hub-enrich";
 import { liveTutorCourseHref, tutorLedLearnerLiveJoinHref } from "@/lib/tutor-led-routes";
 import { CourseListThumbnail } from "@/components/CourseListThumbnail";
@@ -27,44 +29,66 @@ type Props = {
   tutorLedCourses: TutorLedLiveHubRow[];
   exploreSelfPaced: ManagedCourse[];
   exploreTutorLed: TutorLedExploreCard[];
+  /** Full catalog — used for real covers + accurate module counts on cards. */
+  catalogCourses?: ManagedCourse[];
   recommendedSelfPacedSlugs?: Set<string>;
   recommendedTutorSlugs?: Set<string>;
   completedCount?: number;
   learningHrefFor: (course: { title: string; slug?: string; action?: string; status?: string }) => string;
 };
 
+function formatCardDuration(raw: string | undefined): string {
+  const s = (raw ?? "").trim();
+  if (!s || s === "—") return "";
+  if (/^h\s*\d*m?$/i.test(s) || /^h\s/i.test(s)) return "";
+  return s;
+}
+
+function cardStats(course: PurchasedCourseRow, catalog?: ManagedCourse[]) {
+  const slug = course.slug?.trim() ?? "";
+  const cat = slug
+    ? catalog?.find((c) => c.slug === slug)
+    : catalog?.find((c) => c.title.trim().toLowerCase() === course.title.trim().toLowerCase());
+  const modulesFromCatalog = cat ? countLearnerCurriculumModules(cat.curriculum) : 0;
+  const modules = Math.max(1, modulesFromCatalog || course.modules || 1);
+  const doneList = slug ? readCompletedModules(slug) : [];
+  const completed = doneList.filter((n) => n >= 1 && n <= modules).length;
+  const image = (cat ? resolveCourseListThumbnail(cat) : "") || course.image?.trim() || "";
+  const duration = formatCardDuration(cat?.duration || course.duration);
+  return { modules, completed, image, duration, slug };
+}
+
 function CourseThumb({
   image,
   title,
   courseSlug,
-  compact,
 }: {
   image?: string;
   title: string;
   courseSlug?: string;
-  compact?: boolean;
 }) {
-  const h = compact ? "h-16" : "h-24";
   return (
     <CourseListThumbnail
       image={image}
       title={title}
       courseSlug={courseSlug}
-      className={`relative ${h} w-full overflow-hidden rounded-lg border border-white/10 bg-black/30`}
+      fit="contain"
+      className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-white/10 bg-[#0a0f1c]"
     />
   );
 }
 
 function ProgressBar({ completed, total }: { completed: number; total: number }) {
-  const safe = Math.max(1, total);
-  const pct = Math.round((completed / safe) * 100);
+  const safeTotal = Math.max(1, Number(total) || 1);
+  const done = Math.max(0, Math.min(safeTotal, Number(completed) || 0));
+  const pct = Math.round((done / safeTotal) * 100);
   return (
     <div className="mt-2">
       <div className="h-1.5 rounded-full bg-white/10">
         <div className="h-1.5 rounded-full bg-violet-400" style={{ width: `${pct}%` }} />
       </div>
       <p className="mt-1 text-[11px] text-gray-400">
-        {completed}/{total} modules · {pct}%
+        {done}/{safeTotal} modules · {pct}%
       </p>
     </div>
   );
@@ -81,11 +105,13 @@ export function MyLearningDashboardCourses({
   tutorLedCourses,
   exploreSelfPaced,
   exploreTutorLed,
+  catalogCourses,
   recommendedSelfPacedSlugs,
   recommendedTutorSlugs,
   completedCount = 0,
   learningHrefFor,
 }: Props) {
+  const catalog = catalogCourses?.length ? catalogCourses : exploreSelfPaced;
   const visibleSelfPaced = selfPacedCourses.slice(0, ACTIVE_SELF_PACED_VISIBLE);
   const moreSelfPaced = Math.max(0, selfPacedCourses.length - visibleSelfPaced.length);
   const previewExploreSelf = exploreSelfPaced.slice(0, EXPLORE_SELF_PACED_VISIBLE);
@@ -129,22 +155,24 @@ export function MyLearningDashboardCourses({
             <div className="space-y-4">
               {visibleSelfPaced.length > 0 ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {visibleSelfPaced.map((course) => (
+                  {visibleSelfPaced.map((course) => {
+                    const stats = cardStats(course, catalog);
+                    return (
                     <article
                       key={`sp-${(course.slug ?? course.title).toLowerCase()}`}
                       className="flex flex-col rounded-xl border border-white/10 bg-black/25 p-3"
                     >
-                      <CourseThumb image={course.image} title={course.title} courseSlug={course.slug} />
+                      <CourseThumb image={stats.image} title={course.title} courseSlug={stats.slug || course.slug} />
                       <p className="mt-2 line-clamp-2 text-sm font-semibold">{course.title}</p>
                       <p className="mt-0.5 text-[11px] text-gray-400">
-                        {course.modules} modules · {course.duration}
+                        {stats.modules} modules{stats.duration ? ` · ${stats.duration}` : ""}
                       </p>
                       <span
                         className={`mt-2 inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusBadgeClass(course.status)}`}
                       >
                         {course.status}
                       </span>
-                      <ProgressBar completed={course.completed} total={course.modules} />
+                      <ProgressBar completed={stats.completed} total={stats.modules} />
                       <Link
                         href={learningHrefFor(course)}
                         className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-amber-500 py-2 text-xs font-bold text-black hover:bg-amber-400"
@@ -152,7 +180,8 @@ export function MyLearningDashboardCourses({
                         {course.action || "Continue"}
                       </Link>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : null}
 

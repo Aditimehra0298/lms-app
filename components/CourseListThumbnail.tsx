@@ -11,13 +11,21 @@ type Props = {
   title: string;
   courseSlug?: string;
   className?: string;
+  /** `contain` shows the full artwork; `cover` fills the box (may crop). */
+  fit?: "contain" | "cover";
 };
 
 /**
  * Course list / My Learning thumbnail — signs private media URLs and falls back
  * to “No image” instead of showing a shared placeholder or a broken icon.
  */
-export function CourseListThumbnail({ image, title, courseSlug, className }: Props) {
+export function CourseListThumbnail({
+  image,
+  title,
+  courseSlug,
+  className,
+  fit = "cover",
+}: Props) {
   const raw = (image ?? "").trim();
   const [src, setSrc] = useState(() =>
     raw && !isGenericCoursePlaceholder(raw) && !isProtectedMediaUrl(raw) ? raw : "",
@@ -81,8 +89,8 @@ export function CourseListThumbnail({ image, title, courseSlug, className }: Pro
         alt={title}
         fill
         unoptimized
-        className="object-cover"
-        sizes="112px"
+        className={fit === "contain" ? "object-contain object-center" : "object-cover object-center"}
+        sizes="(max-width: 768px) 100vw, 400px"
         onError={() => setFailed(true)}
       />
     </div>
