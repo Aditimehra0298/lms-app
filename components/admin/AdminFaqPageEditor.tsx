@@ -8,6 +8,7 @@ import { defaultAdminContent, defaultHomePageConfig } from "@/lib/content-schema
 import AdminImageUrlUpload from "@/components/admin/AdminImageUrlUpload";
 import {
   FAQ_TARGET_HOME,
+  FAQ_TARGET_COURSES_PAGE,
   applyFaqsToAdminContent,
   buildFaqTargetOptions,
   getFaqTargetOption,
@@ -81,10 +82,22 @@ export default function AdminFaqPageEditor() {
         faqs,
         isHomeTarget ? { faqPage, faqImage } : undefined,
       );
+      // Partial PUT — only send fields this FAQ target actually changes.
+      const body: Partial<AdminContent> = {};
+      if (targetId === FAQ_TARGET_HOME) body.homePage = next.homePage;
+      else if (targetId === FAQ_TARGET_COURSES_PAGE) body.coursesPage = next.coursesPage;
+      else if (targetId.startsWith("course:")) body.managedCourses = next.managedCourses;
+      else if (targetId.startsWith("tutor-led:")) body.tutorLedPrograms = next.tutorLedPrograms;
+      else {
+        body.homePage = next.homePage;
+        body.coursesPage = next.coursesPage;
+        body.managedCourses = next.managedCourses;
+        body.tutorLedPrograms = next.tutorLedPrograms;
+      }
       const put = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
+        body: JSON.stringify(body),
       });
       if (put.ok) {
         setContent(next);

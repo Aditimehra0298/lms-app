@@ -279,9 +279,13 @@ export default function AdminHomePageEditor() {
   const save = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/content", { cache: "no-store" });
-      const current = res.ok ? ((await res.json()) as AdminContent) : ({} as AdminContent);
-      await fetch("/api/admin/content", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...current, homePage: config }) });
+      // Partial PUT only — never echo the full document (that overwrote categories / images).
+      const put = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ homePage: config }),
+      });
+      if (!put.ok) throw new Error("save");
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch { /* silent */ } finally { setSaving(false); }

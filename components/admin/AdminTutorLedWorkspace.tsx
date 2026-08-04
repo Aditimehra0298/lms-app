@@ -379,11 +379,10 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
     setSaving(true);
     setLoadError(null);
     try {
-      const payload: AdminContent = { ...content, tutorLedPrograms: next };
       const put = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ tutorLedPrograms: next }),
       });
       if (!put.ok) throw new Error("save");
       await load();

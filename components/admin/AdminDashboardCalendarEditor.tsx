@@ -49,9 +49,6 @@ export function AdminDashboardCalendarEditor() {
     setSaving(true);
     setStatus(null);
     try {
-      const res = await fetch("/api/admin/content", { cache: "no-store" });
-      if (!res.ok) throw new Error("load failed");
-      const current = (await res.json()) as AdminContent;
       const cleaned = reminders
         .filter((r) => r.title.trim())
         .map((r) => ({
@@ -65,9 +62,7 @@ export function AdminDashboardCalendarEditor() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...current,
           dashboard: {
-            ...current.dashboard,
             calendarReminders: cleaned,
           },
         }),

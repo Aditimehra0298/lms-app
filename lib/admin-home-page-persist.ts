@@ -24,12 +24,10 @@ export async function loadHomePageFromAdmin(): Promise<HomePageConfig> {
 
 export async function saveHomePageToAdmin(config: HomePageConfig): Promise<boolean> {
   try {
-    const res = await fetch("/api/admin/content", { cache: "no-store" });
-    const current = res.ok ? ((await res.json()) as AdminContent) : ({} as AdminContent);
     const put = await fetch("/api/admin/content", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...current, homePage: config }),
+      body: JSON.stringify({ homePage: config }),
     });
     return put.ok;
   } catch {

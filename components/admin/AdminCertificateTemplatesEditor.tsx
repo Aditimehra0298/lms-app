@@ -62,14 +62,10 @@ async function uploadAdminFile(file: File): Promise<string> {
 }
 
 async function persistGlobalCertificateAssets(assets: GlobalCertificateAssets): Promise<void> {
-  const res = await fetch("/api/admin/content", { cache: "no-store" });
-  if (!res.ok) throw new Error("Could not load settings");
-  const current = (await res.json()) as AdminContent;
   const put = await fetch("/api/admin/content", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      ...current,
       globalCertificateAssets: {
         templateImage: assets.templateImage?.trim(),
         badgeImage: assets.badgeImage?.trim(),

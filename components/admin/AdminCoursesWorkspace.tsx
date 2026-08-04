@@ -332,7 +332,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     }
   }, []);
 
-  const putAdminContent = useCallback(async (payload: AdminContent) => {
+  const putAdminContent = useCallback(async (payload: Partial<AdminContent>) => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 30_000);
     try {
@@ -395,9 +395,9 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     setLoadError(null);
     setSaveNotice(null);
     try {
-      const payload: AdminContent = { ...content, managedCourses: nextCourses };
-      await putAdminContent(payload);
-      setContent(payload);
+      // Partial PUT — never echo the full document (wipes category renames / page images).
+      await putAdminContent({ managedCourses: nextCourses });
+      setContent({ ...content, managedCourses: nextCourses });
       setSaveNotice("Course saved.");
       void load();
       return true;
@@ -593,9 +593,9 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
         finalExam: undefined,
       };
       const others = (content.managedCourses ?? []).filter((c) => c.slug !== updated.slug);
-      const payload: AdminContent = { ...content, managedCourses: [...others, updated] };
-      await putAdminContent(payload);
-      setContent(payload);
+      const nextCourses = [...others, updated];
+      await putAdminContent({ managedCourses: nextCourses });
+      setContent({ ...content, managedCourses: nextCourses });
       setSaveNotice("Curriculum saved.");
       void load();
     } catch (e) {
@@ -616,9 +616,9 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
         finalExam: undefined,
       };
       const others = (content.managedCourses ?? []).filter((c) => c.slug !== updated.slug);
-      const payload: AdminContent = { ...content, managedCourses: [...others, updated] };
-      await putAdminContent(payload);
-      setContent(payload);
+      const nextCourses = [...others, updated];
+      await putAdminContent({ managedCourses: nextCourses });
+      setContent({ ...content, managedCourses: nextCourses });
       setSaveNotice("Curriculum saved (exam file linked).");
       void load();
     } catch (e) {

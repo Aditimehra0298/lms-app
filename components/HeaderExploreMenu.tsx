@@ -161,16 +161,16 @@ export default function HeaderExploreMenu({ isLight }: Props) {
 
       {open ? (
         <div
-          className={`absolute left-0 top-[calc(100%+10px)] z-[120] w-[min(92vw,720px)] overflow-hidden rounded-2xl border max-md:fixed max-md:inset-x-3 max-md:top-28 max-md:w-auto ${panelClass}`}
+          className={`absolute left-0 top-[calc(100%+10px)] z-[120] w-[min(96vw,860px)] overflow-hidden rounded-2xl border max-md:fixed max-md:inset-x-3 max-md:top-28 max-md:w-auto ${panelClass}`}
           role="dialog"
           aria-label="Explore courses by domain"
         >
-          <div className="grid max-h-[min(70vh,520px)] grid-cols-1 md:grid-cols-[220px_1fr]">
+          <div className="grid max-h-[min(75vh,580px)] grid-cols-1 md:grid-cols-[minmax(260px,0.95fr)_1.25fr]">
             <aside className={`border-b md:border-b-0 md:border-r ${sideClass}`}>
               <p className={`px-4 pb-2 pt-4 text-[10px] font-bold uppercase tracking-[0.16em] ${muted}`}>
                 Domains
               </p>
-              <div className="max-h-[220px] space-y-0.5 overflow-y-auto px-2 pb-3 md:max-h-[460px]">
+              <div className="max-h-[220px] space-y-0.5 overflow-y-auto px-2 pb-3 md:max-h-[520px]">
                 {loading && categories.length === 0 ? (
                   <p className={`px-2 py-3 text-xs ${muted}`}>Loading domains…</p>
                 ) : null}
@@ -186,12 +186,12 @@ export default function HeaderExploreMenu({ isLight }: Props) {
                       onMouseEnter={() => setActiveSlug(cat.slug)}
                       onFocus={() => setActiveSlug(cat.slug)}
                       onClick={() => setActiveSlug(cat.slug)}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${
+                      className={`flex w-full items-start justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold leading-snug transition ${
                         active ? activeDomainClass : idleDomainClass
                       }`}
                     >
-                      <span className="truncate">{cat.title}</span>
-                      <ChevronRight size={14} className="shrink-0 opacity-70" />
+                      <span className="min-w-0 flex-1 whitespace-normal break-words">{cat.title}</span>
+                      <ChevronRight size={14} className="mt-0.5 shrink-0 opacity-70" />
                     </button>
                   );
                 })}
@@ -206,7 +206,9 @@ export default function HeaderExploreMenu({ isLight }: Props) {
                       <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${muted}`}>
                         Domain
                       </p>
-                      <h3 className="text-base font-extrabold">{activeCategory.title}</h3>
+                      <h3 className="text-base font-extrabold leading-snug whitespace-normal break-words">
+                        {activeCategory.title}
+                      </h3>
                     </div>
                     <Link
                       href={`/courses/category/${activeCategory.slug}`}
@@ -239,7 +241,7 @@ export default function HeaderExploreMenu({ isLight }: Props) {
                                 course.learningFormat,
                               )}
                               onClick={() => setOpen(false)}
-                              className={`block truncate rounded-lg px-2.5 py-2 text-sm transition ${linkClass}`}
+                              className={`block whitespace-normal break-words rounded-lg px-2.5 py-2 text-sm leading-snug transition ${linkClass}`}
                             >
                               {course.title}
                             </Link>
@@ -270,7 +272,7 @@ export default function HeaderExploreMenu({ isLight }: Props) {
                                 course.learningFormat,
                               )}
                               onClick={() => setOpen(false)}
-                              className={`block truncate rounded-lg px-2.5 py-2 text-sm transition ${linkClass}`}
+                              className={`block whitespace-normal break-words rounded-lg px-2.5 py-2 text-sm leading-snug transition ${linkClass}`}
                             >
                               {course.title}
                             </Link>
@@ -281,10 +283,10 @@ export default function HeaderExploreMenu({ isLight }: Props) {
                             <Link
                               href={liveTutorCourseHref(program.slug)}
                               onClick={() => setOpen(false)}
-                              className={`flex items-center gap-2 truncate rounded-lg px-2.5 py-2 text-sm transition ${linkClass}`}
+                              className={`flex items-start gap-2 rounded-lg px-2.5 py-2 text-sm leading-snug transition ${linkClass}`}
                             >
-                              <GraduationCap size={13} className="shrink-0 opacity-70" />
-                              <span className="truncate">{program.title}</span>
+                              <GraduationCap size={13} className="mt-0.5 shrink-0 opacity-70" />
+                              <span className="min-w-0 whitespace-normal break-words">{program.title}</span>
                             </Link>
                           </li>
                         ))}

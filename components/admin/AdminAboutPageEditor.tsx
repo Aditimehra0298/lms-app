@@ -275,9 +275,13 @@ export default function AdminAboutPageEditor() {
   const saveConfig = useCallback(async (cfg: AboutPageConfig) => {
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/content", { cache: "no-store" });
-      const cur = res.ok ? (await res.json()) as AdminContent : {} as AdminContent;
-      await fetch("/api/admin/content", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...cur, aboutPage: cfg }) });
+      // Partial PUT only — full-document echo was wiping category renames / page images.
+      const put = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aboutPage: cfg }),
+      });
+      if (!put.ok) throw new Error("save");
       setSaved(true); setDirty(false); setTimeout(() => setSaved(false), 2500);
     } catch {} finally { setSaving(false); }
   }, []);

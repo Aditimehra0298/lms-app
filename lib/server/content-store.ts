@@ -6,6 +6,8 @@ import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import {
   AdminContent,
   defaultAdminContent,
+  type CategoryTone,
+  type ManagedCategory,
   type ManagedCourse,
   defaultAboutPageConfig,
   defaultCoursesPageConfig,
@@ -15,6 +17,53 @@ import {
 import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
 
 const contentFilePath = path.join(process.cwd(), "data", "admin-content.json");
+
+const CATEGORY_TONES = new Set<CategoryTone>(["violet", "blue", "emerald", "amber"]);
+
+/**
+ * Older saves / manual edits sometimes used `name` / `status` instead of
+ * `title` / `isActive`. Normalize so admin renames and Explore never blank out.
+ */
+export function normalizeManagedCategories(raw: unknown): ManagedCategory[] {
+  if (!Array.isArray(raw)) return defaultAdminContent.categories;
+  return raw.map((item, index) => {
+    const c = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
+    const slugRaw = typeof c.slug === "string" ? c.slug.trim() : "";
+    const titleRaw =
+      (typeof c.title === "string" && c.title.trim()) ||
+      (typeof c.name === "string" && c.name.trim()) ||
+      "";
+    const slug =
+      slugRaw ||
+      titleRaw
+        .toLowerCase()
+        .replace(/&/g, "and")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") ||
+      `category-${index + 1}`;
+    const status = typeof c.status === "string" ? c.status : "";
+    const isActive =
+      typeof c.isActive === "boolean" ? c.isActive : status !== "Draft";
+    const tone =
+      typeof c.tone === "string" && CATEGORY_TONES.has(c.tone as CategoryTone)
+        ? (c.tone as CategoryTone)
+        : "violet";
+    return {
+      slug,
+      title: titleRaw || slug,
+      subtitle: typeof c.subtitle === "string" && c.subtitle.trim() ? c.subtitle : "General",
+      description:
+        typeof c.description === "string" && c.description.trim()
+          ? c.description
+          : "Category description",
+      isActive,
+      isFeatured: Boolean(c.isFeatured),
+      isUppercase: Boolean(c.isUppercase),
+      isBold: Boolean(c.isBold),
+      tone,
+    };
+  });
+}
 
 async function ensureContentFile() {
   const dir = path.dirname(contentFilePath);
@@ -91,9 +140,7 @@ async function readAdminContentFromDisk(): Promise<AdminContent> {
         parsed.managedCourses && parsed.managedCourses.length > 0
           ? migrateManagedCourses(parsed.managedCourses)
           : defaultAdminContent.managedCourses,
-      categories: Array.isArray(parsed.categories)
-        ? parsed.categories
-        : defaultAdminContent.categories,
+      categories: normalizeManagedCategories(parsed.categories),
       categoryPages:
         parsed.categoryPages && typeof parsed.categoryPages === "object"
           ? parsed.categoryPages
@@ -125,7 +172,32 @@ async function readAdminContentFromDisk(): Promise<AdminContent> {
 /** One disk read per server request (deduped across parallel catalog calls). */
 export const readAdminContent = cache(readAdminContentFromDisk);
 
+/** Uncached disk read — use for admin GET/PUT so saves are never served stale. */
+export { readAdminContentFromDisk };
+
 export async function writeAdminContent(content: AdminContent): Promise<void> {
   await ensureContentFile();
-  await fs.writeFile(contentFilePath, JSON.stringify(content, null, 2), "utf8");
+  const normalized: AdminContent = {
+    ...content,
+    categories: normalizeManagedCategories(content.categories),
+    categoryPages:
+      content.categoryPages && typeof content.categoryPages === "object"
+        ? content.categoryPages
+        : {},
+  };
+  const payload = JSON.stringify(normalized, null, 2);
+  const tmp = `${contentFilePath}.tmp`;
+  await fs.writeFile(tmp, payload, "utf8");
+  try {
+    await fs.rename(tmp, contentFilePath);
+  } catch {
+    // Windows: cannot rename over existing file — replace explicitly.
+    await fs.copyFile(tmp, contentFilePath);
+    await fs.unlink(tmp).catch(() => undefined);
+  }
+  // Confirm the write landed (catches silent Windows lock / wrong cwd issues).
+  const verify = await fs.readFile(contentFilePath, "utf8");
+  if (verify.length < 2 || !verify.trimStart().startsWith("{")) {
+    throw new Error("admin-content.json write verification failed");
+  }
 }

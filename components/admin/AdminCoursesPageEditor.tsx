@@ -470,14 +470,13 @@ export default function AdminCoursesPageEditor() {
   const save = async () => {
     setSaving(true); setSaved(false);
     try {
-      const res = await fetch("/api/admin/content", { cache: "no-store" });
-      if (!res.ok) return;
-      const current = (await res.json()) as AdminContent;
-      await fetch("/api/admin/content", {
+      // Partial PUT only — never echo the full document (that overwrote categories / images).
+      const put = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...current, coursesPage: config }),
+        body: JSON.stringify({ coursesPage: config }),
       });
+      if (!put.ok) return;
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch { /* keep UI usable */ } finally { setSaving(false); }

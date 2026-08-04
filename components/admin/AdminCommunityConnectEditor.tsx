@@ -64,9 +64,6 @@ export function AdminCommunityConnectEditor() {
     setSaving(true);
     setStatus(null);
     try {
-      const res = await fetch("/api/admin/content", { cache: "no-store" });
-      if (!res.ok) throw new Error("load failed");
-      const current = (await res.json()) as AdminContent;
       const cleaned = cards
         .filter((c) => c.title.trim() && c.href.trim())
         .map((c) => ({
@@ -82,9 +79,7 @@ export function AdminCommunityConnectEditor() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...current,
           dashboard: {
-            ...current.dashboard,
             communityConnect: cleaned,
           },
         }),

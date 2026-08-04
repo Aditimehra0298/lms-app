@@ -107,15 +107,11 @@ export function AdminOrganizationTeamEditor() {
     setSavingPlans(true);
     setStatus(null);
     try {
-      const res = await fetch("/api/admin/content", { cache: "no-store" });
-      if (!res.ok) throw new Error("load");
-      const current = (await res.json()) as AdminContent;
       const cleaned = mergeOrganizationTeamAdminConfig(planConfig);
       const put = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...current,
           organizationTeam: cleaned,
         }),
       });

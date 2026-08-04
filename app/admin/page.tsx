@@ -151,6 +151,13 @@ type DashboardRecentPayment = {
   createdAt: string;
 };
 type DashboardTopCourse = { slug: string; title: string; enrollments: number };
+type CategoryStatRow = {
+  slug: string;
+  title: string;
+  courseCount: number;
+  publishedCourseCount: number;
+  studentCount: number;
+};
 
 const quickActions = [
   "Add New Course",
@@ -310,6 +317,7 @@ function AdminPageInner() {
   const [dashRecentUsers, setDashRecentUsers] = useState<DashboardRecentUser[]>([]);
   const [dashRecentPayments, setDashRecentPayments] = useState<DashboardRecentPayment[]>([]);
   const [dashTopCourses, setDashTopCourses] = useState<DashboardTopCourse[]>([]);
+  const [categoryStats, setCategoryStats] = useState<CategoryStatRow[]>([]);
 
   const panelQuery = searchParams.get("panel");
 
@@ -421,15 +429,18 @@ function AdminPageInner() {
     }));
 
   const rowsFromManagedCategories = (cats: ManagedCategory[]): string[][] =>
-    cats.map((c) => [
-      c.title,
-      c.subtitle,
-      c.description,
-      "—",
-      "—",
-      c.isActive ? "Published" : "Draft",
-      c.slug,
-    ]);
+    cats.map((c) => {
+      const row = c as ManagedCategory & { name?: string };
+      return [
+        row.title || row.name || row.slug || "",
+        row.subtitle || "General",
+        row.description || "",
+        "—",
+        "—",
+        row.isActive === false ? "Draft" : "Published",
+        row.slug || "",
+      ];
+    });
 
   const categorySlugAt = (row: string[], index: number) =>
     row[6]?.trim() || toSlug(row[0]) || `category-${index + 1}`;
@@ -439,12 +450,20 @@ function AdminPageInner() {
     let cancelled = false;
     fetch("/api/admin/dashboard-stats", { cache: "no-store" })
       .then((r) => r.json())
-      .then((data: { ok?: boolean; stats?: DashboardStats; recentUsers?: DashboardRecentUser[]; recentPayments?: DashboardRecentPayment[]; topCourses?: DashboardTopCourse[] }) => {
+      .then((data: {
+        ok?: boolean;
+        stats?: DashboardStats;
+        recentUsers?: DashboardRecentUser[];
+        recentPayments?: DashboardRecentPayment[];
+        topCourses?: DashboardTopCourse[];
+        categoryStats?: CategoryStatRow[];
+      }) => {
         if (cancelled) return;
         if (data.stats) setDashStats(data.stats);
         if (data.recentUsers) setDashRecentUsers(data.recentUsers);
         if (data.recentPayments) setDashRecentPayments(data.recentPayments);
         if (data.topCourses) setDashTopCourses(data.topCourses);
+        if (Array.isArray(data.categoryStats)) setCategoryStats(data.categoryStats);
       })
       .catch(() => {});
     return () => { cancelled = true; };
@@ -554,20 +573,20 @@ function AdminPageInner() {
 
   const persistCategories = async (rows: string[][]) => {
     try {
-      const currentResponse = await fetch("/api/admin/content", { cache: "no-store" });
-      if (!currentResponse.ok) return;
-      const current = (await currentResponse.json()) as AdminContent;
-      const nextPayload: AdminContent = {
-        ...current,
-        categories: toManagedCategories(rows),
-      };
-      await fetch("/api/admin/content", {
+      const put = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextPayload),
+        body: JSON.stringify({ categories: toManagedCategories(rows) }),
       });
-    } catch {
-      // Keep UI usable even if persistence fails.
+      const data = (await put.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!put.ok || data.ok === false) {
+        throw new Error(data.error || `Save failed (HTTP ${put.status})`);
+      }
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not save categories.";
+      if (typeof window !== "undefined") window.alert(`Category save failed: ${message}`);
+      return false;
     }
   };
 
@@ -581,8 +600,8 @@ function AdminPageInner() {
       return;
     }
     const nextRows = categoryRows.filter((_, i) => i !== index);
-    setCategoryRows(nextRows);
-    await persistCategories(nextRows);
+    const ok = await persistCategories(nextRows);
+    if (ok) setCategoryRows(nextRows);
   };
 
   const addCategory = async () => {
@@ -600,8 +619,9 @@ function AdminPageInner() {
         toSlug(name) || `category-${categoryRows.length + 1}`,
       ],
     ];
+    const ok = await persistCategories(nextRows);
+    if (!ok) return;
     setCategoryRows(nextRows);
-    await persistCategories(nextRows);
     setNewCategory({
       name: "",
       subtitle: "",
@@ -643,9 +663,11 @@ function AdminPageInner() {
         row[6]?.trim() || editCategory.slug || toSlug(editCategory.name.trim()),
       ];
     });
+    const ok = await persistCategories(nextRows);
+    if (!ok) return;
     setCategoryRows(nextRows);
-    await persistCategories(nextRows);
     setEditCategoryIndex(null);
+    if (typeof window !== "undefined") window.alert("Category name saved.");
   };
 
   return (
@@ -1104,7 +1126,7 @@ function AdminPageInner() {
                 {[
                   [
                     "Total Categories",
-                    String(categoryRows.length),
+                    String(dashStats?.totalCategories ?? categoryRows.length),
                     "All Categories",
                     BookOpen,
                     "text-violet-300",
@@ -1116,8 +1138,20 @@ function AdminPageInner() {
                     Leaf,
                     "text-emerald-300",
                   ],
-                  ["Total Courses", "156", "Courses in all categories", Briefcase, "text-amber-300"],
-                  ["Total Students", "8,645", "Students in all categories", Users, "text-blue-300"],
+                  [
+                    "Total Courses",
+                    String(dashStats?.totalCourses ?? "—"),
+                    "Courses in all categories",
+                    Briefcase,
+                    "text-amber-300",
+                  ],
+                  [
+                    "Total Students",
+                    String(dashStats?.totalStudents ?? "—"),
+                    "Learners enrolled on LMS",
+                    Users,
+                    "text-blue-300",
+                  ],
                 ].map(([title, val, sub, Icon, tone]) => (
                   <article key={String(title)} className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
                     <div className={`mb-2 inline-flex rounded-md bg-white/5 p-1.5 ${String(tone)}`}>
@@ -1153,19 +1187,28 @@ function AdminPageInner() {
                       </tr>
                     </thead>
                     <tbody>
-                      {categoryRows.map((row, i) => (
+                      {categoryRows.map((row, i) => {
+                        const slug = categorySlugAt(row, i);
+                        const stats =
+                          categoryStats.find((s) => s.slug === slug) ??
+                          categoryStats.find(
+                            (s) => s.title.trim().toLowerCase() === (row[0] ?? "").trim().toLowerCase(),
+                          );
+                        const courseCount = stats?.courseCount ?? 0;
+                        const studentCount = stats?.studentCount ?? 0;
+                        return (
                         <tr key={`${row[0]}-${i}`} className="border-b border-white/5">
                           <td className="py-2 pr-3">{i + 1}</td>
                           <td className="py-2 pr-3">
                             <p className="font-medium">{row[0]}</p>
                             <p className="text-[10px] text-gray-500">{row[1]}</p>
                             <p className="mt-0.5 font-mono text-[10px] text-amber-200/70">
-                              /{categorySlugAt(row, i)}
+                              /{slug}
                             </p>
                           </td>
                           <td className="max-w-[360px] py-2 pr-3 text-gray-300">{row[2]}</td>
-                          <td className="py-2 pr-3">{row[3]}</td>
-                          <td className="py-2 pr-3">{row[4]}</td>
+                          <td className="py-2 pr-3 font-semibold text-amber-100">{courseCount}</td>
+                          <td className="py-2 pr-3 font-semibold text-blue-100">{studentCount}</td>
                           <td className="py-2 pr-3">
                             <span className={`rounded px-2 py-0.5 ${row[5] === "Published" ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
                               {row[5]}
@@ -1178,7 +1221,7 @@ function AdminPageInner() {
                                 title="Edit category page — hero, courses, instructors, filters"
                                 onClick={() =>
                                   setCategoryPageEditor({
-                                    slug: categorySlugAt(row, i),
+                                    slug,
                                     title: row[0],
                                   })
                                 }
@@ -1197,7 +1240,7 @@ function AdminPageInner() {
                               <button
                                 type="button"
                                 title="Preview category page (popup — stay on admin)"
-                                onClick={() => setCategoryPreviewSlug(categorySlugAt(row, i))}
+                                onClick={() => setCategoryPreviewSlug(slug)}
                                 className="rounded p-1 hover:bg-amber-500/20 hover:text-amber-100"
                               >
                                 <Eye size={13} />
@@ -1213,7 +1256,8 @@ function AdminPageInner() {
                             </span>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

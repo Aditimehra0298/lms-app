@@ -100,6 +100,38 @@ export default function CategoryPageEditorModal({
     };
   }, [open, categorySlug]);
 
+  const persist = async (nextDraft?: CategoryPageEditorConfig, opts?: { quiet?: boolean }) => {
+    const payload = nextDraft ?? draft;
+    if (!payload) return false;
+    setSaving(true);
+    setLoadError(null);
+    try {
+      const key = canonicalCategorySlug(categorySlug);
+      const put = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categoryPages: {
+            [key]: payload,
+          },
+        }),
+      });
+      const data = (await put.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!put.ok || data.ok === false) {
+        throw new Error(data.error || "save");
+      }
+      if (!opts?.quiet && typeof window !== "undefined") {
+        window.alert("Category page saved.");
+      }
+      return true;
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Save failed. Try again.");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const uploadHeroBanner = async (file: File) => {
     setUploadingHero(true);
     setLoadError(null);
@@ -109,40 +141,15 @@ export default function CategoryPageEditorModal({
       const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
       const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
-      setDraft((p) => (p ? { ...p, heroImage: data.url! } : p));
+      const next = draft ? { ...draft, heroImage: data.url } : null;
+      if (!next) throw new Error("Editor not ready");
+      setDraft(next);
+      const saved = await persist(next, { quiet: true });
+      if (!saved) throw new Error("Image uploaded but save failed — click Save category page.");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Hero image upload failed.");
     } finally {
       setUploadingHero(false);
-    }
-  };
-
-  const persist = async () => {
-    if (!draft) return;
-    setSaving(true);
-    setLoadError(null);
-    try {
-      const res = await fetch("/api/admin/content", { cache: "no-store" });
-      if (!res.ok) throw new Error("load");
-      const full = (await res.json()) as AdminContent;
-      const next: AdminContent = {
-        ...full,
-        categoryPages: {
-          ...(full.categoryPages ?? {}),
-          [categorySlug]: draft,
-        },
-      };
-      const put = await fetch("/api/admin/content", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
-      });
-      if (!put.ok) throw new Error("save");
-      onClose();
-    } catch {
-      setLoadError("Save failed. Try again.");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -155,7 +162,14 @@ export default function CategoryPageEditorModal({
       const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
       const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
-      updateInstructor(index, "photo", data.url);
+      if (!draft) throw new Error("Editor not ready");
+      const instructors = draft.instructors.map((inst, i) =>
+        i === index ? { ...inst, photo: data.url! } : inst,
+      );
+      const next = { ...draft, instructors };
+      setDraft(next);
+      const saved = await persist(next, { quiet: true });
+      if (!saved) throw new Error("Image uploaded but save failed — click Save category page.");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Image upload failed.");
     } finally {
@@ -616,7 +630,12 @@ export default function CategoryPageEditorModal({
           <button
             type="button"
             disabled={saving}
-            onClick={() => void persist()}
+            onClick={() => {
+              void (async () => {
+                const ok = await persist();
+                if (ok) onClose();
+              })();
+            }}
             className="rounded-lg bg-[#f5b942] px-4 py-2 text-xs font-semibold text-black hover:brightness-110 disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save category page"}

@@ -101,14 +101,10 @@ export default function AdminSelfPacedCoursesPanel() {
     setSaving(true);
     setLoadError(null);
     try {
-      const payload: AdminContent = {
-        ...content,
-        managedCourses: nextCourses,
-      };
       const put = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ managedCourses: nextCourses }),
       });
       if (!put.ok) throw new Error("save");
       await load();

@@ -121,11 +121,10 @@ export default function AdminBatchesWorkspace() {
             }
           : row,
       );
-      const payload: AdminContent = { ...content, tutorLedPrograms: nextPrograms };
       const put = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ tutorLedPrograms: nextPrograms }),
       });
       if (!put.ok) throw new Error("save");
       setSaveNotice(`Saved batch schedule for “${p.title || p.slug}”.`);
