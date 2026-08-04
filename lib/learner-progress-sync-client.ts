@@ -10,15 +10,35 @@ import { examScoresStorageKey, readModuleExamScores } from "@/lib/learner-exam-s
 import { readJsonResponse } from "@/lib/safe-json";
 import type { StoredLearnerCourseProgress } from "@/lib/server/learner-course-progress-store";
 
-/** Push local progress to the server so My Learning stays accurate across sessions. */
-export async function pushLearnerCourseProgressToServer(courseSlug: string): Promise<boolean> {
+const pushTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Push local progress to the server (debounced). */
+export function pushLearnerCourseProgressToServer(courseSlug: string): void {
+  if (typeof window === "undefined") return;
+  const slug = canonicalCourseSlug(courseSlug);
+  if (!slug) return;
+  const prev = pushTimers.get(slug);
+  if (prev) clearTimeout(prev);
+  pushTimers.set(
+    slug,
+    setTimeout(() => {
+      pushTimers.delete(slug);
+      void pushLearnerCourseProgressToServerNow(slug);
+    }, 400),
+  );
+}
+
+export async function pushLearnerCourseProgressToServerNow(
+  courseSlug: string,
+): Promise<boolean> {
   if (typeof window === "undefined") return false;
   const email = getLearnerEmail()?.trim();
   const slug = canonicalCourseSlug(courseSlug);
   if (!email || !slug) return false;
+
   try {
     const res = await fetch("/api/learner/course-progress", {
-      method: "POST",
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email,
@@ -28,7 +48,7 @@ export async function pushLearnerCourseProgressToServer(courseSlug: string): Pro
       }),
     });
     const data = await readJsonResponse(res, {} as { ok?: boolean });
-    return Boolean(res.ok && data.ok);
+    return res.ok && data.ok === true;
   } catch {
     return false;
   }
@@ -52,7 +72,11 @@ export async function syncLearnerCourseProgressFromServer(
       ok?: boolean;
       progress?: StoredLearnerCourseProgress | null;
     });
-    if (!res.ok || !data.ok || !data.progress) return null;
+    if (!res.ok || !data.ok || !data.progress) {
+      // Still push local progress so the server learns about this learner.
+      pushLearnerCourseProgressToServer(slug);
+      return null;
+    }
 
     const { completedModules, examScores } = data.progress;
     let changed = false;
@@ -61,16 +85,7 @@ export async function syncLearnerCourseProgressFromServer(
       const existing = new Set(readCompletedModules(slug));
       const merged = Array.from(new Set([...existing, ...completedModules])).sort((a, b) => a - b);
       if (merged.length !== existing.size || merged.some((n) => !existing.has(n))) {
-        // Avoid recursive server push while merging from server.
-        try {
-          window.localStorage.setItem(`sft_completed_modules_${slug}`, JSON.stringify(merged));
-          const { syncPurchasedCourseProgress, notifyCourseProgressUpdated: notify } =
-            await import("@/lib/learner-course-progress");
-          syncPurchasedCourseProgress(slug, merged.length, merged.length);
-          notify(slug);
-        } catch {
-          writeCompletedModules(slug, merged, merged.length);
-        }
+        writeCompletedModules(slug, merged, merged.length, { skipServerPush: true });
         changed = true;
       }
     }
@@ -78,25 +93,29 @@ export async function syncLearnerCourseProgressFromServer(
     if (examScores && Object.keys(examScores).length > 0) {
       const local = readModuleExamScores(slug);
       const next: Record<string, ModuleExamScore> = { ...local };
-      let examChanged = false;
       for (const [key, score] of Object.entries(examScores)) {
         const prev = next[key];
         if (!prev?.passed && score.passed) {
           next[key] = score;
-          examChanged = true;
+          changed = true;
         } else if (!prev) {
           next[key] = score;
-          examChanged = true;
+          changed = true;
+        } else if ((score.percent ?? 0) > (prev.percent ?? 0)) {
+          next[key] = { ...score, passed: score.passed || prev.passed };
+          changed = true;
         }
       }
-      if (examChanged) {
+      if (changed) {
         window.localStorage.setItem(examScoresStorageKey(slug), JSON.stringify(next));
         window.dispatchEvent(
           new CustomEvent("sft-exam-scores-updated", { detail: { courseSlug: slug } }),
         );
-        changed = true;
       }
     }
+
+    // Always push merged local+server state so neither side loses progress.
+    pushLearnerCourseProgressToServer(slug);
 
     if (changed) {
       notifyCourseProgressUpdated(slug);
@@ -108,12 +127,12 @@ export async function syncLearnerCourseProgressFromServer(
   }
 }
 
-/** Pull progress for every enrolled course (My Learning dashboard). */
+/** Pull server progress for every enrolled course (My Learning dashboard). */
 export async function syncAllLearnerCourseProgressFromServer(
   courseSlugs: string[],
 ): Promise<void> {
   const unique = Array.from(
-    new Set(courseSlugs.map((s) => canonicalCourseSlug(s.trim())).filter(Boolean)),
+    new Set(courseSlugs.map((s) => canonicalCourseSlug(s)).filter(Boolean)),
   );
   await Promise.all(unique.map((slug) => syncLearnerCourseProgressFromServer(slug)));
 }

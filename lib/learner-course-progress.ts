@@ -28,17 +28,8 @@ export const COURSE_PROGRESS_UPDATED_EVENT = "sft-course-progress-updated";
 
 export function readCompletedModules(slug: string): number[] {
   if (typeof window === "undefined" || !slug.trim()) return [];
-  const key = canonicalCourseSlug(slug.trim()) || slug.trim();
   try {
-    let raw = window.localStorage.getItem(`sft_completed_modules_${key}`);
-    // Migrate legacy non-canonical keys into the canonical slot.
-    if (!raw && key !== slug.trim()) {
-      const legacy = window.localStorage.getItem(`sft_completed_modules_${slug.trim()}`);
-      if (legacy) {
-        window.localStorage.setItem(`sft_completed_modules_${key}`, legacy);
-        raw = legacy;
-      }
-    }
+    const raw = window.localStorage.getItem(`sft_completed_modules_${slug.trim()}`);
     const parsed = raw ? (JSON.parse(raw) as number[]) : [];
     return Array.isArray(parsed)
       ? parsed.filter((n) => Number.isFinite(n) && n > 0)
@@ -103,7 +94,8 @@ export function enrichPurchasedCourse(
     : isGenericCoursePlaceholder(row.image)
       ? ""
       : row.image?.trim() || "";
-  const completed = slug ? completedFromStorage : Math.min(row.completed ?? 0, modules);
+  const completedRaw = slug ? completedFromStorage : Math.min(row.completed ?? 0, modules);
+  const completed = modules > 0 ? Math.min(completedRaw, modules) : completedRaw;
   let { status, action } = deriveCourseProgress(completed, modules);
 
   if (slug && catalog?.curriculum?.length && (action === "View Certificate" || status === "Completed")) {
@@ -136,19 +128,25 @@ export function notifyCourseProgressUpdated(courseSlug: string) {
   );
 }
 
-export function writeCompletedModules(slug: string, moduleNumbers: number[], totalModules?: number) {
+export function writeCompletedModules(
+  slug: string,
+  moduleNumbers: number[],
+  totalModules?: number,
+  opts?: { skipServerPush?: boolean },
+) {
   if (typeof window === "undefined" || !slug.trim()) return;
-  const key = canonicalCourseSlug(slug.trim()) || slug.trim();
   const clean = Array.from(
     new Set(moduleNumbers.filter((n) => Number.isFinite(n) && n > 0)),
   ).sort((a, b) => a - b);
   try {
-    window.localStorage.setItem(`sft_completed_modules_${key}`, JSON.stringify(clean));
-    syncPurchasedCourseProgress(key, clean.length, totalModules);
-    notifyCourseProgressUpdated(key);
-    void import("@/lib/learner-progress-sync-client").then((m) =>
-      m.pushLearnerCourseProgressToServer(key),
-    );
+    window.localStorage.setItem(`sft_completed_modules_${slug.trim()}`, JSON.stringify(clean));
+    syncPurchasedCourseProgress(slug, clean.length, totalModules);
+    notifyCourseProgressUpdated(slug);
+    if (!opts?.skipServerPush) {
+      void import("@/lib/learner-progress-sync-client").then((m) => {
+        m.pushLearnerCourseProgressToServer(slug);
+      });
+    }
   } catch {
     // Ignore storage failures.
   }
@@ -207,10 +205,7 @@ export function syncPurchasedCourseProgress(slug: string, completed: number, tot
     const raw = window.localStorage.getItem("sft_purchased_courses");
     const parsed = raw ? (JSON.parse(raw) as PurchasedCourseRow[]) : [];
     if (!Array.isArray(parsed)) return;
-    const want = canonicalCourseSlug(slug.trim()) || slug.trim();
-    const idx = parsed.findIndex(
-      (c) => canonicalCourseSlug((c.slug ?? "").trim()) === want || (c.slug ?? "").trim() === slug.trim(),
-    );
+    const idx = parsed.findIndex((c) => (c.slug ?? "").trim() === slug.trim());
     if (idx < 0) return;
     const modules = totalModules ?? parsed[idx].modules;
     const { status, action } = deriveCourseProgress(completed, modules);
@@ -223,7 +218,7 @@ export function syncPurchasedCourseProgress(slug: string, completed: number, tot
     ) {
       return;
     }
-    parsed[idx] = { ...prev, slug: want || prev.slug, completed, modules, status, action };
+    parsed[idx] = { ...prev, completed, modules, status, action };
     window.localStorage.setItem("sft_purchased_courses", JSON.stringify(parsed));
     window.dispatchEvent(new Event("sft_purchases_updated"));
   } catch {
