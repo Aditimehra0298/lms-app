@@ -71,6 +71,12 @@ import { CourseCompletionRewards } from "@/components/CourseCompletionRewards";
 import { CoursePlayerFeedbackSection } from "@/components/CoursePlayerFeedbackSection";
 import { CoursePlayerExploreCourses } from "@/components/CoursePlayerExploreCourses";
 import { CoursePlayerProgressSnapshot } from "@/components/CoursePlayerProgressSnapshot";
+import ModuleVideoProgressCircle from "@/components/ModuleVideoProgressCircle";
+import {
+  clearVideoResumeSeconds,
+  readVideoResumeSeconds,
+  writeVideoResumeSeconds,
+} from "@/lib/learner-video-resume";
 import {
   COURSE_PROGRESS_UPDATED_EVENT,
   markModuleCompleted,
@@ -89,6 +95,7 @@ import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-c
 import { resolveCertificateAssetsForSlug } from "@/lib/global-certificate-assets";
 import {
   healModuleWatchRecord,
+  maxWatchableSecondsForModule,
   moduleCurriculumRows,
   modulePreviewProgress,
   type PreviewGateModule,
@@ -182,9 +189,11 @@ export default function CourseLearningPlayerPage() {
   const [allExamsPassed, setAllExamsPassed] = useState(false);
   const [examMarksSummary, setExamMarksSummary] = useState<{ correct: number; total: number } | null>(null);
   const [watchedSecondsByModule, setWatchedSecondsByModule] = useState<Record<number, number>>({});
+  const [resumeAtSeconds, setResumeAtSeconds] = useState(0);
   const watchSampleRef = useRef<{ module: number; at: number; position: number } | null>(null);
   const watchAccumRef = useRef<Record<number, number>>({});
   const deepLinkAppliedRef = useRef<string>("");
+  const lastResumeSaveRef = useRef(0);
 
   useEffect(() => {
     deepLinkAppliedRef.current = "";
@@ -600,10 +609,54 @@ export default function CourseLearningPlayerPage() {
     return out;
   }, [curriculum]);
 
-  const moduleWatchProgress = (moduleNumber: number) => {
-    const mod = curriculum[moduleNumber - 1];
-    return modulePreviewProgress(mod as PreviewGateModule, watchedSecondsByModule[moduleNumber] ?? 0);
+  useEffect(() => {
+    lastResumeSaveRef.current = 0;
+    const saved = readVideoResumeSeconds(slug, selectedModuleNumber, selectedEntryIdx);
+    setResumeAtSeconds(saved);
+  }, [slug, selectedModuleNumber, selectedEntryIdx, activeVideoStoredUrl]);
+
+  /** 0–100 circular video progress for a module (preview gate or full lesson length). */
+  const moduleVideoProgressPercent = (moduleNumber: number, completed: boolean) => {
+    if (completed) return 100;
+    const mod = curriculum[moduleNumber - 1] as PreviewGateModule | undefined;
+    const watched = watchedSecondsByModule[moduleNumber] ?? 0;
+    const preview = modulePreviewProgress(mod, watched);
+    if (preview.required > 0) {
+      return Math.min(100, Math.round((preview.watched / preview.required) * 100));
+    }
+    const maxSec = maxWatchableSecondsForModule(mod);
+    if (maxSec > 0) {
+      return Math.min(100, Math.round((watched / maxSec) * 100));
+    }
+    return watched > 0 ? 100 : 0;
   };
+
+  useEffect(() => {
+    const saveOnLeave = () => {
+      const video = document.querySelector(
+        ".my-learning-course-player video",
+      ) as HTMLVideoElement | null;
+      if (!video || !Number.isFinite(video.currentTime) || video.currentTime < 2) return;
+      writeVideoResumeSeconds(slug, selectedModuleNumber, selectedEntryIdx, video.currentTime);
+    };
+    window.addEventListener("pagehide", saveOnLeave);
+    window.addEventListener("beforeunload", saveOnLeave);
+    return () => {
+      saveOnLeave();
+      window.removeEventListener("pagehide", saveOnLeave);
+      window.removeEventListener("beforeunload", saveOnLeave);
+    };
+  }, [slug, selectedModuleNumber, selectedEntryIdx]);
+
+  const overallVideoPercent =
+    curriculum.length > 0
+      ? Math.round(
+          curriculum.reduce((sum, _m, idx) => {
+            const done = completedModules.includes(idx + 1);
+            return sum + moduleVideoProgressPercent(idx + 1, done);
+          }, 0) / curriculum.length,
+        )
+      : 0;
 
   const persistModuleWatch = (moduleNumber: number, watchedSec: number) => {
     setWatchedSecondsByModule((prev) => {
@@ -620,19 +673,26 @@ export default function CourseLearningPlayerPage() {
     const current = video.currentTime;
     if (!Number.isFinite(current) || current < 0) return;
 
-    const now = performance.now();
+    // Persist resume point (throttle writes)
+    const now = Date.now();
+    if (now - lastResumeSaveRef.current > 1500) {
+      lastResumeSaveRef.current = now;
+      writeVideoResumeSeconds(slug, moduleNumber, selectedEntryIdx, current);
+    }
+
+    const wallNow = performance.now();
     const last = watchSampleRef.current;
     let accumulated = watchAccumRef.current[moduleNumber] ?? 0;
 
     if (last?.module === moduleNumber && !video.paused && !video.ended) {
       const deltaPos = current - last.position;
-      const deltaWall = (now - last.at) / 1000;
+      const deltaWall = (wallNow - last.at) / 1000;
       if (deltaPos > 0 && deltaPos <= 4 && deltaWall > 0 && deltaWall <= 4) {
         accumulated += Math.min(deltaPos, deltaWall);
       }
     }
     watchAccumRef.current[moduleNumber] = accumulated;
-    watchSampleRef.current = { module: moduleNumber, at: now, position: current };
+    watchSampleRef.current = { module: moduleNumber, at: wallNow, position: current };
 
     persistModuleWatch(moduleNumber, Math.max(accumulated, current));
   };
@@ -642,6 +702,7 @@ export default function CourseLearningPlayerPage() {
     const required = requiredPreviewSecondsForModule(mod as PreviewGateModule);
     const accumulated = watchAccumRef.current[moduleNumber] ?? 0;
     persistModuleWatch(moduleNumber, Math.max(accumulated, required));
+    clearVideoResumeSeconds(slug, moduleNumber, selectedEntryIdx);
   };
 
   useEffect(() => {
@@ -690,9 +751,7 @@ export default function CourseLearningPlayerPage() {
   };
 
   // Modules without an exam auto-complete when opened (Coursera-style free navigation).
-  // Modules with an exam: mark complete after the learner opens them AND has watched any
-  // content, but still require exam pass for certificate eligibility separately.
-  // Prefer: complete as soon as module is opened if no exam; if exam exists, wait for pass.
+  // Modules with an exam complete when the exam is passed.
   useEffect(() => {
     if (!curriculum.length || !slug) return;
     const mod = curriculum[selectedModuleIdx];
@@ -1004,11 +1063,26 @@ export default function CourseLearningPlayerPage() {
               <div className="relative bg-black">
                 {activeVideoStoredUrl ? (
                   <SecureCourseVideoPlayer
+                    key={`${slug}-${selectedModuleNumber}-${selectedEntryIdx}-${activeVideoStoredUrl}`}
                     storedUrl={activeVideoStoredUrl}
                     courseSlug={slug}
+                    resumeAtSeconds={resumeAtSeconds}
                     onTimeUpdate={(video) => recordVideoWatchProgress(selectedModuleNumber, video)}
                     onEnded={() => onVideoEnded(selectedModuleNumber)}
                     onError={(message) => setVideoLoadError(message)}
+                    onResumeChoice={(choice, atSeconds) => {
+                      if (choice === "restart") {
+                        clearVideoResumeSeconds(slug, selectedModuleNumber, selectedEntryIdx);
+                        setResumeAtSeconds(0);
+                      } else {
+                        writeVideoResumeSeconds(
+                          slug,
+                          selectedModuleNumber,
+                          selectedEntryIdx,
+                          atSeconds,
+                        );
+                      }
+                    }}
                     className={lessonVideoClass}
                   />
                 ) : (
@@ -1376,13 +1450,27 @@ export default function CourseLearningPlayerPage() {
 
           <aside ref={sidebarRef} className="space-y-3">
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
-              <div className="rounded-md border border-white/10 bg-black/30 p-2">
-                <p className="text-xs text-gray-400">{learningCopy.progressLabel}</p>
-                <p className="text-xl font-bold">
-                  {curriculum.length > 0
-                    ? `${Math.round((completedModules.length / curriculum.length) * 100)}% Completed`
-                    : "0% Completed"}
-                </p>
+              <div className="flex items-center gap-3 rounded-md border border-white/10 bg-black/30 p-2">
+                <ModuleVideoProgressCircle
+                  percent={overallVideoPercent}
+                  showPercentInCenter
+                  size={44}
+                  completed={
+                    curriculum.length > 0 && completedModules.length >= curriculum.length
+                  }
+                  title="Overall video progress across modules"
+                />
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-400">{learningCopy.progressLabel}</p>
+                  <p className="text-xl font-bold">
+                    {curriculum.length > 0
+                      ? `${Math.round((completedModules.length / curriculum.length) * 100)}% Completed`
+                      : "0% Completed"}
+                  </p>
+                  <p className="text-[10px] text-gray-500">
+                    Ring shows video watched across all modules
+                  </p>
+                </div>
               </div>
             </article>
 
@@ -1416,13 +1504,15 @@ export default function CourseLearningPlayerPage() {
                     { reviewMode: reviewLessons },
                   );
                   const locked = !access.unlocked;
+                  const moduleDone = completedModules.includes(idx + 1);
+                  const videoPct = moduleVideoProgressPercent(idx + 1, moduleDone);
                   return (
                   <div
                     key={`${moduleTitle(module, idx)}-${idx}`}
                     className={`rounded-lg border px-2.5 py-2.5 text-sm shadow-sm ${
                       locked
                         ? "border-white/10 bg-black/20 text-gray-500 opacity-80"
-                        : completedModules.includes(idx + 1)
+                        : moduleDone
                         ? "border-emerald-300/35 bg-gradient-to-r from-emerald-500/20 to-[#13263a] text-emerald-100"
                         : idx === selectedModuleIdx
                           ? "border-violet-300/40 bg-gradient-to-r from-violet-500/25 to-[#121a32] text-violet-100"
@@ -1438,40 +1528,43 @@ export default function CourseLearningPlayerPage() {
                       }}
                       className={`flex items-center justify-between gap-3 ${locked ? "cursor-not-allowed" : "cursor-pointer"}`}
                     >
-                      <div className="inline-flex items-start gap-2">
+                      <div className="inline-flex min-w-0 items-start gap-2">
                         <span
                           className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold ${
                             locked
                               ? "bg-white/5 text-gray-500"
-                              : completedModules.includes(idx + 1)
-                              ? "bg-emerald-500 text-white"
-                              : idx === selectedModuleIdx
-                                ? "bg-violet-500/35 text-violet-100"
-                                : "bg-white/10 text-gray-200"
+                              : moduleDone
+                                ? "bg-emerald-500 text-white"
+                                : idx === selectedModuleIdx
+                                  ? "bg-violet-500/35 text-violet-100"
+                                  : "bg-white/10 text-gray-200"
                           }`}
-                          title={
-                            locked
-                              ? `Module ${idx + 1} locked`
-                              : completedModules.includes(idx + 1)
-                                ? `Module ${idx + 1} completed — click to review`
-                                : `Module ${idx + 1}`
-                          }
                         >
                           {locked ? <Lock size={12} /> : idx + 1}
                         </span>
                         <span className="line-clamp-2 font-semibold">{moduleTitle(module, idx)}</span>
                       </div>
-                      <div className="inline-flex items-center gap-2">
+                      <div className="inline-flex shrink-0 items-center gap-2">
                         {locked ? (
                           <span className="rounded border border-amber-300/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-200">
                             Locked
                           </span>
                         ) : null}
-                        {completedModules.includes(idx + 1) && (
-                          <span className="rounded border border-emerald-300/35 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-200">
-                            Completed
-                          </span>
-                        )}
+                        <ModuleVideoProgressCircle
+                          percent={videoPct}
+                          showPercentInCenter
+                          size={34}
+                          completed={moduleDone}
+                          locked={locked}
+                          selected={idx === selectedModuleIdx && !locked}
+                          title={
+                            locked
+                              ? `Module ${idx + 1} locked`
+                              : moduleDone
+                                ? `Module ${idx + 1} completed — video ${videoPct}% watched`
+                                : `Module ${idx + 1} · video ${videoPct}% watched`
+                          }
+                        />
                         {idx === selectedModuleIdx && !locked ? <ChevronUp size={13} className="text-gray-400" /> : <ChevronDown size={13} className="text-gray-400" />}
                       </div>
                     </div>

@@ -299,8 +299,8 @@ export function CourseCompletionRewards({
               <p className="mt-1 font-semibold text-white">{courseTitle}</p>
               {!certificate && !certLoading ? (
                 <p className="mt-2 text-xs text-gray-400">
-                  Click Get certificate PDF to generate your official document (saved on the LMS after the
-                  first download).
+                  Click Get certificate PDF to generate your official document. Later downloads are
+                  instant.
                 </p>
               ) : null}
             </div>

@@ -55,8 +55,10 @@ const UPLOAD_SLOTS: UploadSlot[] = [
 async function uploadAdminFile(file: File): Promise<string> {
   const fd = new FormData();
   fd.append("file", file);
-  const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-  const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+  const isImage = /^image\//i.test(file.type) || /\.(jpe?g|png|webp|gif)$/i.test(file.name);
+  const endpoint = isImage ? "/api/admin/upload-cover" : "/api/admin/upload";
+  const res = await fetch(endpoint, { method: "POST", body: fd });
+  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string; error?: string };
   if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
   return data.url;
 }

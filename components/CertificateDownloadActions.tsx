@@ -30,7 +30,7 @@ export type CertificateDownloadActionsProps = {
   scorePercent?: number | null;
   pdfReady?: boolean;
   pdfUrl?: string | null;
-  /** @deprecated Preview only — generation uses n8n workflow. */
+  /** @deprecated Preview only — official PDF is generated server-side. */
   templateImageUrl?: string;
   disabled?: boolean;
   disabledReason?: string;
@@ -140,10 +140,10 @@ export function CertificateDownloadActions({
       setSuccess(true);
       setMessage(
         options?.forceRegenerate
-          ? "Certificate regenerated and saved on the LMS."
+          ? "Certificate regenerated successfully."
           : storedPdf
-            ? "Certificate downloaded from your saved copy."
-            : "Official certificate generated and saved. You can download it anytime.",
+            ? "Certificate downloaded."
+            : "Official certificate ready. You can download it anytime.",
       );
       onComplete?.();
       window.setTimeout(() => {
@@ -279,12 +279,12 @@ export function CertificateDownloadActions({
 
       {!storedPdf && !disabled ? (
         <p className="text-[11px] leading-relaxed text-gray-500">
-          Your official certificate is generated once, saved permanently on the LMS, and reused on every
-          download — no repeat generation unless you choose Regenerate.
+          Your official certificate is generated once and reused on every download — no repeat
+          generation unless you choose Regenerate.
         </p>
       ) : storedPdf ? (
         <p className="text-[11px] leading-relaxed text-gray-500">
-          Saved on the LMS — instant download anytime.
+          Ready — instant download anytime.
         </p>
       ) : null}
     </div>
@@ -308,7 +308,7 @@ export function CertificateStatusBadge({
   if (normalized === "ready" && pdfReady && visibleToLearner) {
     return (
       <span className="certificate-status-badge inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
-        Saved
+        Ready
       </span>
     );
   }

@@ -556,7 +556,14 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
-      const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        url?: string;
+        error?: string;
+      };
+      if (res.status === 413) {
+        throw new Error("Image too large for the server (max 6 MB).");
+      }
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
       setDraft((d) => ({ ...d, image: data.url }));
     } catch (e) {
@@ -576,7 +583,14 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
-      const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        url?: string;
+        error?: string;
+      };
+      if (res.status === 413) {
+        throw new Error("Image too large for the server (max 6 MB).");
+      }
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
       updateDraftHero(setDraft, { [field]: data.url });
     } catch (e) {

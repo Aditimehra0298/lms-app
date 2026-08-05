@@ -464,14 +464,14 @@ export default async function CoursesPage({
             <h3 className="text-lg font-bold">Categories (Sections)</h3>
             <button className="text-xs font-semibold text-amber-200">View All</button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+          <div className="grid auto-rows-fr gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
             {categories.map((category) => {
               const style = getCategoryVisual(category);
               const Icon = style.Icon;
               return (
-                <Link key={category.slug} href={`/courses/category/${category.slug}`} className="block">
-                <article className="courses-category-card rounded-xl border border-white/10 bg-linear-to-br from-white/[0.06] to-black/35 p-3 text-center transition hover:border-amber-300/40 hover:bg-white/5">
-                  <div className="relative mx-auto mb-2 h-10 w-10">
+                <Link key={category.slug} href={`/courses/category/${category.slug}`} className="block h-full">
+                <article className="courses-category-card flex h-full min-h-[9.5rem] flex-col items-center rounded-xl border border-white/10 bg-linear-to-br from-white/[0.06] to-black/35 p-3 text-center transition hover:border-amber-300/40 hover:bg-white/5">
+                  <div className="relative mx-auto mb-2 h-10 w-10 shrink-0">
                     {style.imageSrc ? (
                       <div className={`courses-icon-chip h-10 w-10 overflow-hidden rounded-full border-2 ${style.iconBorder} ${style.iconBg}`}>
                         <Image
@@ -496,8 +496,13 @@ export default async function CoursesPage({
                       <Icon size={11} />
                     </span>
                   </div>
-                  <p className="text-xs font-semibold">{category.label}</p>
-                  <p className="mt-1 text-[11px] text-gray-400">12 Courses</p>
+                  <p
+                    className="line-clamp-3 min-h-[2.75rem] w-full text-xs font-semibold leading-snug"
+                    title={category.label}
+                  >
+                    {category.label}
+                  </p>
+                  <p className="mt-auto pt-1 text-[11px] text-gray-400">12 Courses</p>
                 </article>
                 </Link>
               );

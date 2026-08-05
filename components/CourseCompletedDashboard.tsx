@@ -658,7 +658,7 @@ export function CourseCompletedDashboard({
                     </p>
                   ) : null}
                   <p className="text-[10px] text-gray-500">
-                    Same certificate as in{" "}
+                    Also available under{" "}
                     <Link
                       href="/my-learning?tab=certificates"
                       className="text-amber-300 hover:underline"

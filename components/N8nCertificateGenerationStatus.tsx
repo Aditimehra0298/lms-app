@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Circle, Loader2, XCircle, Zap } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, XCircle } from "lucide-react";
 import type { CertificateRowDto } from "@/lib/certificate-types";
 
 type StepState = "done" | "active" | "pending" | "error";
@@ -9,7 +9,7 @@ type Props = {
   certificate: CertificateRowDto | null;
   /** True after auto-request on course completion (or localStorage flag). */
   certRequested: boolean;
-  /** True while polling `/api/certificates` for n8n callback. */
+  /** True while waiting for the official PDF to become available. */
   polling?: boolean;
 };
 
@@ -49,7 +49,9 @@ function StepRow({
   );
 }
 
-/** Step-by-step n8n certificate pipeline — visible on course completion for workflow testing. */
+/**
+ * Learner-facing certificate progress — no internal tooling / vendor names.
+ */
 export function N8nCertificateGenerationStatus({
   certificate,
   certRequested,
@@ -57,26 +59,21 @@ export function N8nCertificateGenerationStatus({
 }: Props) {
   if (!certRequested && !certificate) return null;
 
-  const issuedVia = certificate?.issuedVia?.toLowerCase() ?? "";
-  const usesN8n = !certificate || issuedVia === "n8n" || issuedVia === "api";
-  if (!usesN8n) return null;
-
   const recordCreated = Boolean(certificate?.id);
-  const n8nDispatched = recordCreated;
   const pdfReady = Boolean(
     certificate?.pdfReady || certificate?.pdfUrl?.trim().startsWith("/api/certificates/"),
   );
   const failed = certificate?.status === "failed";
-  const waitingForN8n =
+  const waiting =
     recordCreated && !pdfReady && !failed && (certificate?.status === "pending" || polling);
 
   const step1State: StepState = certRequested || recordCreated ? "done" : "active";
   const step2State: StepState = failed
     ? "error"
-    : n8nDispatched
+    : recordCreated
       ? pdfReady
         ? "done"
-        : waitingForN8n
+        : waiting
           ? "active"
           : "done"
       : certRequested
@@ -86,19 +83,19 @@ export function N8nCertificateGenerationStatus({
     ? "error"
     : pdfReady
       ? "done"
-      : waitingForN8n
+      : waiting
         ? "active"
         : "pending";
 
   const headline = failed
-    ? "n8n certificate generation failed"
+    ? "Certificate could not be prepared"
     : pdfReady
-      ? "n8n certificate ready"
-      : waitingForN8n
-        ? "n8n is generating your certificate…"
+      ? "Your certificate is ready"
+      : waiting
+        ? "Preparing your certificate…"
         : certRequested
-          ? "n8n certificate workflow started"
-          : "Preparing n8n certificate workflow…";
+          ? "Certificate request received"
+          : "Preparing your certificate…";
 
   const headlineClass = failed
     ? "text-red-200"
@@ -112,57 +109,54 @@ export function N8nCertificateGenerationStatus({
       role="status"
       aria-live="polite"
     >
-      <p className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wide ${headlineClass}`}>
-        <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <p className={`text-xs font-bold uppercase tracking-wide ${headlineClass}`}>
         {headline}
-        {waitingForN8n && polling ? (
-          <span className="font-normal normal-case text-gray-400">(checking every 8s)</span>
+        {waiting && polling ? (
+          <span className="ml-2 font-normal normal-case text-gray-400">Please wait a moment</span>
         ) : null}
       </p>
 
       <ol className="mt-3 space-y-2.5">
         <StepRow
           state={step1State}
-          label="Course completed — certificate requested"
+          label="Course completed"
           detail={
             certRequested
-              ? "LMS sent a certificate request when you finished all modules and exams."
+              ? "You finished all modules and exams — your certificate was requested."
               : undefined
           }
         />
         <StepRow
           state={step2State}
-          label="n8n workflow triggered"
+          label={failed ? "Preparation interrupted" : "Certificate being prepared"}
           detail={
-            recordCreated
-              ? `Webhook dispatched (record ${certificate!.id.slice(0, 12)}…, via ${certificate!.issuedVia}).`
-              : certRequested
-                ? "Waiting for the LMS to create your certificate record…"
-                : undefined
+            failed
+              ? "Something went wrong while preparing your certificate. Please try again or contact support."
+              : recordCreated
+                ? waiting
+                  ? "This usually takes about 15 seconds."
+                  : "Your certificate record is ready."
+                : certRequested
+                  ? "Creating your certificate…"
+                  : undefined
           }
         />
         <StepRow
           state={step3State}
-          label={failed ? "PDF generation failed" : "PDF saved on LMS"}
+          label={failed ? "Download unavailable" : "Ready to download"}
           detail={
             failed
-              ? "n8n reported a failure or the callback did not include a PDF. Try Regenerate or check the n8n workflow."
+              ? "Use Regenerate, or contact support if the problem continues."
               : pdfReady
-                ? "Official PDF archived — download is instant from here or Certificate Records."
-                : waitingForN8n
-                  ? "n8n is building the PDF and will call back to the LMS when ready (~15 seconds)."
+                ? "Download anytime from here or your Certificate Records."
+                : waiting
+                  ? "Your official PDF will appear here when ready."
                   : recordCreated
-                    ? "Click Get certificate PDF to trigger generation if n8n did not run yet."
+                    ? "Tap Get certificate PDF if it does not appear automatically."
                     : undefined
           }
         />
       </ol>
-
-      {certificate?.certificateNumber && !certificate.certificateNumber.startsWith("TEMP-") ? (
-        <p className="mt-2.5 border-t border-white/10 pt-2 font-mono text-[10px] text-gray-500">
-          Certificate no. {certificate.certificateNumber}
-        </p>
-      ) : null}
     </div>
   );
 }
