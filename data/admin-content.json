@@ -688,7 +688,7 @@
         "certificationRuleText": "Learners must complete all required course modules, learning activities, and assessments to become eligible for certification.\n\nA certificate will be issued only after successful course completion and meeting the minimum assessment requirements set by SFT.\n\nThe certificate confirms the learnerâ€™s participation, completion, and understanding of the ESG Management Development Training Program.",
         "noVideoMessage": "preview this video",
         "learningToolsTitle": "Course Learning tools",
-        "learningToolsHint": "Course materials — same tools for every module. Green dots mean a file is ready.",
+        "learningToolsHint": "Course materials ï¿½ same tools for every module. Green dots mean a file is ready.",
         "markCompleteLabel": "Mark as Complete",
         "previousLabel": "Previous",
         "nextLabel": "Next",
@@ -1633,7 +1633,7 @@
         "certificationRuleText": "Learners will receive a course completion certificate after successfully completing all required lessons, assessments, and course activities as per the course completion criteria.",
         "noVideoMessage": "Video not available for this lesson. Please continue with the provided learning content.",
         "learningToolsTitle": "Course Learning tools",
-        "learningToolsHint": "Course materials — same tools for every module. Green dots mean a file is ready.",
+        "learningToolsHint": "Course materials ï¿½ same tools for every module. Green dots mean a file is ready.",
         "courseTools": {
           "eWorkbookUrl": "/api/media/serve/1784803041253-mzelyj0a-food_defence_whole_book.pdf"
         },

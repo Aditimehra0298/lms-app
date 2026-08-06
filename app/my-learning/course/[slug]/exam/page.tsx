@@ -393,14 +393,30 @@ function CourseExamPageInner() {
     if (!email || !courseMeta?.title) return;
 
     completionEmailSentRef.current = true;
-    void notifyCourseCompletionClient({
-      learnerEmail: email,
-      courseSlug: slug,
-      courseName: courseMeta.title,
-      deliveryKind: courseMeta.deliveryKind === "tutor-led" ? "tutor-led" : "self-paced",
-    }).catch((err) => {
+    // Certificate + completion email are created server-side via /api/certificates/request
+    // (queueCourseLifecycleEmails). Only notify here if we already have a certificate id path;
+    // otherwise request the certificate first so links.certificate is a real download URL.
+    void import("@/lib/request-course-certificate-client").then(({ requestCourseCertificateClient }) =>
+      requestCourseCertificateClient({
+        learnerEmail: email,
+        courseSlug: slug,
+      }).then((r) => {
+        if (!r.ok) {
+          completionEmailSentRef.current = false;
+          console.warn("[certificate] auto-request failed:", r.message);
+          return;
+        }
+        return notifyCourseCompletionClient({
+          learnerEmail: email,
+          courseSlug: slug,
+          courseName: courseMeta.title,
+          deliveryKind: courseMeta.deliveryKind === "tutor-led" ? "tutor-led" : "self-paced",
+          certificateId: r.certificateId,
+        });
+      }),
+    ).catch((err) => {
       completionEmailSentRef.current = false;
-      console.warn("[course-completion] notify failed:", err);
+      console.warn("[course-completed] notify failed:", err);
     });
   }, [courseCredentialsUnlocked, courseMeta?.deliveryKind, courseMeta?.title, slug]);
 

@@ -1,4 +1,7 @@
 import { emailAppName, emailAppUrl } from "@/lib/email-brand-config";
+import { normalizeLearnerEmail } from "@/lib/learner-email";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
+import { getPurchasesForLearner } from "@/lib/server/get-learner-purchases";
 import {
   buildEmailDispatchKey,
   listDueScheduledDispatches,
@@ -9,7 +12,10 @@ import {
   wasEmailDispatchSent,
 } from "@/lib/server/n8n-email-dispatch-store";
 import { postSftN8nEmailWebhook, queueSftN8nEmailWebhook } from "@/lib/server/n8n-sft-email-service";
-import { resolvePurchaseDeliveryKind, type PurchaseDeliveryKind } from "@/lib/server/n8n-purchase-confirmation-service";
+import {
+  resolvePurchaseDeliveryKind,
+  type PurchaseDeliveryKind,
+} from "@/lib/server/n8n-purchase-confirmation-service";
 import { N8N_WEBHOOK_PATHS, resolveN8nWebhookUrlFromEnv } from "@/lib/server/n8n-webhook-url";
 
 function lifecycleEmailsEnabled(): boolean {
@@ -34,33 +40,44 @@ function courseFeedbackWebhookUrl(): string {
 
 function brandBlock() {
   const appName = emailAppName();
-  const appUrl = emailAppUrl().replace(/\/$/, "");
-  return { appName, appUrl, brand: { appName, appUrl } };
+  const brandUrl = (
+    process.env.MAIL_BRAND_URL?.trim() ||
+    "https://www.sftrainings.org"
+  ).replace(/\/$/, "");
+  const lmsUrl = emailAppUrl().replace(/\/$/, "");
+  return {
+    appName,
+    brandUrl,
+    lmsUrl,
+    brand: { appName, appUrl: brandUrl },
+  };
 }
 
 function buildCourseCompletionPayload(input: {
   email: string;
   learnerName: string;
   courseName: string;
-  courseSlug: string;
   deliveryKind: PurchaseDeliveryKind;
   certificateHref: string;
 }) {
-  const { appUrl, brand } = brandBlock();
+  const { brand, lmsUrl, brandUrl } = brandBlock();
   return {
-    email: input.email.trim().toLowerCase(),
-    learnerName: input.learnerName,
-    courseName: input.courseName,
+    email: normalizeLearnerEmail(input.email),
+    learnerName: input.learnerName.slice(0, 200),
+    courseName: input.courseName.slice(0, 300),
     event: "course.completed",
     source: "LMS",
     deliveryKind: input.deliveryKind,
     emailContent: {
-      subject: "Congratulations! You've Completed Your Course",
-      previewText: "Your certificate is ready. Download it and celebrate your achievement!",
+      subject: "Congratulations! You've Successfully Completed the Course",
+      previewText:
+        "Congratulations! Your course completion certificate is ready. Download it and showcase your achievement with pride.",
     },
     links: {
-      dashboard: `${appUrl}/dashboard`,
       certificate: input.certificateHref,
+      browseCourses: `${brandUrl}/courses`,
+      support: "mailto:info@sftrainings.org",
+      dashboard: `${lmsUrl}/my-learning`,
     },
     brand,
   };
@@ -73,12 +90,12 @@ function buildCourseFeedbackPayload(input: {
   courseSlug: string;
   deliveryKind: PurchaseDeliveryKind;
 }) {
-  const { appUrl, brand } = brandBlock();
+  const { brand, lmsUrl } = brandBlock();
   const slug = encodeURIComponent(input.courseSlug);
   return {
-    email: input.email.trim().toLowerCase(),
-    learnerName: input.learnerName,
-    courseName: input.courseName,
+    email: normalizeLearnerEmail(input.email),
+    learnerName: input.learnerName.slice(0, 200),
+    courseName: input.courseName.slice(0, 300),
     event: "course.feedback.requested",
     source: "LMS",
     deliveryKind: input.deliveryKind,
@@ -87,14 +104,47 @@ function buildCourseFeedbackPayload(input: {
       previewText: "Share your feedback and help us improve future courses.",
     },
     links: {
-      review: `${appUrl}/my-learning/course/${slug}#reviews`,
-      dashboard: `${appUrl}/dashboard`,
+      review: `${lmsUrl}/my-learning/course/${slug}#reviews`,
+      dashboard: `${lmsUrl}/my-learning`,
     },
     brand,
   };
 }
 
-/** POST course-completion webhook once per learner+course (idempotent). Same URL for tutor-led and self-paced. */
+async function postCompletionWithRetry(
+  payload: Record<string, unknown>,
+): Promise<{ ok: boolean; message?: string }> {
+  const url = courseCompletionWebhookUrl();
+  const first = await postSftN8nEmailWebhook(url, payload, "course-completion");
+  if (first.ok) return first;
+  console.warn("[course-completed] first attempt failed, retrying once:", first.message);
+  await new Promise((r) => setTimeout(r, 600));
+  return postSftN8nEmailWebhook(url, payload, "course-completion");
+}
+
+async function learnerIsEnrolled(email: string, courseSlug: string): Promise<boolean> {
+  try {
+    const purchases = await getPurchasesForLearner(email);
+    const slug = canonicalCourseSlug(courseSlug);
+    return purchases.some((p) => canonicalCourseSlug(p.slug) === slug);
+  } catch (err) {
+    console.warn("[course-completed] enrollment lookup failed — allowing send:", err);
+    return true;
+  }
+}
+
+function absoluteCertificateHref(certificateId: string | undefined, lmsUrl: string): string {
+  const id = certificateId?.trim();
+  if (id) {
+    return `${lmsUrl}/api/certificates/${encodeURIComponent(id)}/download`;
+  }
+  return `${lmsUrl}/my-learning?tab=certificates`;
+}
+
+/**
+ * POST course-completed webhook once per learner+course (idempotent).
+ * Prefer calling after the certificate record exists so links.certificate is a real download URL.
+ */
 export async function sendCourseCompletionEmailViaN8n(input: {
   learnerEmail: string;
   learnerName?: string | null;
@@ -105,8 +155,11 @@ export async function sendCourseCompletionEmailViaN8n(input: {
 }): Promise<{ ok: boolean; message?: string; skipped?: boolean }> {
   if (!lifecycleEmailsEnabled()) return { ok: true, skipped: true };
 
-  const email = input.learnerEmail.trim().toLowerCase();
-  const slug = input.courseSlug.trim();
+  const email = normalizeLearnerEmail(input.learnerEmail);
+  const slug = canonicalCourseSlug(input.courseSlug);
+  if (!email) return { ok: false, message: "email is required" };
+  if (!slug) return { ok: false, message: "courseSlug is required" };
+
   const dispatchKey = buildEmailDispatchKey({
     event: "course.completed",
     learnerEmail: email,
@@ -114,26 +167,23 @@ export async function sendCourseCompletionEmailViaN8n(input: {
   });
   if (wasEmailDispatchSent(dispatchKey)) return { ok: true, skipped: true };
 
+  if (!(await learnerIsEnrolled(email, slug))) {
+    return { ok: true, skipped: true, message: "Learner not enrolled — skipped." };
+  }
+
   const deliveryKind = input.deliveryKind ?? (await resolvePurchaseDeliveryKind(slug));
-  const { appUrl } = brandBlock();
-  const certificateHref = input.certificateId
-    ? `${appUrl}/api/certificates/${encodeURIComponent(input.certificateId)}/download`
-    : `${appUrl}/my-learning?tab=certificates`;
+  const { lmsUrl } = brandBlock();
+  const certificateHref = absoluteCertificateHref(input.certificateId, lmsUrl);
 
   const payload = buildCourseCompletionPayload({
     email,
-    learnerName: input.learnerName?.trim() || email.split("@")[0],
+    learnerName: input.learnerName?.trim() || email.split("@")[0] || "Learner",
     courseName: input.courseName.trim() || slug,
-    courseSlug: slug,
     deliveryKind,
     certificateHref,
   });
 
-  const result = await postSftN8nEmailWebhook(
-    courseCompletionWebhookUrl(),
-    payload,
-    "course-completion",
-  );
+  const result = await postCompletionWithRetry(payload);
   if (result.ok) {
     markEmailDispatchSent({ event: "course.completed", learnerEmail: email, courseSlug: slug });
     return { ok: true };
@@ -156,8 +206,8 @@ export function scheduleCourseFeedbackEmail(input: {
 }): void {
   if (!lifecycleEmailsEnabled()) return;
 
-  const email = input.learnerEmail.trim().toLowerCase();
-  const slug = input.courseSlug.trim();
+  const email = normalizeLearnerEmail(input.learnerEmail);
+  const slug = canonicalCourseSlug(input.courseSlug);
   const due = new Date();
   due.setHours(due.getHours() + feedbackDelayHours());
 
@@ -165,7 +215,7 @@ export function scheduleCourseFeedbackEmail(input: {
     .then((deliveryKind) => {
       const payload = buildCourseFeedbackPayload({
         email,
-        learnerName: input.learnerName?.trim() || email.split("@")[0],
+        learnerName: input.learnerName?.trim() || email.split("@")[0] || "Learner",
         courseName: input.courseName.trim() || slug,
         courseSlug: slug,
         deliveryKind,
@@ -183,7 +233,7 @@ export function scheduleCourseFeedbackEmail(input: {
     });
 }
 
-/** Same n8n course-completion webhook for self-paced and tutor-led (awaitable). */
+/** Same n8n course-completed webhook for self-paced and tutor-led (awaitable). */
 export async function queueCourseCompletionEmail(input: {
   learnerEmail: string;
   learnerName?: string | null;
@@ -204,7 +254,7 @@ export async function queueCourseCompletionEmail(input: {
   });
 }
 
-/** Fire-and-forget course-completion email (shared webhook). */
+/** Fire-and-forget course-completed email (shared webhook). */
 export function notifyCourseCompletionEmail(input: {
   learnerEmail: string;
   learnerName?: string | null;
@@ -214,7 +264,7 @@ export function notifyCourseCompletionEmail(input: {
   deliveryKind?: PurchaseDeliveryKind;
 }): void {
   void queueCourseCompletionEmail(input).catch((err) => {
-    console.error("[course-completion] failed:", err);
+    console.error("[course-completed] failed:", err);
   });
 }
 

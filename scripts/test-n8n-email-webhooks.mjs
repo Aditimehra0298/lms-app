@@ -4,7 +4,7 @@
  * Usage:
  *   node --env-file=.env.local scripts/test-n8n-email-webhooks.mjs [type]
  *
- * Types: tutor-led | self-paced | meeting-reminder | course-completion | reviews | all
+ * Types: tutor-led | self-paced | meeting-reminder | course-completed | course-completion | progress-report | module-completed | password-reset | reviews | all
  */
 import { readFileSync } from "node:fs";
 
@@ -31,6 +31,10 @@ function webhookUrl(pathSegment) {
     "self-paced": readEnv("N8N_SELF_PACED_PURCHASE_WEBHOOK_URL"),
     "meeting-reminder": readEnv("N8N_MEETING_REMINDER_WEBHOOK_URL"),
     "course-completion": readEnv("N8N_COURSE_COMPLETION_WEBHOOK_URL"),
+    "course-completed": readEnv("N8N_COURSE_COMPLETION_WEBHOOK_URL"),
+    "progress-report": readEnv("N8N_PROGRESS_REPORT_WEBHOOK_URL"),
+    "module-completed": readEnv("N8N_MODULE_COMPLETED_WEBHOOK_URL"),
+    "password-reset": readEnv("N8N_PASSWORD_RESET_WEBHOOK_URL"),
     reviews: readEnv("N8N_REVIEWS_WEBHOOK_URL"),
   }[pathSegment];
   if (explicit) return explicit;
@@ -38,7 +42,11 @@ function webhookUrl(pathSegment) {
     "tutor-led": "purchased(tutor led)",
     "self-paced": "payment-confirmation(self-based)",
     "meeting-reminder": "meeting-reminder",
-    "course-completion": "course-completion",
+    "course-completion": "course-completed",
+    "course-completed": "course-completed",
+    "progress-report": "progress-report",
+    "module-completed": "module completed",
+    "password-reset": "password-reset",
     reviews: "reviews",
   };
   return `${baseUrl}${encodeURIComponent(paths[pathSegment] ?? pathSegment)}`;
@@ -97,16 +105,100 @@ const payloads = {
     source: "LMS",
     brand,
   },
-  "course-completion": {
+  "course-completed": {
     ...sample,
     event: "course.completed",
     source: "LMS",
     deliveryKind: "self-paced",
+    emailContent: {
+      subject: "Congratulations! You've Successfully Completed the Course",
+      previewText:
+        "Congratulations! Your course completion certificate is ready. Download it and showcase your achievement with pride.",
+    },
     links: {
-      dashboard: `${brand.appUrl}/dashboard`,
-      certificate: `${brand.appUrl}/my-learning?tab=certificates`,
+      certificate: `${brand.appUrl}/api/certificates/test-cert-id/download`,
+      browseCourses: "https://www.sftrainings.org/courses",
+      support: "mailto:info@sftrainings.org",
+      dashboard: `${brand.appUrl}/my-learning`,
+    },
+    brand: {
+      appName: "Sustainable Futures Trainings",
+      appUrl: "https://www.sftrainings.org",
+    },
+  },
+  "progress-report": {
+    ...sample,
+    deliveryKind: "self-paced",
+    event: "course.progress",
+    source: "LMS",
+    emailContent: {
+      subject: "Your Course Progress Report",
+      previewText:
+        "See your latest course progress and keep moving forward toward certification.",
+    },
+    links: {
+      dashboard: `${brand.appUrl}/my-learning`,
+    },
+    progress: {
+      overall: 45,
+      completedLessons: 9,
+      totalLessons: 20,
+      quizzesPassed: 2,
+      modules: [
+        { name: "Module 1 — Foundations", done: 4, total: 4 },
+        { name: "Module 2 — Assessment", done: 3, total: 4 },
+        { name: "Module 3 — Practice", done: 2, total: 4 },
+        { name: "Module 4 — Advanced", done: 0, total: 4 },
+        { name: "Module 5 — Capstone", done: 0, total: 4 },
+      ],
     },
     brand,
+  },
+  "module-completed": {
+    ...sample,
+    moduleName: "Module 3: Risk Assessment",
+    moduleLabel: "3: Risk Assessment",
+    status: "Module Completed",
+    examResult: "Passed",
+    score: 88,
+    attemptedOn: "May 8, 2025",
+    lessonsCompleted: 4,
+    quizzesAttempted: 3,
+    certificatePath: "On Track",
+    deliveryKind: "self-paced",
+    event: "module.completed",
+    source: "LMS",
+    emailContent: {
+      subject: "Congratulations! You Completed the Module and Passed the Exam",
+      previewText:
+        "Great work! You've completed the module and passed the exam. See your results and what's next.",
+    },
+    links: {
+      nextModule: `${brand.appUrl}/my-learning/course/test-course?module=4`,
+      dashboard: `${brand.appUrl}/my-learning`,
+    },
+    brand,
+  },
+  "password-reset": {
+    ...sample,
+    resetToken: "a1b2c3d4e5f678901234567890abcdef0123456789abcdef0123456789abcd",
+    resetExpiryHours: 24,
+    event: "password.reset",
+    source: "LMS",
+    deliveryKind: "auth",
+    emailContent: {
+      subject: "Reset Your Password",
+      previewText:
+        "We received a request to reset your password. Click the button below to set a new password and regain access to your account.",
+    },
+    links: {
+      reset: `${brand.appUrl}/reset-password?token=a1b2c3d4e5f678901234567890abcdef0123456789abcdef0123456789abcd`,
+      support: "mailto:info@sftrainings.org",
+    },
+    brand: {
+      appName: "Sustainable Futures Trainings",
+      appUrl: "https://www.sftrainings.org",
+    },
   },
   reviews: {
     ...sample,
@@ -120,6 +212,8 @@ const payloads = {
     brand,
   },
 };
+
+payloads["course-completion"] = payloads["course-completed"];
 
 async function post(type) {
   const url = webhookUrl(type);
@@ -138,7 +232,7 @@ async function post(type) {
 const arg = (process.argv[2] || "all").toLowerCase();
 const types =
   arg === "all"
-    ? ["tutor-led", "self-paced", "meeting-reminder", "course-completion", "reviews"]
+    ? ["tutor-led", "self-paced", "meeting-reminder", "course-completed", "progress-report", "module-completed", "password-reset", "reviews"]
     : [arg];
 
 let failed = 0;

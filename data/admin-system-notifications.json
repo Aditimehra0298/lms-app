@@ -1,3 +1,26 @@
 {
-  "items": []
+  "items": [
+    {
+      "id": "612fe246-1602-41fb-8003-a2077a74d2b2",
+      "dedupeKey": "ticket:SFT-PAY-3797",
+      "title": "New high priority ticket SFT-PAY-3797",
+      "detail": "Chatbot escalation — payments",
+      "severity": "critical",
+      "source": "chat",
+      "createdAt": "2026-07-31T05:34:11.213Z",
+      "readAt": null,
+      "panelHint": "Support Tickets"
+    },
+    {
+      "id": "b7ede374-e8de-4361-9c70-a276dbb00c47",
+      "dedupeKey": "ticket:SFT-PAY-4181",
+      "title": "New medium priority ticket SFT-PAY-4181",
+      "detail": "Payment problem from chatbot",
+      "severity": "warning",
+      "source": "chat",
+      "createdAt": "2026-07-31T05:33:59.615Z",
+      "readAt": null,
+      "panelHint": "Support Tickets"
+    }
+  ]
 }

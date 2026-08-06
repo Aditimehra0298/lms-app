@@ -473,7 +473,11 @@ function iconForCategoryTitle(title: string) {
 }
 
 function resolveCourseCardImage(image: string | undefined) {
-  if (image && knownCourseImages.has(image)) return image;
+  const raw = image?.trim() ?? "";
+  if (!raw) return "/c1.png";
+  // Allow admin uploads (/uploads/covers/...), public assets, and remote URLs.
+  if (raw.startsWith("/") || /^https?:\/\//i.test(raw)) return raw;
+  if (knownCourseImages.has(raw)) return raw;
   return "/c1.png";
 }
 
@@ -652,6 +656,29 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   const liveIndividualPlans = homeConfig.individualPlans.length > 0 ? homeConfig.individualPlans : individualPlans;
   const liveOrgPlan = homeConfig.orgPlan ?? organisationPlan;
   const liveExploreProgramImages = homeConfig.exploreProgramImages.length > 0 ? homeConfig.exploreProgramImages : exploreProgramImages;
+  const liveAccreditationLogos =
+    (homeConfig.accreditationLogos?.length ?? 0) > 0
+      ? homeConfig.accreditationLogos.map((src, index) => ({
+          src,
+          alt: `Accreditation partner ${index + 1}`,
+          large: /cloudinary|irba/i.test(src),
+        }))
+      : accreditationLogos;
+  const liveLearningFormats = learningFormats.map((item) => {
+    const fromCms = (homeConfig.learningPaths ?? []).find((p) => p.id === item.id);
+    const imageSrc = fromCms?.imageSrc?.trim();
+    if (!imageSrc) return item;
+    return {
+      ...item,
+      imageSrc,
+      title: fromCms?.title?.trim() || item.title,
+      desc: fromCms?.desc?.trim() || item.desc,
+    };
+  });
+  const unlockImage = homeConfig.unlock?.image?.trim() || "/q.png";
+  const unlockHeading = homeConfig.unlock?.heading?.trim();
+  const unlockSubtitle = homeConfig.unlock?.subtitle?.trim();
+  const unlockCta = homeConfig.unlock?.cta?.trim();
 
   const useLiveCatalog = liveCategories !== null && liveCategories.length > 0;
   const catalogForPills = useLiveCatalog
@@ -867,7 +894,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             and credible.
           </p>
           <div className="mx-auto mt-12 flex max-w-[1400px] flex-nowrap items-center justify-center gap-2 overflow-x-hidden px-2 sm:gap-3 md:gap-5 lg:gap-6">
-            {accreditationLogos.map((logo, index) =>
+            {liveAccreditationLogos.map((logo, index) =>
               logo.large ? (
                 <div
                   key={logo.src}
@@ -931,7 +958,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           </p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {learningFormats.map((item) => {
+            {liveLearningFormats.map((item) => {
               const Icon = item.icon;
               const selected = learningPath === item.id;
               return (
@@ -969,6 +996,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                       width={800}
                       height={450}
                       className="h-auto w-full object-cover"
+                      unoptimized
                     />
                   </div>
                   <button
@@ -1598,7 +1626,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               <div className="grid items-center gap-8 lg:grid-cols-2">
                 <div className="lh-unlock-image-shell relative overflow-hidden rounded-2xl border border-amber-400/40 bg-black/35">
                   <Image
-                    src="/q.png"
+                    src={unlockImage}
                     alt="Unlock potential visual"
                     width={1024}
                     height={576}
@@ -1608,17 +1636,23 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                 </div>
                 <div className="text-center lg:text-left">
                   <h2 className={`${sectionTitle} text-center lg:text-left`}>
-                    Unlock Potential, <span className={goldText}>Achieve Success</span>
+                    {unlockHeading ? (
+                      <>{unlockHeading}</>
+                    ) : (
+                      <>
+                        Unlock Potential, <span className={goldText}>Achieve Success</span>
+                      </>
+                    )}
                   </h2>
                   <p className="mt-4 max-w-xl text-sm leading-relaxed text-gray-300 md:text-base">
-                    Build future-ready capabilities through industry-aligned learning, expert-led
-                    training, and practical pathways designed for real career outcomes.
+                    {unlockSubtitle ||
+                      "Build future-ready capabilities through industry-aligned learning, expert-led training, and practical pathways designed for real career outcomes."}
                   </p>
                   <button
                     type="button"
                     className={`mt-8 rounded-full px-10 py-4 font-bold text-black shadow-lg transition-all hover:brightness-110 ${goldGradient}`}
                   >
-                    Get Started
+                    {unlockCta || "Get Started"}
                   </button>
                 </div>
               </div>

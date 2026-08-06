@@ -22,8 +22,12 @@ export const N8N_WEBHOOK_PATHS = {
   tutorLedPurchase: "purchased(tutor led)",
   selfPacedPurchase: "payment-confirmation(self-based)",
   meetingReminder: "meeting-reminder",
-  courseCompletion: "course-completion",
+  courseCompletion: "course-completed",
+  progressReport: "progress-report",
+  /** Path contains a space — buildN8nWebhookUrl encodes it. */
+  moduleCompleted: "module completed",
   reviews: "reviews",
+  passwordReset: "password-reset",
   newsletter: "newsletter",
 } as const;
 

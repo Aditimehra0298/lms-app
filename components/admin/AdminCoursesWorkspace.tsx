@@ -566,6 +566,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       }
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
       setDraft((d) => ({ ...d, image: data.url }));
+      setSaveNotice("Cover uploaded — click Save course to show it on the LMS.");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Image upload failed.");
     } finally {
@@ -593,6 +594,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       }
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
       updateDraftHero(setDraft, { [field]: data.url });
+      setSaveNotice("Image uploaded — click Save course to show it on the LMS.");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Image upload failed.");
     } finally {
@@ -626,16 +628,23 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       setSelectedLesson(null);
       return;
     }
-    const mi = Math.min(expandedModuleIdx, modules.length - 1);
-    const mod = modules[mi];
     setSelectedLesson((prev) => {
-      if (prev && prev.mi === mi) {
-        if (prev.scope === "module" && prev.ri < mod.items.length) return prev;
-        if (prev.scope === "sub") {
-          const sm = mod.subModules?.[prev.si];
-          if (sm && prev.ri < sm.items.length) return prev;
+      // Keep the lesson the admin is editing — never jump to another module just because
+      // the accordion expanded or modules array was updated after a keystroke/upload.
+      if (prev) {
+        const prevMod = modules[prev.mi];
+        if (prevMod) {
+          if (prev.scope === "module" && prev.ri >= 0 && prev.ri < prevMod.items.length) {
+            return prev;
+          }
+          if (prev.scope === "sub") {
+            const sm = prevMod.subModules?.[prev.si];
+            if (sm && prev.ri >= 0 && prev.ri < sm.items.length) return prev;
+          }
         }
       }
+      const mi = Math.min(Math.max(0, expandedModuleIdx), modules.length - 1);
+      const mod = modules[mi];
       if (mod.items.length > 0) return { scope: "module", mi, ri: 0 };
       const subs = mod.subModules ?? [];
       for (let si = 0; si < subs.length; si++) {
@@ -2533,6 +2542,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                 <div className="rounded-xl border border-white/10 bg-[#0d1528] p-4">
                   {selectedLesson && getLessonFromModules(modules, selectedLesson) ? (
                     <AdminLessonEditor
+                      key={lessonIndexLabel(selectedLesson)}
                       lesson={getLessonFromModules(modules, selectedLesson)!}
                       lessonIndexLabel={lessonIndexLabel(selectedLesson)}
                       onPatch={(patch) => updateRow(selectedLesson, patch)}

@@ -6,6 +6,8 @@ import {
   upsertLearnerCourseProgressInStore,
   type StoredModuleExamScore,
 } from "@/lib/server/learner-course-progress-store";
+import { queueCourseProgressReportCheck } from "@/lib/server/n8n-progress-report-service";
+import { queueModuleCompletedEmails } from "@/lib/server/n8n-module-completed-service";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,8 @@ type PutBody = {
   slug?: string;
   completedModules?: number[];
   examScores?: Record<string, StoredModuleExamScore>;
+  learnerName?: string;
+  courseName?: string;
 };
 
 /** Save learner module progress (merge with any existing server row). */
@@ -50,7 +54,11 @@ export async function PUT(request: Request) {
     const existing = await getLearnerCourseProgressFromStore(email, slug);
     const incomingModules = Array.isArray(body.completedModules) ? body.completedModules : [];
     const mergedModules = Array.from(
-      new Set([...(existing?.completedModules ?? []), ...incomingModules].filter((n) => Number.isFinite(n) && n > 0)),
+      new Set(
+        [...(existing?.completedModules ?? []), ...incomingModules].filter(
+          (n) => Number.isFinite(n) && n > 0,
+        ),
+      ),
     ).sort((a, b) => a - b);
 
     const examScores: Record<string, StoredModuleExamScore> = {
@@ -78,6 +86,26 @@ export async function PUT(request: Request) {
       courseSlug: slug,
       completedModules: mergedModules,
       examScores,
+    });
+
+    // Progress report email (milestones / module complete) — never block the learner.
+    queueCourseProgressReportCheck({
+      learnerEmail: email,
+      learnerName: body.learnerName,
+      courseSlug: slug,
+      courseName: body.courseName,
+      previous: existing,
+      next: progress,
+    });
+
+    // Module completed + exam passed email — one per module, fire-and-forget.
+    queueModuleCompletedEmails({
+      learnerEmail: email,
+      learnerName: body.learnerName,
+      courseSlug: slug,
+      courseName: body.courseName,
+      previous: existing,
+      next: progress,
     });
 
     return NextResponse.json({ ok: true, progress });

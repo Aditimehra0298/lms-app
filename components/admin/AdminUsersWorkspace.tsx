@@ -7,6 +7,7 @@ import {
   BookOpen,
   ChevronDown,
   ChevronUp,
+  KeyRound,
   Loader2,
   RefreshCw,
   Search,
@@ -151,6 +152,26 @@ export default function AdminUsersWorkspace() {
       await load();
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
+  const sendPasswordReset = async (row: AdminUserListRow) => {
+    setBusyEmail(row.email);
+    setSaveNotice(null);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/admin/users/password-reset", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ email: row.email, learnerName: row.name }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) throw new Error(data.message ?? "Could not send reset email");
+      setSaveNotice(data.message ?? `Password reset email sent to ${row.email}`);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not send reset email");
     } finally {
       setBusyEmail(null);
     }
@@ -458,7 +479,7 @@ export default function AdminUsersWorkspace() {
                                       ["Company size", row.companySize ?? "—"],
                                       ["Email verified", row.emailVerifiedAt ? formatWhen(row.emailVerifiedAt) : "—"],
                                       ["Joined", formatWhen(row.createdAt)],
-                                      ["Last login", formatWhen(row.lastLoginAt)],
+                                      ["Last login", row.lastLoginAt ? formatWhen(row.lastLoginAt) : "—"],
                                     ].map(([label, value]) => (
                                       <tr key={String(label)}>
                                         <td className="py-1.5 pr-4 text-gray-500">{label}</td>
@@ -467,6 +488,19 @@ export default function AdminUsersWorkspace() {
                                     ))}
                                   </tbody>
                                 </table>
+                                <button
+                                  type="button"
+                                  disabled={busyEmail === row.email}
+                                  onClick={() => void sendPasswordReset(row)}
+                                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/20 disabled:opacity-50"
+                                >
+                                  {busyEmail === row.email ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <KeyRound className="h-3 w-3" />
+                                  )}
+                                  Send password reset email
+                                </button>
                               </div>
                               <div>
                                 {row.organization ? (

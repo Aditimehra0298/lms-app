@@ -5,7 +5,10 @@ export type SftN8nEmailType =
   | "self-paced-purchase"
   | "meeting-reminder"
   | "course-completion"
-  | "course-feedback";
+  | "course-feedback"
+  | "progress-report"
+  | "module-completed"
+  | "password-reset";
 
 export type PostSftN8nEmailResult = { ok: true } | { ok: false; message: string };
 

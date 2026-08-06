@@ -195,11 +195,11 @@ function ImageUploader({ value, onChange, label, compact, aspect, cropEnabled = 
       } else {
         const txt = await res.text().catch(() => "");
         setUploadError(`Upload failed (${res.status}) ${txt}`);
-        onChange(localUrl);
+        setPreview(value || "");
       }
     } catch {
       setUploadError("Network error");
-      onChange(localUrl);
+      setPreview(value || "");
     } finally {
       setUploading(false);
     }

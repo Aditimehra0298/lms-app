@@ -204,11 +204,12 @@ function ImageUploader({ value, onChange, label, compact, aspect, cropEnabled = 
       } else {
         const errData = await res.json().catch(() => ({ error: "Upload failed" }));
         setUploadError(errData.error || "Upload failed");
-        onChange(localPreview);
+        // Keep previous saved URL — never persist blob: previews into content JSON.
+        setPreview(value || "");
       }
     } catch {
       setUploadError("Network error during upload");
-      onChange(localPreview);
+      setPreview(value || "");
     } finally { setUploading(false); }
   };
 

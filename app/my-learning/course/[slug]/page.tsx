@@ -464,12 +464,6 @@ export default function CourseLearningPlayerPage() {
     if (!email) return;
 
     certRequestRef.current = slug;
-    void notifyCourseCompletionClient({
-      learnerEmail: email,
-      courseSlug: slug,
-      courseName: apiCourseTitle || courseTitle,
-      deliveryKind: "self-paced",
-    });
     void requestCourseCertificateClient({
       learnerEmail: email,
       courseSlug: slug,
@@ -478,6 +472,17 @@ export default function CourseLearningPlayerPage() {
       if (r.ok) {
         window.localStorage.setItem(flagKey, "1");
         setCertRequested(true);
+        // Completion email fires server-side when certificate is created (with real PDF link).
+        // Also notify with certificateId so the download button works if cert request raced ahead.
+        void notifyCourseCompletionClient({
+          learnerEmail: email,
+          courseSlug: slug,
+          courseName: apiCourseTitle || courseTitle,
+          deliveryKind: "self-paced",
+          certificateId: r.certificateId,
+        }).catch((err) => {
+          console.warn("[course-completed] notify failed:", err);
+        });
       } else {
         certRequestRef.current = null;
         console.warn("[certificate] auto-request failed:", r.message);
@@ -1203,32 +1208,36 @@ export default function CourseLearningPlayerPage() {
                   </div>
                 </div>
                 <h3 className="lesson-gold-heading">About the Module</h3>
-                <p className="mt-2 text-sm leading-7 text-gray-300">
-                  {activeItem?.about?.trim()
-                    ? activeItem.about.trim()
-                    : `Welcome to ${moduleTitle(activeModule ?? {}, selectedModuleIdx)}. Work through the lessons in this module, then complete the module assessment when it unlocks.`}
-                </p>
-                {activeItem?.description?.trim() ? (
-                  <p className="mt-2 text-sm leading-7 text-gray-300">{activeItem.description.trim()}</p>
-                ) : null}
+                {activeItem?.about?.trim() || activeItem?.description?.trim() ? (
+                  <>
+                    {activeItem?.about?.trim() ? (
+                      <p className="mt-2 text-sm leading-7 text-gray-300">{activeItem.about.trim()}</p>
+                    ) : null}
+                    {activeItem?.description?.trim() ? (
+                      <p className="mt-2 text-sm leading-7 text-gray-300">{activeItem.description.trim()}</p>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm leading-7 text-gray-500">
+                    Module details will appear here once added in Admin.
+                  </p>
+                )}
 
-                <h3 className="lesson-gold-heading mt-4">Learning Outcomes</h3>
-                <div className="mt-2 grid gap-2 md:grid-cols-2">
-                  {(
-                    activeItem?.learningOutcomes?.length
-                      ? activeItem.learningOutcomes
-                      : [
-                          `Understand the key ideas covered in ${moduleTitle(activeModule ?? {}, selectedModuleIdx)}`,
-                          "Apply practical techniques from this module’s lessons",
-                          "Complete the module lessons and supporting materials in order",
-                          "Prepare for the module examination with confidence",
-                        ]
-                  ).map((point) => (
-                    <div key={point} className="rounded-md border border-white/10 bg-black/30 p-2 text-xs text-gray-300">
-                      {point}
+                {activeItem?.learningOutcomes && activeItem.learningOutcomes.length > 0 ? (
+                  <>
+                    <h3 className="lesson-gold-heading mt-4">Learning Outcomes</h3>
+                    <div className="mt-2 grid gap-2 md:grid-cols-2">
+                      {activeItem.learningOutcomes.map((point) => (
+                        <div
+                          key={point}
+                          className="rounded-md border border-white/10 bg-black/30 p-2 text-xs text-gray-300"
+                        >
+                          {point}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                ) : null}
               </div>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2">

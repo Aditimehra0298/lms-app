@@ -364,7 +364,9 @@ export default function AdminSelfPacedPageContentEditor({
               />
             </div>
             <div className="md:col-span-2">
-              <span className="mb-1.5 block text-[10px] text-gray-500">Default lesson about</span>
+              <span className="mb-1.5 block text-[10px] text-gray-500">
+                Optional fallback “About” (only if a lesson has no About text in Content → Modules)
+              </span>
               <SimpleRichTextArea
                 value={draft.learningSection?.defaultLessonAbout ?? ""}
                 onChange={(v) => patchLearning(setDraft, { defaultLessonAbout: v })}
@@ -373,7 +375,9 @@ export default function AdminSelfPacedPageContentEditor({
               />
             </div>
             <div className="md:col-span-2">
-              <span className="mb-1.5 block text-[10px] text-gray-500">Default lesson description</span>
+              <span className="mb-1.5 block text-[10px] text-gray-500">
+                Optional fallback description (does not auto-fill module lessons — edit each lesson in Content)
+              </span>
               <SimpleRichTextArea
                 value={draft.learningSection?.defaultLessonDescription ?? ""}
                 onChange={(v) => patchLearning(setDraft, { defaultLessonDescription: v })}
@@ -389,7 +393,9 @@ export default function AdminSelfPacedPageContentEditor({
               />
             </label>
             <label className="block md:col-span-2">
-              <span className="text-[10px] text-gray-500">Default learning outcomes (one per line)</span>
+              <span className="text-[10px] text-gray-500">
+                Optional fallback learning outcomes (one per line — not auto-copied into modules)
+              </span>
               <textarea
                 value={(draft.learningSection?.defaultLearningOutcomes ?? []).join("\n")}
                 onChange={(e) =>

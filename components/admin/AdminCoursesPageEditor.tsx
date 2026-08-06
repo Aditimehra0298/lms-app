@@ -373,11 +373,11 @@ function ImageUploader({
       } else {
         const errData = await res.json().catch(() => ({ error: "Upload failed" }));
         setUploadError(errData.error || "Upload failed");
-        onChange(localPreview);
+        setPreview(value || "");
       }
     } catch {
       setUploadError("Network error during upload");
-      onChange(localPreview);
+      setPreview(value || "");
     } finally { setUploading(false); }
   };
 

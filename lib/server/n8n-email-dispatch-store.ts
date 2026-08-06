@@ -5,6 +5,8 @@ export type EmailDispatchEvent =
   | "course.purchased"
   | "course.completed"
   | "course.feedback.requested"
+  | "course.progress"
+  | "module.completed"
   | "session.reminder";
 
 type DispatchRow = {

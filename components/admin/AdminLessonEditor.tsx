@@ -18,7 +18,7 @@ const VIDEO_FILE_ACCEPT =
   ".mp4,.webm,.mov,.m4v,video/mp4,video/webm,video/quicktime,video/x-m4v";
 const DOC_FILE_ACCEPT =
   ".pdf,.doc,.docx,.ppt,.pptx,.txt,.vtt,.srt,audio/mpeg,audio/mp3,audio/wav,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation";
-const MAX_VIDEO_UPLOAD_MB = 5 * 1024;
+const MAX_VIDEO_UPLOAD_MB = 1024;
 
 export type LessonRowPatch = Partial<{
   label: string;
@@ -61,14 +61,46 @@ function labelToKind(label: string): CourseCurriculumKind {
   return "reading";
 }
 
-async function uploadAdminFile(file: File, courseSlug?: string): Promise<string> {
-  const fd = new FormData();
-  fd.append("file", file);
-  if (courseSlug?.trim()) fd.append("courseSlug", courseSlug.trim());
-  const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-  const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
-  if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
-  return data.url;
+/** Upload with progress so large module videos feel responsive. */
+function uploadAdminFile(
+  file: File,
+  courseSlug?: string,
+  onProgress?: (percent: number) => void,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (courseSlug?.trim()) fd.append("courseSlug", courseSlug.trim());
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/admin/upload");
+    xhr.timeout = 30 * 60 * 1000; // 30 min for large videos
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || !onProgress) return;
+      onProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
+    };
+
+    xhr.onload = () => {
+      let data: { ok?: boolean; url?: string; error?: string } = {};
+      try {
+        data = JSON.parse(xhr.responseText) as typeof data;
+      } catch {
+        reject(new Error(xhr.status === 413 ? "File too large for the server." : `Upload failed (HTTP ${xhr.status})`));
+        return;
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && data.url) {
+        onProgress?.(100);
+        resolve(data.url);
+        return;
+      }
+      reject(new Error(data.error ?? `Upload failed (HTTP ${xhr.status})`));
+    };
+
+    xhr.onerror = () => reject(new Error("Network error during upload. Check connection and try again."));
+    xhr.ontimeout = () => reject(new Error("Upload timed out. Try a smaller file or a faster connection."));
+    xhr.send(fd);
+  });
 }
 
 type Props = {
@@ -93,6 +125,7 @@ export default function AdminLessonEditor({
   const [documentSource, setDocumentSource] = useState<"upload" | "url">("upload");
   const [examSource, setExamSource] = useState<"upload" | "url">("upload");
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadPercent, setVideoUploadPercent] = useState(0);
   const [uploadingExam, setUploadingExam] = useState(false);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -210,40 +243,60 @@ export default function AdminLessonEditor({
               </p>
             </label>
             {videoSource === "upload" ? (
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-violet-400/55 bg-gradient-to-r from-violet-600/30 via-fuchsia-500/20 to-indigo-500/30 py-2 text-xs text-violet-50 shadow-[0_0_18px_rgba(168,85,247,0.28)] hover:from-violet-500/40 hover:to-indigo-500/40">
-                <Upload className="h-3.5 w-3.5 text-amber-200" />
-                {uploadingVideo ? "Uploading…" : "Upload lesson video"}
-                <input
-                  type="file"
-                  accept={VIDEO_FILE_ACCEPT}
-                  className="hidden"
-                  disabled={uploadingVideo}
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    setUploadError(null);
-                    setSelectedVideoMeta({
-                      sizeMb: Number((f.size / (1024 * 1024)).toFixed(1)),
-                    });
-                    setUploadingVideo(true);
-                    try {
-                      const url = await uploadAdminFile(f, courseSlug);
-                      onPatch({
-                        videoUrl: url,
-                        lessonVideoSizeMb: Number((f.size / (1024 * 1024)).toFixed(1)),
-                      });
-                      setVideoSource("upload");
-                    } catch (err) {
-                      const message =
-                        err instanceof Error ? err.message : "Upload failed. Please try again.";
-                      setUploadError(message);
-                    } finally {
-                      setUploadingVideo(false);
-                      e.target.value = "";
-                    }
-                  }}
-                />
-              </label>
+              <div className="space-y-2">
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-violet-400/55 bg-gradient-to-r from-violet-600/30 via-fuchsia-500/20 to-indigo-500/30 py-2 text-xs text-violet-50 shadow-[0_0_18px_rgba(168,85,247,0.28)] hover:from-violet-500/40 hover:to-indigo-500/40">
+                  <Upload className="h-3.5 w-3.5 text-amber-200" />
+                  {uploadingVideo
+                    ? `Uploading… ${videoUploadPercent}%`
+                    : "Upload lesson video"}
+                  <input
+                    type="file"
+                    accept={VIDEO_FILE_ACCEPT}
+                    className="hidden"
+                    disabled={uploadingVideo}
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      setUploadError(null);
+                      const sizeMb = Number((f.size / (1024 * 1024)).toFixed(1));
+                      setSelectedVideoMeta({ sizeMb });
+                      if (sizeMb > MAX_VIDEO_UPLOAD_MB) {
+                        setUploadError(
+                          `File is ${sizeMb} MB — max is ${MAX_VIDEO_UPLOAD_MB} MB. Compress the video or raise ADMIN_UPLOAD_MAX_VIDEO_MB on the server.`,
+                        );
+                        e.target.value = "";
+                        return;
+                      }
+                      setUploadingVideo(true);
+                      setVideoUploadPercent(0);
+                      try {
+                        const url = await uploadAdminFile(f, courseSlug, setVideoUploadPercent);
+                        onPatch({
+                          videoUrl: url,
+                          lessonVideoSizeMb: sizeMb,
+                        });
+                        setVideoSource("upload");
+                      } catch (err) {
+                        const message =
+                          err instanceof Error ? err.message : "Upload failed. Please try again.";
+                        setUploadError(message);
+                      } finally {
+                        setUploadingVideo(false);
+                        setVideoUploadPercent(0);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                </label>
+                {uploadingVideo ? (
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-violet-400 transition-[width] duration-200"
+                      style={{ width: `${videoUploadPercent}%` }}
+                    />
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <input
                 value={lesson.videoUrl ?? ""}
@@ -276,7 +329,8 @@ export default function AdminLessonEditor({
               </div>
             ) : null}
             <p className="text-[10px] text-gray-500">
-              Max upload size: {MAX_VIDEO_UPLOAD_MB}MB (default). You can raise it with <b>ADMIN_UPLOAD_MAX_VIDEO_MB</b>.
+              Max upload size: {MAX_VIDEO_UPLOAD_MB} MB. Large videos take time to upload — watch the
+              progress bar. After upload, click <b>Save curriculum</b> so the video sticks.
             </p>
             {selectedVideoMeta ? (
               <p className="text-[10px] text-cyan-200/90">
@@ -520,12 +574,14 @@ export default function AdminLessonEditor({
       ) : null}
 
       <label className="block">
-        <span className="mb-1 block text-[11px] text-gray-500">Description</span>
+        <span className="mb-1 block text-[11px] text-gray-500">
+          Description (you type this — nothing auto-fills)
+        </span>
         <textarea
           value={lesson.description ?? ""}
           onChange={(e) => onPatch({ description: e.target.value })}
           rows={3}
-          placeholder="Lesson summary for your team."
+          placeholder="Write this lesson’s description yourself…"
           className="w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/40"
         />
       </label>
@@ -533,7 +589,9 @@ export default function AdminLessonEditor({
       {lesson.kind === "video" ? (
         <>
           <label className="block">
-            <span className="mb-1 block text-[11px] text-gray-500">About this module / lesson (shown below video)</span>
+            <span className="mb-1 block text-[11px] text-gray-500">
+              About this module / lesson (shown below video — type your own text)
+            </span>
             <textarea
               value={lesson.about ?? ""}
               onChange={(e) => onPatch({ about: e.target.value })}
@@ -543,7 +601,9 @@ export default function AdminLessonEditor({
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[11px] text-gray-500">Learning outcomes (one per line)</span>
+            <span className="mb-1 block text-[11px] text-gray-500">
+              Learning outcomes (one per line — type your own; leave blank if none)
+            </span>
             <textarea
               value={(lesson.learningOutcomes ?? []).join("\n")}
               onChange={(e) =>
