@@ -2,8 +2,6 @@
 
 
 
-import Image from "next/image";
-
 import Link from "next/link";
 
 import { useRouter } from "next/navigation";
@@ -19,6 +17,8 @@ import { useResolvedCoursePrice } from "@/lib/hooks/useResolvedCoursePrice";
 import { instructorInitialLetter } from "@/lib/managed-course-to-post-hero";
 
 import CourseEnrollActions from "@/components/CourseEnrollActions";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
+import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 
 type Props = { course: ManagedCourse };
 
@@ -163,21 +163,27 @@ export default function SelfPacedCourseHero({ course }: Props) {
 
               <div className="relative aspect-[16/10] w-full bg-zinc-900">
 
-                <Image
-
-                  src={course.image || "/course-food-safety.png"}
-
-                  alt={course.title}
-
-                  fill
-
-                  className="object-cover"
-
-                  sizes="(max-width: 1024px) 100vw, 40vw"
-
-                  priority
-
-                />
+                {(() => {
+                  const thumb = resolveCourseListThumbnail(course);
+                  if (!thumb) {
+                    return (
+                      <div className="flex h-full w-full items-center justify-center text-sm text-zinc-500">
+                        No cover image
+                      </div>
+                    );
+                  }
+                  return (
+                    <CatalogMediaImage
+                      storedSrc={thumb}
+                      courseSlug={course.slug}
+                      alt={course.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 1024px) 100vw, 40vw"
+                      priority
+                    />
+                  );
+                })()}
 
               </div>
 

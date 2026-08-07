@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CreditCard, ShieldCheck } from "lucide-react";
@@ -13,6 +12,8 @@ import {
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
 import { hasViewedCourseLanding, prePaymentLandingHref } from "@/lib/course-landing";
 import { SignInToViewPrices } from "@/components/SignInToViewPrices";
+import { CourseListThumbnail } from "@/components/CourseListThumbnail";
+import { resolveCourseImageSrc } from "@/lib/course-thumbnail";
 import type { ManagedCourse } from "@/lib/content-schema";
 import { completeCheckoutPurchase } from "@/lib/checkout-complete-client";
 import { openRazorpayCheckout, verifyRazorpayPaymentOnServer } from "@/lib/razorpay-client";
@@ -454,9 +455,12 @@ export default function CheckoutPage() {
             <div className="mt-3 space-y-2">
               {items.map((item) => (
                 <div key={item.slug} className="flex gap-2 rounded-lg border border-white/10 bg-black/25 p-2">
-                  <div className="relative h-14 w-20 overflow-hidden rounded-md border border-white/10">
-                    <Image src={item.image || "/course-food-safety.png"} alt={item.title} fill unoptimized className="object-cover" />
-                  </div>
+                    <CourseListThumbnail
+                      image={resolveCourseImageSrc(item.image)}
+                      title={item.title}
+                      courseSlug={item.slug}
+                      className="relative h-14 w-20 shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/30"
+                    />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{item.title}</p>
                     <p className="text-xs text-gray-400">Qty {item.qty}</p>

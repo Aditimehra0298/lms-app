@@ -565,7 +565,41 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
         throw new Error("Image too large for the server (max 6 MB).");
       }
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
-      setDraft((d) => ({ ...d, image: data.url }));
+      const imageUrl = data.url;
+      setDraft((d) => ({ ...d, image: imageUrl }));
+
+      // Persist immediately for existing courses so home/courses/my-learning pick up the cover.
+      if (content && !isCreating && (editingSlug || selectedSlug)) {
+        const previousSlug = editingSlug || selectedSlug;
+        const slug = slugify((draft.slug || draft.title || previousSlug || "").trim()) || previousSlug;
+        const others = (content.managedCourses ?? []).filter((c) => c.slug !== previousSlug && c.slug !== slug);
+        const existing =
+          (content.managedCourses ?? []).find((c) => c.slug === previousSlug) ??
+          (content.managedCourses ?? []).find((c) => c.slug === slug);
+        const preservedCurriculum =
+          selectedSlug && (selectedSlug === slug || selectedSlug === previousSlug) && modules.length > 0
+            ? cloneMods(modules)
+            : Array.isArray(existing?.curriculum)
+              ? cloneMods(existing.curriculum)
+              : Array.isArray(draft.curriculum)
+                ? cloneMods(draft.curriculum)
+                : [];
+        const normalized = sanitizeManagedCourse({
+          ...draft,
+          ...existing,
+          ...draft,
+          slug,
+          image: imageUrl,
+          learningFormat: "self-paced",
+          faqs: (draft.faqs ?? existing?.faqs ?? []).filter((f) => f.q.trim() && f.a.trim()),
+          curriculum: preservedCurriculum,
+        });
+        const ok = await persistManagedCourses([...others, normalized]);
+        if (ok) {
+          setSaveNotice("Cover uploaded and saved — visible on LMS pages.");
+          return;
+        }
+      }
       setSaveNotice("Cover uploaded — click Save course to show it on the LMS.");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Image upload failed.");

@@ -12,7 +12,9 @@ import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import { CoursePrice } from "@/components/CoursePrice";
 import CourseCardActions from "@/components/CourseCardActions";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
 import { NewsletterSubscribeForm } from "@/components/NewsletterSubscribeForm";
+import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import TestimonialAvatar from "@/components/TestimonialAvatar";
 import TestimonialCourseBadge from "@/components/TestimonialCourseBadge";
 import {
@@ -433,26 +435,6 @@ const heroHighlights = [
   "Recognized Accreditation & Training Partners",
 ];
 
-const knownCourseImages = new Set([
-  "/course-food-safety.png",
-  "/c1.png",
-  "/c2.png",
-  "/c3.png",
-  "/p1.png",
-  "/p2.png",
-  "/p3.png",
-  "/p4.jpg",
-  "/p5.png",
-  "/p6.png",
-  "/p7.png",
-  "/p8.png",
-]);
-
-/** Published defaults so the home catalog renders immediately; `/api/courses` replaces when ready. */
-function fallbackPublishedCatalog(): ManagedCourse[] {
-  return (defaultAdminContent.managedCourses ?? []).filter((c) => c.published !== false);
-}
-
 const CATEGORY_ICON_FALLBACK = [
   ShieldCheck,
   MonitorPlay,
@@ -472,13 +454,9 @@ function iconForCategoryTitle(title: string) {
   return CATEGORY_ICON_FALLBACK[h];
 }
 
-function resolveCourseCardImage(image: string | undefined) {
-  const raw = image?.trim() ?? "";
-  if (!raw) return "/c1.png";
-  // Allow admin uploads (/uploads/covers/...), public assets, and remote URLs.
-  if (raw.startsWith("/") || /^https?:\/\//i.test(raw)) return raw;
-  if (knownCourseImages.has(raw)) return raw;
-  return "/c1.png";
+/** Published defaults so the home catalog renders immediately; `/api/courses` replaces when ready. */
+function fallbackPublishedCatalog(): ManagedCourse[] {
+  return (defaultAdminContent.managedCourses ?? []).filter((c) => c.published !== false);
 }
 
 export type LearnlyLandingInitialData = {
@@ -1221,14 +1199,26 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                           className="block"
                         >
                           <div className="relative aspect-[16/10] bg-black/40">
-                            <Image
-                              src={resolveCourseCardImage(course.image)}
-                              alt={course.title}
-                              width={1200}
-                              height={750}
-                              unoptimized
-                              className="h-full w-full object-cover"
-                            />
+                            {(() => {
+                              const thumb = resolveCourseListThumbnail(course);
+                              if (!thumb) {
+                                return (
+                                  <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">
+                                    No cover image
+                                  </div>
+                                );
+                              }
+                              return (
+                                <CatalogMediaImage
+                                  storedSrc={thumb}
+                                  courseSlug={course.slug}
+                                  alt={course.title}
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 768px) 100vw, 25vw"
+                                />
+                              );
+                            })()}
                           </div>
                         </Link>
                         <div className="flex flex-1 flex-col p-4">

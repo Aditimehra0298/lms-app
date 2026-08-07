@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   Award,
   BookOpen,
@@ -20,6 +19,8 @@ import {
 import type { ManagedCourse } from "@/lib/content-schema";
 import { formatSimpleRichTextBlock } from "@/lib/simple-rich-text";
 import type { CourseCurriculumKind } from "@/lib/content-schema";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
+import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import {
   getCurriculumForCourse,
   learningOutcomeBullets,
@@ -181,13 +182,26 @@ export default function SelfPacedPostHeroSections({ course, openFaq, setOpenFaq 
                 </ul>
               </div>
               <div className="overflow-hidden rounded-2xl border border-white/10">
-                <Image
-                  src={course.image || "/course-food-safety.png"}
-                  alt=""
-                  width={720}
-                  height={480}
-                  className="h-auto w-full object-cover"
-                />
+                {(() => {
+                  const thumb = resolveCourseListThumbnail(course);
+                  if (!thumb) {
+                    return (
+                      <div className="flex aspect-video w-full items-center justify-center bg-zinc-900 text-sm text-zinc-500">
+                        No cover image
+                      </div>
+                    );
+                  }
+                  return (
+                    <CatalogMediaImage
+                      storedSrc={thumb}
+                      courseSlug={course.slug}
+                      alt=""
+                      width={720}
+                      height={480}
+                      className="h-auto w-full object-cover"
+                    />
+                  );
+                })()}
               </div>
             </aside>
           </div>

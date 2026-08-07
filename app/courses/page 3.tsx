@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import CourseCardActions from "@/components/CourseCardActions";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
+import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import type { ComponentType } from "react";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
 import { getManagedCourses } from "@/lib/server/course-catalog";
@@ -519,15 +521,27 @@ export default async function CoursesPage({
                 className="courses-course-card group flex h-full flex-col rounded-xl border border-white/10 bg-white/[0.03] p-3 transition hover:border-amber-300/40 hover:bg-white/[0.05]"
               >
                 <Link href={`/courses/${course.slug}`} className="block min-h-0 flex-1">
-                  <div className="courses-thumb-frame h-32 overflow-hidden rounded-lg border border-white/15 bg-black/35">
-                    <Image
-                      src={course.image}
-                      alt={course.title}
-                      width={400}
-                      height={200}
-                      unoptimized
-                      className="h-full w-full object-cover"
-                    />
+                  <div className="courses-thumb-frame relative h-32 overflow-hidden rounded-lg border border-white/15 bg-black/35">
+                    {(() => {
+                      const thumb = resolveCourseListThumbnail(course);
+                      if (!thumb) {
+                        return (
+                          <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-500">
+                            No cover
+                          </div>
+                        );
+                      }
+                      return (
+                        <CatalogMediaImage
+                          storedSrc={thumb}
+                          courseSlug={course.slug}
+                          alt={course.title}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 50vw, 20vw"
+                        />
+                      );
+                    })()}
                   </div>
                   <p className="mt-3 line-clamp-2 text-sm font-semibold group-hover:text-amber-200">{course.title}</p>
                   <p className="mt-1 text-xs text-gray-400">
@@ -613,15 +627,27 @@ export default async function CoursesPage({
                   href={`/courses/${course.slug}`}
                   className="courses-recommended-thumb block overflow-hidden rounded-lg border border-amber-300/25 bg-black/25 transition hover:border-amber-300/45 hover:bg-black/35"
                 >
-                  <div className="h-24 w-full overflow-hidden">
-                    <Image
-                      src={course.image}
-                      alt={course.title}
-                      width={400}
-                      height={96}
-                      unoptimized
-                      className="h-full w-full object-cover"
-                    />
+                  <div className="relative h-24 w-full overflow-hidden">
+                    {(() => {
+                      const thumb = resolveCourseListThumbnail(course);
+                      if (!thumb) {
+                        return (
+                          <div className="flex h-full w-full items-center justify-center bg-black/40 text-[10px] text-gray-500">
+                            No cover
+                          </div>
+                        );
+                      }
+                      return (
+                        <CatalogMediaImage
+                          storedSrc={thumb}
+                          courseSlug={course.slug}
+                          alt={course.title}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 33vw, 200px"
+                        />
+                      );
+                    })()}
                   </div>
                 </Link>
               ))}

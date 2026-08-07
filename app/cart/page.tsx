@@ -1,11 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, ShieldCheck, Trash2 } from "lucide-react";
 import { hasViewedCourseLanding, prePaymentLandingHref } from "@/lib/course-landing";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { CourseListThumbnail } from "@/components/CourseListThumbnail";
+import { resolveCourseImageSrc } from "@/lib/course-thumbnail";
 type CartItem = {
   slug: string;
   title: string;
@@ -99,15 +100,12 @@ export default function CartPage() {
                 <article key={item.slug} className="rounded-xl border border-white/10 bg-black/25 p-3">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="relative h-20 w-36 overflow-hidden rounded-lg border border-white/10">
-                        <Image
-                          src={item.image || "/course-food-safety.png"}
-                          alt={item.title}
-                          fill
-                          unoptimized
-                          className="object-cover"
-                        />
-                      </div>
+                      <CourseListThumbnail
+                        image={resolveCourseImageSrc(item.image)}
+                        title={item.title}
+                        courseSlug={item.slug}
+                        className="relative h-20 w-36 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/30"
+                      />
                       <div>
                         <p className="text-base font-semibold">{item.title}</p>
                         <p className="mt-1 text-xs text-gray-400">Qty: {item.qty}</p>

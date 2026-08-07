@@ -1,16 +1,41 @@
 import type { ManagedCourse } from "@/lib/content-schema";
 
-/** Shared defaults used when a course is created / AI-imported without a real cover. */
+/**
+ * Shared stock images that were historically forced onto every course when a real
+ * cover was missing. Prefer empty / "No image" over showing these for every card.
+ */
 const GENERIC_PLACEHOLDERS = new Set([
   "",
   "/course-food-safety.png",
   "/course-food-safety.jpg",
+  "/c1.png",
 ]);
 
 export function isGenericCoursePlaceholder(src: string | undefined | null): boolean {
   const s = (src ?? "").trim();
   if (!s) return true;
   return GENERIC_PLACEHOLDERS.has(s);
+}
+
+/** True for any LMS-usable image path (public upload, asset, or remote URL). */
+export function isUsableCourseImageSrc(src: string | undefined | null): boolean {
+  const s = (src ?? "").trim();
+  if (!s || s.startsWith("blob:")) return false;
+  return (
+    s.startsWith("/") ||
+    /^https?:\/\//i.test(s) ||
+    s.startsWith("data:")
+  );
+}
+
+/**
+ * Return the course's own image URL as stored (including `/uploads/covers/...`).
+ * Does not substitute a shared default — empty string means “no cover yet”.
+ */
+export function resolveCourseImageSrc(image: string | undefined | null): string {
+  const s = (image ?? "").trim();
+  if (!isUsableCourseImageSrc(s)) return "";
+  return s;
 }
 
 type ThumbSource = {
@@ -30,7 +55,7 @@ type ThumbSource = {
 
 /**
  * My Learning / catalog card thumbnail for one course.
- * Prefer that course's own cover, hero, or certificate art — never the shared food-safety placeholder.
+ * Prefer that course's own cover, hero, or certificate art — never a shared stock default.
  */
 export function resolveCourseListThumbnail(course: ThumbSource | null | undefined): string {
   if (!course) return "";
@@ -43,11 +68,12 @@ export function resolveCourseListThumbnail(course: ThumbSource | null | undefine
     course.certificateConfig?.templateImage,
   ];
   for (const raw of candidates) {
-    const s = (raw ?? "").trim();
+    const s = resolveCourseImageSrc(raw);
     if (!s || isGenericCoursePlaceholder(s)) continue;
     return s;
   }
-  return "";
+  // Last resort: keep an intentional non-generic path already on the course
+  return resolveCourseImageSrc(course.image);
 }
 
 export function resolveManagedCourseThumbnail(course: ManagedCourse): string {

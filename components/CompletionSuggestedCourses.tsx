@@ -1,23 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ShoppingBag, Star } from "lucide-react";
 import type { ManagedCourse } from "@/lib/content-schema";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
+import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import { readPurchasedCourses } from "@/lib/tutor-led-enrollment-client";
 import { readJsonResponse } from "@/lib/safe-json";
-
-const CARD_FALLBACK_IMAGE = "/c1.png";
-
-function resolveCourseCardImage(image: string | undefined): string {
-  const raw = image?.trim() ?? "";
-  if (!raw) return CARD_FALLBACK_IMAGE;
-  if (raw.startsWith("/") || /^https?:\/\//i.test(raw)) return raw;
-  return CARD_FALLBACK_IMAGE;
-}
 
 type Props = {
   excludeSlug: string;
@@ -118,14 +110,26 @@ export function CompletionSuggestedCourses({ excludeSlug, className = "" }: Prop
           >
             <Link href={href} className="block">
               <div className="relative aspect-[16/10] bg-black/40">
-                <Image
-                  src={resolveCourseCardImage(course.image)}
-                  alt={course.title}
-                  width={640}
-                  height={400}
-                  unoptimized
-                  className="h-full w-full object-cover"
-                />
+                {(() => {
+                  const thumb = resolveCourseListThumbnail(course);
+                  if (!thumb) {
+                    return (
+                      <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-500">
+                        No cover
+                      </div>
+                    );
+                  }
+                  return (
+                    <CatalogMediaImage
+                      storedSrc={thumb}
+                      courseSlug={course.slug}
+                      alt={course.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 25vw"
+                    />
+                  );
+                })()}
               </div>
             </Link>
             <div className="flex flex-col p-3.5">

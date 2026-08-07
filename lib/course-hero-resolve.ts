@@ -1,6 +1,7 @@
 import type { ManagedCourse, ManagedCourseHeroSection } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { isFoodSafetyMasterclassSlug } from "@/lib/food-safety-masterclass-page";
+import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 
 export const DEFAULT_HACCP_CERTIFICATE_PREVIEW = "/certificates/haccp-certificate-preview.jpg";
 
@@ -42,9 +43,10 @@ function formatLearnersEnrolled(learners: string): string {
 }
 
 function defaultHeroBackground(course: ManagedCourse): string {
-  if (course.image && course.image !== "/course-food-safety.png") return course.image;
+  const own = resolveCourseListThumbnail(course);
+  if (own) return own;
   if (canonicalCategorySlug(course.category) === "cyber-security") return "/p2.png";
-  return course.image || "/p2.png";
+  return course.image?.trim() || "/p2.png";
 }
 
 function defaultCertificatePreviewImage(course: ManagedCourse): string {
