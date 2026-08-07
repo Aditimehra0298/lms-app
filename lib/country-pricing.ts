@@ -157,10 +157,27 @@ export function parseStoredPriceString(value: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** Re-format a legacy USD/INR string using regional rules when logged in (INR base inferred). */
+/** Re-format a price string for a region without corrupting explicit currencies ($, £, €, etc.). */
 export function localizePriceString(priceStr: string, region: PricingRegion): string {
-  const amount = parseStoredPriceString(priceStr);
-  if (amount === null) return priceStr;
+  const trimmed = priceStr.trim();
+  if (!trimmed) return trimmed;
+
+  const hasExplicitCurrency =
+    /[₹$€£]|A\$|C\$|S\$|USD|INR|EUR|GBP|AED|SAR|AUD|CAD|SGD|PKR|BDT|NGN/i.test(trimmed);
+  const looksInr = /₹|\bINR\b/i.test(trimmed);
+
+  if (hasExplicitCurrency) {
+    // Only FX-convert when the stored amount is INR and the learner is not in India.
+    if (looksInr && region.countryCode !== "IN") {
+      const amount = parseStoredPriceString(trimmed);
+      if (amount === null) return trimmed;
+      return formatInrAsRegional(amount, region);
+    }
+    return trimmed;
+  }
+
+  const amount = parseStoredPriceString(trimmed);
+  if (amount === null) return trimmed;
   if (region.countryCode === "IN") {
     return `₹${amount.toLocaleString("en-IN")}`;
   }

@@ -17,7 +17,7 @@ import {
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
 import CategoryFaqAccordion from "@/components/CategoryFaqAccordion";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
-import type { CategoryWhyTone, CourseLearningFormat } from "@/lib/content-schema";
+import type { CategoryWhyTone, CourseLearningFormat, CourseRegionalPriceRow } from "@/lib/content-schema";
 import {
   canonicalCategorySlug,
   mergeCategoryPageConfig,
@@ -108,6 +108,8 @@ type CourseCard = {
   duration: string;
   rating: string;
   price: string;
+  oldPrice?: string;
+  regionalPrices?: CourseRegionalPriceRow[];
   image?: string;
   learningFormat?: CourseLearningFormat;
 };
@@ -220,6 +222,8 @@ export default async function CourseCategoryPage({
       duration: course.duration,
       rating: course.rating,
       price: course.price,
+      oldPrice: course.oldPrice,
+      regionalPrices: course.regionalPrices,
       image: course.image,
       learningFormat: course.learningFormat,
     }));

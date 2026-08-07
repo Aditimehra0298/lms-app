@@ -7,6 +7,14 @@ import { hasViewedCourseLanding, prePaymentLandingHref } from "@/lib/course-land
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
 import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 import { resolveCourseImageSrc } from "@/lib/course-thumbnail";
+import type { ManagedCourse } from "@/lib/content-schema";
+import { resolveCoursePrices } from "@/lib/course-regional-pricing";
+import {
+  computeRegionalCheckoutTotals,
+  formatCheckoutMoney,
+} from "@/lib/checkout-regional-pricing";
+import { computeCheckoutTotals } from "@/lib/checkout-totals";
+
 type CartItem = {
   slug: string;
   title: string;
@@ -17,14 +25,10 @@ type CartItem = {
 
 const CART_STORAGE_KEY = "sft_cart";
 
-function parsePrice(value: string) {
-  const amount = Number(value.replace(/[^0-9.]/g, ""));
-  return Number.isFinite(amount) ? amount : 0;
-}
-
 export default function CartPage() {
-  const { showPrices, formatPriceLabel, ready, openPricingPanel } = useLearnerPricing();
+  const { showPrices, ready, region, openPricingPanel } = useLearnerPricing();
   const [items, setItems] = useState<CartItem[]>([]);
+  const [catalog, setCatalog] = useState<ManagedCourse[]>([]);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(CART_STORAGE_KEY);
@@ -37,12 +41,34 @@ export default function CartPage() {
     }
   }, []);
 
-  const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + parsePrice(item.price) * item.qty, 0),
-    [items],
-  );
-  const discount = items.length >= 2 ? subtotal * 0.1 : 0;
-  const total = subtotal - discount;
+  useEffect(() => {
+    void fetch("/api/courses", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data: { courses?: ManagedCourse[] }) => {
+        setCatalog(Array.isArray(data.courses) ? data.courses : []);
+      })
+      .catch(() => setCatalog([]));
+  }, []);
+
+  /** Live admin catalog prices (same as home / courses / checkout). */
+  const pricedItems = useMemo(() => {
+    return items.map((item) => {
+      const course = catalog.find((c) => c.slug === item.slug);
+      if (!course) return item;
+      const resolved = resolveCoursePrices(course, region);
+      return {
+        ...item,
+        title: course.title || item.title,
+        image: course.image || item.image,
+        price: resolved.price || item.price,
+      };
+    });
+  }, [items, catalog, region]);
+
+  const totals = useMemo(() => {
+    if (region) return computeRegionalCheckoutTotals(pricedItems, catalog, region);
+    return computeCheckoutTotals(pricedItems);
+  }, [pricedItems, catalog, region]);
 
   const persistItems = (next: CartItem[]) => {
     setItems(next);
@@ -55,7 +81,7 @@ export default function CartPage() {
   };
 
   const handleCheckout = () => {
-    const unviewed = items.find((item) => !hasViewedCourseLanding(item.slug));
+    const unviewed = pricedItems.find((item) => !hasViewedCourseLanding(item.slug));
     if (unviewed) {
       window.location.href = prePaymentLandingHref(unviewed.slug, null, true);
       return;
@@ -65,6 +91,9 @@ export default function CartPage() {
       window.location.href = "/account?mode=login&redirect=/checkout";
       return;
     }
+    // Persist refreshed admin prices into cart before checkout.
+    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(pricedItems));
+    window.dispatchEvent(new Event("sft_cart_updated"));
     window.location.href = "/checkout";
   };
 
@@ -88,15 +117,15 @@ export default function CartPage() {
               </Link>
             </div>
 
-            <h2 className="text-lg font-bold">Courses in Your Cart ({items.length})</h2>
+            <h2 className="text-lg font-bold">Courses in Your Cart ({pricedItems.length})</h2>
             <div className="mt-3 space-y-3">
-              {items.length === 0 && (
+              {pricedItems.length === 0 && (
                 <div className="rounded-xl border border-dashed border-white/20 bg-black/30 p-10 text-center text-sm text-gray-400">
                   No courses in cart yet.
                 </div>
               )}
 
-              {items.map((item) => (
+              {pricedItems.map((item) => (
                 <article key={item.slug} className="rounded-xl border border-white/10 bg-black/25 p-3">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-3">
@@ -135,20 +164,33 @@ export default function CartPage() {
                 <div className="mt-3 space-y-2 text-sm">
                   <div className="flex items-center justify-between text-gray-300">
                     <span>Total Courses</span>
-                    <span>{items.length}</span>
+                    <span>{pricedItems.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-gray-300">
                     <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>
+                      {region
+                        ? formatCheckoutMoney(totals.subtotal, region)
+                        : totals.subtotal.toFixed(2)}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-emerald-300">
                     <span>Discount</span>
-                    <span>- ${discount.toFixed(2)}</span>
+                    <span>
+                      -{" "}
+                      {region
+                        ? formatCheckoutMoney(totals.discount, region)
+                        : totals.discount.toFixed(2)}
+                    </span>
                   </div>
                   <div className="my-2 border-t border-white/10" />
                   <div className="flex items-center justify-between text-lg font-bold">
                     <span>Total</span>
-                    <span className="text-amber-300">${total.toFixed(2)}</span>
+                    <span className="text-amber-300">
+                      {region
+                        ? formatCheckoutMoney(totals.total, region)
+                        : totals.total.toFixed(2)}
+                    </span>
                   </div>
                 </div>
               ) : ready ? (
@@ -170,7 +212,7 @@ export default function CartPage() {
                   }
                   handleCheckout();
                 }}
-                disabled={items.length === 0}
+                disabled={pricedItems.length === 0}
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-400 py-2.5 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Proceed to Checkout <ArrowRight size={15} />

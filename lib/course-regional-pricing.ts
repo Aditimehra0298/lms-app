@@ -1,5 +1,5 @@
 import type { CourseRegionalPriceRow, ManagedCourse } from "@/lib/content-schema";
-import { localizePriceString, parseStoredPriceString, pricingRegionForCountry, type PricingRegion } from "@/lib/country-pricing";
+import { parseStoredPriceString, pricingRegionForCountry, type PricingRegion } from "@/lib/country-pricing";
 import { countryDisplayName } from "@/lib/iso-country-list";
 import { detectCurrencyFromPrice } from "@/lib/price-currency-detect";
 
@@ -94,18 +94,11 @@ export function resolveCoursePrices(
   const globalList = course.oldPrice?.trim() ?? "";
   const discountPercent = computeDiscountPercent(globalSale, globalList);
 
-  if (!region) {
-    return {
-      price: globalSale,
-      oldPrice: globalList,
-      discountPercent,
-      isRegionalOverride: false,
-    };
-  }
-
+  // Keep admin-entered global prices as-is (same string on every LMS page).
+  // Regional rows above already apply country-specific overrides.
   return {
-    price: globalSale ? localizePriceString(globalSale, region) : globalSale,
-    oldPrice: globalList ? localizePriceString(globalList, region) : globalList,
+    price: globalSale,
+    oldPrice: globalList,
     discountPercent,
     isRegionalOverride: false,
   };

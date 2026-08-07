@@ -24,29 +24,9 @@ import {
   computeRegionalCheckoutTotals,
   formatCheckoutMoney,
 } from "@/lib/checkout-regional-pricing";
+import { resolveCoursePrices } from "@/lib/course-regional-pricing";
 
 export const dynamic = "force-dynamic";
-
-const fallbackCourseBySlug: Record<string, Omit<ShopCartItem, "qty">> = {
-  "food-safety-masterclass": {
-    slug: "food-safety-masterclass",
-    title: "Diploma in HACCP Food Safety Standards (Level 2)",
-    price: "$49.00",
-    image: "/course-food-safety.png",
-  },
-  "cyber-security-essentials": {
-    slug: "cyber-security-essentials",
-    title: "Cyber Security Essentials",
-    price: "$59.00",
-    image: "/3.png",
-  },
-  "esg-fundamentals": {
-    slug: "esg-fundamentals",
-    title: "ESG Fundamentals",
-    price: "$39.00",
-    image: "/2.png",
-  },
-};
 
 type RazorpayPublicConfig = {
   configured: boolean;
@@ -62,7 +42,7 @@ type PaymentReceipt = {
 };
 
 export default function CheckoutPage() {
-  const { showPrices, ready, region, formatPriceLabel } = useLearnerPricing();
+  const { showPrices, ready, region } = useLearnerPricing();
   const [isSuccess, setIsSuccess] = useState(false);
   const [items, setItems] = useState<ShopCartItem[]>([]);
   const [catalog, setCatalog] = useState<ManagedCourse[]>([]);
@@ -74,6 +54,14 @@ export default function CheckoutPage() {
   const [paymentReceipt, setPaymentReceipt] = useState<PaymentReceipt | null>(null);
   const [learnerInfo, setLearnerInfo] = useState({ name: "Learner", email: "", phone: "" });
 
+  const displayItemPrice = (item: ShopCartItem): string => {
+    const course = catalog.find((c) => c.slug === item.slug);
+    if (course) {
+      const resolved = resolveCoursePrices(course, region);
+      if (resolved.price?.trim()) return resolved.price;
+    }
+    return item.price;
+  };
   useEffect(() => {
     setIsHydrated(true);
     const search = new URLSearchParams(window.location.search);
@@ -137,11 +125,7 @@ export default function CheckoutPage() {
       };
 
       if (buyNowSlug) {
-        if (fallbackCourseBySlug[buyNowSlug]) {
-          setItems([{ ...fallbackCourseBySlug[buyNowSlug], qty: 1 }]);
-        } else {
-          hydrateFromCart();
-        }
+        hydrateFromCart();
       } else {
         hydrateFromCart();
       }
@@ -149,10 +133,6 @@ export default function CheckoutPage() {
       const tutorPrograms = await fetchTutorLedProgramsClient();
 
       if (buyNowSlug) {
-        if (fallbackCourseBySlug[buyNowSlug]) {
-          setItems([applyTutorLedShopMeta({ ...fallbackCourseBySlug[buyNowSlug], qty: 1 }, tutorPrograms)]);
-          return;
-        }
         const tutorHit = tutorLedProgramBySlug(tutorPrograms, buyNowSlug);
         if (tutorHit) {
           setItems([
@@ -173,10 +153,11 @@ export default function CheckoutPage() {
           const res = await fetch("/api/courses", { cache: "no-store" });
           if (res.ok) {
             const data = (await res.json()) as {
-              courses?: Array<{ slug: string; title: string; price: string; image?: string }>;
+              courses?: ManagedCourse[];
             };
             const match = data.courses?.find((course) => course.slug === buyNowSlug);
             if (match) {
+              if (Array.isArray(data.courses)) setCatalog(data.courses);
               setItems([
                 applyTutorLedShopMeta(
                   {
@@ -466,7 +447,7 @@ export default function CheckoutPage() {
                     <p className="text-xs text-gray-400">Qty {item.qty}</p>
                   </div>
                   <p className="text-sm font-semibold text-amber-200">
-                    {ready && showPrices ? formatPriceLabel(item.price) : "—"}
+                    {ready && showPrices ? displayItemPrice(item) : "—"}
                   </p>
                 </div>
               ))}
