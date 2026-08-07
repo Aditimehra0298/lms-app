@@ -1,4 +1,5 @@
 import type { CourseCurriculumItem, CourseCurriculumModule } from "@/lib/content-schema";
+import { flattenModuleCurriculumItems } from "@/lib/curriculum-learner-filter";
 
 export const PREVIEW_WATCH_UPDATED_EVENT = "sft-preview-watch-updated";
 
@@ -8,11 +9,7 @@ export type PreviewGateModule = Pick<CourseCurriculumModule, "items" | "subModul
 };
 
 export function moduleCurriculumRows(module?: PreviewGateModule): CourseCurriculumItem[] {
-  const top = Array.isArray(module?.items) ? module.items : [];
-  const nested = (module?.subModules ?? []).flatMap((sm) =>
-    Array.isArray(sm.items) ? sm.items : [],
-  );
-  return [...top, ...nested];
+  return flattenModuleCurriculumItems(module);
 }
 
 /** Effective preview seconds per video (preview limit capped by lesson length when known). */

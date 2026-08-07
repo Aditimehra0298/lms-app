@@ -1,6 +1,7 @@
 import type { CourseCurriculumModule } from "@/lib/content-schema";
 import { emailAppName, emailAppUrl } from "@/lib/email-brand-config";
 import { normalizeLearnerEmail } from "@/lib/learner-email";
+import { flattenModuleCurriculumItems } from "@/lib/curriculum-learner-filter";
 import { getManagedCourseForLearner } from "@/lib/server/course-catalog";
 import { getPurchasesForLearner } from "@/lib/server/get-learner-purchases";
 import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
@@ -46,11 +47,7 @@ function brandBlock() {
 }
 
 function moduleItems(mod: CourseCurriculumModule) {
-  const top = Array.isArray(mod.items) ? mod.items : [];
-  const nested = (mod.subModules ?? []).flatMap((sm) =>
-    Array.isArray(sm.items) ? sm.items : [],
-  );
-  return [...top, ...nested];
+  return flattenModuleCurriculumItems(mod);
 }
 
 function moduleTitle(mod: CourseCurriculumModule, index: number): string {

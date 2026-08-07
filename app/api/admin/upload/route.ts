@@ -208,6 +208,21 @@ function inferMimeFromName(fileName: string): string {
   return map[ext] ?? "";
 }
 
+function uploadErrorMessage(err: unknown): string {
+  const message = err instanceof Error ? err.message : "Upload failed";
+  const code =
+    err && typeof err === "object" && "code" in err
+      ? String((err as { code?: unknown }).code ?? "")
+      : "";
+  if (
+    code === "ENOSPC" ||
+    /ENOSPC|no space left on device/i.test(message)
+  ) {
+    return "Server disk is full (no space left). Free disk on the VPS, then try again.";
+  }
+  return message;
+}
+
 export async function POST(request: Request) {
   try {
     const form = await request.formData();
@@ -287,7 +302,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, url });
   } catch (err) {
     console.error("[admin/upload]", err);
-    const message = err instanceof Error ? err.message : "Upload failed";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    const message = uploadErrorMessage(err);
+    const status = /disk is full|no space/i.test(message) ? 507 : 500;
+    return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

@@ -89,12 +89,20 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("[admin/upload-cover]", err);
+    const raw = err instanceof Error ? err.message : "Upload failed";
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? String((err as { code?: unknown }).code ?? "")
+        : "";
+    const diskFull = code === "ENOSPC" || /ENOSPC|no space left on device/i.test(raw);
     return NextResponse.json(
       {
         ok: false,
-        error: err instanceof Error ? err.message : "Upload failed",
+        error: diskFull
+          ? "Server disk is full (no space left). Free disk on the VPS, then try again."
+          : raw,
       },
-      { status: 500 },
+      { status: diskFull ? 507 : 500 },
     );
   }
 }

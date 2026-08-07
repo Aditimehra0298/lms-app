@@ -1106,7 +1106,25 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
           },
         ];
         nextSel = { scope: "sub", mi, si, ri: 0 };
-        return { ...m, subModules };
+        // Drop empty default placeholders once content is organized into sub-modules
+        // (avoids learner dashboard showing module rows + sub-module rows together).
+        const hasRealModuleItems = (m.items ?? []).some(
+          (it) =>
+            Boolean(it.videoUrl?.trim()) ||
+            Boolean(it.examUploadUrl?.trim()) ||
+            Boolean(it.pdfUrl?.trim()) ||
+            Boolean(it.pptUrl?.trim()) ||
+            Boolean(it.podcastUrl?.trim()) ||
+            Boolean(it.resourceUrl?.trim()) ||
+            Boolean(it.downloadUrl?.trim()) ||
+            Boolean(it.description?.trim()) ||
+            Boolean(it.about?.trim()),
+        );
+        return {
+          ...m,
+          items: hasRealModuleItems || existing.length > 0 ? m.items : [],
+          subModules,
+        };
       }),
     );
     if (nextSel) {

@@ -3,8 +3,11 @@
  * all other courses reuse the same visual pattern with generic module labels tied to the course title.
  */
 
-import type { CourseCurriculumModule } from "./content-schema";
-import { curriculumModulesForLearner } from "./curriculum-learner-filter";
+import type { CourseCurriculumItem, CourseCurriculumModule } from "./content-schema";
+import {
+  curriculumModulesForLearner,
+  flattenModuleCurriculumItems,
+} from "./curriculum-learner-filter";
 
 export type CurriculumRow = CourseCurriculumItem;
 
@@ -152,19 +155,13 @@ export function buildGenericCurriculum(courseTitle: string): CurriculumModule[] 
 
 /** Food Safety Diploma manual keeps its uploaded curriculum; everything else mirrors the same UI pattern. */
 /** Ensures persisted JSON always has `items` arrays and optional `subModules` shapes. */
-/** Flatten sub-module lessons into each module's `items` list for learner UI. */
+/** Flatten sub-module lessons into each module's `items` list for learner UI (no placeholder doubles). */
 export function normalizeCurriculumModules(modules: CourseCurriculumModule[]): CourseCurriculumModule[] {
-  return modules.map((m) => {
-    const top = Array.isArray(m.items) ? m.items : [];
-    const nested = (m.subModules ?? []).flatMap((sm) =>
-      Array.isArray(sm.items) ? sm.items : [],
-    );
-    return {
-      ...m,
-      items: nested.length > 0 ? [...top, ...nested] : top,
-      subModules: undefined,
-    };
-  });
+  return modules.map((m) => ({
+    ...m,
+    items: flattenModuleCurriculumItems(m),
+    subModules: undefined,
+  }));
 }
 
 export function getCurriculumForCourse(

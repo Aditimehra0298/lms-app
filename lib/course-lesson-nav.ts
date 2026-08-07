@@ -1,17 +1,18 @@
+import type { CourseCurriculumItem } from "@/lib/content-schema";
+import { flattenModuleCurriculumItems } from "@/lib/curriculum-learner-filter";
+
 export type LessonNavEntry = {
   moduleIdx: number;
   entryIdx: number;
 };
 
 type CurriculumLike = {
-  items?: { kind?: string }[];
-  subModules?: Array<{ items?: { kind?: string }[] }>;
+  items?: CourseCurriculumItem[];
+  subModules?: Array<{ items?: CourseCurriculumItem[] }>;
 };
 
-function moduleItems(module: CurriculumLike): { kind?: string }[] {
-  const top = module.items ?? [];
-  const nested = (module.subModules ?? []).flatMap((sm) => sm.items ?? []);
-  return top.length > 0 && nested.length > 0 ? [...top, ...nested] : top.length > 0 ? top : nested;
+function moduleItems(module: CurriculumLike): CourseCurriculumItem[] {
+  return flattenModuleCurriculumItems(module);
 }
 
 /** Flat list of video/reading lessons (exams are opened separately). */
