@@ -183,6 +183,14 @@ export default function CartPage() {
                         : totals.discount.toFixed(2)}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between text-gray-300">
+                    <span>GST (18%)</span>
+                    <span>
+                      {region
+                        ? formatCheckoutMoney(totals.gst, region)
+                        : totals.gst.toFixed(2)}
+                    </span>
+                  </div>
                   <div className="my-2 border-t border-white/10" />
                   <div className="flex items-center justify-between text-lg font-bold">
                     <span>Total</span>
