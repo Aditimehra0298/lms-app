@@ -1207,21 +1207,34 @@ export default function CourseLearningPlayerPage() {
                     })}
                   </div>
                 </div>
-                <h3 className="lesson-gold-heading">About the Module</h3>
-                {activeItem?.about?.trim() || activeItem?.description?.trim() ? (
-                  <>
-                    {activeItem?.about?.trim() ? (
-                      <p className="mt-2 text-sm leading-7 text-gray-300">{activeItem.about.trim()}</p>
-                    ) : null}
-                    {activeItem?.description?.trim() ? (
-                      <p className="mt-2 text-sm leading-7 text-gray-300">{activeItem.description.trim()}</p>
-                    ) : null}
-                  </>
-                ) : (
-                  <p className="mt-2 text-sm leading-7 text-gray-500">
-                    Module details will appear here once added in Admin.
-                  </p>
-                )}
+                {(() => {
+                  const introText = activeItem?.description?.trim() || "";
+                  const aboutRaw = activeItem?.about?.trim() || "";
+                  // Never repeat the introduction under About (same text or empty).
+                  const aboutUnique =
+                    aboutRaw &&
+                    aboutRaw.replace(/\s+/g, " ").toLowerCase() !==
+                      introText.replace(/\s+/g, " ").toLowerCase()
+                      ? aboutRaw
+                      : "";
+                  if (!aboutUnique && !introText) {
+                    return (
+                      <>
+                        <h3 className="lesson-gold-heading">About the Module</h3>
+                        <p className="mt-2 text-sm leading-7 text-gray-500">
+                          Module details will appear here once added in Admin.
+                        </p>
+                      </>
+                    );
+                  }
+                  if (!aboutUnique) return null;
+                  return (
+                    <>
+                      <h3 className="lesson-gold-heading">About the Module</h3>
+                      <p className="mt-2 text-sm leading-7 text-gray-300">{aboutUnique}</p>
+                    </>
+                  );
+                })()}
 
                 {activeItem?.learningOutcomes && activeItem.learningOutcomes.length > 0 ? (
                   <>
