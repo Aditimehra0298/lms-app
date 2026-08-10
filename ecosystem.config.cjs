@@ -11,7 +11,8 @@ module.exports = {
       },
       instances: 1,
       autorestart: true,
-      max_memory_restart: "1G",
+      // Large admin video uploads (~1 GB) need headroom; 1G caused PM2 restarts → nginx 502.
+      max_memory_restart: "3G",
     },
   ],
 };

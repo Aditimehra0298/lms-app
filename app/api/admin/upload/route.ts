@@ -1,13 +1,15 @@
 import path from "node:path";
+import { unlink } from "node:fs/promises";
 import { NextResponse } from "next/server";
 import {
   mediaKindFromMime,
   recordMediaAssetInMysql,
 } from "@/lib/server/media-asset-mysql";
 import {
+  PRIVATE_MEDIA_DIR,
   protectedMediaServePath,
-  savePrivateMediaBlob,
 } from "@/lib/server/private-media-storage";
+import { streamMultipartFileUpload } from "@/lib/server/stream-multipart-upload";
 
 export const runtime = "nodejs";
 /** Large learning-tool / video uploads (up to 1 GB). */
@@ -208,6 +210,23 @@ function inferMimeFromName(fileName: string): string {
   return map[ext] ?? "";
 }
 
+function buildStorageName(originalName: string, mimeType: string): string {
+  const ext =
+    extFromOriginalName(originalName) ??
+    (looksLikeCsvFile(originalName, mimeType)
+      ? ".csv"
+      : looksLikeAudioFile(originalName, mimeType)
+        ? extForType(mimeType || "audio/mpeg")
+        : looksLikeVideoFile(originalName, mimeType)
+          ? extForType(mimeType || "video/mp4")
+          : extForType(mimeType || "application/pdf"));
+
+  const safeBase = originalName.includes(".")
+    ? originalName.slice(0, originalName.lastIndexOf("."))
+    : originalName;
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${safeBase.slice(0, 40)}${ext}`;
+}
+
 function uploadErrorMessage(err: unknown): string {
   const message = err instanceof Error ? err.message : "Upload failed";
   const code =
@@ -225,14 +244,14 @@ function uploadErrorMessage(err: unknown): string {
 
 export async function POST(request: Request) {
   try {
-    const form = await request.formData();
-    const file = form.get("file");
-    if (!(file instanceof Blob)) {
-      return NextResponse.json({ ok: false, error: "Missing file" }, { status: 400 });
-    }
-    const originalName =
-      typeof (file as File).name === "string" ? (file as File).name.replace(/[^\w.-]+/g, "_") : "upload";
-    let type = file.type || "";
+    const uploaded = await streamMultipartFileUpload(request, {
+      destDir: PRIVATE_MEDIA_DIR,
+      buildStorageName,
+      maxBytes: fileLimitBytes(),
+    });
+
+    let type = uploaded.mimeType || "";
+    const originalName = uploaded.originalName;
     if (!type) {
       type = inferMimeFromName(originalName);
     }
@@ -257,42 +276,24 @@ export async function POST(request: Request) {
     }
 
     const maxBytes = isImage ? MAX_IMAGE_BYTES : fileLimitBytes();
-    if (file.size > maxBytes) {
+    if (uploaded.sizeBytes > maxBytes) {
+      await unlink(uploaded.filePath).catch(() => {});
       const mb = Math.round(maxBytes / (1024 * 1024));
       return NextResponse.json({ ok: false, error: `File too large (max ${mb}MB)` }, { status: 400 });
     }
 
-    const ext =
-      extFromOriginalName(originalName) ??
-      (looksLikeCsvFile(originalName, type)
-        ? ".csv"
-        : isAudio
-          ? extForType(type || "audio/mpeg")
-          : isVideo
-            ? extForType(type || "video/mp4")
-            : extForType(type || "application/pdf"));
-
-    const safeBase = originalName.includes(".")
-      ? originalName.slice(0, originalName.lastIndexOf("."))
-      : originalName;
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${safeBase.slice(0, 40)}${ext}`;
-    await savePrivateMediaBlob(name, file);
+    const name = uploaded.storageName;
     const url = protectedMediaServePath(name);
-
-    const courseSlug =
-      typeof form.get("courseSlug") === "string" ? (form.get("courseSlug") as string) : undefined;
-    const uploadedBy =
-      typeof form.get("uploadedBy") === "string" ? (form.get("uploadedBy") as string) : undefined;
 
     try {
       await recordMediaAssetInMysql({
         url,
         originalName,
         mimeType: type || undefined,
-        sizeBytes: file.size,
+        sizeBytes: uploaded.sizeBytes,
         kind: mediaKindFromMime(type, originalName),
-        courseSlug,
-        uploadedBy,
+        courseSlug: uploaded.courseSlug,
+        uploadedBy: uploaded.uploadedBy,
         storage: "local",
       });
     } catch (err) {
@@ -302,6 +303,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, url });
   } catch (err) {
     console.error("[admin/upload]", err);
+    const raw = err instanceof Error ? err.message : "Upload failed";
+    if (raw.startsWith("FILE_TOO_LARGE:")) {
+      const maxBytes = Number.parseInt(raw.split(":")[1] ?? "", 10);
+      const mb = Number.isFinite(maxBytes) ? Math.round(maxBytes / (1024 * 1024)) : DEFAULT_MAX_FILE_MB;
+      return NextResponse.json({ ok: false, error: `File too large (max ${mb}MB)` }, { status: 400 });
+    }
     const message = uploadErrorMessage(err);
     const status = /disk is full|no space/i.test(message) ? 507 : 500;
     return NextResponse.json({ ok: false, error: message }, { status });

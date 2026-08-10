@@ -86,7 +86,15 @@ function uploadAdminFile(
       try {
         data = JSON.parse(xhr.responseText) as typeof data;
       } catch {
-        reject(new Error(xhr.status === 413 ? "File too large for the server." : `Upload failed (HTTP ${xhr.status})`));
+        reject(
+          new Error(
+            xhr.status === 413
+              ? "File too large for the server (nginx/client_max_body_size)."
+              : xhr.status === 502
+                ? "Upload failed (HTTP 502). The server proxy or app restarted mid-upload. Ask your host to set nginx client_max_body_size 5120M, proxy_read_timeout 1800s, and PM2 max_memory_restart at least 3G — or bypass Cloudflare (grey cloud) for files over 100 MB."
+                : `Upload failed (HTTP ${xhr.status})`,
+          ),
+        );
         return;
       }
       if (xhr.status >= 200 && xhr.status < 300 && data.url) {
