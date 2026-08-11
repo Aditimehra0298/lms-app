@@ -234,8 +234,12 @@ export type ManagedCourseTabLabels = {
 /** Per-country sale + list price — overrides global `price` / `oldPrice` for that region. */
 export type CourseRegionalPriceRow = {
   countryCode: string;
+  /** Standard / sale price. */
   price: string;
+  /** Rack / list price (strikethrough). */
   oldPrice?: string;
+  /** Internal floor for coupons / discounts. */
+  basePrice?: string;
 };
 
 /** Organisation team purchase — price per country + employee seat band (admin Pricing tab). */
@@ -259,6 +263,8 @@ export type ManagedCourse = {
   learners: string;
   price: string;
   oldPrice: string;
+  /** Internal floor (Admin → Pricing “Base Price”). Coupons should not go below this. */
+  basePrice?: string;
   /** Country-specific sale + list prices (ISO 3166-1 alpha-2). Falls back to global prices. */
   regionalPrices?: CourseRegionalPriceRow[];
   /** Organisation team pricing by region + seat band (individual `regionalPrices` unchanged). */

@@ -72,6 +72,11 @@ import { describeCertificateIdFormat } from "@/lib/certificate-ids";
 import { sanitizeCourseSeo, sanitizeCourseSettings } from "@/lib/course-workspace-panels";
 import AdminCurrencyBadge from "@/components/admin/AdminCurrencyBadge";
 import { sanitizeRegionalPrices } from "@/lib/course-regional-pricing";
+import {
+  applyStandardCoursePricing,
+  STANDARD_GLOBAL_PRICES,
+  STANDARD_REGIONAL_PRICES,
+} from "@/lib/standard-course-pricing";
 import { sanitizeOrganizationSeatPricing } from "@/lib/organization-course-pricing";
 import { currencyDisplayForCountry, resolvePriceCurrency } from "@/lib/price-currency-detect";
 import { getAdminCurriculumForCourse, totalCurriculumSteps } from "@/lib/course-detail-template";
@@ -127,8 +132,10 @@ const emptyDraft = (): ManagedCourse => ({
   duration: "3h 00m",
   rating: "4.6",
   learners: "0",
-  price: "$49.00",
-  oldPrice: "$79.00",
+  price: STANDARD_GLOBAL_PRICES.price,
+  oldPrice: STANDARD_GLOBAL_PRICES.oldPrice,
+  basePrice: STANDARD_GLOBAL_PRICES.basePrice,
+  regionalPrices: STANDARD_REGIONAL_PRICES.map((row) => ({ ...row })),
   // Empty until admin uploads a real cover — avoids every new course sharing /course-food-safety.png
   image: "",
   published: true,
@@ -467,6 +474,24 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       return false;
     } finally {
       setSavingCatalog(false);
+    }
+  };
+
+  const applyStandardPricingToAllCourses = async () => {
+    if (!content) return;
+    const count = content.managedCourses?.length ?? 0;
+    if (
+      !window.confirm(
+        `Apply the standard pricing (Rack $79 / Standard $49 / Base $39, plus IN, US, AE, GB, AU) to all ${count} courses?`,
+      )
+    ) {
+      return;
+    }
+    const next = (content.managedCourses ?? []).map((c) => applyStandardCoursePricing(c));
+    const ok = await persistManagedCourses(next);
+    if (ok) {
+      setDraft((d) => applyStandardCoursePricing(d));
+      setSaveNotice(`Pricing updated on ${next.length} courses.`);
     }
   };
 
@@ -2698,12 +2723,26 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
       {workspaceTab === "Pricing" ? (
         <>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3">
+            <p className="text-xs text-emerald-100">
+              Standard sheet: Rack <strong>$79</strong> · Standard <strong>$49</strong> · Base <strong>$39</strong>
+              {" "}(+ IN / US / AE / GB / AU). Apply to every self-paced course.
+            </p>
+            <button
+              type="button"
+              disabled={savingCatalog || !content}
+              onClick={() => void applyStandardPricingToAllCourses()}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+            >
+              {savingCatalog ? "Saving…" : "Apply this pricing to all courses"}
+            </button>
+          </div>
           {!canEditPricing ? (
             <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-8 text-center">
               <p className="text-sm font-medium text-amber-100">Select or create a course</p>
               <p className="mt-2 text-xs text-amber-200/80">
                 Open the <strong>Course</strong> tab, pick a course from the catalog or create one, then set sale and list prices
-                here.
+                here. Or use <strong>Apply this pricing to all courses</strong> above.
               </p>
               <button
                 type="button"

@@ -119,6 +119,7 @@ export function sanitizeRegionalPrices(
       countryCode: code,
       price,
       oldPrice: row.oldPrice?.trim() ?? "",
+      basePrice: row.basePrice?.trim() ?? "",
     });
   }
   return out;

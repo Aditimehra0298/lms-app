@@ -64,6 +64,7 @@ export default function AdminRegionalPricingEditor({ draft, setDraft }: Props) {
           countryCode: code,
           price: d.price || `${hint}0`,
           oldPrice: d.oldPrice || "",
+          basePrice: d.basePrice || "",
         },
       ],
     }));
@@ -81,6 +82,7 @@ export default function AdminRegionalPricingEditor({ draft, setDraft }: Props) {
           countryCode: code,
           price: d.price || `${cur.symbol}0`,
           oldPrice: d.oldPrice || "",
+          basePrice: d.basePrice || "",
         },
       ],
     }));
@@ -96,27 +98,32 @@ export default function AdminRegionalPricingEditor({ draft, setDraft }: Props) {
           <AdminCurrencyBadge currency={defaultCurrency} size="md" showName />
         </div>
         <p className="mt-1 text-[11px] text-gray-500">
-          Base currency is detected from symbols (₹ INR, $ USD, € EUR, £ GBP). Other countries without a row get
-          converted from this amount.
+          Fallback for countries without a row. Rule: Rack ≥ Standard ≥ Base.
         </p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <AdminPriceInput
-            label="Sale price (current)"
+            label="Rack Price / List Price"
+            value={draft.oldPrice}
+            onChange={(oldPrice) => setDraft((d) => ({ ...d, oldPrice }))}
+            placeholder="$79.00"
+          />
+          <AdminPriceInput
+            label="Standard Price"
             value={draft.price}
             onChange={(price) => setDraft((d) => ({ ...d, price }))}
-            placeholder="₹4,999 or $49"
+            placeholder="$49.00"
             inputClassName="border-emerald-500/25 text-emerald-100"
           />
           <AdminPriceInput
-            label="List price (original — strikethrough)"
-            value={draft.oldPrice}
-            onChange={(oldPrice) => setDraft((d) => ({ ...d, oldPrice }))}
-            placeholder="₹7,999 or $89"
+            label="Base Price — Internal"
+            value={draft.basePrice ?? ""}
+            onChange={(basePrice) => setDraft((d) => ({ ...d, basePrice }))}
+            placeholder="$39.00"
           />
         </div>
         {globalDiscount != null ? (
           <p className="mt-2 text-[11px] text-emerald-300/90">
-            Default discount: <strong>{globalDiscount}% off</strong> (list higher than sale)
+            Default discount: <strong>{globalDiscount}% off</strong> (rack higher than standard)
           </p>
         ) : null}
       </div>
@@ -186,13 +193,14 @@ export default function AdminRegionalPricingEditor({ draft, setDraft }: Props) {
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-xs">
+            <table className="w-full min-w-[860px] text-left text-xs">
               <thead>
                 <tr className="border-b border-white/10 text-[10px] uppercase tracking-wide text-gray-500">
                   <th className="px-2 py-2 font-semibold">Country</th>
                   <th className="px-2 py-2 font-semibold">Currency</th>
-                  <th className="px-2 py-2 font-semibold">Sale price</th>
-                  <th className="px-2 py-2 font-semibold">List price</th>
+                  <th className="px-2 py-2 font-semibold">Rack</th>
+                  <th className="px-2 py-2 font-semibold">Standard</th>
+                  <th className="px-2 py-2 font-semibold">Base</th>
                   <th className="px-2 py-2 font-semibold">Discount</th>
                   <th className="px-2 py-2 w-10" />
                 </tr>
@@ -212,18 +220,26 @@ export default function AdminRegionalPricingEditor({ draft, setDraft }: Props) {
                       </td>
                       <td className="px-2 py-2">
                         <AdminPriceInput
-                          value={row.price}
-                          onChange={(price) => updateRow(index, { price })}
+                          value={row.oldPrice ?? ""}
+                          onChange={(oldPrice) => updateRow(index, { oldPrice })}
                           countryCode={row.countryCode}
-                          placeholder={`${rowCurrency.symbol}4,999`}
+                          placeholder={`${rowCurrency.symbol}6,699`}
                         />
                       </td>
                       <td className="px-2 py-2">
                         <AdminPriceInput
-                          value={row.oldPrice ?? ""}
-                          onChange={(oldPrice) => updateRow(index, { oldPrice })}
+                          value={row.price}
+                          onChange={(price) => updateRow(index, { price })}
                           countryCode={row.countryCode}
-                          placeholder={`${rowCurrency.symbol}7,999`}
+                          placeholder={`${rowCurrency.symbol}4,199`}
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <AdminPriceInput
+                          value={row.basePrice ?? ""}
+                          onChange={(basePrice) => updateRow(index, { basePrice })}
+                          countryCode={row.countryCode}
+                          placeholder={`${rowCurrency.symbol}3,299`}
                         />
                       </td>
                       <td className="px-2 py-2 tabular-nums text-emerald-300/90">
