@@ -47,17 +47,17 @@ export type LessonRowPatch = Partial<{
 function kindLabel(kind: CourseCurriculumKind): string {
   switch (kind) {
     case "video":
-      return "Video";
+      return "Lecture";
     case "exam":
-      return "Exam";
+      return "Assessment";
     default:
       return "Document";
   }
 }
 
 function labelToKind(label: string): CourseCurriculumKind {
-  if (label === "Exam") return "exam";
-  if (label === "Video") return "video";
+  if (label === "Exam" || label === "Assessment") return "exam";
+  if (label === "Video" || label === "Lecture") return "video";
   return "reading";
 }
 
@@ -188,9 +188,9 @@ export default function AdminLessonEditor({
           onChange={(e) => onPatch({ kind: labelToKind(e.target.value) })}
           className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/40"
         >
-          <option>Video</option>
+          <option>Lecture</option>
           <option>Document</option>
-          <option>Exam</option>
+          <option>Assessment</option>
         </select>
       </label>
 

@@ -14,6 +14,7 @@ import {
   formatCheckoutMoney,
 } from "@/lib/checkout-regional-pricing";
 import { computeCheckoutTotals } from "@/lib/checkout-totals";
+import CheckoutPromoCode from "@/components/CheckoutPromoCode";
 
 type CartItem = {
   slug: string;
@@ -29,6 +30,8 @@ export default function CartPage() {
   const { showPrices, ready, region, openPricingPanel } = useLearnerPricing();
   const [items, setItems] = useState<CartItem[]>([]);
   const [catalog, setCatalog] = useState<ManagedCourse[]>([]);
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoLabel, setPromoLabel] = useState("");
 
   useEffect(() => {
     const raw = window.localStorage.getItem(CART_STORAGE_KEY);
@@ -66,8 +69,12 @@ export default function CartPage() {
   }, [items, catalog, region]);
 
   const totals = useMemo(() => {
-    if (region) return computeRegionalCheckoutTotals(pricedItems, catalog, region);
-    return computeCheckoutTotals(pricedItems);
+    if (region) return computeRegionalCheckoutTotals(pricedItems, catalog, region, promoDiscount);
+    return computeCheckoutTotals(pricedItems, promoDiscount);
+  }, [pricedItems, catalog, region, promoDiscount]);
+  const baseTotals = useMemo(() => {
+    if (region) return computeRegionalCheckoutTotals(pricedItems, catalog, region, 0);
+    return computeCheckoutTotals(pricedItems, 0);
   }, [pricedItems, catalog, region]);
 
   const persistItems = (next: CartItem[]) => {
@@ -162,6 +169,20 @@ export default function CartPage() {
               <h3 className="text-lg font-bold">Order Summary</h3>
               {ready && showPrices ? (
                 <div className="mt-3 space-y-2 text-sm">
+                  <CheckoutPromoCode
+                    slugs={pricedItems.map((i) => i.slug)}
+                    subtotal={baseTotals.subtotal}
+                    currency={region?.currency ?? "INR"}
+                    appliedLabel={promoLabel || undefined}
+                    onApplied={(discount, label) => {
+                      setPromoDiscount(discount);
+                      setPromoLabel(label);
+                    }}
+                    onCleared={() => {
+                      setPromoDiscount(0);
+                      setPromoLabel("");
+                    }}
+                  />
                   <div className="flex items-center justify-between text-gray-300">
                     <span>Total Courses</span>
                     <span>{pricedItems.length}</span>

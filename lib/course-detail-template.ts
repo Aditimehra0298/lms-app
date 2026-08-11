@@ -17,10 +17,23 @@ export type CurriculumModule = CourseCurriculumModule;
 export const FOOD_SAFETY_DIPLOMA_CURRICULUM: CurriculumModule[] = [
   {
     title: "General Instructions for Candidate",
+    description: "Start here: how to use the course, key policies, and a short knowledge check.",
     items: [
-      { label: "Video — How to use this course & navigation", kind: "video" },
-      { label: "Reading — Policies, attempts & certificate rules", kind: "reading" },
-      { label: "Knowledge check", kind: "exam" },
+      {
+        label: "Video — How to use this course & navigation",
+        kind: "video",
+        description: "Watch this lecture to learn the course layout and how to move between modules.",
+      },
+      {
+        label: "Reading — Policies, attempts & certificate rules",
+        kind: "reading",
+        description: "Read this document for attempts, certificate rules, and learner policies.",
+      },
+      {
+        label: "Knowledge check",
+        kind: "exam",
+        description: "Complete this assessment to confirm you are ready to begin the program.",
+      },
     ],
   },
   {
@@ -136,18 +149,44 @@ export function buildGenericCurriculum(courseTitle: string): CurriculumModule[] 
   const topic = courseTitle.replace(/\s*\([^)]*\)\s*$/, "").trim() || "this program";
   const header: CurriculumModule = {
     title: "General Instructions for Candidate",
+    description: "Start here: how to use the course, key policies, and a short knowledge check.",
     items: [
-      { label: "Video — How to use this course & navigation", kind: "video" },
-      { label: "Reading — Policies, attempts & certificate rules", kind: "reading" },
-      { label: "Knowledge check", kind: "exam" },
+      {
+        label: "Video — How to use this course & navigation",
+        kind: "video",
+        description: "Watch this lecture to learn the course layout and how to move between modules.",
+      },
+      {
+        label: "Reading — Policies, attempts & certificate rules",
+        kind: "reading",
+        description: "Read this document for attempts, certificate rules, and learner policies.",
+      },
+      {
+        label: "Knowledge check",
+        kind: "exam",
+        description: "Complete this assessment to confirm you are ready to begin the program.",
+      },
     ],
   };
   const rest: CurriculumModule[] = GENERIC_MODULE_BLUEPRINT.map(([modTitle, videoDesc, readingDesc], i) => ({
     title: `Module ${i + 1} — ${modTitle} (${topic})`,
+    description: `About this module: ${modTitle} — includes 1 lecture, 1 document, and 1 assessment.`,
     items: [
-      { label: `Video — ${videoDesc}`, kind: "video" },
-      { label: `Reading — ${readingDesc}`, kind: "reading" },
-      { label: "Module examination", kind: "exam" },
+      {
+        label: `Video — ${videoDesc}`,
+        kind: "video",
+        description: `Watch this lecture on ${videoDesc.toLowerCase()}.`,
+      },
+      {
+        label: `Reading — ${readingDesc}`,
+        kind: "reading",
+        description: `Open this document: ${readingDesc.toLowerCase()}.`,
+      },
+      {
+        label: "Module examination",
+        kind: "exam",
+        description: "Complete this assessment to confirm you understood the module before continuing.",
+      },
     ],
   }));
   return [header, ...rest];

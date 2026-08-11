@@ -25,6 +25,7 @@ import {
   formatCheckoutMoney,
 } from "@/lib/checkout-regional-pricing";
 import { resolveCoursePrices } from "@/lib/course-regional-pricing";
+import CheckoutPromoCode from "@/components/CheckoutPromoCode";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,9 @@ export default function CheckoutPage() {
   const { showPrices, ready, region } = useLearnerPricing();
   const [isSuccess, setIsSuccess] = useState(false);
   const [items, setItems] = useState<ShopCartItem[]>([]);
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoLabel, setPromoLabel] = useState("");
+  const [promoCode, setPromoCode] = useState("");
   const [catalog, setCatalog] = useState<ManagedCourse[]>([]);
   const [buyNowSlug, setBuyNowSlug] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -199,8 +203,12 @@ export default function CheckoutPage() {
       : "/my-learning?tab=learning";
 
   const totals = useMemo(() => {
-    if (region) return computeRegionalCheckoutTotals(items, catalog, region);
-    return computeCheckoutTotals(items);
+    if (region) return computeRegionalCheckoutTotals(items, catalog, region, promoDiscount);
+    return computeCheckoutTotals(items, promoDiscount);
+  }, [items, catalog, region, promoDiscount]);
+  const baseTotals = useMemo(() => {
+    if (region) return computeRegionalCheckoutTotals(items, catalog, region, 0);
+    return computeCheckoutTotals(items, 0);
   }, [items, catalog, region]);
   const { subtotal, discount, gst, total } = totals;
   const paymentCurrency = region?.currency ?? "INR";
@@ -241,6 +249,7 @@ export default function CheckoutPage() {
             countryCode: region?.countryCode,
             currency: paymentCurrency,
             amount: toSmallestCurrencyUnit(total, paymentCurrency),
+            promoCode: promoCode || undefined,
             items: items.map((item) => ({
               slug: item.slug,
               title: item.title,
@@ -289,6 +298,7 @@ export default function CheckoutPage() {
           learnerEmail,
           countryCode: region.countryCode,
           currency: region.currency,
+          promoCode: promoCode || undefined,
           items: items.map((item) => ({
             slug: item.slug,
             title: item.title,
@@ -459,6 +469,22 @@ export default function CheckoutPage() {
             </div>
             {ready && showPrices ? (
             <div className="mt-4 space-y-1.5 text-sm">
+              <CheckoutPromoCode
+                slugs={items.map((i) => i.slug)}
+                subtotal={baseTotals.subtotal}
+                currency={paymentCurrency}
+                appliedLabel={promoLabel || undefined}
+                onApplied={(d, label, code) => {
+                  setPromoDiscount(d);
+                  setPromoLabel(label);
+                  setPromoCode(code);
+                }}
+                onCleared={() => {
+                  setPromoDiscount(0);
+                  setPromoLabel("");
+                  setPromoCode("");
+                }}
+              />
               <div className="flex items-center justify-between text-gray-300"><span>Subtotal</span><span>{formatMoney(subtotal)}</span></div>
               <div className="flex items-center justify-between text-emerald-300"><span>Discount</span><span>- {formatMoney(discount)}</span></div>
               <div className="flex items-center justify-between text-gray-300"><span>GST (18%)</span><span>{formatMoney(gst)}</span></div>

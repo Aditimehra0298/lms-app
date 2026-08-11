@@ -83,6 +83,7 @@ import { getAdminCurriculumForCourse, totalCurriculumSteps } from "@/lib/course-
 import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import AdminCourseCoverThumb from "@/components/admin/AdminCourseCoverThumb";
+import AdminCouponsReferralsPanel from "@/components/admin/AdminCouponsReferralsPanel";
 
 /** Shared field chrome for the self-paced course editor */
 const spField =
@@ -219,9 +220,9 @@ function rowIcon(kind: CourseCurriculumKind) {
 function kindToLessonLabel(kind: CourseCurriculumKind): string {
   switch (kind) {
     case "video":
-      return "Video";
+      return "Lecture";
     case "exam":
-      return "Exam";
+      return "Assessment";
     default:
       return "Document";
   }
@@ -352,7 +353,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     }
   }, []);
 
-  const putAdminContent = useCallback(async (payload: Partial<AdminContent>) => {
+  const putAdminContent = useCallback(async (payload: Partial<AdminContent> & { removedCourseSlugs?: string[] }) => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 30_000);
     try {
@@ -457,14 +458,20 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     return "";
   }, [selectedCourse?.slug, isCreating, draft.slug, draft.title]);
 
-  const persistManagedCourses = async (nextCourses: ManagedCourse[]): Promise<boolean> => {
+  const persistManagedCourses = async (
+    nextCourses: ManagedCourse[],
+    opts?: { removedCourseSlugs?: string[] },
+  ): Promise<boolean> => {
     if (!content) return false;
     setSavingCatalog(true);
     setLoadError(null);
     setSaveNotice(null);
     try {
       // Partial PUT — never echo the full document (wipes category renames / page images).
-      await putAdminContent({ managedCourses: nextCourses });
+      await putAdminContent({
+        managedCourses: nextCourses,
+        ...(opts?.removedCourseSlugs?.length ? { removedCourseSlugs: opts.removedCourseSlugs } : {}),
+      });
       setContent({ ...content, managedCourses: nextCourses });
       setSaveNotice("Course saved.");
       void load();
@@ -565,9 +572,13 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
   const deleteCourse = async (slug: string) => {
     if (!content) return;
-    if (!window.confirm(`Remove course “${slug}” from the catalog?`)) return;
+    const course = (content.managedCourses ?? []).find((c) => c.slug === slug);
+    const label = course?.title?.trim() || slug;
+    if (!window.confirm(`Delete “${label}” from the catalog? This cannot be undone.`)) return;
     const next = (content.managedCourses ?? []).filter((c) => c.slug !== slug);
-    await persistManagedCourses(next);
+    const ok = await persistManagedCourses(next, { removedCourseSlugs: [slug] });
+    if (!ok) return;
+    setSaveNotice(`Deleted “${label}”.`);
     if (selectedSlug === slug) {
       setSelectedSlug("");
       setIsCreating(false);
@@ -989,6 +1000,10 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
   const updateModuleTitle = (idx: number, title: string) => {
     setModules((prev) => prev.map((m, i) => (i === idx ? { ...m, title } : m)));
+  };
+
+  const updateModuleDescription = (idx: number, description: string) => {
+    setModules((prev) => prev.map((m, i) => (i === idx ? { ...m, description } : m)));
   };
 
   const updateRow = (sel: LessonSelection, patch: RowPatch) => {
@@ -2422,6 +2437,15 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                                   className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-[11px] text-white outline-none"
                                 />
                               </label>
+                              <label className="block text-[10px] text-gray-500">
+                                One-line description (shown on course landing)
+                                <input
+                                  value={mod.description ?? ""}
+                                  onChange={(e) => updateModuleDescription(mi, e.target.value)}
+                                  placeholder="What this module covers…"
+                                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-[11px] text-white outline-none"
+                                />
+                              </label>
                               {mod.items.length > 0 ? (
                                 <ul className="rounded-md border border-white/8 bg-black/20 px-1 py-1">
                                   <li className="px-2 pb-1 text-[9px] font-semibold uppercase tracking-wide text-gray-600">
@@ -2752,7 +2776,8 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                 Go to Course
               </button>
             </div>
-          ) : (
+          ) : null}
+          {canEditPricing ? (
             <>
               <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-white/10 bg-[#0b1224] p-4">
                 <div>
@@ -2787,7 +2812,29 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                 <AdminOrganizationSeatPricingEditor draft={draft} setDraft={setDraft} />
               </div>
             </>
-          )}
+          ) : null}
+          {content ? (
+            <AdminCouponsReferralsPanel
+              promotions={content.promotions}
+              courses={content.managedCourses ?? []}
+              currentCourseSlug={selectedSlug}
+              saving={savingCatalog}
+              onSave={async (promotions) => {
+                try {
+                  setSavingCatalog(true);
+                  await putAdminContent({ promotions });
+                  setContent((prev) => (prev ? { ...prev, promotions } : prev));
+                  setSaveNotice("Coupons and referral codes saved.");
+                  return true;
+                } catch (e) {
+                  setLoadError(e instanceof Error ? e.message : "Could not save promotions.");
+                  return false;
+                } finally {
+                  setSavingCatalog(false);
+                }
+              }}
+            />
+          ) : null}
         </>
       ) : null}
 

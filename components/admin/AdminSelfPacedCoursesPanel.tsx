@@ -97,7 +97,10 @@ export default function AdminSelfPacedCoursesPanel() {
     setEditorOpen(true);
   };
 
-  const persistManagedCourses = async (nextCourses: ManagedCourse[]): Promise<boolean> => {
+  const persistManagedCourses = async (
+    nextCourses: ManagedCourse[],
+    opts?: { removedCourseSlugs?: string[] },
+  ): Promise<boolean> => {
     if (!content) return false;
     setSaving(true);
     setLoadError(null);
@@ -105,7 +108,10 @@ export default function AdminSelfPacedCoursesPanel() {
       const put = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ managedCourses: nextCourses }),
+        body: JSON.stringify({
+          managedCourses: nextCourses,
+          ...(opts?.removedCourseSlugs?.length ? { removedCourseSlugs: opts.removedCourseSlugs } : {}),
+        }),
       });
       if (!put.ok) throw new Error("save");
       await load();
@@ -163,9 +169,11 @@ export default function AdminSelfPacedCoursesPanel() {
 
   const deleteCourse = async (slug: string) => {
     if (!content) return;
-    if (!window.confirm(`Remove course “${slug}” from the catalog?`)) return;
+    const course = (content.managedCourses ?? []).find((c) => c.slug === slug);
+    const label = course?.title?.trim() || slug;
+    if (!window.confirm(`Delete “${label}” from the catalog? This cannot be undone.`)) return;
     const next = (content.managedCourses ?? []).filter((c) => c.slug !== slug);
-    await persistManagedCourses(next);
+    await persistManagedCourses(next, { removedCourseSlugs: [slug] });
   };
 
   const uploadCover = async (file: File) => {

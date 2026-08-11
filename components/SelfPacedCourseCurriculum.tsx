@@ -10,6 +10,11 @@ import {
 } from "lucide-react";
 import type { CourseCurriculumItem, CourseCurriculumModule, ManagedCourse } from "@/lib/content-schema";
 import { getCurriculumForCourse, totalCurriculumSteps } from "@/lib/course-detail-template";
+import {
+  curriculumItemOneLiner,
+  curriculumKindPublicLabel,
+  curriculumModuleOneLiner,
+} from "@/lib/curriculum-landing-copy";
 
 type Props = {
   course: ManagedCourse;
@@ -124,8 +129,8 @@ export default function SelfPacedCourseCurriculum({ course, className = "" }: Pr
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-white md:text-base">{mod.title}</p>
-                    <p className="mt-0.5 text-xs text-zinc-500">
-                      {items.length} lecture{items.length === 1 ? "" : "s"}
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-400">
+                      {curriculumModuleOneLiner(mod)}
                     </p>
                   </div>
                 </button>
@@ -135,12 +140,22 @@ export default function SelfPacedCourseCurriculum({ course, className = "" }: Pr
                     {items.map((item, li) => (
                       <li
                         key={`${item.label}-${li}`}
-                        className="flex items-center gap-3 border-b border-white/5 px-4 py-3.5 last:border-b-0 md:pl-12 md:pr-5"
+                        className="flex items-start gap-3 border-b border-white/5 px-4 py-3.5 last:border-b-0 md:pl-12 md:pr-5"
                       >
-                        <LessonIcon kind={item.kind} />
-                        <span className="min-w-0 flex-1 text-sm text-zinc-300">{item.label}</span>
-                        <span className="shrink-0 text-xs text-zinc-500">{lessonDuration(item)}</span>
-                        <Lock className="h-3.5 w-3.5 shrink-0 text-zinc-600" aria-label="Locked until enrollment" />
+                        <span className="mt-0.5">
+                          <LessonIcon kind={item.kind} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-zinc-200">{item.label}</p>
+                          <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                            {curriculumKindPublicLabel(item.kind)}
+                          </p>
+                          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-zinc-500">
+                            {curriculumItemOneLiner(item)}
+                          </p>
+                        </div>
+                        <span className="mt-0.5 shrink-0 text-xs text-zinc-500">{lessonDuration(item)}</span>
+                        <Lock className="mt-1 h-3.5 w-3.5 shrink-0 text-zinc-600" aria-label="Locked until enrollment" />
                       </li>
                     ))}
                   </ul>
@@ -153,7 +168,7 @@ export default function SelfPacedCourseCurriculum({ course, className = "" }: Pr
 
       <p className="mt-4 flex items-start gap-2 text-xs text-zinc-600">
         <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-        Full videos, readings, and exams unlock after you enroll.
+        Full lectures, documents, and assessments unlock after you enroll.
       </p>
     </div>
   );

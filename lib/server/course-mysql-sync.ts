@@ -192,3 +192,25 @@ export async function listCoursesInMysql(): Promise<CourseMysqlRecord[]> {
   });
   return rows.map(toRecord);
 }
+
+/** Remove catalog courses from MySQL so admin delete is not undone by JSON hydrate. */
+export async function deleteCoursesFromMysql(slugs: string[]): Promise<{ deleted: number }> {
+  const unique = [...new Set(slugs.map((s) => s.trim()).filter(Boolean))];
+  if (unique.length === 0) return { deleted: 0 };
+  let deleted = 0;
+  for (const slug of unique) {
+    try {
+      const course = await prisma.lmsCourse.findUnique({ where: { slug } });
+      await prisma.lmsCourseContent.deleteMany({
+        where: course
+          ? { OR: [{ courseSlug: slug }, { courseId: course.id }] }
+          : { courseSlug: slug },
+      });
+      const result = await prisma.lmsCourse.deleteMany({ where: { slug } });
+      deleted += result.count;
+    } catch (err) {
+      console.error("[course-mysql-sync] deleteCoursesFromMysql", slug, err);
+    }
+  }
+  return { deleted };
+}

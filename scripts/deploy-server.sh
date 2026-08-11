@@ -15,9 +15,22 @@ if [[ ! -f .env.local ]]; then
   exit 1
 fi
 
+if [[ -f data/admin-content.json ]]; then
+  cp -a data/admin-content.json "data/admin-content.json.bak-$(date +%F-%H%M%S)"
+  cp -a data/admin-content.json data/admin-content.json.server-backup
+  echo "==> Backed up live data/admin-content.json"
+fi
+
 echo "==> Pull latest main"
 git fetch origin main
+# Local live JSON must not block the pull.
+git checkout -- data/admin-content.json 2>/dev/null || true
 git pull --ff-only origin main
+
+if [[ -f data/admin-content.json.server-backup ]]; then
+  cp -a data/admin-content.json.server-backup data/admin-content.json
+  echo "==> Restored live data/admin-content.json (not replaced by GitHub)"
+fi
 
 echo "==> Apply chatbot / ticket MySQL columns (safe to re-run)"
 node scripts/apply-chatbot-schema.js

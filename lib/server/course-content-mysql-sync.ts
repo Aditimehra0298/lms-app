@@ -99,9 +99,11 @@ function stubManagedCourseFromMysqlRow(row: {
  */
 export async function hydrateManagedCoursesFromMysql(
   courses: ManagedCourse[],
+  opts?: { excludeSlugs?: string[] },
 ): Promise<{ courses: ManagedCourse[]; addedSlugs: string[] }> {
   const list = Array.isArray(courses) ? [...courses] : [];
   const have = new Set(list.map((c) => c.slug?.trim()).filter(Boolean));
+  const excluded = new Set((opts?.excludeSlugs ?? []).map((s) => s.trim()).filter(Boolean));
   const addedSlugs: string[] = [];
 
   try {
@@ -111,7 +113,7 @@ export async function hydrateManagedCoursesFromMysql(
     });
     for (const row of rows) {
       const slug = row.slug?.trim();
-      if (!slug || have.has(slug)) continue;
+      if (!slug || have.has(slug) || excluded.has(slug)) continue;
       const payload =
         row.content?.payload && typeof row.content.payload === "object"
           ? (row.content.payload as ManagedCourse)

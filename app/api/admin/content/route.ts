@@ -5,8 +5,9 @@ import {
   hydrateManagedCoursesFromMysql,
   syncAllCourseContentToMysql,
 } from "@/lib/server/course-content-mysql-sync";
-import { syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
+import { deleteCoursesFromMysql, syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
 import { readAdminContentFromDisk, writeAdminContent, normalizeManagedCategories } from "@/lib/server/content-store";
+import { sanitizePromotions } from "@/lib/promotions";
 
 /** Always read fresh JSON from disk — marketing/admin UIs must not serve a stale cached payload. */
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ function curriculumMediaScore(mods?: ManagedCourse["curriculum"]): number {
 function mergeManagedCoursesPreservingCurriculum(
   existing: ManagedCourse[],
   incoming: ManagedCourse[],
+  removedSlugs: Set<string> = new Set(),
 ): ManagedCourse[] {
   const prevBySlug = new Map<string, ManagedCourse>();
   for (const c of existing ?? []) {
@@ -49,7 +51,7 @@ function mergeManagedCoursesPreservingCurriculum(
   const mergedIncoming: ManagedCourse[] = [];
   for (const course of incoming ?? []) {
     const slug = course.slug?.trim();
-    if (!slug) continue;
+    if (!slug || removedSlugs.has(slug)) continue;
     const prev = prevBySlug.get(slug);
     let next: ManagedCourse = course;
     if (prev) {
@@ -69,10 +71,11 @@ function mergeManagedCoursesPreservingCurriculum(
     mergedIncoming.push(next);
   }
 
-  // Keep existing courses that were not in this PUT (partial/stale catalog payloads).
+  // Keep existing courses that were not in this PUT (partial/stale catalog payloads),
+  // except slugs the admin explicitly deleted.
   const leftovers = (existing ?? []).filter((c) => {
     const slug = c.slug?.trim();
-    return Boolean(slug) && !incomingBySlug.has(slug);
+    return Boolean(slug) && !incomingBySlug.has(slug) && !removedSlugs.has(slug);
   });
   return [...mergedIncoming, ...leftovers];
 }
@@ -82,6 +85,7 @@ export async function GET() {
   const content = await readAdminContentFromDisk();
   const { courses, addedSlugs } = await hydrateManagedCoursesFromMysql(
     content.managedCourses ?? [],
+    { excludeSlugs: content.deletedCourseSlugs },
   );
   if (addedSlugs.length > 0) {
     const next = { ...content, managedCourses: courses };
@@ -103,7 +107,17 @@ export async function PUT(request: Request) {
   try {
     // Always read fresh from disk (not request-scoped React cache).
     const existing = await readAdminContentFromDisk();
-    const body = (await request.json()) as Partial<AdminContent>;
+    const body = (await request.json()) as Partial<AdminContent> & {
+      removedCourseSlugs?: string[];
+    };
+    const removedCourseSlugs = [
+      ...new Set(
+        (Array.isArray(body.removedCourseSlugs) ? body.removedCourseSlugs : [])
+          .map((s) => String(s ?? "").trim())
+          .filter(Boolean),
+      ),
+    ];
+    const removedSet = new Set(removedCourseSlugs);
 
     /**
      * Partial-safe merge:
@@ -132,6 +146,26 @@ export async function PUT(request: Request) {
         }
       : existing.categoryPages ?? {};
 
+    const nextManagedCourses = Array.isArray(body.managedCourses)
+      ? mergeManagedCoursesPreservingCurriculum(
+          existing.managedCourses ?? [],
+          body.managedCourses,
+          removedSet,
+        )
+      : removedSet.size > 0
+        ? (existing.managedCourses ?? []).filter((c) => !removedSet.has(c.slug?.trim() ?? ""))
+        : existing.managedCourses;
+    const keptSlugs = new Set(
+      (nextManagedCourses ?? []).map((c) => c.slug?.trim()).filter(Boolean),
+    );
+    const nextDeletedCourseSlugs = [
+      ...new Set(
+        [...(existing.deletedCourseSlugs ?? []), ...removedCourseSlugs]
+          .map((s) => s.trim())
+          .filter((s) => Boolean(s) && !keptSlugs.has(s)),
+      ),
+    ];
+
     const nextContent: AdminContent = {
       dashboard: body.dashboard
         ? {
@@ -149,13 +183,8 @@ export async function PUT(request: Request) {
         body.learningCourses && body.learningCourses.length > 0
           ? body.learningCourses
           : existing.learningCourses,
-      managedCourses:
-        body.managedCourses && body.managedCourses.length > 0
-          ? mergeManagedCoursesPreservingCurriculum(
-              existing.managedCourses ?? [],
-              body.managedCourses,
-            )
-          : existing.managedCourses,
+      managedCourses: nextManagedCourses,
+      deletedCourseSlugs: nextDeletedCourseSlugs,
       categories: nextCategories,
       categoryPages: nextCategoryPages,
       coursesPage: body.coursesPage ?? existing.coursesPage,
@@ -172,6 +201,10 @@ export async function PUT(request: Request) {
       organizationTeam: mergeOrganizationTeamAdminConfig(
         body.organizationTeam ?? existing.organizationTeam,
       ),
+      promotions:
+        body.promotions !== undefined
+          ? sanitizePromotions(body.promotions)
+          : existing.promotions,
     };
 
     await writeAdminContent(nextContent);
@@ -180,8 +213,19 @@ export async function PUT(request: Request) {
     const nextSlugs = new Set((nextContent.managedCourses ?? []).map((c) => c.slug.trim()).filter(Boolean));
     const removed = [...prevSlugs].filter((s) => !nextSlugs.has(s));
     const added = [...nextSlugs].filter((s) => !prevSlugs.has(s));
-    const renames =
-      removed.length === 1 && added.length === 1 ? [{ from: removed[0], to: added[0] }] : [];
+    const isRename = removed.length === 1 && added.length === 1;
+    const renames = isRename ? [{ from: removed[0], to: added[0] }] : [];
+    const mysqlDeletes = isRename
+      ? removedCourseSlugs.filter((s) => s !== removed[0])
+      : [...new Set([...removed, ...removedCourseSlugs])];
+
+    if (mysqlDeletes.length > 0) {
+      try {
+        await deleteCoursesFromMysql(mysqlDeletes);
+      } catch (err) {
+        console.error("[admin/content PUT] MySQL course delete", err);
+      }
+    }
 
     void (async () => {
       try {

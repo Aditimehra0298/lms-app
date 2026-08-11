@@ -9,6 +9,7 @@ type Body = {
   countryCode?: string;
   currency?: string;
   amount?: number;
+  promoCode?: string;
   items?: { slug?: string; title?: string; qty?: number; price?: string }[];
 };
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
       amount: Math.max(0, Number(body.amount) || 0),
       currency: body.currency?.trim() || "INR",
       countryCode: body.countryCode?.trim(),
+      promoCode: body.promoCode?.trim(),
     });
 
     if (!result.ok) {

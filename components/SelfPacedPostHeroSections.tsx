@@ -27,6 +27,11 @@ import {
   requirementBullets,
   whatYouLearnGrid,
 } from "@/lib/course-detail-template";
+import {
+  curriculumItemOneLiner,
+  curriculumKindPublicLabel,
+  curriculumModuleOneLiner,
+} from "@/lib/curriculum-landing-copy";
 import { instructorInitialLetter } from "@/lib/managed-course-to-post-hero";
 
 const shell = "mx-auto w-full max-w-[1760px] px-4 md:px-8 xl:px-10";
@@ -34,8 +39,8 @@ const card =
   "rounded-2xl border border-emerald-500/15 bg-[#0c1210]/80 p-5 shadow-[0_0_0_1px_rgba(16,185,129,0.06)_inset] sm:p-6";
 
 const kindMeta: Record<CourseCurriculumKind, { icon: typeof Video; label: string }> = {
-  video: { icon: Video, label: "Video" },
-  reading: { icon: FileText, label: "Reading" },
+  video: { icon: Video, label: "Lecture" },
+  reading: { icon: FileText, label: "Document" },
   exam: { icon: ClipboardList, label: "Assessment" },
 };
 
@@ -115,7 +120,7 @@ export default function SelfPacedPostHeroSections({ course, openFaq, setOpenFaq 
               </p>
               <h2 className="mt-1 text-2xl font-bold text-white md:text-3xl">Course curriculum</h2>
               <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-                {modules.length} modules · videos, readings, and assessments — complete them in order at
+                {modules.length} modules · lectures, documents, and assessments — complete them in order at
                 your own pace.
               </p>
 
@@ -126,16 +131,21 @@ export default function SelfPacedPostHeroSections({ course, openFaq, setOpenFaq 
                     className="group rounded-xl border border-white/10 bg-black/40 open:border-emerald-500/30"
                     open={mi === 0}
                   >
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-sm font-semibold text-white marker:content-none">
-                      <span className="flex min-w-0 items-center gap-3">
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/15 text-xs font-bold text-emerald-300">
+                    <summary className="flex cursor-pointer list-none items-start justify-between gap-3 px-4 py-3.5 text-sm font-semibold text-white marker:content-none">
+                      <span className="flex min-w-0 items-start gap-3">
+                        <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/15 text-xs font-bold text-emerald-300">
                           {mi + 1}
                         </span>
-                        <span className="line-clamp-2">{mod.title}</span>
+                        <span className="min-w-0">
+                          <span className="line-clamp-2 block">{mod.title}</span>
+                          <span className="mt-1 block text-xs font-normal leading-relaxed text-zinc-400">
+                            {curriculumModuleOneLiner(mod)}
+                          </span>
+                        </span>
                       </span>
                       <ChevronDown
                         size={18}
-                        className="shrink-0 text-zinc-500 transition group-open:rotate-180"
+                        className="mt-1 shrink-0 text-zinc-500 transition group-open:rotate-180"
                         aria-hidden
                       />
                     </summary>
@@ -152,7 +162,10 @@ export default function SelfPacedPostHeroSections({ course, openFaq, setOpenFaq 
                             <div className="min-w-0 flex-1">
                               <p>{item.label}</p>
                               <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-                                {meta.label}
+                                {curriculumKindPublicLabel(item.kind)}
+                              </p>
+                              <p className="mt-0.5 line-clamp-2 text-[11px] font-normal leading-relaxed text-zinc-500">
+                                {curriculumItemOneLiner(item)}
                               </p>
                             </div>
                           </li>
@@ -169,9 +182,9 @@ export default function SelfPacedPostHeroSections({ course, openFaq, setOpenFaq 
                 <h3 className="text-lg font-bold text-white">How self-paced learning works</h3>
                 <ul className="mt-4 space-y-3 text-sm text-zinc-300">
                   {[
-                    { icon: PlayCircle, text: "Watch HD lessons — pause and replay anytime" },
-                    { icon: BookOpen, text: "Download readings and job aids per module" },
-                    { icon: ClipboardList, text: "Pass module checks before moving forward" },
+                    { icon: PlayCircle, text: "Lectures — watch HD video lessons anytime" },
+                    { icon: BookOpen, text: "Documents — download notes and job aids per module" },
+                    { icon: ClipboardList, text: "Assessments — pass module checks before moving forward" },
                     { icon: Smartphone, text: "Study on laptop, tablet, or phone" },
                   ].map((row) => (
                     <li key={row.text} className="flex items-start gap-3">

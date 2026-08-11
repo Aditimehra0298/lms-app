@@ -91,6 +91,8 @@ export type CourseCurriculumSubModule = {
 
 export type CourseCurriculumModule = {
   title: string;
+  /** One-line “about this module” shown on the course landing curriculum. */
+  description?: string;
   items: CourseCurriculumItem[];
   subModules?: CourseCurriculumSubModule[];
 };
@@ -988,12 +990,56 @@ export type GlobalCertificateAssets = {
 
 export type { OrganizationTeamAdminConfig };
 
+export type PromotionStatus = "active" | "disabled";
+export type PromotionDiscountKind = "percent" | "fixed";
+export type CouponCourseScope = "all" | "course";
+export type ReferralRewardKind = "percent" | "fixed";
+
+export type AdminCoupon = {
+  id: string;
+  code: string;
+  discountKind: PromotionDiscountKind;
+  amount: number;
+  /** ISO currency for fixed discounts (e.g. INR for ₹50 OFF). */
+  currency?: string;
+  courseScope: CouponCourseScope;
+  courseSlug?: string;
+  uses: number;
+  maxUses: number;
+  validFrom: string;
+  validTo: string;
+  status: PromotionStatus;
+  allowBelowBase?: boolean;
+};
+
+export type AdminReferralCode = {
+  id: string;
+  code: string;
+  customerDiscountKind: PromotionDiscountKind;
+  customerDiscountAmount: number;
+  customerDiscountCurrency?: string;
+  rewardKind: ReferralRewardKind;
+  rewardAmount: number;
+  rewardCurrency?: string;
+  uses: number;
+  status: PromotionStatus;
+};
+
+export type PromotionsConfig = {
+  coupons: AdminCoupon[];
+  referrals: AdminReferralCode[];
+};
+
 export type AdminContent = {
   dashboard: DashboardContent;
   /** Organisation premium tiers, seat limits, invite/assign rules — Admin → Organization Team */
   organizationTeam?: OrganizationTeamAdminConfig;
   learningCourses: LearningCourseItem[];
   managedCourses: ManagedCourse[];
+  /** Slugs removed from admin — GET must not hydrate these back from MySQL. */
+  deletedCourseSlugs?: string[];
+  /** Coupons + referral codes (Admin → Self-paced → Pricing). */
+  promotions?: PromotionsConfig;
   /** Default certificate assets when a course/program has no per-item upload. */
   globalCertificateAssets?: GlobalCertificateAssets;
   /** Live Zoom-style programs for `/tutor-led/[slug]` — edited under Admin → Tutor Led. */

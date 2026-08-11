@@ -47,8 +47,9 @@ export function computeRegionalCheckoutTotals(
   items: CheckoutPricedItem[],
   catalog: ManagedCourse[],
   region: PricingRegion,
+  extraDiscount = 0,
 ): CheckoutTotals {
-  return computeCheckoutTotals(buildRegionalCheckoutLineItems(items, catalog, region));
+  return computeCheckoutTotals(buildRegionalCheckoutLineItems(items, catalog, region), extraDiscount);
 }
 
 export function formatCheckoutMoney(amount: number, region: PricingRegion): string {

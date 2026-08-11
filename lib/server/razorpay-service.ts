@@ -15,6 +15,7 @@ import {
   getRazorpayKeySecret,
   isRazorpayConfigured,
 } from "@/lib/server/razorpay-config";
+import { resolveCheckoutPromoDiscount } from "@/lib/server/checkout-promo";
 
 export type RazorpayCheckoutItem = {
   slug: string;
@@ -37,6 +38,7 @@ export async function createRazorpayOrder(input: {
   items: RazorpayCheckoutItem[];
   countryCode?: string;
   currency?: string;
+  promoCode?: string;
 }) {
   if (!isRazorpayConfigured()) {
     return { ok: false as const, message: "Razorpay is not configured on the server." };
@@ -61,7 +63,18 @@ export async function createRazorpayOrder(input: {
   }
 
   const catalog = await getManagedCourses();
-  const totals = computeRegionalCheckoutTotals(items, catalog, region);
+  const baseTotals = computeRegionalCheckoutTotals(items, catalog, region, 0);
+  const promo = await resolveCheckoutPromoDiscount({
+    code: input.promoCode,
+    slugs: items.map((i) => i.slug),
+    subtotal: baseTotals.subtotal,
+    currency,
+    catalog,
+  });
+  if (input.promoCode?.trim() && !promo.code) {
+    return { ok: false as const, message: "Coupon or referral code is not valid for this payment." };
+  }
+  const totals = computeRegionalCheckoutTotals(items, catalog, region, promo.extraDiscount);
   const amount = toSmallestCurrencyUnit(totals.total, currency);
   const minAmount = minimumPaymentAmountSmallestUnit(currency);
   if (amount < minAmount) {
@@ -81,6 +94,7 @@ export async function createRazorpayOrder(input: {
       learnerEmail: input.learnerEmail.trim().toLowerCase(),
       countryCode: region.countryCode,
       courseSlugs: items.map((i) => i.slug).join(","),
+      ...(promo.code ? { promoCode: promo.code, promoLabel: promo.label } : {}),
     },
   });
 
@@ -92,6 +106,8 @@ export async function createRazorpayOrder(input: {
     receipt,
     keyId: getRazorpayKeyId()!,
     totals,
+    promoCode: promo.code || undefined,
+    promoLabel: promo.label || undefined,
     region: {
       countryCode: region.countryCode,
       countryName: region.countryName,

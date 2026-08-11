@@ -15,6 +15,7 @@ import {
   type AboutPageTeamLevel,
 } from "@/lib/content-schema";
 import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
+import { defaultPromotions, sanitizePromotions } from "@/lib/promotions";
 
 const contentFilePath = path.join(process.cwd(), "data", "admin-content.json");
 
@@ -136,10 +137,12 @@ async function readAdminContentFromDisk(): Promise<AdminContent> {
         parsed.learningCourses && parsed.learningCourses.length > 0
           ? parsed.learningCourses
           : defaultAdminContent.learningCourses,
-      managedCourses:
-        parsed.managedCourses && parsed.managedCourses.length > 0
-          ? migrateManagedCourses(parsed.managedCourses)
-          : defaultAdminContent.managedCourses,
+      managedCourses: Array.isArray(parsed.managedCourses)
+        ? migrateManagedCourses(parsed.managedCourses)
+        : defaultAdminContent.managedCourses,
+      deletedCourseSlugs: Array.isArray(parsed.deletedCourseSlugs)
+        ? [...new Set(parsed.deletedCourseSlugs.map((s) => String(s ?? "").trim()).filter(Boolean))]
+        : [],
       categories: normalizeManagedCategories(parsed.categories),
       categoryPages:
         parsed.categoryPages && typeof parsed.categoryPages === "object"
@@ -163,6 +166,9 @@ async function readAdminContentFromDisk(): Promise<AdminContent> {
           ? parsed.globalCertificateAssets
           : undefined,
       organizationTeam: mergeOrganizationTeamAdminConfig(parsed.organizationTeam),
+      promotions: parsed.promotions
+        ? sanitizePromotions(parsed.promotions)
+        : defaultPromotions,
     };
   } catch {
     return defaultAdminContent;

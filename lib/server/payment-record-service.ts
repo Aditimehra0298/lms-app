@@ -12,6 +12,7 @@ import {
   type RazorpayGatewayPayment,
 } from "@/lib/server/razorpay-service";
 import { isRazorpayConfigured } from "@/lib/server/razorpay-config";
+import { consumePromotionCode, promoCodeFromNote, promoNote } from "@/lib/server/checkout-promo";
 
 function parseItems(raw: unknown): PaymentLineItem[] {
   if (!Array.isArray(raw)) return [];
@@ -98,6 +99,7 @@ export async function createPendingRazorpayPayment(input: {
   currency: string;
   items: PaymentLineItem[];
   countryCode?: string;
+  adminNote?: string;
 }) {
   const email = normalizeLearnerEmail(input.learnerEmail);
   const userId = await resolveUserId(email);
@@ -113,6 +115,7 @@ export async function createPendingRazorpayPayment(input: {
       method: "razorpay",
       items: input.items,
       countryCode: input.countryCode ?? null,
+      adminNote: input.adminNote ?? null,
     },
   });
 }
@@ -170,6 +173,13 @@ export async function finalizeRazorpayPayment(input: {
     }
   }
 
+  const promoCode = promoCodeFromNote(row.adminNote);
+  if (promoCode) {
+    await consumePromotionCode(promoCode).catch((err) =>
+      console.error("[payments] consumePromotionCode", err),
+    );
+  }
+
   return { ok: true };
 }
 
@@ -179,6 +189,7 @@ export async function recordDemoPayment(input: {
   amount: number;
   currency: string;
   countryCode?: string;
+  promoCode?: string;
 }): Promise<{ ok: true; paymentId: string } | { ok: false; message: string }> {
   const email = normalizeLearnerEmail(input.learnerEmail);
   if (!email) return { ok: false, message: "Valid learner email is required." };
@@ -198,9 +209,15 @@ export async function recordDemoPayment(input: {
       items,
       countryCode: input.countryCode ?? null,
       paidAt: new Date(),
-      adminNote: "Demo checkout (no Razorpay charge)",
+      adminNote: promoNote(input.promoCode ?? "") ?? "Demo checkout (no Razorpay charge)",
     },
   });
+
+  if (input.promoCode?.trim()) {
+    await consumePromotionCode(input.promoCode).catch((err) =>
+      console.error("[payments] consumePromotionCode demo", err),
+    );
+  }
 
   const enrolled = await recordPurchasesForLearner({
     learnerEmail: email,

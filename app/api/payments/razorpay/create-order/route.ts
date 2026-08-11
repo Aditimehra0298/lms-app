@@ -3,6 +3,7 @@ import { normalizeLearnerEmail } from "@/lib/learner-email";
 import { createPendingRazorpayPayment } from "@/lib/server/payment-record-service";
 import { createRazorpayOrder, type RazorpayCheckoutItem } from "@/lib/server/razorpay-service";
 import { isRazorpayConfigured } from "@/lib/server/razorpay-config";
+import { promoNote } from "@/lib/server/checkout-promo";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ type Body = {
   learnerEmail?: string;
   countryCode?: string;
   currency?: string;
+  promoCode?: string;
   items?: RazorpayCheckoutItem[];
 };
 
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
       learnerEmail,
       countryCode: body.countryCode?.trim(),
       currency: body.currency?.trim(),
+      promoCode: body.promoCode?.trim(),
       items,
     });
     if (!result.ok) {
@@ -62,6 +65,7 @@ export async function POST(request: Request) {
         price: item.price,
       })),
       countryCode: body.countryCode?.trim(),
+      adminNote: promoNote(result.promoCode ?? "") ?? undefined,
     });
 
     return NextResponse.json({
@@ -72,6 +76,8 @@ export async function POST(request: Request) {
       keyId: result.keyId,
       receipt: result.receipt,
       totals: result.totals,
+      promoCode: result.promoCode,
+      promoLabel: result.promoLabel,
       region: result.region,
     });
   } catch (err) {

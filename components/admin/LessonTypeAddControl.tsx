@@ -5,9 +5,9 @@ import { Plus } from "lucide-react";
 import type { CourseCurriculumKind } from "@/lib/content-schema";
 
 const LESSON_TYPES: { label: string; kind: CourseCurriculumKind }[] = [
-  { label: "Video", kind: "video" },
+  { label: "Lecture", kind: "video" },
   { label: "Document", kind: "reading" },
-  { label: "Exam", kind: "exam" },
+  { label: "Assessment", kind: "exam" },
 ];
 
 type Props = {
