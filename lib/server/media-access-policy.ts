@@ -1,9 +1,12 @@
 import { isCertificateWorkflowMediaFile } from "@/lib/server/certificate-workflow-media";
 import { readAdminContent } from "@/lib/server/content-store";
+import { getCourseContentFromMysql } from "@/lib/server/course-content-mysql-sync";
+import { getCourseBySlug } from "@/lib/server/course-mysql-sync";
 import { isAdminEmail } from "@/lib/server/admin-emails";
 import { prisma } from "@/lib/prisma";
 import type { MediaAccessPayload } from "@/lib/server/media-access-token";
 import { mimeFromFileName } from "@/lib/server/private-media-storage";
+import type { ManagedCourse } from "@/lib/content-schema";
 
 async function learnerHasCourseAccess(email: string, courseSlug: string): Promise<boolean> {
   const normalized = email.trim().toLowerCase();
@@ -26,22 +29,36 @@ async function learnerHasCourseAccess(email: string, courseSlug: string): Promis
   return Boolean(normalized && slug);
 }
 
+function coverFieldsIncludeFile(course: Partial<ManagedCourse> | null | undefined, fileName: string): boolean {
+  if (!course) return false;
+  const refs = [
+    course.image,
+    course.hero?.backgroundImage,
+    course.hero?.previewImage,
+    course.hero?.certificatePreviewImage,
+    course.instructorSection?.teamImage,
+    course.certificateConfig?.templateImage,
+    course.certificateConfig?.badgeImage,
+    course.certificateConfig?.transcriptFile,
+  ];
+  return refs.some((ref) => typeof ref === "string" && ref.includes(fileName));
+}
+
 async function isPublishedCatalogImage(courseSlug: string, fileName: string): Promise<boolean> {
   try {
     const content = await readAdminContent();
     const course = (content.managedCourses ?? []).find((c) => c.slug === courseSlug);
-    if (!course || course.published === false) return false;
-    const refs = [
-      course.image,
-      course.hero?.backgroundImage,
-      course.hero?.previewImage,
-      course.hero?.certificatePreviewImage,
-      course.instructorSection?.teamImage,
-      course.certificateConfig?.templateImage,
-      course.certificateConfig?.badgeImage,
-      course.certificateConfig?.transcriptFile,
-    ];
-    return refs.some((ref) => typeof ref === "string" && ref.includes(fileName));
+    if (coverFieldsIncludeFile(course, fileName)) return true;
+
+    const fromMysql = await getCourseContentFromMysql(courseSlug).catch(() => null);
+    if (coverFieldsIncludeFile(fromMysql, fileName)) return true;
+
+    // Course exists (JSON or MySQL) — allow its image covers even if git reset
+    // dropped the URL from JSON. Videos/docs stay blocked by the caller.
+    if (course) return true;
+    if (fromMysql) return true;
+    const mysqlRow = await getCourseBySlug(courseSlug).catch(() => null);
+    return Boolean(mysqlRow);
   } catch {
     return false;
   }

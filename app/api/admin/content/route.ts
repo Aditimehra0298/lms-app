@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { AdminContent, type ManagedCourse } from "@/lib/content-schema";
 import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
-import { syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
+import {
+  hydrateManagedCoursesFromMysql,
+  syncAllCourseContentToMysql,
+} from "@/lib/server/course-content-mysql-sync";
 import { syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
 import { readAdminContentFromDisk, writeAdminContent, normalizeManagedCategories } from "@/lib/server/content-store";
 
@@ -77,6 +80,22 @@ function mergeManagedCoursesPreservingCurriculum(
 export async function GET() {
   // Bypass React cache so admin always sees the latest disk write.
   const content = await readAdminContentFromDisk();
+  const { courses, addedSlugs } = await hydrateManagedCoursesFromMysql(
+    content.managedCourses ?? [],
+  );
+  if (addedSlugs.length > 0) {
+    const next = { ...content, managedCourses: courses };
+    try {
+      await writeAdminContent(next);
+      console.info(
+        "[admin/content GET] restored from MySQL:",
+        addedSlugs.join(", "),
+      );
+    } catch (err) {
+      console.error("[admin/content GET] persist MySQL hydrate", err);
+    }
+    return NextResponse.json(next, { headers: noStoreJson });
+  }
   return NextResponse.json(content, { headers: noStoreJson });
 }
 

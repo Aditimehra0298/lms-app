@@ -118,13 +118,6 @@ function computeDiscountPercent(saleStr: string, listStr: string): number | null
   return Math.round((1 - sale / list) * 100);
 }
 
-function isSelfPaced(c: ManagedCourse): boolean {
-  const format = (c.learningFormat ?? "").trim().toLowerCase();
-  // Catalog editor lists self-paced courses; blank / unknown format is treated as self-paced
-  // so newly saved courses still appear in Admin → Self-paced courses.
-  return !format || format === "self-paced" || format === "self paced" || format === "selfpaced";
-}
-
 const emptyDraft = (): ManagedCourse => ({
   slug: "",
   title: "",
@@ -421,11 +414,9 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
   );
 
   const selfPacedCourses = useMemo(() => {
-    const all = content?.managedCourses ?? [];
-    const selfPaced = all.filter(isSelfPaced);
-    // If a course is on the learner dashboard but missing from the filtered list
-    // (wrong/blank learningFormat), still show the full catalog so it can be edited.
-    return selfPaced.length > 0 && selfPaced.length === all.length ? selfPaced : all;
+    // This workspace is the catalog editor. Never hide a saved course (dashboard
+    // can show MySQL rows that a strict self-paced filter would drop).
+    return content?.managedCourses ?? [];
   }, [content]);
 
   const filteredTableCourses = useMemo(() => {
@@ -672,7 +663,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     if (!content) return;
     // Do not reset modules when content refreshes after save — that dropped unsaved video URLs.
     if (curriculumHydratedSlugRef.current === selectedSlug) return;
-    const c = (content.managedCourses ?? []).find((x) => x.slug === selectedSlug && isSelfPaced(x));
+    const c = (content.managedCourses ?? []).find((x) => x.slug === selectedSlug);
     if (!c) return;
     curriculumHydratedSlugRef.current = selectedSlug;
     setModules(cloneMods(getAdminCurriculumForCourse(c.curriculum)));

@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { isProtectedMediaUrl, resolveProtectedMediaUrl } from "@/lib/media-client";
-import { isGenericCoursePlaceholder } from "@/lib/course-thumbnail";
+import { catalogCoverFallbackUrls, isGenericCoursePlaceholder } from "@/lib/course-thumbnail";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 
 type Props = {
@@ -17,7 +16,7 @@ type Props = {
 
 /**
  * Course list / My Learning thumbnail — signs private media URLs and falls back
- * to “No image” instead of showing a shared placeholder or a broken icon.
+ * to public /uploads/covers before showing “No image”.
  */
 export function CourseListThumbnail({
   image,
@@ -27,14 +26,15 @@ export function CourseListThumbnail({
   fit = "cover",
 }: Props) {
   const raw = (image ?? "").trim();
+  const fallbacks = useMemo(() => catalogCoverFallbackUrls(raw), [raw]);
   const [src, setSrc] = useState(() =>
     raw && !isGenericCoursePlaceholder(raw) && !isProtectedMediaUrl(raw) ? raw : "",
   );
-  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    setFailed(false);
+    setAttempt(0);
     const next = raw.trim();
     if (!next || isGenericCoursePlaceholder(next)) {
       setSrc("");
@@ -48,31 +48,39 @@ export function CourseListThumbnail({
     const slug = courseSlug?.trim() || undefined;
     const email = getLearnerEmail()?.trim();
     void (async () => {
-      const primary = await resolveProtectedMediaUrl(next, {
-        courseSlug: slug,
-        scope: email && slug ? "learner" : "catalog",
-      });
-      if (cancelled) return;
-      if (primary && primary !== next && primary.includes("?t=")) {
-        setSrc(primary);
-        return;
-      }
-      const fallback = await resolveProtectedMediaUrl(next, {
+      const catalog = await resolveProtectedMediaUrl(next, {
         courseSlug: slug,
         scope: "catalog",
       });
-      if (!cancelled) setSrc(fallback || primary || "");
+      if (cancelled) return;
+      if (catalog && catalog.includes("?t=")) {
+        setSrc(catalog);
+        return;
+      }
+      const learner =
+        email && slug
+          ? await resolveProtectedMediaUrl(next, {
+              courseSlug: slug,
+              scope: "learner",
+            })
+          : "";
+      if (cancelled) return;
+      if (learner && learner.includes("?t=")) {
+        setSrc(learner);
+        return;
+      }
+      setSrc(fallbacks[1] || fallbacks[0] || catalog || "");
     })();
     return () => {
       cancelled = true;
     };
-  }, [raw, courseSlug]);
+  }, [raw, courseSlug, fallbacks]);
 
   const box =
     className ??
     "relative h-20 w-28 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/30";
 
-  if (!src || failed) {
+  if (!src) {
     return (
       <div
         className={`flex items-center justify-center px-1 text-center text-[10px] leading-tight text-gray-500 ${box}`}
@@ -84,14 +92,25 @@ export function CourseListThumbnail({
 
   return (
     <div className={box}>
-      <Image
+      {/* Native img: Next/Image fill was blank/500 for many /_next and media URLs */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={src}
         alt={title}
-        fill
-        unoptimized
-        className={fit === "contain" ? "object-contain object-center" : "object-cover object-center"}
-        sizes="(max-width: 768px) 100vw, 400px"
-        onError={() => setFailed(true)}
+        className={
+          fit === "contain"
+            ? "h-full w-full object-contain object-center"
+            : "h-full w-full object-cover object-center"
+        }
+        onError={() => {
+          const next = fallbacks[attempt + 1];
+          if (next && next !== src) {
+            setAttempt((n) => n + 1);
+            setSrc(next);
+            return;
+          }
+          setSrc("");
+        }}
       />
     </div>
   );

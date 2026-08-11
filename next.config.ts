@@ -21,6 +21,23 @@ const nextConfig: NextConfig = {
     },
   },
   serverExternalPackages: ["@prisma/client", "prisma", "nodemailer"],
+  // HTML must never be cached at Cloudflare/nginx — stale HTML points at deleted /_next hashes (404/500 CSS).
+  async headers() {
+    return [
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, must-revalidate" },
+        ],
+      },
+    ];
+  },
   webpack: (config) => {
     config.resolve = config.resolve ?? {};
     config.resolve.alias = {

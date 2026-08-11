@@ -68,7 +68,9 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-/** Resolve readable path: private store first, then legacy public folder. */
+const PUBLIC_COVERS_DIR = path.join(process.cwd(), "public", "uploads", "covers");
+
+/** Resolve readable path: private store first, then legacy public folder, then covers. */
 export async function resolveMediaFilePath(fileName: string): Promise<string | null> {
   const safe = path.basename(fileName);
   if (!safe || safe !== fileName || safe.includes("..")) return null;
@@ -78,6 +80,9 @@ export async function resolveMediaFilePath(fileName: string): Promise<string | n
 
   const legacyPath = path.join(LEGACY_PUBLIC_DIR, safe);
   if (await fileExists(legacyPath)) return legacyPath;
+
+  const coverPath = path.join(PUBLIC_COVERS_DIR, safe);
+  if (await fileExists(coverPath)) return coverPath;
 
   return null;
 }

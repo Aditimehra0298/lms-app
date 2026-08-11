@@ -78,3 +78,28 @@ export function resolveCourseListThumbnail(course: ThumbSource | null | undefine
 export function resolveManagedCourseThumbnail(course: ManagedCourse): string {
   return resolveCourseListThumbnail(course);
 }
+
+/**
+ * Extra public paths to try when a private /api/media/serve cover 401s or 404s.
+ * Many older uploads were stored privately; newer ones live in /uploads/covers.
+ */
+export function catalogCoverFallbackUrls(stored: string): string[] {
+  const s = stored.trim().split("?")[0] ?? "";
+  if (!s) return [];
+  const out: string[] = [s];
+  const serve = s.match(/\/api\/media\/serve\/([^/]+)$/);
+  const admin = s.match(/\/uploads\/admin\/([^/]+)$/);
+  const encoded = serve?.[1] || admin?.[1];
+  if (encoded) {
+    try {
+      const base = decodeURIComponent(encoded);
+      if (base && !base.includes("..") && !base.includes("/")) {
+        out.push(`/uploads/covers/${base}`);
+        out.push(`/uploads/admin/${base}`);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return [...new Set(out)];
+}

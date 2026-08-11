@@ -294,6 +294,13 @@ server {
 
     client_max_body_size 5120M;
 
+    location /_next/static/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
@@ -306,6 +313,7 @@ server {
         proxy_read_timeout 1800s;
         proxy_send_timeout 1800s;
         proxy_request_buffering off;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
     }
 }
 ```
@@ -392,13 +400,25 @@ Database demo script: `docs/SENIOR_DEMO_DATABASE_STEPS.md`
 
 ### Deploy new code release
 
+Do **not** only `git pull` + `pm2 restart`. After every code change:
+
 ```bash
 cd /var/www/lms
-git pull
-npm ci
-npm run build
-pm2 restart lms
+bash scripts/deploy-server.sh
 ```
+
+Then **Cloudflare → Caching → Purge Everything**, and open https://sftlms.com/ in a new Incognito window.
+
+### Unstyled homepage / `/_next/static` 404 + 500
+
+Browsers/Cloudflare kept an old HTML page that still requests deleted files such as `83142a8d24e5c81d.css` and `webpack-ebc6386685364818.js`. Fix on the GCE VM:
+
+```bash
+cd /var/www/lms
+bash scripts/fix-broken-css-gce.sh
+```
+
+If that script is not on the server yet, paste the block in `scripts/fix-broken-css-gce.sh` over SSH, then purge Cloudflare cache.
 
 ### View logs
 
