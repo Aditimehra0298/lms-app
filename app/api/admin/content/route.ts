@@ -41,21 +41,37 @@ function mergeManagedCoursesPreservingCurriculum(
     const slug = c.slug?.trim();
     if (slug) prevBySlug.set(slug, c);
   }
-  return incoming.map((course) => {
-    const prev = prevBySlug.get(course.slug.trim());
-    if (!prev) return course;
-    // Only when curriculum key is omitted (stale Course-tab payloads). Explicit [] clears.
-    if (course.curriculum === undefined && Array.isArray(prev.curriculum) && prev.curriculum.length > 0) {
-      return { ...course, curriculum: prev.curriculum };
+
+  const incomingBySlug = new Map<string, ManagedCourse>();
+  const mergedIncoming: ManagedCourse[] = [];
+  for (const course of incoming ?? []) {
+    const slug = course.slug?.trim();
+    if (!slug) continue;
+    const prev = prevBySlug.get(slug);
+    let next: ManagedCourse = course;
+    if (prev) {
+      // Only when curriculum key is omitted (stale Course-tab payloads). Explicit [] clears.
+      if (course.curriculum === undefined && Array.isArray(prev.curriculum) && prev.curriculum.length > 0) {
+        next = { ...course, curriculum: prev.curriculum };
+      } else {
+        // Guard: never replace a richer curriculum (more modules/videos) with a poorer stale payload.
+        const inScore = curriculumMediaScore(course.curriculum);
+        const prevScore = curriculumMediaScore(prev.curriculum);
+        if (prevScore > 0 && inScore < prevScore && (course.curriculum?.length ?? 0) < (prev.curriculum?.length ?? 0)) {
+          next = { ...course, curriculum: prev.curriculum };
+        }
+      }
     }
-    // Guard: never replace a richer curriculum (more modules/videos) with a poorer stale payload.
-    const inScore = curriculumMediaScore(course.curriculum);
-    const prevScore = curriculumMediaScore(prev.curriculum);
-    if (prevScore > 0 && inScore < prevScore && (course.curriculum?.length ?? 0) < (prev.curriculum?.length ?? 0)) {
-      return { ...course, curriculum: prev.curriculum };
-    }
-    return course;
+    incomingBySlug.set(slug, next);
+    mergedIncoming.push(next);
+  }
+
+  // Keep existing courses that were not in this PUT (partial/stale catalog payloads).
+  const leftovers = (existing ?? []).filter((c) => {
+    const slug = c.slug?.trim();
+    return Boolean(slug) && !incomingBySlug.has(slug);
   });
+  return [...mergedIncoming, ...leftovers];
 }
 
 export async function GET() {

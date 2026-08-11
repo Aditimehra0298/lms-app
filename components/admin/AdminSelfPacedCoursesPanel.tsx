@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { Pencil, Plus, Trash2, Upload } from "lucide-react";
 import type { AdminContent, ManagedCategory, ManagedCourse } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { selfPacedCoverImageHint } from "@/lib/admin-image-hints";
+import { CourseListThumbnail } from "@/components/CourseListThumbnail";
+import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 
 function isSelfPacedCourse(c: ManagedCourse): boolean {
-  return !c.learningFormat || c.learningFormat === "self-paced";
+  const format = (c.learningFormat ?? "").trim().toLowerCase();
+  return !format || format === "self-paced" || format === "self paced" || format === "selfpaced";
 }
 
 const emptyDraft = (): ManagedCourse => ({
@@ -176,7 +178,18 @@ export default function AdminSelfPacedCoursesPanel() {
       const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
       const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
-      setDraft((d) => ({ ...d, image: data.url! }));
+      const imageUrl = data.url;
+      setDraft((d) => ({ ...d, image: imageUrl }));
+      if (content && editingSlug) {
+        const others = (content.managedCourses ?? []).filter((c) => c.slug !== editingSlug);
+        const existing = (content.managedCourses ?? []).find((c) => c.slug === editingSlug);
+        if (existing) {
+          await persistManagedCourses([
+            ...others,
+            { ...existing, ...draft, image: imageUrl, learningFormat: "self-paced" },
+          ]);
+        }
+      }
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Image upload failed.");
     } finally {
@@ -266,9 +279,12 @@ export default function AdminSelfPacedCoursesPanel() {
                     <tr key={c.slug} className="border-b border-white/5 hover:bg-white/[0.02]">
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <div className="relative h-10 w-14 shrink-0 overflow-hidden rounded border border-white/10 bg-black/40">
-                            <Image src={c.image} alt="" fill unoptimized className="object-cover" />
-                          </div>
+                          <CourseListThumbnail
+                            image={resolveCourseListThumbnail(c)}
+                            title={c.title}
+                            courseSlug={c.slug}
+                            className="relative h-10 w-14 shrink-0 overflow-hidden rounded border border-white/10 bg-black/40"
+                          />
                           <div className="min-w-0">
                             <p className="font-medium text-white">{c.title}</p>
                             <p className="truncate text-[10px] text-gray-500">{c.subtitle}</p>

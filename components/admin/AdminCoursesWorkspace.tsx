@@ -9,7 +9,6 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   BookOpen,
@@ -76,6 +75,8 @@ import { sanitizeRegionalPrices } from "@/lib/course-regional-pricing";
 import { sanitizeOrganizationSeatPricing } from "@/lib/organization-course-pricing";
 import { currencyDisplayForCountry, resolvePriceCurrency } from "@/lib/price-currency-detect";
 import { getAdminCurriculumForCourse, totalCurriculumSteps } from "@/lib/course-detail-template";
+import { CourseListThumbnail } from "@/components/CourseListThumbnail";
+import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 
 /** Shared field chrome for the self-paced course editor */
 const spField =
@@ -117,7 +118,10 @@ function computeDiscountPercent(saleStr: string, listStr: string): number | null
 }
 
 function isSelfPaced(c: ManagedCourse): boolean {
-  return !c.learningFormat || c.learningFormat === "self-paced";
+  const format = (c.learningFormat ?? "").trim().toLowerCase();
+  // Catalog editor lists self-paced courses; blank / unknown format is treated as self-paced
+  // so newly saved courses still appear in Admin → Self-paced courses.
+  return !format || format === "self-paced" || format === "self paced" || format === "selfpaced";
 }
 
 const emptyDraft = (): ManagedCourse => ({
@@ -420,9 +424,11 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
   const filteredTableCourses = useMemo(() => {
     if (!categoryFilterSlug) return selfPacedCourses;
-    return selfPacedCourses.filter(
-      (c) => canonicalCategorySlug(c.category) === canonicalCategorySlug(categoryFilterSlug),
-    );
+    const filterSlug = canonicalCategorySlug(categoryFilterSlug);
+    return selfPacedCourses.filter((c) => {
+      const courseCat = canonicalCategorySlug(c.category);
+      return courseCat === filterSlug || c.category === categoryFilterSlug;
+    });
   }, [selfPacedCourses, categoryFilterSlug]);
 
   const selectedCourse = useMemo(
@@ -1474,6 +1480,9 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[11px] font-medium text-gray-300">
                   {filteredTableCourses.length} shown
+                  {selfPacedCourses.length !== filteredTableCourses.length
+                    ? ` · ${selfPacedCourses.length} total`
+                    : ""}
                 </span>
                 {!isLessonsMode ? (
                   <button
@@ -1525,7 +1534,11 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                     <tr>
                       <td colSpan={isLessonsMode ? 5 : 7} className="px-4 py-14 text-center">
                         <p className="text-sm font-medium text-gray-400">No courses match this filter</p>
-                        <p className="mt-1 text-[11px] text-gray-600">Try “All categories” or add a new course.</p>
+                        <p className="mt-1 text-[11px] text-gray-600">
+                          {selfPacedCourses.length > 0
+                            ? "Try “All categories” — a category filter may be hiding the new course."
+                            : "Add a new course, then click Save course."}
+                        </p>
                       </td>
                     </tr>
                   ) : (
@@ -1544,8 +1557,13 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                               className="flex w-full max-w-md items-center gap-3 text-left"
                             >
                               <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/50 shadow-inner">
-                                <Image src={c.image} alt="" fill unoptimized className="object-cover" />
-                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 pb-1 pt-3">
+                                <CourseListThumbnail
+                                  image={resolveCourseListThumbnail(c)}
+                                  title={c.title}
+                                  courseSlug={c.slug}
+                                  className="relative h-14 w-24 overflow-hidden rounded-lg bg-black/40"
+                                />
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 to-transparent px-1.5 pb-1 pt-3">
                                   <p className="truncate text-[10px] font-bold tabular-nums text-amber-300">
                                     {c.price?.trim() || "Set in Pricing"}
                                   </p>
@@ -2086,6 +2104,20 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                   </div>
                   <p className="mt-1 text-[10px] leading-relaxed text-gray-600">{selfPacedCoverImageHint}</p>
                 </label>
+                {resolveCourseListThumbnail(draft) ? (
+                  <div className="relative h-36 w-full overflow-hidden rounded-xl border border-white/10 bg-black/40 md:col-span-2">
+                    <CourseListThumbnail
+                      image={resolveCourseListThumbnail(draft)}
+                      title={draft.title || "Cover preview"}
+                      courseSlug={draft.slug}
+                      className="relative h-36 w-full overflow-hidden rounded-xl bg-black/40"
+                    />
+                  </div>
+                ) : (
+                  <p className="md:col-span-2 text-[11px] text-gray-500">
+                    No cover yet — upload an image below. It will save and show in this catalog table.
+                  </p>
+                )}
                 <div className="md:col-span-2">
                   <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-violet-400/35 bg-violet-500/[0.07] py-3 text-xs font-semibold text-violet-100 transition hover:border-violet-400/55 hover:bg-violet-500/15">
                     <Upload className="h-3.5 w-3.5" />
