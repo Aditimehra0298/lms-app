@@ -5,8 +5,7 @@ import { Pencil, Plus, Trash2, Upload } from "lucide-react";
 import type { AdminContent, ManagedCategory, ManagedCourse } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { selfPacedCoverImageHint } from "@/lib/admin-image-hints";
-import { CourseListThumbnail } from "@/components/CourseListThumbnail";
-import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
+import AdminCourseCoverThumb from "@/components/admin/AdminCourseCoverThumb";
 
 function isSelfPacedCourse(c: ManagedCourse): boolean {
   const format = (c.learningFormat ?? "").trim().toLowerCase();
@@ -279,10 +278,8 @@ export default function AdminSelfPacedCoursesPanel() {
                     <tr key={c.slug} className="border-b border-white/5 hover:bg-white/[0.02]">
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <CourseListThumbnail
-                            image={resolveCourseListThumbnail(c)}
-                            title={c.title}
-                            courseSlug={c.slug}
+                          <AdminCourseCoverThumb
+                            course={c}
                             className="relative h-10 w-14 shrink-0 overflow-hidden rounded border border-white/10 bg-black/40"
                           />
                           <div className="min-w-0">

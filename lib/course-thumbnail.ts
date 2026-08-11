@@ -8,7 +8,6 @@ const GENERIC_PLACEHOLDERS = new Set([
   "",
   "/course-food-safety.png",
   "/course-food-safety.jpg",
-  "/c1.png",
 ]);
 
 export function isGenericCoursePlaceholder(src: string | undefined | null): boolean {

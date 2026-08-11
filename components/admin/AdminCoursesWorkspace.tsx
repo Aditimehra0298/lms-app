@@ -77,6 +77,7 @@ import { currencyDisplayForCountry, resolvePriceCurrency } from "@/lib/price-cur
 import { getAdminCurriculumForCourse, totalCurriculumSteps } from "@/lib/course-detail-template";
 import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
+import AdminCourseCoverThumb from "@/components/admin/AdminCourseCoverThumb";
 
 /** Shared field chrome for the self-paced course editor */
 const spField =
@@ -308,6 +309,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
   const [workspaceTab, setWorkspaceTab] = useState<CourseWorkspaceTab>("Catalog");
 
   const [categoryFilterSlug, setCategoryFilterSlug] = useState("");
+  const [catalogSearch, setCatalogSearch] = useState("");
   const [selectedSlug, setSelectedSlug] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
@@ -419,17 +421,30 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
   );
 
   const selfPacedCourses = useMemo(() => {
-    return (content?.managedCourses ?? []).filter(isSelfPaced);
+    const all = content?.managedCourses ?? [];
+    const selfPaced = all.filter(isSelfPaced);
+    // If a course is on the learner dashboard but missing from the filtered list
+    // (wrong/blank learningFormat), still show the full catalog so it can be edited.
+    return selfPaced.length > 0 && selfPaced.length === all.length ? selfPaced : all;
   }, [content]);
 
   const filteredTableCourses = useMemo(() => {
-    if (!categoryFilterSlug) return selfPacedCourses;
-    const filterSlug = canonicalCategorySlug(categoryFilterSlug);
+    const q = catalogSearch.trim().toLowerCase();
     return selfPacedCourses.filter((c) => {
-      const courseCat = canonicalCategorySlug(c.category);
-      return courseCat === filterSlug || c.category === categoryFilterSlug;
+      if (categoryFilterSlug) {
+        const filterSlug = canonicalCategorySlug(categoryFilterSlug);
+        const courseCat = canonicalCategorySlug(c.category);
+        if (courseCat !== filterSlug && c.category !== categoryFilterSlug) return false;
+      }
+      if (!q) return true;
+      return (
+        c.title.toLowerCase().includes(q) ||
+        c.slug.toLowerCase().includes(q) ||
+        (c.subtitle ?? "").toLowerCase().includes(q) ||
+        (c.category ?? "").toLowerCase().includes(q)
+      );
     });
-  }, [selfPacedCourses, categoryFilterSlug]);
+  }, [selfPacedCourses, categoryFilterSlug, catalogSearch]);
 
   const selectedCourse = useMemo(
     () => (selectedSlug ? selfPacedCourses.find((c) => c.slug === selectedSlug) ?? null : null),
@@ -1495,13 +1510,22 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                 ) : null}
               </div>
             </div>
-            <div className="border-b border-white/[0.05] px-4 py-3 sm:px-5">
+            <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.05] px-4 py-3 sm:px-5">
+              <label className="flex min-w-[14rem] flex-1 flex-col gap-1.5 text-[11px] font-medium text-gray-500">
+                Search courses
+                <input
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  placeholder="Search title, slug, or ISO 14001…"
+                  className={`${spField} mt-0 text-sm`}
+                />
+              </label>
               <label className="flex max-w-xs flex-col gap-1.5 text-[11px] font-medium text-gray-500">
                 Filter by category
                 <select
                   value={categoryFilterSlug}
                   onChange={(e) => setCategoryFilterSlug(e.target.value)}
-                  className={`${spField} cursor-pointer text-sm`}
+                  className={`${spField} mt-0 cursor-pointer text-sm`}
                 >
                   <option value="">All categories</option>
                   {categories.map((c) => (
@@ -1557,11 +1581,9 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                               className="flex w-full max-w-md items-center gap-3 text-left"
                             >
                               <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/50 shadow-inner">
-                                <CourseListThumbnail
-                                  image={resolveCourseListThumbnail(c)}
-                                  title={c.title}
-                                  courseSlug={c.slug}
-                                  className="relative h-14 w-24 overflow-hidden rounded-lg bg-black/40"
+                                <AdminCourseCoverThumb
+                                  course={c}
+                                  className="h-14 w-24 overflow-hidden rounded-lg border-0 bg-black/40"
                                 />
                                 <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 to-transparent px-1.5 pb-1 pt-3">
                                   <p className="truncate text-[10px] font-bold tabular-nums text-amber-300">
