@@ -1062,7 +1062,7 @@ export default function CourseLearningPlayerPage() {
           </div>
         ) : null}
 
-        <section className="mt-4 grid gap-3 xl:grid-cols-[1.9fr_1fr] xl:items-start">
+        <section className="mt-4 grid gap-4 xl:grid-cols-2 xl:items-start">
           <div ref={leftColumnRef} className="space-y-3">
             <article className="overflow-hidden rounded-xl border border-white/10 bg-[#0c1324]">
               <div className="relative bg-black">
@@ -1220,37 +1220,39 @@ export default function CourseLearningPlayerPage() {
                   if (!aboutUnique && !introText) {
                     return (
                       <>
-                        <h3 className="lesson-gold-heading">About the Module</h3>
-                        <p className="mt-2 text-sm leading-7 text-gray-500">
-                          Module details will appear here once added in Admin.
+                        <h3 className="lesson-gold-heading">About this lesson</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                          Lesson details will appear here once added in Admin.
                         </p>
                       </>
                     );
                   }
-                  if (!aboutUnique) return null;
                   return (
-                    <>
-                      <h3 className="lesson-gold-heading">About the Module</h3>
-                      <p className="mt-2 text-sm leading-7 text-gray-300">{aboutUnique}</p>
-                    </>
+                    <div className="grid gap-3 lg:grid-cols-2">
+                      <div>
+                        <h3 className="lesson-gold-heading">About this lesson</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                          {aboutUnique || introText}
+                        </p>
+                      </div>
+                      {activeItem?.learningOutcomes && activeItem.learningOutcomes.length > 0 ? (
+                        <div>
+                          <h3 className="lesson-gold-heading">Learning outcomes</h3>
+                          <ul className="mt-2 space-y-1.5">
+                            {activeItem.learningOutcomes.slice(0, 3).map((point) => (
+                              <li
+                                key={point}
+                                className="rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-xs leading-snug text-gray-300"
+                              >
+                                {point}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
                   );
                 })()}
-
-                {activeItem?.learningOutcomes && activeItem.learningOutcomes.length > 0 ? (
-                  <>
-                    <h3 className="lesson-gold-heading mt-4">Learning Outcomes</h3>
-                    <div className="mt-2 grid gap-2 md:grid-cols-2">
-                      {activeItem.learningOutcomes.map((point) => (
-                        <div
-                          key={point}
-                          className="rounded-md border border-white/10 bg-black/30 p-2 text-xs text-gray-300"
-                        >
-                          {point}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                ) : null}
               </div>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
@@ -1564,7 +1566,14 @@ export default function CourseLearningPlayerPage() {
                         >
                           {locked ? <Lock size={12} /> : idx + 1}
                         </span>
-                        <span className="line-clamp-2 font-semibold">{moduleTitle(module, idx)}</span>
+                        <span className="min-w-0">
+                          <span className="line-clamp-2 font-semibold">{moduleTitle(module, idx)}</span>
+                          {module.description?.trim() ? (
+                            <span className="mt-0.5 block line-clamp-2 text-[10px] font-normal leading-snug text-gray-500">
+                              {module.description.trim()}
+                            </span>
+                          ) : null}
+                        </span>
                       </div>
                       <div className="inline-flex shrink-0 items-center gap-2">
                         {locked ? (
@@ -1604,9 +1613,16 @@ export default function CourseLearningPlayerPage() {
                                 return (
                                   <div
                                     key={entryKey}
-                                    className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] text-gray-400"
+                                    className="flex items-start justify-between gap-2 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-left text-[11px] text-gray-400"
                                   >
-                                    <span className="truncate">{examLabel}</span>
+                                    <span className="min-w-0">
+                                      <span className="block truncate font-medium">{examLabel}</span>
+                                      {entry.description?.trim() ? (
+                                        <span className="mt-0.5 block line-clamp-2 text-[10px] leading-snug text-gray-500">
+                                          {entry.description.trim()}
+                                        </span>
+                                      ) : null}
+                                    </span>
                                     <span className="shrink-0 text-[10px] text-amber-300">Exam file pending</span>
                                   </div>
                                 );
@@ -1617,23 +1633,32 @@ export default function CourseLearningPlayerPage() {
                                 <Link
                                   key={entryKey}
                                   href={`/my-learning/course/${slug}/exam?module=${idx + 1}`}
-                                  className={`flex items-center justify-between rounded-md border px-2 py-1.5 text-[11px] hover:opacity-95 ${
+                                  className={`flex items-start justify-between gap-2 rounded-md border px-2 py-1.5 text-left text-[11px] hover:opacity-95 ${
                                     examPassed
                                       ? "border-amber-300/35 bg-amber-500/10 text-amber-100"
                                       : "border-emerald-300/30 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25"
                                   }`}
                                 >
-                                  <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
+                                  <span className="inline-flex min-w-0 items-start gap-1.5">
                                     <CheckCircle2
                                       size={11}
-                                      className={examPassed ? "text-amber-300" : "text-emerald-300"}
+                                      className={`mt-0.5 shrink-0 ${examPassed ? "text-amber-300" : "text-emerald-300"}`}
                                     />
-                                    {examLabel}
-                                    {examPassed && typeof examPercent === "number" ? (
-                                      <span className="shrink-0 text-[10px] text-amber-200/90">
-                                        Best {examPercent}%
+                                    <span className="min-w-0">
+                                      <span className="block truncate font-medium">
+                                        {examLabel}
+                                        {examPassed && typeof examPercent === "number" ? (
+                                          <span className="ml-1.5 text-[10px] font-normal text-amber-200/90">
+                                            Best {examPercent}%
+                                          </span>
+                                        ) : null}
                                       </span>
-                                    ) : null}
+                                      {entry.description?.trim() ? (
+                                        <span className="mt-0.5 block line-clamp-2 text-[10px] font-normal leading-snug text-emerald-100/70">
+                                          {entry.description.trim()}
+                                        </span>
+                                      ) : null}
+                                    </span>
                                   </span>
                                   <span
                                     className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] ${
@@ -1657,23 +1682,32 @@ export default function CourseLearningPlayerPage() {
                                 setSelectedModuleIdx(idx);
                                 setSelectedEntryIdx(entryIdx);
                               }}
-                              className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[11px] ${
+                              className={`flex w-full items-start justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[11px] ${
                                 entryIdx === selectedEntryIdx
                                   ? "bg-violet-500/20 text-violet-100 ring-1 ring-violet-300/30"
                                   : "bg-black/35 text-gray-300 hover:bg-white/5"
                               }`}
                             >
-                              <span className="inline-flex items-center gap-1.5">
+                              <span className="inline-flex min-w-0 items-start gap-1.5">
                                 {entry.kind === "video" ? (
-                                  <PlayCircle size={11} className="text-emerald-300" />
+                                  <PlayCircle size={11} className="mt-0.5 shrink-0 text-emerald-300" />
                                 ) : (
-                                  <FileText size={11} className="text-violet-300" />
+                                  <FileText size={11} className="mt-0.5 shrink-0 text-violet-300" />
                                 )}
-                                {entry.label?.trim() || `Lesson ${entryIdx + 1}`}
+                                <span className="min-w-0">
+                                  <span className="block truncate font-medium">
+                                    {entry.label?.trim() || `Lesson ${entryIdx + 1}`}
+                                  </span>
+                                  {entry.description?.trim() ? (
+                                    <span className="mt-0.5 block line-clamp-2 text-[10px] leading-snug text-gray-500">
+                                      {entry.description.trim()}
+                                    </span>
+                                  ) : null}
+                                </span>
                               </span>
-                              <span className="inline-flex items-center gap-1">
+                              <span className="inline-flex shrink-0 items-center gap-1 pt-0.5">
                                 <span className="rounded border border-white/10 bg-black/25 px-1.5 py-0.5 text-[10px] text-gray-300">
-                                  {entry.kind === "video" ? "Video" : "Reading"}
+                                  {entry.kind === "video" ? "Lecture" : "Document"}
                                 </span>
                                 {entry.kind === "video" && (entry.previewLimitMinutes ?? 0) > 0 ? (
                                   <span className="inline-flex items-center rounded border border-cyan-300/35 bg-cyan-500/15 px-1 py-0.5 text-[9px] text-cyan-100">

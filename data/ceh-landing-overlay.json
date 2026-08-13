@@ -1,0 +1,2579 @@
+{
+  "slug": "courses-certfied-ethical-hacking-and-penitration-testing",
+  "course": {
+    "title": "Certified Ethical Hacking and Penetration Testing",
+    "subtitle": "Master ethical hacking and penetration testing across 85 video lectures and 85 module assessments — from footprinting and scanning to web, cloud, containers, and cryptography — with a Certificate of Attainment pathway.",
+    "category": "cyber-security",
+    "level": "Intermediate",
+    "duration": "22h 51m",
+    "image": "/uploads/covers/ceh-ethical-hacking-poster.png",
+    "pageBadge": "BESTSELLER",
+    "highlights": [
+      "85 video lectures mapped to the professional pathway",
+      "85 module assessments to lock in learning",
+      "Footprinting, scanning, enumeration, and system hacking foundations",
+      "Web, wireless, cloud, containers/Kubernetes, and cryptography modules",
+      "Legal, ethical, and standards-aware approach throughout",
+      "Self-paced e-learning with Certificate of Attainment sample",
+      "Designed for IT and security career progression",
+      "Study on desktop or mobile at your own pace"
+    ],
+    "faqs": [
+      {
+        "q": "How many lectures and exams are in this course?",
+        "a": "This program includes 85 video lectures across 85 module parts, plus 85 assessments paired with the learning path."
+      },
+      {
+        "q": "Is practice only allowed on authorized systems?",
+        "a": "Yes. You must only test systems you own or have written permission to assess. The course emphasizes legal and ethical boundaries."
+      },
+      {
+        "q": "Do I get a certificate?",
+        "a": "Complete the required lectures and assessments to unlock your Certificate of Attainment for the Cybersecurity, Ethical Hacking & Penetration Testing Professional Course."
+      },
+      {
+        "q": "What topics are covered?",
+        "a": "Introduction to ethical hacking, threat landscape, MITRE ATT&CK, footprinting, scanning, and advanced modules through containers/Kubernetes security and cryptography."
+      },
+      {
+        "q": "Is this self-paced?",
+        "a": "Yes. Mode is e-learning / video-based / self-paced. Progress through modules when it suits you."
+      },
+      {
+        "q": "How long is the program?",
+        "a": "The certificate pathway is designed around a 25-hour professional course load, delivered as structured module parts with assessments."
+      }
+    ],
+    "trainerRole": "Cybersecurity & Ethical Hacking Faculty",
+    "trainerExperience": "10+ years · Security operations & training",
+    "trainerBio": "Built by the SFT Expert Team for learners moving into ethical hacking and penetration testing roles. Content follows a professional module sequence with a lecture and assessment in each part.\n\nYou progress from foundations and recon through modern surfaces such as cloud, containers, and cryptography — always with ethics and reporting discipline in view.",
+    "trainerCertifications": [
+      "Certified Trainer",
+      "Information Security"
+    ],
+    "trainerWorkedWith": [
+      "SFT"
+    ],
+    "instructorName": "SFT Expert Team",
+    "instructorSection": {
+      "headline": "Course Developed by SFT Expert Team",
+      "introParagraphs": [
+        "Sustainable Futures Trainings designed this pathway for serious ethical hacking learners who need depth — not a thin overview.",
+        "With 85 module parts, each typically pairing a lecture and an assessment, you build momentum the same way professional programs do.",
+        "The sample Certificate of Attainment reflects the professional course title, duration, and e-learning mode used on the program."
+      ],
+      "sidebarInstructors": [
+        {
+          "name": "SFT Expert Team",
+          "role": "Cybersecurity faculty"
+        },
+        {
+          "name": "Ethical Hacking Lead",
+          "role": "Penetration testing methodology"
+        },
+        {
+          "name": "Assessment Coach",
+          "role": "Module checks & readiness"
+        }
+      ]
+    },
+    "overviewSection": {
+      "learnOutcomes": [
+        "Explain ethical hacking concepts, laws, and security standards",
+        "Apply footprinting and reconnaissance techniques responsibly",
+        "Scan and interpret network attack surfaces",
+        "Relate threats to Cyber Kill Chain and MITRE ATT&CK",
+        "Assess modern surfaces including containers and cryptography themes",
+        "Complete module assessments to prove understanding before moving on"
+      ],
+      "whatYouLearn": [
+        {
+          "title": "Ethical hacking foundations",
+          "description": "Threat landscape, controls, laws, and standards."
+        },
+        {
+          "title": "ATT&CK & kill chain",
+          "description": "How real adversary behavior is framed."
+        },
+        {
+          "title": "Footprinting & recon",
+          "description": "Information gathering before deeper testing."
+        },
+        {
+          "title": "Network scanning",
+          "description": "Discover hosts, ports, and services."
+        },
+        {
+          "title": "Modern platforms",
+          "description": "Containers, Kubernetes, and crypto modules."
+        },
+        {
+          "title": "Assessment discipline",
+          "description": "Prove learning after each lecture part."
+        }
+      ],
+      "requirements": [
+        "Basic networking and OS familiarity",
+        "Authorization to practice only on permitted systems",
+        "Computer with internet access for video lessons",
+        "Commitment to complete lecture + assessment pairs"
+      ]
+    },
+    "seo": {
+      "metaTitle": "Certified Ethical Hacking & Penetration Testing | SFT",
+      "metaDescription": "85 lectures and 85 assessments — ethical hacking, recon, scanning, cloud/containers, cryptography, certificate pathway.",
+      "focusKeyword": "certified ethical hacking penetration testing"
+    },
+    "hero": {
+      "previewLabel": "Preview this Course",
+      "ratingCount": "4.8",
+      "studentsLabel": "1,240 students",
+      "lastUpdated": "2026",
+      "language": "English",
+      "captions": "English [Auto]",
+      "lectureCount": "85 Lectures",
+      "projects": "85 module assessments",
+      "certificate": "Certificate of Attainment",
+      "access": "Lifetime",
+      "shareable": "Yes",
+      "moneyBackGuarantee": "7 days money-back guarantee",
+      "enrollButtonLabel": "Enroll Now",
+      "wishlistButtonLabel": "Add to Wishlist",
+      "certificatePreviewLabel": "Certificate of Attainment",
+      "certificatePreviewImage": "/certificates/ceh-penetration-testing-sample.png",
+      "aboutText": "This self-paced professional course delivers 85 video lectures and 85 assessments across the ethical hacking lifecycle. You begin with ethical hacking foundations, the modern threat landscape, cyber kill chain and MITRE ATT&CK, then move into footprinting, reconnaissance, and network scanning.\n\nLater modules continue through advanced security topics including containers/Kubernetes and cryptography — matching the Cybersecurity, Ethical Hacking & Penetration Testing Professional Course certificate pathway (25 hours, e-learning, video-based, self-paced).",
+      "courseIncludes": [
+        "85 on-demand video lectures",
+        "85 module assessments",
+        "Structured ethical hacking pathway",
+        "Certificate of Attainment preview",
+        "Full lifetime access",
+        "Access on mobile and desktop"
+      ],
+      "backgroundImage": "/uploads/covers/ceh-pentest-hero.png",
+      "previewImage": "/uploads/covers/ceh-ethical-hacking-poster.png"
+    },
+    "certificateConfig": {
+      "enabled": true,
+      "provider": "n8n",
+      "showInLearnerDashboard": true,
+      "autoVisibleWhenReady": true,
+      "requireAdminApproval": false,
+      "title": "Certificate of Attainment"
+    },
+    "regionalPrices": [
+      {
+        "countryCode": "IN",
+        "price": "₹4,199",
+        "oldPrice": "₹6,699",
+        "basePrice": "₹3,299"
+      },
+      {
+        "countryCode": "US",
+        "price": "$49.00",
+        "oldPrice": "$79.00",
+        "basePrice": "$39.00"
+      },
+      {
+        "countryCode": "AE",
+        "price": "AED 179.00",
+        "oldPrice": "AED 289.00",
+        "basePrice": "AED 139.00"
+      },
+      {
+        "countryCode": "GB",
+        "price": "£39.00",
+        "oldPrice": "£59.00",
+        "basePrice": "£29.00"
+      },
+      {
+        "countryCode": "AU",
+        "price": "A$79.00",
+        "oldPrice": "A$129.00",
+        "basePrice": "A$59.00"
+      }
+    ]
+  },
+  "curriculum": [
+    {
+      "title": "Introduction Ethical Hacking & Penetration Testing Professional Course",
+      "description": "Module focus: Introduction Ethical Hacking & Penetration Testing Professional Course. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Introduction Ethical Hacking & Penetration Testing Professional Course",
+          "description": "Foundations of ethical hacking and how professional testing is framed.",
+          "about": "This session introduces ethical hacking as a controlled, authorized practice. You will learn how penetration testing differs from malicious attacks and how professionals stay within legal scope.",
+          "learningOutcomes": [
+            "Define ethical hacking and authorized testing",
+            "Distinguish offensive testing from crime",
+            "State why scope and consent matter"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Introduction Ethical Hacking & Penetration Testing Professional Course",
+          "description": "Module examination on ethical hacking foundations, authorized testing, and professional scope. Pass mark 70%.",
+          "about": "This examination checks that you can define ethical hacking, explain authorized testing, and apply professional scope rules from the lecture.",
+          "learningOutcomes": [
+            "Define ethical hacking correctly",
+            "Identify authorized vs unauthorized activity",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 1 : Introduction to Ethical Hacking (Part 1)",
+      "description": "Module focus: Introduction to Ethical Hacking. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Introduction to Ethical Hacking (Part 1)",
+          "description": "Foundations of ethical hacking and how professional testing is framed.",
+          "about": "This session introduces ethical hacking as a controlled, authorized practice. You will learn how penetration testing differs from malicious attacks and how professionals stay within legal scope.",
+          "learningOutcomes": [
+            "Define ethical hacking and authorized testing",
+            "Distinguish offensive testing from crime",
+            "State why scope and consent matter"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Introduction to Ethical Hacking (Part 1)",
+          "description": "Module examination on ethical hacking foundations, authorized testing, and professional scope. Pass mark 70%.",
+          "about": "This examination checks that you can define ethical hacking, explain authorized testing, and apply professional scope rules from the lecture.",
+          "learningOutcomes": [
+            "Define ethical hacking correctly",
+            "Identify authorized vs unauthorized activity",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 1 : The Modern Threat Landscape(Part 2)",
+      "description": "Module focus: The Modern Threat Landscape. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — The Modern Threat Landscape (Part 2)",
+          "description": "How modern cyber threats are structured and prioritized.",
+          "about": "Review the modern threat landscape: common adversary goals, attack patterns, and why organizations prioritize certain risks. Use this to frame later technical modules.",
+          "learningOutcomes": [
+            "Describe today's threat landscape",
+            "Recognize common adversary motives",
+            "Link threats to business impact"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: The Modern Threat Landscape (Part 2)",
+          "description": "Module examination on threat actors, attack patterns, and business impact. Pass mark 70%.",
+          "about": "This examination assesses how well you can describe the modern threat landscape and why certain risks are prioritized.",
+          "learningOutcomes": [
+            "Identify threat actor types",
+            "Relate attacks to business impact",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 1: Information Warfare , Cyber Kill Chain & MITRE ATT&CK Framework (Part 3)",
+      "description": "Module focus: Information Warfare , Cyber Kill Chain & MITRE ATT&CK Framework. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Information Warfare , Cyber Kill Chain & MITRE ATT&CK Framework (Part 3)",
+          "description": "Adversary models: Cyber Kill Chain and MITRE ATT&CK.",
+          "about": "Learn how defenders and testers map attacker behavior using Cyber Kill Chain and MITRE ATT&CK. These models guide both detection and ethical test planning.",
+          "learningOutcomes": [
+            "Explain Cyber Kill Chain stages",
+            "Use ATT&CK as a shared language",
+            "Apply models to assessment planning"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Information Warfare , Cyber Kill Chain & MITRE ATT&CK Framework (Part 3)",
+          "description": "Module examination on Cyber Kill Chain, MITRE ATT&CK, and information warfare concepts. Pass mark 70%.",
+          "about": "This examination checks your grasp of adversary models used to plan ethical tests and defensive analysis.",
+          "learningOutcomes": [
+            "Recall Kill Chain stages",
+            "Apply ATT&CK terminology",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 1: Information Warfare , Cyber Kill Chain & MITRE ATT&CK Framework (Part 4)",
+      "description": "Module focus: Information Warfare , Cyber Kill Chain & MITRE ATT&CK Framework. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Information Warfare , Cyber Kill Chain & MITRE ATT&CK Framework (Part 4)",
+          "description": "Adversary models: Cyber Kill Chain and MITRE ATT&CK.",
+          "about": "Learn how defenders and testers map attacker behavior using Cyber Kill Chain and MITRE ATT&CK. These models guide both detection and ethical test planning.",
+          "learningOutcomes": [
+            "Explain Cyber Kill Chain stages",
+            "Use ATT&CK as a shared language",
+            "Apply models to assessment planning"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Information Warfare , Cyber Kill Chain & MITRE ATT&CK Framework (Part 4)",
+          "description": "Module examination on Cyber Kill Chain, MITRE ATT&CK, and information warfare concepts. Pass mark 70%.",
+          "about": "This examination checks your grasp of adversary models used to plan ethical tests and defensive analysis.",
+          "learningOutcomes": [
+            "Recall Kill Chain stages",
+            "Apply ATT&CK terminology",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 1: Hacking Concepts & Information Security Controls, Laws, and Standards(Part 5)",
+      "description": "Module focus: Hacking Concepts & Information Security Controls, Laws, and Standards. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Hacking Concepts & Information Security Controls, Laws, and Standards (Part 5)",
+          "description": "Security controls, laws, and professional standards.",
+          "about": "Cover core security controls and the legal/standards context ethical hackers must respect. Focus on compliance-minded practice, not loopholes.",
+          "learningOutcomes": [
+            "Name key security control types",
+            "Relate testing to laws and standards",
+            "Apply a compliance-first mindset"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Hacking Concepts & Information Security Controls, Laws, and Standards (Part 5)",
+          "description": "Module examination on security controls, laws, and professional standards. Pass mark 70%.",
+          "about": "This examination confirms you understand the legal and standards context that governs ethical hacking work.",
+          "learningOutcomes": [
+            "Identify control types",
+            "Apply legal and standards awareness",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 1 : Information Security Laws, and Standards(Part 6)",
+      "description": "Module focus: Information Security Laws, and Standards. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Information Security Laws, and Standards (Part 6)",
+          "description": "Security controls, laws, and professional standards.",
+          "about": "Cover core security controls and the legal/standards context ethical hackers must respect. Focus on compliance-minded practice, not loopholes.",
+          "learningOutcomes": [
+            "Name key security control types",
+            "Relate testing to laws and standards",
+            "Apply a compliance-first mindset"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Information Security Laws, and Standards (Part 6)",
+          "description": "Module examination on security controls, laws, and professional standards. Pass mark 70%.",
+          "about": "This examination confirms you understand the legal and standards context that governs ethical hacking work.",
+          "learningOutcomes": [
+            "Identify control types",
+            "Apply legal and standards awareness",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Footprinting and Reconnaissance (Part1)",
+      "description": "Module focus: Footprinting and Reconnaissance. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Footprinting and Reconnaissance (Part 1)",
+          "description": "Footprinting and reconnaissance before deeper testing.",
+          "about": "Learn how ethical testers gather public and permitted information about a target. Emphasizes careful documentation and staying inside engagement rules.",
+          "learningOutcomes": [
+            "Plan a recon workflow",
+            "Separate passive vs active methods",
+            "Record findings for later stages"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Footprinting and Reconnaissance (Part 1)",
+          "description": "Module examination on footprinting, reconnaissance methods, and engagement rules. Pass mark 70%.",
+          "about": "This examination checks reconnaissance concepts from the lecture, including passive vs active methods and documentation discipline.",
+          "learningOutcomes": [
+            "Distinguish passive and active recon",
+            "Apply engagement-safe recon steps",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Footprinting and Reconnaissance (Part2)",
+      "description": "Module focus: Footprinting and Reconnaissance. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Footprinting and Reconnaissance (Part 2)",
+          "description": "Footprinting and reconnaissance before deeper testing.",
+          "about": "Learn how ethical testers gather public and permitted information about a target. Emphasizes careful documentation and staying inside engagement rules.",
+          "learningOutcomes": [
+            "Plan a recon workflow",
+            "Separate passive vs active methods",
+            "Record findings for later stages"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Footprinting and Reconnaissance (Part 2)",
+          "description": "Module examination on footprinting, reconnaissance methods, and engagement rules. Pass mark 70%.",
+          "about": "This examination checks reconnaissance concepts from the lecture, including passive vs active methods and documentation discipline.",
+          "learningOutcomes": [
+            "Distinguish passive and active recon",
+            "Apply engagement-safe recon steps",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Footprinting Through Different Services (Part3)",
+      "description": "Module focus: Footprinting Through Different Services. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Footprinting Through Different Services (Part 3)",
+          "description": "Footprinting and reconnaissance before deeper testing.",
+          "about": "Learn how ethical testers gather public and permitted information about a target. Emphasizes careful documentation and staying inside engagement rules.",
+          "learningOutcomes": [
+            "Plan a recon workflow",
+            "Separate passive vs active methods",
+            "Record findings for later stages"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Footprinting Through Different Services (Part 3)",
+          "description": "Module examination on footprinting, reconnaissance methods, and engagement rules. Pass mark 70%.",
+          "about": "This examination checks reconnaissance concepts from the lecture, including passive vs active methods and documentation discipline.",
+          "learningOutcomes": [
+            "Distinguish passive and active recon",
+            "Apply engagement-safe recon steps",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Network Footprinting (Part 4)",
+      "description": "Module focus: Network Footprinting. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Network Footprinting (Part 4)",
+          "description": "Footprinting and reconnaissance before deeper testing.",
+          "about": "Learn how ethical testers gather public and permitted information about a target. Emphasizes careful documentation and staying inside engagement rules.",
+          "learningOutcomes": [
+            "Plan a recon workflow",
+            "Separate passive vs active methods",
+            "Record findings for later stages"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Network Footprinting (Part 4)",
+          "description": "Module examination on footprinting, reconnaissance methods, and engagement rules. Pass mark 70%.",
+          "about": "This examination checks reconnaissance concepts from the lecture, including passive vs active methods and documentation discipline.",
+          "learningOutcomes": [
+            "Distinguish passive and active recon",
+            "Apply engagement-safe recon steps",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Scanning Networks(Part 5)",
+      "description": "Module focus: Scanning Networks. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Scanning Networks (Part 5)",
+          "description": "Network scanning and service discovery concepts.",
+          "about": "Understand host discovery, port identification, and service awareness used in authorized assessments. Focus on interpretation and evidence, not reckless scanning.",
+          "learningOutcomes": [
+            "Outline a scanning workflow",
+            "Interpret common scan outputs",
+            "Prioritize interesting services"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Scanning Networks (Part 5)",
+          "description": "Module examination on network scanning, host discovery, and service identification. Pass mark 70%.",
+          "about": "This examination assesses scanning workflow, interpretation of results, and responsible use in authorized tests.",
+          "learningOutcomes": [
+            "Order scanning stages",
+            "Interpret common scan results",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Host and Port Discovery (Part 6)",
+      "description": "Module focus: Host and Port Discovery. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Host and Port Discovery (Part 6)",
+          "description": "Core concepts for Host and Port Discovery.",
+          "about": "This lecture focuses on “Host and Port Discovery”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Host and Port Discovery",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Host and Port Discovery (Part 6)",
+          "description": "Module examination on Host and Port Discovery. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Host and Port Discovery”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Host and Port Discovery",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Scanning Beyond IDS and Firewall (Part 7)",
+      "description": "Module focus: Scanning Beyond IDS and Firewall. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Scanning Beyond IDS and Firewall (Part 7)",
+          "description": "Network scanning and service discovery concepts.",
+          "about": "Understand host discovery, port identification, and service awareness used in authorized assessments. Focus on interpretation and evidence, not reckless scanning.",
+          "learningOutcomes": [
+            "Outline a scanning workflow",
+            "Interpret common scan outputs",
+            "Prioritize interesting services"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Scanning Beyond IDS and Firewall (Part 7)",
+          "description": "Module examination on network scanning, host discovery, and service identification. Pass mark 70%.",
+          "about": "This examination assesses scanning workflow, interpretation of results, and responsible use in authorized tests.",
+          "learningOutcomes": [
+            "Order scanning stages",
+            "Interpret common scan results",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Enumeration (Part 8)",
+      "description": "Module focus: Enumeration. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Enumeration (Part 8)",
+          "description": "Enumeration of users, shares, and services.",
+          "about": "Enumeration turns scan data into specific targets such as accounts, shares, and banners. Practice disciplined note-taking for later vulnerability review.",
+          "learningOutcomes": [
+            "Define enumeration goals",
+            "Identify useful enumeration targets",
+            "Document evidence clearly"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Enumeration (Part 8)",
+          "description": "Module examination on enumeration targets, methods, and evidence capture. Pass mark 70%.",
+          "about": "This examination checks that you can explain enumeration goals and how findings feed the next testing stage.",
+          "learningOutcomes": [
+            "Define enumeration purpose",
+            "Identify typical enumeration targets",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Network Service Enumeration (Part 9)",
+      "description": "Module focus: Network Service Enumeration. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Network Service Enumeration (Part 9)",
+          "description": "Enumeration of users, shares, and services.",
+          "about": "Enumeration turns scan data into specific targets such as accounts, shares, and banners. Practice disciplined note-taking for later vulnerability review.",
+          "learningOutcomes": [
+            "Define enumeration goals",
+            "Identify useful enumeration targets",
+            "Document evidence clearly"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Network Service Enumeration (Part 9)",
+          "description": "Module examination on enumeration targets, methods, and evidence capture. Pass mark 70%.",
+          "about": "This examination checks that you can explain enumeration goals and how findings feed the next testing stage.",
+          "learningOutcomes": [
+            "Define enumeration purpose",
+            "Identify typical enumeration targets",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 3 : Vulnerability Analysis (Part 1)",
+      "description": "Module focus: Vulnerability Analysis. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Vulnerability Analysis (Part 1)",
+          "description": "Finding and prioritizing vulnerabilities.",
+          "about": "Learn how testers validate and rank weaknesses. Emphasize false-positive reduction and clear severity language for reports.",
+          "learningOutcomes": [
+            "Triage findings by risk",
+            "Reduce false positives",
+            "Prepare validated notes"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Vulnerability Analysis (Part 1)",
+          "description": "Module examination on vulnerability triage, severity, and validation. Pass mark 70%.",
+          "about": "This examination assesses how you prioritize weaknesses and describe them clearly for reporting.",
+          "learningOutcomes": [
+            "Rank findings by risk",
+            "Spot likely false positives",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 3 : System hacking (Part 2)",
+      "description": "Module focus: System hacking. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — System hacking (Part 2)",
+          "description": "System access and privilege concepts in ethical tests.",
+          "about": "Awareness of how unauthorized access and privilege paths appear in assessments — framed for defense and authorized testing only.",
+          "learningOutcomes": [
+            "Describe privilege risk themes",
+            "Note defensive controls",
+            "Keep findings within scope"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: System hacking (Part 2)",
+          "description": "Module examination on system access, privilege risks, and in-scope testing. Pass mark 70%.",
+          "about": "This examination checks awareness of privilege-related risks and the need to stay within authorized scope.",
+          "learningOutcomes": [
+            "Describe privilege risk themes",
+            "Identify defensive controls",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 3 : Vulnerability Exploitation and privilege Escalation (Part 3)",
+      "description": "Module focus: Vulnerability Exploitation and privilege Escalation. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Vulnerability Exploitation and privilege Escalation (Part 3)",
+          "description": "Finding and prioritizing vulnerabilities.",
+          "about": "Learn how testers validate and rank weaknesses. Emphasize false-positive reduction and clear severity language for reports.",
+          "learningOutcomes": [
+            "Triage findings by risk",
+            "Reduce false positives",
+            "Prepare validated notes"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Vulnerability Exploitation and privilege Escalation (Part 3)",
+          "description": "Module examination on vulnerability triage, severity, and validation. Pass mark 70%.",
+          "about": "This examination assesses how you prioritize weaknesses and describe them clearly for reporting.",
+          "learningOutcomes": [
+            "Rank findings by risk",
+            "Spot likely false positives",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 3 : Maintaining Access (Part 4)",
+      "description": "Module focus: Maintaining Access. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Maintaining Access (Part 4)",
+          "description": "Core concepts for Maintaining Access.",
+          "about": "This lecture focuses on “Maintaining Access”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Maintaining Access",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Maintaining Access (Part 4)",
+          "description": "Module examination on Maintaining Access. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Maintaining Access”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Maintaining Access",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : Malware Concepts and Component's (Part 1)",
+      "description": "Module focus: Malware Concepts and Component's. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Malware Concepts and Component's (Part 1)",
+          "description": "Malware awareness for ethical security work.",
+          "about": "Recognize malware categories and indicators at a high level. Stress safe handling and escalation — never unsafe experimentation outside controlled labs.",
+          "learningOutcomes": [
+            "Identify malware indicator themes",
+            "Describe safe response steps",
+            "Know when to escalate"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Malware Concepts and Component's (Part 1)",
+          "description": "Module examination on malware categories, indicators, and safe handling. Pass mark 70%.",
+          "about": "This examination confirms you can recognize malware themes and choose safe professional next steps.",
+          "learningOutcomes": [
+            "Match indicators to malware themes",
+            "Select safe response actions",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : Understanding Advanced Persistent Threats (APTs) (Part 2)",
+      "description": "Module focus: Understanding Advanced Persistent Threats (APTs). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Understanding Advanced Persistent Threats (APTs) (Part 2)",
+          "description": "Core concepts for Understanding Advanced Persistent Threats (APTs).",
+          "about": "This lecture focuses on “Understanding Advanced Persistent Threats (APTs)”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Understanding Advanced Persistent Threats (APTs)",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Understanding Advanced Persistent Threats (APTs) (Part 2)",
+          "description": "Module examination on Understanding Advanced Persistent Threats (APTs). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Understanding Advanced Persistent Threats (APTs)”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Understanding Advanced Persistent Threats (APTs)",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : Virus vs. worms - Understanding The key Difference (Part 3)",
+      "description": "Module focus: Virus vs. worms - Understanding The key Difference. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Virus vs. worms - Understanding The key Difference (Part 3)",
+          "description": "Malware awareness for ethical security work.",
+          "about": "Recognize malware categories and indicators at a high level. Stress safe handling and escalation — never unsafe experimentation outside controlled labs.",
+          "learningOutcomes": [
+            "Identify malware indicator themes",
+            "Describe safe response steps",
+            "Know when to escalate"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Virus vs. worms - Understanding The key Difference (Part 3)",
+          "description": "Module examination on malware categories, indicators, and safe handling. Pass mark 70%.",
+          "about": "This examination confirms you can recognize malware themes and choose safe professional next steps.",
+          "learningOutcomes": [
+            "Match indicators to malware themes",
+            "Select safe response actions",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : What is Malware Analysis ? (Part 4)",
+      "description": "Module focus: What is Malware Analysis ?. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — What is Malware Analysis ? (Part 4)",
+          "description": "Malware awareness for ethical security work.",
+          "about": "Recognize malware categories and indicators at a high level. Stress safe handling and escalation — never unsafe experimentation outside controlled labs.",
+          "learningOutcomes": [
+            "Identify malware indicator themes",
+            "Describe safe response steps",
+            "Know when to escalate"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: What is Malware Analysis ? (Part 4)",
+          "description": "Module examination on malware categories, indicators, and safe handling. Pass mark 70%.",
+          "about": "This examination confirms you can recognize malware themes and choose safe professional next steps.",
+          "learningOutcomes": [
+            "Match indicators to malware themes",
+            "Select safe response actions",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : What is Ransomware ? (Part 5)",
+      "description": "Module focus: What is Ransomware ?. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — What is Ransomware ? (Part 5)",
+          "description": "Malware awareness for ethical security work.",
+          "about": "Recognize malware categories and indicators at a high level. Stress safe handling and escalation — never unsafe experimentation outside controlled labs.",
+          "learningOutcomes": [
+            "Identify malware indicator themes",
+            "Describe safe response steps",
+            "Know when to escalate"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: What is Ransomware ? (Part 5)",
+          "description": "Module examination on malware categories, indicators, and safe handling. Pass mark 70%.",
+          "about": "This examination confirms you can recognize malware themes and choose safe professional next steps.",
+          "learningOutcomes": [
+            "Match indicators to malware themes",
+            "Select safe response actions",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : Fileless Malware-The Invisible Cyber Threat (Part 6)",
+      "description": "Module focus: Fileless Malware-The Invisible Cyber Threat. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Fileless Malware-The Invisible Cyber Threat (Part 6)",
+          "description": "Malware awareness for ethical security work.",
+          "about": "Recognize malware categories and indicators at a high level. Stress safe handling and escalation — never unsafe experimentation outside controlled labs.",
+          "learningOutcomes": [
+            "Identify malware indicator themes",
+            "Describe safe response steps",
+            "Know when to escalate"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Fileless Malware-The Invisible Cyber Threat (Part 6)",
+          "description": "Module examination on malware categories, indicators, and safe handling. Pass mark 70%.",
+          "about": "This examination confirms you can recognize malware themes and choose safe professional next steps.",
+          "learningOutcomes": [
+            "Match indicators to malware themes",
+            "Select safe response actions",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 5 : Network Sniffing-Understanding Traffic Visibility and Interception (Part 1)",
+      "description": "Module focus: Network Sniffing-Understanding Traffic Visibility and Interception. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Network Sniffing-Understanding Traffic Visibility and Interception (Part 1)",
+          "description": "Core concepts for Network Sniffing-Understanding Traffic Visibility and Interception.",
+          "about": "This lecture focuses on “Network Sniffing-Understanding Traffic Visibility and Interception”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Network Sniffing-Understanding Traffic Visibility and Interception",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Network Sniffing-Understanding Traffic Visibility and Interception (Part 1)",
+          "description": "Module examination on Network Sniffing-Understanding Traffic Visibility and Interception. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Network Sniffing-Understanding Traffic Visibility and Interception”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Network Sniffing-Understanding Traffic Visibility and Interception",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 5 : MAC Attacks (Breaking the Switch )(Part 2)",
+      "description": "Module focus: MAC Attacks (Breaking the Switch ). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — MAC Attacks (Breaking the Switch ) (Part 2)",
+          "description": "Core concepts for MAC Attacks (Breaking the Switch ).",
+          "about": "This lecture focuses on “MAC Attacks (Breaking the Switch )”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in MAC Attacks (Breaking the Switch )",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: MAC Attacks (Breaking the Switch ) (Part 2)",
+          "description": "Module examination on MAC Attacks (Breaking the Switch ). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “MAC Attacks (Breaking the Switch )”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from MAC Attacks (Breaking the Switch )",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 5 : Protocol Poisoning - Surgical Attacks on Network Trust (Part 3)",
+      "description": "Module focus: Protocol Poisoning - Surgical Attacks on Network Trust. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Protocol Poisoning - Surgical Attacks on Network Trust (Part 3)",
+          "description": "Core concepts for Protocol Poisoning - Surgical Attacks on Network Trust.",
+          "about": "This lecture focuses on “Protocol Poisoning - Surgical Attacks on Network Trust”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Protocol Poisoning - Surgical Attacks on Network Trust",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Protocol Poisoning - Surgical Attacks on Network Trust (Part 3)",
+          "description": "Module examination on Protocol Poisoning - Surgical Attacks on Network Trust. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Protocol Poisoning - Surgical Attacks on Network Trust”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Protocol Poisoning - Surgical Attacks on Network Trust",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 5 : LLMNR and NBT- NS Poisoning (Part 4)",
+      "description": "Module focus: LLMNR and NBT- NS Poisoning. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — LLMNR and NBT- NS Poisoning (Part 4)",
+          "description": "Core concepts for LLMNR and NBT- NS Poisoning.",
+          "about": "This lecture focuses on “LLMNR and NBT- NS Poisoning”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in LLMNR and NBT- NS Poisoning",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: LLMNR and NBT- NS Poisoning (Part 4)",
+          "description": "Module examination on LLMNR and NBT- NS Poisoning. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “LLMNR and NBT- NS Poisoning”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from LLMNR and NBT- NS Poisoning",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 5 : Sniffing Tools and Traffic Analysis (Part 5)",
+      "description": "Module focus: Sniffing Tools and Traffic Analysis. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Sniffing Tools and Traffic Analysis (Part 5)",
+          "description": "Core concepts for Sniffing Tools and Traffic Analysis.",
+          "about": "This lecture focuses on “Sniffing Tools and Traffic Analysis”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Sniffing Tools and Traffic Analysis",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Sniffing Tools and Traffic Analysis (Part 5)",
+          "description": "Module examination on Sniffing Tools and Traffic Analysis. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Sniffing Tools and Traffic Analysis”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Sniffing Tools and Traffic Analysis",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 6 : The Psychology of Manipulation (Part 1)",
+      "description": "Module focus: The Psychology of Manipulation. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — The Psychology of Manipulation (Part 1)",
+          "description": "Core concepts for The Psychology of Manipulation.",
+          "about": "This lecture focuses on “The Psychology of Manipulation”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in The Psychology of Manipulation",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: The Psychology of Manipulation (Part 1)",
+          "description": "Module examination on The Psychology of Manipulation. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “The Psychology of Manipulation”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from The Psychology of Manipulation",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 6 : Remote Social Engineering Attacks ( Part 2)",
+      "description": "Module focus: Remote Social Engineering Attacks ( Part 2). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Remote Social Engineering Attacks ( Part 2)",
+          "description": "Core concepts for Remote Social Engineering Attacks ( Part 2).",
+          "about": "This lecture focuses on “Remote Social Engineering Attacks ( Part 2)”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Remote Social Engineering Attacks ( Part 2)",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Remote Social Engineering Attacks ( Part 2)",
+          "description": "Module examination on Remote Social Engineering Attacks ( Part 2). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Remote Social Engineering Attacks ( Part 2)”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Remote Social Engineering Attacks ( Part 2)",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 6 : Physical Social Engineering ( Part 3)",
+      "description": "Module focus: Physical Social Engineering ( Part 3). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Physical Social Engineering ( Part 3)",
+          "description": "Core concepts for Physical Social Engineering ( Part 3).",
+          "about": "This lecture focuses on “Physical Social Engineering ( Part 3)”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Physical Social Engineering ( Part 3)",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Physical Social Engineering ( Part 3)",
+          "description": "Module examination on Physical Social Engineering ( Part 3). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Physical Social Engineering ( Part 3)”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Physical Social Engineering ( Part 3)",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 6 : Modern Social Engineering Threats (Part 4)",
+      "description": "Module focus: Modern Social Engineering Threats. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Modern Social Engineering Threats (Part 4)",
+          "description": "Core concepts for Modern Social Engineering Threats.",
+          "about": "This lecture focuses on “Modern Social Engineering Threats”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Modern Social Engineering Threats",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Modern Social Engineering Threats (Part 4)",
+          "description": "Module examination on Modern Social Engineering Threats. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Modern Social Engineering Threats”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Modern Social Engineering Threats",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 7 : DoS Concepts and Availability (Part 1)",
+      "description": "Module focus: DoS Concepts and Availability. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — DoS Concepts and Availability (Part 1)",
+          "description": "Core concepts for DoS Concepts and Availability.",
+          "about": "This lecture focuses on “DoS Concepts and Availability”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in DoS Concepts and Availability",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: DoS Concepts and Availability (Part 1)",
+          "description": "Module examination on DoS Concepts and Availability. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “DoS Concepts and Availability”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from DoS Concepts and Availability",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 7 : DOS and DDOS Attack Vectors (Part 2)",
+      "description": "Module focus: DOS and DDOS Attack Vectors. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — DOS and DDOS Attack Vectors (Part 2)",
+          "description": "Core concepts for DOS and DDOS Attack Vectors.",
+          "about": "This lecture focuses on “DOS and DDOS Attack Vectors”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in DOS and DDOS Attack Vectors",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: DOS and DDOS Attack Vectors (Part 2)",
+          "description": "Module examination on DOS and DDOS Attack Vectors. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “DOS and DDOS Attack Vectors”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from DOS and DDOS Attack Vectors",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 7 : Botnets and Command - and - Control (C2) (Part 3)",
+      "description": "Module focus: Botnets and Command - and - Control (C2). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Botnets and Command - and - Control (C2) (Part 3)",
+          "description": "Core concepts for Botnets and Command - and - Control (C2).",
+          "about": "This lecture focuses on “Botnets and Command - and - Control (C2)”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Botnets and Command - and - Control (C2)",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Botnets and Command - and - Control (C2) (Part 3)",
+          "description": "Module examination on Botnets and Command - and - Control (C2). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Botnets and Command - and - Control (C2)”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Botnets and Command - and - Control (C2)",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 7 : Dos Countermeasures and Defense (Part 4)",
+      "description": "Module focus: Dos Countermeasures and Defense. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Dos Countermeasures and Defense (Part 4)",
+          "description": "Core concepts for Dos Countermeasures and Defense.",
+          "about": "This lecture focuses on “Dos Countermeasures and Defense”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Dos Countermeasures and Defense",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Dos Countermeasures and Defense (Part 4)",
+          "description": "Module examination on Dos Countermeasures and Defense. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Dos Countermeasures and Defense”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Dos Countermeasures and Defense",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 8 : Session Hijacking Concepts ( Part 1)",
+      "description": "Module focus: Session Hijacking Concepts ( Part 1). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Session Hijacking Concepts ( Part 1)",
+          "description": "Core concepts for Session Hijacking Concepts ( Part 1).",
+          "about": "This lecture focuses on “Session Hijacking Concepts ( Part 1)”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Session Hijacking Concepts ( Part 1)",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Session Hijacking Concepts ( Part 1)",
+          "description": "Module examination on Session Hijacking Concepts ( Part 1). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Session Hijacking Concepts ( Part 1)”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Session Hijacking Concepts ( Part 1)",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 8 : Application Level Hijacking (Part 2)",
+      "description": "Module focus: Application Level Hijacking. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Application Level Hijacking (Part 2)",
+          "description": "Core concepts for Application Level Hijacking.",
+          "about": "This lecture focuses on “Application Level Hijacking”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Application Level Hijacking",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Application Level Hijacking (Part 2)",
+          "description": "Module examination on Application Level Hijacking. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Application Level Hijacking”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Application Level Hijacking",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 8 : Modern Session Threats (Part 3)",
+      "description": "Module focus: Modern Session Threats. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Modern Session Threats (Part 3)",
+          "description": "Core concepts for Modern Session Threats.",
+          "about": "This lecture focuses on “Modern Session Threats”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Modern Session Threats",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Modern Session Threats (Part 3)",
+          "description": "Module examination on Modern Session Threats. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Modern Session Threats”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Modern Session Threats",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 8 : Network Level Session Hijacking (Part 4)",
+      "description": "Module focus: Network Level Session Hijacking. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Network Level Session Hijacking (Part 4)",
+          "description": "Core concepts for Network Level Session Hijacking.",
+          "about": "This lecture focuses on “Network Level Session Hijacking”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Network Level Session Hijacking",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Network Level Session Hijacking (Part 4)",
+          "description": "Module examination on Network Level Session Hijacking. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Network Level Session Hijacking”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Network Level Session Hijacking",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 8 : Countermeasures and Defense (part 5)",
+      "description": "Module focus: Countermeasures and Defense. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Countermeasures and Defense (Part 5)",
+          "description": "Core concepts for Countermeasures and Defense.",
+          "about": "This lecture focuses on “Countermeasures and Defense”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Countermeasures and Defense",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Countermeasures and Defense (Part 5)",
+          "description": "Module examination on Countermeasures and Defense. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Countermeasures and Defense”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Countermeasures and Defense",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 9 : Defensive Architecture Concepts (Part 1)",
+      "description": "Module focus: Defensive Architecture Concepts. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Defensive Architecture Concepts (Part 1)",
+          "description": "Core concepts for Defensive Architecture Concepts.",
+          "about": "This lecture focuses on “Defensive Architecture Concepts”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Defensive Architecture Concepts",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Defensive Architecture Concepts (Part 1)",
+          "description": "Module examination on Defensive Architecture Concepts. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Defensive Architecture Concepts”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Defensive Architecture Concepts",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 9 : Firewall Evasion Techniques (Part 2)",
+      "description": "Module focus: Firewall Evasion Techniques. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Firewall Evasion Techniques (Part 2)",
+          "description": "Core concepts for Firewall Evasion Techniques.",
+          "about": "This lecture focuses on “Firewall Evasion Techniques”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Firewall Evasion Techniques",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Firewall Evasion Techniques (Part 2)",
+          "description": "Module examination on Firewall Evasion Techniques. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Firewall Evasion Techniques”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Firewall Evasion Techniques",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 9 : IDS/IPS Evasion ( Obfuscation) (Part 3)",
+      "description": "Module focus: IDS/IPS Evasion ( Obfuscation). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — IDS/IPS Evasion ( Obfuscation) (Part 3)",
+          "description": "Core concepts for IDS/IPS Evasion ( Obfuscation).",
+          "about": "This lecture focuses on “IDS/IPS Evasion ( Obfuscation)”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in IDS/IPS Evasion ( Obfuscation)",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: IDS/IPS Evasion ( Obfuscation) (Part 3)",
+          "description": "Module examination on IDS/IPS Evasion ( Obfuscation). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “IDS/IPS Evasion ( Obfuscation)”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from IDS/IPS Evasion ( Obfuscation)",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 9 : WAF Evasion - Breaking Through Web Application Firewalls (part 4)",
+      "description": "Module focus: WAF Evasion - Breaking Through Web Application Firewalls. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — WAF Evasion - Breaking Through Web Application Firewalls (Part 4)",
+          "description": "Core concepts for WAF Evasion - Breaking Through Web Application Firewalls.",
+          "about": "This lecture focuses on “WAF Evasion - Breaking Through Web Application Firewalls”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in WAF Evasion - Breaking Through Web Application Firewalls",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: WAF Evasion - Breaking Through Web Application Firewalls (Part 4)",
+          "description": "Module examination on WAF Evasion - Breaking Through Web Application Firewalls. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “WAF Evasion - Breaking Through Web Application Firewalls”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from WAF Evasion - Breaking Through Web Application Firewalls",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 9 : Honeypots (Part 5)",
+      "description": "Module focus: Honeypots. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Honeypots (Part 5)",
+          "description": "Core concepts for Honeypots.",
+          "about": "This lecture focuses on “Honeypots”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Honeypots",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Honeypots (Part 5)",
+          "description": "Module examination on Honeypots. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Honeypots”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Honeypots",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 10 : Web Server Concepts and Architecture (Part 1)",
+      "description": "Module focus: Web Server Concepts and Architecture. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Web Server Concepts and Architecture (Part 1)",
+          "description": "Core concepts for Web Server Concepts and Architecture.",
+          "about": "This lecture focuses on “Web Server Concepts and Architecture”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Web Server Concepts and Architecture",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Web Server Concepts and Architecture (Part 1)",
+          "description": "Module examination on Web Server Concepts and Architecture. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Web Server Concepts and Architecture”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Web Server Concepts and Architecture",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 10 : Web Server Misconfigurations (part 2)",
+      "description": "Module focus: Web Server Misconfigurations. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Web Server Misconfigurations (Part 2)",
+          "description": "Core concepts for Web Server Misconfigurations.",
+          "about": "This lecture focuses on “Web Server Misconfigurations”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Web Server Misconfigurations",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Web Server Misconfigurations (Part 2)",
+          "description": "Module examination on Web Server Misconfigurations. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Web Server Misconfigurations”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Web Server Misconfigurations",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 10 : Web Server Attack Tools (part 3)",
+      "description": "Module focus: Web Server Attack Tools. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Web Server Attack Tools (Part 3)",
+          "description": "Core concepts for Web Server Attack Tools.",
+          "about": "This lecture focuses on “Web Server Attack Tools”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Web Server Attack Tools",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Web Server Attack Tools (Part 3)",
+          "description": "Module examination on Web Server Attack Tools. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Web Server Attack Tools”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Web Server Attack Tools",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 10 : Patch Management and Countermeasures (Part 4)",
+      "description": "Module focus: Patch Management and Countermeasures. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Patch Management and Countermeasures (Part 4)",
+          "description": "Core concepts for Patch Management and Countermeasures.",
+          "about": "This lecture focuses on “Patch Management and Countermeasures”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Patch Management and Countermeasures",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Patch Management and Countermeasures (Part 4)",
+          "description": "Module examination on Patch Management and Countermeasures. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Patch Management and Countermeasures”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Patch Management and Countermeasures",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 11 : Web App Concepts and OWSAP Top 10 (Part 1)",
+      "description": "Module focus: Web App Concepts and OWSAP Top 10. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Web App Concepts and OWSAP Top 10 (Part 1)",
+          "description": "Core concepts for Web App Concepts and OWSAP Top 10.",
+          "about": "This lecture focuses on “Web App Concepts and OWSAP Top 10”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Web App Concepts and OWSAP Top 10",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Web App Concepts and OWSAP Top 10 (Part 1)",
+          "description": "Module examination on Web App Concepts and OWSAP Top 10. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Web App Concepts and OWSAP Top 10”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Web App Concepts and OWSAP Top 10",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 11 : Broken Access Control (IDOR) (Part 2)",
+      "description": "Module focus: Broken Access Control (IDOR). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Broken Access Control (IDOR) (Part 2)",
+          "description": "Core concepts for Broken Access Control (IDOR).",
+          "about": "This lecture focuses on “Broken Access Control (IDOR)”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Broken Access Control (IDOR)",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Broken Access Control (IDOR) (Part 2)",
+          "description": "Module examination on Broken Access Control (IDOR). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Broken Access Control (IDOR)”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Broken Access Control (IDOR)",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 11 : Cross-Site Scripting (XSS) (Part 3)",
+      "description": "Module focus: Cross-Site Scripting (XSS). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Cross-Site Scripting (XSS) (Part 3)",
+          "description": "Core concepts for Cross-Site Scripting (XSS).",
+          "about": "This lecture focuses on “Cross-Site Scripting (XSS)”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Cross-Site Scripting (XSS)",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Cross-Site Scripting (XSS) (Part 3)",
+          "description": "Module examination on Cross-Site Scripting (XSS). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Cross-Site Scripting (XSS)”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Cross-Site Scripting (XSS)",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 11 : Command Injection (Part 4 )",
+      "description": "Module focus: Command Injection (Part 4 ). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Command Injection (Part 4 )",
+          "description": "Core concepts for Command Injection (Part 4 ).",
+          "about": "This lecture focuses on “Command Injection (Part 4 )”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Command Injection (Part 4 )",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Command Injection (Part 4 )",
+          "description": "Module examination on Command Injection (Part 4 ). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Command Injection (Part 4 )”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Command Injection (Part 4 )",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 11 : Web Hacking Tools (Part 5)",
+      "description": "Module focus: Web Hacking Tools. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Web Hacking Tools (Part 5)",
+          "description": "Core concepts for Web Hacking Tools.",
+          "about": "This lecture focuses on “Web Hacking Tools”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Web Hacking Tools",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Web Hacking Tools (Part 5)",
+          "description": "Module examination on Web Hacking Tools. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Web Hacking Tools”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Web Hacking Tools",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 11 : API Hacking in the Modern web (Part 6)",
+      "description": "Module focus: API Hacking in the Modern web. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — API Hacking in the Modern web (Part 6)",
+          "description": "Core concepts for API Hacking in the Modern web.",
+          "about": "This lecture focuses on “API Hacking in the Modern web”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in API Hacking in the Modern web",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: API Hacking in the Modern web (Part 6)",
+          "description": "Module examination on API Hacking in the Modern web. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “API Hacking in the Modern web”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from API Hacking in the Modern web",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 12 : SQL Concepts and The \"Break\" (Part 1)",
+      "description": "Module focus: SQL Concepts and The \"Break\". Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — SQL Concepts and The \"Break\" (Part 1)",
+          "description": "Core concepts for SQL Concepts and The \"Break\".",
+          "about": "This lecture focuses on “SQL Concepts and The \"Break\"”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in SQL Concepts and The \"Break\"",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: SQL Concepts and The \"Break\" (Part 1)",
+          "description": "Module examination on SQL Concepts and The \"Break\". Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “SQL Concepts and The \"Break\"”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from SQL Concepts and The \"Break\"",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 12 : In Band SQL Injection (Part 2)",
+      "description": "Module focus: In Band SQL Injection. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — In Band SQL Injection (Part 2)",
+          "description": "Core concepts for In Band SQL Injection.",
+          "about": "This lecture focuses on “In Band SQL Injection”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in In Band SQL Injection",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: In Band SQL Injection (Part 2)",
+          "description": "Module examination on In Band SQL Injection. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “In Band SQL Injection”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from In Band SQL Injection",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 12 : Blind SQL Injection (Part 3)",
+      "description": "Module focus: Blind SQL Injection. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Blind SQL Injection (Part 3)",
+          "description": "Core concepts for Blind SQL Injection.",
+          "about": "This lecture focuses on “Blind SQL Injection”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Blind SQL Injection",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Blind SQL Injection (Part 3)",
+          "description": "Module examination on Blind SQL Injection. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Blind SQL Injection”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Blind SQL Injection",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 12 : Automating The Attacks (Part 4)",
+      "description": "Module focus: Automating The Attacks. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Automating The Attacks (Part 4)",
+          "description": "Core concepts for Automating The Attacks.",
+          "about": "This lecture focuses on “Automating The Attacks”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Automating The Attacks",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Automating The Attacks (Part 4)",
+          "description": "Module examination on Automating The Attacks. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Automating The Attacks”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Automating The Attacks",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 12 : Countermeasures (Part 5)",
+      "description": "Module focus: Countermeasures. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Countermeasures (Part 5)",
+          "description": "Core concepts for Countermeasures.",
+          "about": "This lecture focuses on “Countermeasures”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Countermeasures",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Countermeasures (Part 5)",
+          "description": "Module examination on Countermeasures. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Countermeasures”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Countermeasures",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 13 : Wireless Concepts and Hardware (Part 1)",
+      "description": "Module focus: Wireless Concepts and Hardware. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Wireless Concepts and Hardware (Part 1)",
+          "description": "Core concepts for Wireless Concepts and Hardware.",
+          "about": "This lecture focuses on “Wireless Concepts and Hardware”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Wireless Concepts and Hardware",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Wireless Concepts and Hardware (Part 1)",
+          "description": "Module examination on Wireless Concepts and Hardware. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Wireless Concepts and Hardware”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Wireless Concepts and Hardware",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 13 : Encryption Standards and Flaws (Part 2)",
+      "description": "Module focus: Encryption Standards and Flaws. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Encryption Standards and Flaws (Part 2)",
+          "description": "Security controls, laws, and professional standards.",
+          "about": "Cover core security controls and the legal/standards context ethical hackers must respect. Focus on compliance-minded practice, not loopholes.",
+          "learningOutcomes": [
+            "Name key security control types",
+            "Relate testing to laws and standards",
+            "Apply a compliance-first mindset"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Encryption Standards and Flaws (Part 2)",
+          "description": "Module examination on security controls, laws, and professional standards. Pass mark 70%.",
+          "about": "This examination confirms you understand the legal and standards context that governs ethical hacking work.",
+          "learningOutcomes": [
+            "Identify control types",
+            "Apply legal and standards awareness",
+            "Score 70% or above to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 13 : WPA2 Attacks Lifecycle (Part 3)",
+      "description": "Module focus: WPA2 Attacks Lifecycle. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — WPA2 Attacks Lifecycle (Part 3)",
+          "description": "Core concepts for WPA2 Attacks Lifecycle.",
+          "about": "This lecture focuses on “WPA2 Attacks Lifecycle”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in WPA2 Attacks Lifecycle",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: WPA2 Attacks Lifecycle (Part 3)",
+          "description": "Module examination on WPA2 Attacks Lifecycle. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “WPA2 Attacks Lifecycle”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from WPA2 Attacks Lifecycle",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 13 : Rogue Access Points and Evil Twins (Part 4)",
+      "description": "Module focus: Rogue Access Points and Evil Twins. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Rogue Access Points and Evil Twins (Part 4)",
+          "description": "Core concepts for Rogue Access Points and Evil Twins.",
+          "about": "This lecture focuses on “Rogue Access Points and Evil Twins”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Rogue Access Points and Evil Twins",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Rogue Access Points and Evil Twins (Part 4)",
+          "description": "Module examination on Rogue Access Points and Evil Twins. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Rogue Access Points and Evil Twins”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Rogue Access Points and Evil Twins",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 13 : Enterprise and WPS Attacks (Part 5)",
+      "description": "Module focus: Enterprise and WPS Attacks. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Enterprise and WPS Attacks (Part 5)",
+          "description": "Core concepts for Enterprise and WPS Attacks.",
+          "about": "This lecture focuses on “Enterprise and WPS Attacks”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Enterprise and WPS Attacks",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Enterprise and WPS Attacks (Part 5)",
+          "description": "Module examination on Enterprise and WPS Attacks. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Enterprise and WPS Attacks”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Enterprise and WPS Attacks",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 14 : Mobile Architecture and the Sandbox (Part 1)",
+      "description": "Module focus: Mobile Architecture and the Sandbox. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Mobile Architecture and the Sandbox (Part 1)",
+          "description": "Core concepts for Mobile Architecture and the Sandbox.",
+          "about": "This lecture focuses on “Mobile Architecture and the Sandbox”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Mobile Architecture and the Sandbox",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Mobile Architecture and the Sandbox (Part 1)",
+          "description": "Module examination on Mobile Architecture and the Sandbox. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Mobile Architecture and the Sandbox”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Mobile Architecture and the Sandbox",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 14 : Static Analysis (Reverse Engineering) (Part 2)",
+      "description": "Module focus: Static Analysis (Reverse Engineering). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Static Analysis (Reverse Engineering) (Part 2)",
+          "description": "Core concepts for Static Analysis (Reverse Engineering).",
+          "about": "This lecture focuses on “Static Analysis (Reverse Engineering)”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Static Analysis (Reverse Engineering)",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Static Analysis (Reverse Engineering) (Part 2)",
+          "description": "Module examination on Static Analysis (Reverse Engineering). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Static Analysis (Reverse Engineering)”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Static Analysis (Reverse Engineering)",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 14 : Dynamic Analysis and Runtime Attacks (Part 3)",
+      "description": "Module focus: Dynamic Analysis and Runtime Attacks. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Dynamic Analysis and Runtime Attacks (Part 3)",
+          "description": "Core concepts for Dynamic Analysis and Runtime Attacks.",
+          "about": "This lecture focuses on “Dynamic Analysis and Runtime Attacks”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Dynamic Analysis and Runtime Attacks",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Dynamic Analysis and Runtime Attacks (Part 3)",
+          "description": "Module examination on Dynamic Analysis and Runtime Attacks. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Dynamic Analysis and Runtime Attacks”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Dynamic Analysis and Runtime Attacks",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 14 : Mobile Threats and Attack Vectors (Part 4)",
+      "description": "Module focus: Mobile Threats and Attack Vectors. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Mobile Threats and Attack Vectors (Part 4)",
+          "description": "Core concepts for Mobile Threats and Attack Vectors.",
+          "about": "This lecture focuses on “Mobile Threats and Attack Vectors”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Mobile Threats and Attack Vectors",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Mobile Threats and Attack Vectors (Part 4)",
+          "description": "Module examination on Mobile Threats and Attack Vectors. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Mobile Threats and Attack Vectors”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Mobile Threats and Attack Vectors",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 15 : IOT Hacking-Consumer and Commercial (Part 1)",
+      "description": "Module focus: IOT Hacking-Consumer and Commercial. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — IOT Hacking-Consumer and Commercial (Part 1)",
+          "description": "Core concepts for IOT Hacking-Consumer and Commercial.",
+          "about": "This lecture focuses on “IOT Hacking-Consumer and Commercial”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in IOT Hacking-Consumer and Commercial",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: IOT Hacking-Consumer and Commercial (Part 1)",
+          "description": "Module examination on IOT Hacking-Consumer and Commercial. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “IOT Hacking-Consumer and Commercial”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from IOT Hacking-Consumer and Commercial",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 15 : Operational Technology (OT) Security (Part 2)",
+      "description": "Module focus: Operational Technology (OT) Security. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Operational Technology (OT) Security (Part 2)",
+          "description": "Core concepts for Operational Technology (OT) Security.",
+          "about": "This lecture focuses on “Operational Technology (OT) Security”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Operational Technology (OT) Security",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Operational Technology (OT) Security (Part 2)",
+          "description": "Module examination on Operational Technology (OT) Security. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Operational Technology (OT) Security”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Operational Technology (OT) Security",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 15 : Hardware and Radio Hacking (Part 3)",
+      "description": "Module focus: Hardware and Radio Hacking. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Hardware and Radio Hacking (Part 3)",
+          "description": "Core concepts for Hardware and Radio Hacking.",
+          "about": "This lecture focuses on “Hardware and Radio Hacking”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Hardware and Radio Hacking",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Hardware and Radio Hacking (Part 3)",
+          "description": "Module examination on Hardware and Radio Hacking. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Hardware and Radio Hacking”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Hardware and Radio Hacking",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 15 : Hardware and Radio Hacking (Part 4)",
+      "description": "Module focus: Hardware and Radio Hacking. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Hardware and Radio Hacking (Part 4)",
+          "description": "Core concepts for Hardware and Radio Hacking.",
+          "about": "This lecture focuses on “Hardware and Radio Hacking”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Hardware and Radio Hacking",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Hardware and Radio Hacking (Part 4)",
+          "description": "Module examination on Hardware and Radio Hacking. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Hardware and Radio Hacking”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Hardware and Radio Hacking",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 16 : Cloud Concepts and Attack Surface (Part1)",
+      "description": "Module focus: Cloud Concepts and Attack Surface. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Cloud Concepts and Attack Surface (Part 1)",
+          "description": "Core concepts for Cloud Concepts and Attack Surface.",
+          "about": "This lecture focuses on “Cloud Concepts and Attack Surface”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Cloud Concepts and Attack Surface",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Cloud Concepts and Attack Surface (Part 1)",
+          "description": "Module examination on Cloud Concepts and Attack Surface. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Cloud Concepts and Attack Surface”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Cloud Concepts and Attack Surface",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "module 16 : IAM Attacks-Identify and Access Management (Part 2)",
+      "description": "Module focus: IAM Attacks-Identify and Access Management. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — IAM Attacks-Identify and Access Management (Part 2)",
+          "description": "Core concepts for IAM Attacks-Identify and Access Management.",
+          "about": "This lecture focuses on “IAM Attacks-Identify and Access Management”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in IAM Attacks-Identify and Access Management",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: IAM Attacks-Identify and Access Management (Part 2)",
+          "description": "Module examination on IAM Attacks-Identify and Access Management. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “IAM Attacks-Identify and Access Management”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from IAM Attacks-Identify and Access Management",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 16 : Storage and Compute Attacks (Part 3)",
+      "description": "Module focus: Storage and Compute Attacks. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Storage and Compute Attacks (Part 3)",
+          "description": "Core concepts for Storage and Compute Attacks.",
+          "about": "This lecture focuses on “Storage and Compute Attacks”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Storage and Compute Attacks",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Storage and Compute Attacks (Part 3)",
+          "description": "Module examination on Storage and Compute Attacks. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Storage and Compute Attacks”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Storage and Compute Attacks",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 16 : Containers and Kubernetes Security (Part 4)",
+      "description": "Module focus: Containers and Kubernetes Security. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Containers and Kubernetes Security (Part 4)",
+          "description": "Core concepts for Containers and Kubernetes Security.",
+          "about": "This lecture focuses on “Containers and Kubernetes Security”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Containers and Kubernetes Security",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Containers and Kubernetes Security (Part 4)",
+          "description": "Module examination on Containers and Kubernetes Security. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Containers and Kubernetes Security”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Containers and Kubernetes Security",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 17 : Cryptography Concepts and The \"Three Musketeers\" (Part 1)",
+      "description": "Module focus: Cryptography Concepts and The \"Three Musketeers\". Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Cryptography Concepts and The \"Three Musketeers\" (Part 1)",
+          "description": "Core concepts for Cryptography Concepts and The \"Three Musketeers\".",
+          "about": "This lecture focuses on “Cryptography Concepts and The \"Three Musketeers\"”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Cryptography Concepts and The \"Three Musketeers\"",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Cryptography Concepts and The \"Three Musketeers\" (Part 1)",
+          "description": "Module examination on Cryptography Concepts and The \"Three Musketeers\". Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Cryptography Concepts and The \"Three Musketeers\"”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Cryptography Concepts and The \"Three Musketeers\"",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 17 : Symmetric vs. Asymmetric Encryption (Part 2)",
+      "description": "Module focus: Symmetric vs. Asymmetric Encryption. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Symmetric vs. Asymmetric Encryption (Part 2)",
+          "description": "Core concepts for Symmetric vs. Asymmetric Encryption.",
+          "about": "This lecture focuses on “Symmetric vs. Asymmetric Encryption”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Symmetric vs. Asymmetric Encryption",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Symmetric vs. Asymmetric Encryption (Part 2)",
+          "description": "Module examination on Symmetric vs. Asymmetric Encryption. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Symmetric vs. Asymmetric Encryption”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Symmetric vs. Asymmetric Encryption",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 17 : Public Key Infrastructure (PKI) (Part 3)",
+      "description": "Module focus: Public Key Infrastructure (PKI). Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Public Key Infrastructure (PKI) (Part 3)",
+          "description": "Core concepts for Public Key Infrastructure (PKI).",
+          "about": "This lecture focuses on “Public Key Infrastructure (PKI)”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Public Key Infrastructure (PKI)",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Public Key Infrastructure (PKI) (Part 3)",
+          "description": "Module examination on Public Key Infrastructure (PKI). Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Public Key Infrastructure (PKI)”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Public Key Infrastructure (PKI)",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Module 17 : Cryptographic Attacks (Part 4)",
+      "description": "Module focus: Cryptographic Attacks. Complete the lecture, then the assessment.",
+      "items": [
+        {
+          "kind": "video",
+          "label": "Lecture — Cryptographic Attacks (Part 4)",
+          "description": "Core concepts for Cryptographic Attacks.",
+          "about": "This lecture focuses on “Cryptographic Attacks”. Watch carefully, note key terms, and prepare for the paired assessment before moving on.",
+          "learningOutcomes": [
+            "Explain the core ideas in Cryptographic Attacks",
+            "Capture practical takeaways for the lab mindset",
+            "Ready yourself for the module check"
+          ]
+        },
+        {
+          "kind": "exam",
+          "label": "Module Examination: Cryptographic Attacks (Part 4)",
+          "description": "Module examination on Cryptographic Attacks. Answer from the lecture; pass mark 70%.",
+          "about": "This examination assesses “Cryptographic Attacks”. Review the lecture, then complete the questions. A score of 70% or higher completes this module part.",
+          "learningOutcomes": [
+            "Recall key points from Cryptographic Attacks",
+            "Apply concepts in exam questions",
+            "Achieve 70% to complete this part"
+          ]
+        }
+      ]
+    }
+  ]
+}

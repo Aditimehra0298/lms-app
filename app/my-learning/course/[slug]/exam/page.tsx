@@ -176,6 +176,9 @@ function CourseExamPageInner() {
       const title = fe?.title?.trim() || `Final examination — ${courseMeta.title}`;
       return {
         title,
+        description: fe?.title?.trim()
+          ? "Final examination for this program. Review all modules before you begin."
+          : "",
         passingScorePercent: passing,
         timed,
         durationSec,
@@ -191,8 +194,10 @@ function CourseExamPageInner() {
     const timed = !!row?.timedExam;
     const durationSec = Math.max(60, (row?.examDurationMinutes ?? 90) * 60);
     const title = row?.label?.trim() || `Module ${moduleNumber} examination — ${courseMeta.title}`;
+    const description = row?.description?.trim() || row?.about?.trim() || "";
     return {
       title,
+      description,
       passingScorePercent: passing,
       timed,
       durationSec,
@@ -719,7 +724,12 @@ function CourseExamPageInner() {
 
           <div className="space-y-3">
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
-              <h1 className="text-2xl font-bold capitalize md:text-3xl">{examRuntime.title}</h1>
+              <h1 className="text-2xl font-bold md:text-3xl">{examRuntime.title}</h1>
+              {examRuntime.description ? (
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-300">
+                  {examRuntime.description}
+                </p>
+              ) : null}
               {questionsError ? (
                 <p className="mt-2 rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
                   {questionsError}
