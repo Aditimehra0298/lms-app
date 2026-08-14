@@ -54,36 +54,10 @@ export type CategoryWorkshopPlaceholder = {
 
 /** Same workshop strip layout for every category; titles follow the category name. */
 export function getCategoryWorkshopPlaceholders(
-  categoryTitle: string,
-  registerHref: string,
+  _categoryTitle: string,
+  _registerHref: string,
 ): CategoryWorkshopPlaceholder[] {
-  const t = categoryTitle.trim() || "This track";
-  return [
-    {
-      title: `${t} — Expert Live Q&A`,
-      date: "Sat, May 24 · 10:00 AM IST",
-      instructor: "Priya Nair",
-      image:
-        "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80",
-      registerHref,
-    },
-    {
-      title: `${t} Applied Skills Lab`,
-      date: "Sun, May 25 · 3:00 PM IST",
-      instructor: "Daniel Brooks",
-      image:
-        "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=600&q=80",
-      registerHref,
-    },
-    {
-      title: `${t} Certification Prep`,
-      date: "Wed, May 28 · 6:30 PM IST",
-      instructor: "Ananya Rao",
-      image:
-        "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80",
-      registerHref,
-    },
-  ];
+  return [];
 }
 
 export function getDefaultHeroImageForCategory(categorySlug: string): string {
@@ -91,126 +65,15 @@ export function getDefaultHeroImageForCategory(categorySlug: string): string {
   return CATEGORY_DEFAULT_HERO_IMAGES[key] ?? GENERIC_CATEGORY_HERO_FALLBACK;
 }
 
-const foodSafetyInstructors: CategoryPageEditorConfig["instructors"] = [
-  {
-    name: "Dr. Mehta",
-    role: "Food Safety Auditor",
-    years: "15+ Years Exp",
-    photo:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=240&h=240&q=80",
-  },
-  {
-    name: "Chef Rahul",
-    role: "HACCP Specialist",
-    years: "12+ Years Exp",
-    photo:
-      "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=240&h=240&q=80",
-  },
-  {
-    name: "Ms. Ananya",
-    role: "Food Compliance",
-    years: "10+ Years Exp",
-    photo:
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=240&h=240&q=80",
-  },
-];
-
-const genericInstructors: CategoryPageEditorConfig["instructors"] = [
-  {
-    name: "Priya Nair",
-    role: "Lead Auditor",
-    years: "14+ Years Exp",
-    photo:
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=240&h=240&q=80",
-  },
-  {
-    name: "Daniel Brooks",
-    role: "Quality Consultant",
-    years: "12+ Years Exp",
-    photo:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&h=240&q=80",
-  },
-  {
-    name: "Ananya Rao",
-    role: "Compliance Lead",
-    years: "10+ Years Exp",
-    photo:
-      "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=240&h=240&q=80",
-  },
-];
-
-const foodSafetyWhy: CategoryPageWhyItem[] = [
-  {
-    label: "Global Certification",
-    desc: "Enhance your career opportunities.",
-    tone: "amber",
-    icon: "ScrollText",
-    quote: "",
-  },
-  {
-    label: "Industry-Relevant Skills",
-    desc: "Learn practical and audit-ready skills.",
-    tone: "emerald",
-    icon: "Award",
-    quote: "",
-  },
-  {
-    label: "Better Job Prospects",
-    desc: "High demand in food and hospitality sectors.",
-    tone: "blue",
-    icon: "Users",
-    quote: "",
-  },
-  {
-    label: "Safer Communities",
-    desc: "Contribute to public health and safety.",
-    tone: "violet",
-    icon: "Leaf",
-    quote: "",
-  },
-];
-
-const genericWhy: CategoryPageWhyItem[] = [
-  {
-    label: "Recognized Programs",
-    desc: "Credentials employers and auditors respect.",
-    tone: "amber",
-    icon: "ScrollText",
-    quote: "",
-  },
-  {
-    label: "Practical Skills",
-    desc: "Apply concepts immediately at work.",
-    tone: "emerald",
-    icon: "Award",
-    quote: "",
-  },
-  {
-    label: "Career Growth",
-    desc: "Stand out in hiring and promotions.",
-    tone: "blue",
-    icon: "Users",
-    quote: "",
-  },
-  {
-    label: "Expert-Led",
-    desc: "Learn from practitioners in the field.",
-    tone: "violet",
-    icon: "BookOpen",
-    quote: "",
-  },
-];
-
 /** Full template used by the admin editor and public page fallbacks. */
 export function getCategoryEditorTemplate(categorySlug: string): CategoryPageEditorConfig {
-  const isFood = canonicalCategorySlug(categorySlug) === "food-safety";
   return {
     heroImage: getDefaultHeroImageForCategory(categorySlug),
     heroSubtitle: "",
     hiddenCourseSlugs: [],
-    instructors: isFood ? foodSafetyInstructors : genericInstructors,
+    instructors: [],
     levelFilters: defaultLevelFilters(),
-    whyLearn: isFood ? foodSafetyWhy : genericWhy,
+    whyLearn: [],
   };
 }
 

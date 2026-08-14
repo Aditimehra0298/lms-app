@@ -1,4 +1,4 @@
-import { defaultTutorLedPrograms, type TutorLedProgramStored } from "./default-tutor-led-programs";
+import { type TutorLedProgramStored } from "./default-tutor-led-programs";
 import {
   defaultOrganizationTeamAdminConfig,
   type OrganizationTeamAdminConfig,
@@ -684,50 +684,7 @@ export const defaultHomePageConfig: HomePageConfig = {
     { title: "Tutor-Led Sessions", desc: "Engage in tutor-led workshops, expert-led discussions, and real-time doubt-solving sessions.", icon: "MonitorPlay" },
     { title: "Progress Tracking & Assessments", desc: "Monitor your learning journey with module-wise assessments, exams, and performance insights.", icon: "CheckCircle2" },
   ],
-  testimonials: [
-    {
-      quote: "The content is practical and easy to follow. I could apply what I learned immediately in daily work.",
-      name: "Rohan Verma",
-      role: "Security Professional",
-      courseBadge: "Cyber Security Essentials",
-      photo: "https://randomuser.me/api/portraits/men/32.jpg",
-    },
-    {
-      quote: "Tutor-led sessions and assignments helped me build confidence with real scenarios, not just theory.",
-      name: "Priya Rao",
-      role: "Data Analyst",
-      courseBadge: "ESG Reporting & Compliance",
-      photo: "https://randomuser.me/api/portraits/women/44.jpg",
-    },
-    {
-      quote: "Great mentorship and structured learning path. The certification gave my profile a strong boost.",
-      name: "Aman Kumar",
-      role: "Cloud Engineer",
-      courseBadge: "Advanced Cyber Security Professional",
-      photo: "https://randomuser.me/api/portraits/men/52.jpg",
-    },
-    {
-      quote: "Clear modules, supportive trainers, and strong outcomes. One of the best learning platforms I used.",
-      name: "Neha Sharma",
-      role: "Program Coordinator",
-      courseBadge: "ESG Management Development",
-      photo: "https://randomuser.me/api/portraits/women/68.jpg",
-    },
-    {
-      quote: "The trainer-led sessions were highly practical. I improved my process audit skills and could apply them at work immediately.",
-      name: "Vikram Singh",
-      role: "Quality Specialist",
-      courseBadge: "HACCP Food Safety (Level 2)",
-      photo: "https://randomuser.me/api/portraits/men/75.jpg",
-    },
-    {
-      quote: "Excellent balance of self-paced modules and live expert guidance. The certifications added real value to my profile.",
-      name: "Sneha Iyer",
-      role: "Compliance Analyst",
-      courseBadge: "Workplace Compliance Program",
-      photo: "https://randomuser.me/api/portraits/women/65.jpg",
-    },
-  ],
+  testimonials: [],
   individualPlans: [
     {
       badge: "Most Popular · Sustainable Futures Plus Monthly",
@@ -1265,6 +1222,6 @@ export const defaultAdminContent: AdminContent = {
       tone: "amber",
     },
   ],
-  tutorLedPrograms: defaultTutorLedPrograms,
+  tutorLedPrograms: [],
   categoryPages: {},
 };

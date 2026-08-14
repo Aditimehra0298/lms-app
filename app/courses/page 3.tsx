@@ -10,6 +10,7 @@ import { getManagedCourses } from "@/lib/server/course-catalog";
 import { getPublishedTutorLedPrograms } from "@/lib/server/tutor-led-catalog";
 import { readAdminContent } from "@/lib/server/content-store";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
+import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import { defaultCoursesPageConfig } from "@/lib/content-schema";
 import type { CoursesPageConfig } from "@/lib/content-schema";
@@ -259,6 +260,12 @@ export default async function CoursesPage({
     .filter((category) => category.isActive)
     .map((category) => ({ label: category.title, slug: category.slug }));
   const allCourses = await getManagedCourses();
+  const courseCountByCategory = new Map<string, number>();
+  for (const course of allCourses) {
+    const key = canonicalCategorySlug(course.category || "");
+    if (!key) continue;
+    courseCountByCategory.set(key, (courseCountByCategory.get(key) ?? 0) + 1);
+  }
   const tutorLedSlugs = new Set((await getPublishedTutorLedPrograms()).map((p) => p.slug));
   const visibleCourses = showAllCourses ? allCourses : allCourses.slice(0, cpConfig.defaultVisibleCourses);
   const recommendedCourses = [...allCourses]
@@ -396,6 +403,9 @@ export default async function CoursesPage({
             {categories.map((category) => {
               const style = getCategoryVisual(category);
               const Icon = style.Icon;
+              const count =
+                courseCountByCategory.get(canonicalCategorySlug(category.slug)) ?? 0;
+              const countLabel = count === 1 ? "1 Course" : `${count} Courses`;
               return (
                 <Link key={category.slug} href={`/courses/category/${category.slug}`} className="block h-full">
                 <article className="courses-category-card flex h-full min-h-[9.5rem] flex-col items-center rounded-xl border border-white/10 bg-linear-to-br from-white/[0.06] to-black/35 p-3 text-center transition hover:border-amber-300/40 hover:bg-white/5">
@@ -430,7 +440,7 @@ export default async function CoursesPage({
                   >
                     {category.label}
                   </p>
-                  <p className="mt-auto pt-1 text-[11px] text-gray-400">12 Courses</p>
+                  <p className="mt-auto pt-1 text-[11px] text-gray-400">{countLabel}</p>
                 </article>
                 </Link>
               );

@@ -14,7 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import type { AdminContent } from "@/lib/content-schema";
-import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { isWorkshopProgram, workshopLandingHref } from "@/lib/workshop-program";
 
 type BatchFilter = "all" | "tutor-led" | "workshop" | "upcoming";
@@ -43,9 +43,9 @@ export default function AdminBatchesWorkspace() {
   const [drafts, setDrafts] = useState<Record<string, BatchDraft>>({});
 
   const programs = useMemo(() => {
-    if (!content) return defaultTutorLedPrograms;
+    if (!content) return [];
     if (Array.isArray(content.tutorLedPrograms)) return content.tutorLedPrograms;
-    return defaultTutorLedPrograms;
+    return [];
   }, [content]);
 
   const load = useCallback(async () => {
@@ -55,9 +55,7 @@ export default function AdminBatchesWorkspace() {
       if (!res.ok) throw new Error("load");
       const data = (await res.json()) as AdminContent;
       setContent(data);
-      const rows = Array.isArray(data.tutorLedPrograms)
-        ? data.tutorLedPrograms
-        : defaultTutorLedPrograms;
+      const rows = Array.isArray(data.tutorLedPrograms) ? data.tutorLedPrograms : [];
       const nextDrafts: Record<string, BatchDraft> = {};
       for (const p of rows) {
         nextDrafts[p.slug] = {

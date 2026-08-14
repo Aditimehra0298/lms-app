@@ -1,10 +1,8 @@
 import type { AdminContent, CoursesPageFaq, HomePageFaq, HomePageConfig } from "@/lib/content-schema";
 import {
-  defaultAdminContent,
   defaultCoursesPageConfig,
   defaultHomePageConfig,
 } from "@/lib/content-schema";
-import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
 
 export type FaqTargetId = string;
 
@@ -38,10 +36,8 @@ export function normalizeFaqRows(
 }
 
 export function buildFaqTargetOptions(content: AdminContent): FaqTargetOption[] {
-  const managed = content.managedCourses ?? defaultAdminContent.managedCourses;
-  const tutorLed = content.tutorLedPrograms?.length
-    ? content.tutorLedPrograms
-    : defaultTutorLedPrograms;
+  const managed = content.managedCourses ?? [];
+  const tutorLed = Array.isArray(content.tutorLedPrograms) ? content.tutorLedPrograms : [];
 
   const options: FaqTargetOption[] = [
     {
@@ -112,7 +108,7 @@ export function loadFaqsForTarget(content: AdminContent, targetId: FaqTargetId):
   }
   if (targetId.startsWith("tutor-led:")) {
     const slug = targetId.slice("tutor-led:".length);
-    const programs = content.tutorLedPrograms?.length ? content.tutorLedPrograms : defaultTutorLedPrograms;
+    const programs = Array.isArray(content.tutorLedPrograms) ? content.tutorLedPrograms : [];
     const program = programs.find((p) => p.slug === slug);
     return normalizeFaqRows(program?.faqs ?? []);
   }
@@ -173,7 +169,7 @@ export function applyFaqsToAdminContent(
 
   if (targetId.startsWith("tutor-led:")) {
     const slug = targetId.slice("tutor-led:".length);
-    const programs = content.tutorLedPrograms?.length ? content.tutorLedPrograms : defaultTutorLedPrograms;
+    const programs = Array.isArray(content.tutorLedPrograms) ? content.tutorLedPrograms : [];
     return {
       ...content,
       tutorLedPrograms: programs.map((p) => (p.slug === slug ? { ...p, faqs: cleaned } : p)),

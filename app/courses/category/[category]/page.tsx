@@ -28,7 +28,6 @@ import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { categoryCatalogFallbackImage, resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import { getManagedCourses } from "@/lib/server/course-catalog";
 import { getPublishedTutorLedPrograms, getPublishedWorkshopPrograms } from "@/lib/server/tutor-led-catalog";
-import { getCategoryWorkshopPlaceholders } from "@/lib/category-page-resolve";
 import { mapProgramToWorkshopCard } from "@/lib/workshop-program";
 import { readAdminContent } from "@/lib/server/content-store";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
@@ -109,47 +108,13 @@ type CourseCard = {
   level: string;
   duration: string;
   rating: string;
+  learners?: string;
   price: string;
   oldPrice?: string;
   regionalPrices?: CourseRegionalPriceRow[];
   image?: string;
   learningFormat?: CourseLearningFormat;
 };
-
-const fallbackCourses = (fallbackSlug: string): CourseCard[] => [
-  {
-    slug: fallbackSlug,
-    title: "Category Foundations",
-    level: "Beginner",
-    duration: "3h 10m",
-    rating: "4.6",
-    price: "$39",
-  },
-  {
-    slug: fallbackSlug,
-    title: "Core Practices",
-    level: "Intermediate",
-    duration: "5h 00m",
-    rating: "4.7",
-    price: "$49",
-  },
-  {
-    slug: fallbackSlug,
-    title: "Applied Workshop",
-    level: "Intermediate",
-    duration: "4h 25m",
-    rating: "4.5",
-    price: "$45",
-  },
-  {
-    slug: fallbackSlug,
-    title: "Advanced Track",
-    level: "Advanced",
-    duration: "7h 40m",
-    rating: "4.8",
-    price: "$69",
-  },
-];
 
 const featureStrip = [
   {
@@ -185,8 +150,15 @@ function avgRatingFromCourses(list: CourseCard[]): string {
   const nums = list
     .map((c) => parseFloat(c.rating))
     .filter((n) => typeof n === "number" && !Number.isNaN(n));
-  if (!nums.length) return "4.6";
+  if (!nums.length) return "—";
   return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1);
+}
+
+function learnerTotalFromCourses(list: CourseCard[]): number {
+  return list.reduce((sum, course) => {
+    const n = Number(String(course.learners ?? "").replace(/[^0-9.]/g, ""));
+    return sum + (Number.isFinite(n) ? n : 0);
+  }, 0);
 }
 
 export default async function CourseCategoryPage({
@@ -205,13 +177,17 @@ export default async function CourseCategoryPage({
   const tutorLedSlugs = new Set(tutorLedPrograms.map((p) => p.slug));
   const pageCfg = mergeCategoryPageConfig(categoryKey, adminContent);
   const current = categories[categoryKey];
+  const adminCategory = adminContent.categories.find(
+    (row) => canonicalCategorySlug(row.slug) === categoryKey,
+  );
 
-  const title = current?.title ?? toTitleCase(categoryKey);
+  const title = adminCategory?.title?.trim() || current?.title || toTitleCase(categoryKey);
   const subtitle =
     pageCfg.heroSubtitle.trim() ||
+    adminCategory?.subtitle?.trim() ||
     current?.subtitle ||
     `Explore curated ${title} courses designed for practical skill-building and career growth.`;
-  const adminMappedCourses: CourseCard[] = managedCourses
+  const courses: CourseCard[] = managedCourses
     .filter(
       (course) =>
         canonicalCategorySlug(course.category) === categoryKey &&
@@ -223,30 +199,29 @@ export default async function CourseCategoryPage({
       level: course.level,
       duration: course.duration,
       rating: course.rating,
+      learners: course.learners,
       price: course.price,
       oldPrice: course.oldPrice,
       regionalPrices: course.regionalPrices,
       image: course.image,
       learningFormat: course.learningFormat,
     }));
-  const fallbackSlug =
-    adminMappedCourses[0]?.slug ?? managedCourses[0]?.slug ?? "food-safety-masterclass";
-  const courses = adminMappedCourses.length > 0 ? adminMappedCourses : fallbackCourses(fallbackSlug);
   const heroImage = pageCfg.heroImage;
 
   const avgRating = avgRatingFromCourses(courses);
-  const courseCountLabel = `${Math.max(courses.length, 8)} Courses`;
+  const learnerTotal = learnerTotalFromCourses(courses);
+  const courseCountLabel =
+    courses.length === 1 ? "1 Course" : `${courses.length} Courses`;
+  const learnerCountLabel =
+    learnerTotal === 1 ? "1 Learner" : `${learnerTotal.toLocaleString()} Learners`;
 
   if (!title) notFound();
 
-  const workshopCards = workshopPrograms.map(mapProgramToWorkshopCard);
-  const workshops =
-    workshopCards.length > 0
-      ? workshopCards
-      : getCategoryWorkshopPlaceholders(title, "/workshops");
+  const workshops = workshopPrograms.map(mapProgramToWorkshopCard);
 
-  const instructors = pageCfg.instructors;
+  const instructors = pageCfg.instructors.filter((p) => p.name?.trim());
   const whyLearnItems = whyLearnToRows(pageCfg.whyLearn);
+  const faqItems: { q: string; a: string }[] = [];
 
   const whyToneClass: Record<CategoryWhyTone, string> = {
     amber: "bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/35",
@@ -254,25 +229,6 @@ export default async function CourseCategoryPage({
     blue: "bg-blue-500/15 text-blue-300 ring-1 ring-blue-400/35",
     violet: "bg-violet-500/15 text-violet-300 ring-1 ring-violet-400/35",
   };
-
-  const faqItems = [
-    {
-      q: `What is covered in ${title} training?`,
-      a: `Programs combine fundamentals, regulatory context, and hands-on scenarios so you can apply what you learn immediately in ${title.toLowerCase()} roles.`,
-    },
-    {
-      q: "Who should enroll?",
-      a: `Teams and individuals building capability in ${title.toLowerCase()}, program leads rolling out training, and anyone preparing for assessments or certification.`,
-    },
-    {
-      q: "Will I receive a certificate?",
-      a: "Yes. Completing eligible modules unlocks a downloadable certificate you can share with employers.",
-    },
-    {
-      q: "Are courses aligned with industry standards?",
-      a: "Content is structured around widely used frameworks and audit expectations so your skills map to real workplace requirements.",
-    },
-  ];
 
   return (
     <div className="category-page min-h-screen bg-[#070707] text-white">
@@ -333,7 +289,7 @@ export default async function CourseCategoryPage({
                       <Users className="h-5 w-5 text-amber-300" />
                     </div>
                     <div>
-                      <p className="text-lg font-bold text-white">8K+ Learners</p>
+                      <p className="text-lg font-bold text-white">{learnerCountLabel}</p>
                       <p className="text-xs text-gray-500">Enrolled in this track</p>
                     </div>
                   </div>
@@ -446,7 +402,12 @@ export default async function CourseCategoryPage({
           </div>
 
           <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {courses.map((course, i) => (
+            {courses.length === 0 ? (
+              <p className="col-span-full rounded-2xl border border-white/10 bg-[#0f0f0f] px-4 py-10 text-center text-sm text-gray-400">
+                No published courses in this category yet.
+              </p>
+            ) : (
+            courses.map((course, i) => (
               <article
                 key={`${course.slug}-${course.title}-${i}`}
                 className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f0f] transition hover:border-amber-500/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
@@ -499,11 +460,12 @@ export default async function CourseCategoryPage({
                   />
                 </div>
               </article>
-            ))}
+            ))
+            )}
           </div>
         </section>
 
-        {/* Live workshops */}
+        {workshops.length > 0 ? (
         <section id="live-workshops" className="mt-16 scroll-mt-28">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-2xl font-bold md:text-3xl">Upcoming Live Workshops</h2>
@@ -541,8 +503,9 @@ export default async function CourseCategoryPage({
             ))}
           </div>
         </section>
+        ) : null}
 
-        {/* Instructors + Why learn — side by side (matches design) */}
+        {(instructors.length > 0 || whyLearnItems.length > 0) ? (
         <section className="mt-16 grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
           <div className="rounded-2xl border border-white/10 bg-[#121212] p-4 md:p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -605,9 +568,11 @@ export default async function CourseCategoryPage({
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* FAQ + Newsletter */}
         <section className="mt-16 grid gap-8 lg:grid-cols-2 lg:gap-12">
+          {faqItems.length > 0 ? (
           <div className="rounded-3xl border border-white/10 bg-[#0f0f0f] p-6 md:p-8">
             <h3 className="text-xl font-bold md:text-2xl">Frequently Asked Questions</h3>
             <p className="mt-2 text-sm text-gray-500">Quick answers about programs and certificates.</p>
@@ -615,6 +580,7 @@ export default async function CourseCategoryPage({
               <CategoryFaqAccordion items={faqItems} />
             </div>
           </div>
+          ) : null}
           <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-gradient-to-br from-[#1a1408] via-[#0f0f0f] to-[#0a1628] p-6 md:p-8">
             <div className="relative z-10">
               <h3 className="text-xl font-bold md:text-2xl">Stay Updated</h3>

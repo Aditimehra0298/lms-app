@@ -2,13 +2,18 @@ import type { ManagedCourse } from "@/lib/content-schema";
 import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import { curriculumModulesForLearner } from "@/lib/curriculum-learner-filter";
 import { mergeCoursePreferringRicherCurriculum } from "@/lib/curriculum-richness";
-import { getCourseContentFromMysql } from "@/lib/server/course-content-mysql-sync";
+import {
+  getCourseContentFromMysql,
+  hydrateManagedCoursesFromMysql,
+} from "@/lib/server/course-content-mysql-sync";
 import { readAdminContent } from "@/lib/server/content-store";
 import { pickUniqueCourseCover, isGenericCoursePlaceholder } from "@/lib/course-thumbnail";
 
 export async function getManagedCourses() {
   const content = await readAdminContent();
-  const courses = content.managedCourses ?? [];
+  const { courses } = await hydrateManagedCoursesFromMysql(content.managedCourses ?? [], {
+    excludeSlugs: content.deletedCourseSlugs,
+  });
   const published = courses.filter(
     (course) => course.published && course.settings?.showInCatalog !== false,
   );

@@ -1,5 +1,4 @@
 import { defaultAdminContent } from "@/lib/content-schema";
-import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
 import { readAdminContent } from "@/lib/server/content-store";
 import { getTutorLedProgramBySlug } from "@/lib/server/tutor-led-catalog";
 import { isWorkshopProgram } from "@/lib/workshop-program";
@@ -39,7 +38,7 @@ export async function listAdminGrantableOfferings(): Promise<GrantableOffering[]
     content.managedCourses && content.managedCourses.length > 0
       ? content.managedCourses
       : defaultAdminContent.managedCourses;
-  const programs = content.tutorLedPrograms ?? [];
+  const programs = Array.isArray(content.tutorLedPrograms) ? content.tutorLedPrograms : [];
 
   const bySlug = new Map<string, GrantableOffering>();
 
@@ -55,23 +54,10 @@ export async function listAdminGrantableOfferings(): Promise<GrantableOffering[]
     });
   }
 
-  // Merge defaults + admin tutor-led / workshops (admin list may omit defaults).
-  const programMap = new Map<string, (typeof defaultTutorLedPrograms)[number]>();
-  for (const p of defaultTutorLedPrograms) {
-    if (p.slug?.trim()) programMap.set(p.slug.trim(), p);
-  }
-  for (const p of programs) {
-    const slug = p.slug?.trim();
-    if (!slug) continue;
-    const base = programMap.get(slug);
-    programMap.set(slug, base ? { ...base, ...p, slug } : p);
-  }
-
-  for (const program of programMap.values()) {
+  for (const program of programs) {
     const slug = program.slug?.trim();
     if (!slug) continue;
     const kind: GrantableOfferingKind = isWorkshopProgram(program) ? "workshop" : "tutor-led";
-    // Prefer dedicated live programs over catalog rows with the same slug.
     bySlug.set(slug, {
       slug,
       title: program.title?.trim() || slug,

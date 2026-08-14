@@ -1,6 +1,5 @@
 import {
   defaultCoursesPageConfig,
-  defaultAdminContent,
   type HomePageFaq,
 } from "@/lib/content-schema";
 import {
@@ -9,7 +8,6 @@ import {
   faqTargetCourse,
   faqTargetTutorLed,
 } from "@/lib/admin-faq-targets";
-import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
 import type { SiteFaqGroup, SiteFaqItem } from "@/lib/site-faq-types";
 import { readAdminContent } from "@/lib/server/content-store";
 import { resolveHomePageConfig } from "@/lib/server/resolve-home-page";
@@ -39,9 +37,8 @@ export async function collectSiteFaqGroups(): Promise<SiteFaqGroup[]> {
   const content = await readAdminContent();
   const homePage = await resolveHomePageConfig();
   const coursesPage = { ...defaultCoursesPageConfig, ...content.coursesPage };
-  const managedCourses = content.managedCourses ?? defaultAdminContent.managedCourses;
-  const tutorLedPrograms =
-    content.tutorLedPrograms?.length ? content.tutorLedPrograms : defaultTutorLedPrograms;
+  const managedCourses = content.managedCourses ?? [];
+  const tutorLedPrograms = Array.isArray(content.tutorLedPrograms) ? content.tutorLedPrograms : [];
 
   const groups: SiteFaqGroup[] = [];
 

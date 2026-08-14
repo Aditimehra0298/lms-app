@@ -221,10 +221,9 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
   const [zoomApiMessage, setZoomApiMessage] = useState<string | null>(null);
 
   const programs = useMemo(() => {
-    if (!content) return defaultTutorLedPrograms;
-    // Respect an intentional empty catalog (all programs deleted).
+    if (!content) return [];
     if (Array.isArray(content.tutorLedPrograms)) return content.tutorLedPrograms;
-    return defaultTutorLedPrograms;
+    return [];
   }, [content]);
 
   const scopedPrograms = useMemo(() => {
@@ -281,9 +280,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
   }, []);
 
   const refreshDraftFromSaved = (slug: string, data: AdminContent | null) => {
-    const list = Array.isArray(data?.tutorLedPrograms)
-      ? data.tutorLedPrograms
-      : defaultTutorLedPrograms;
+    const list = Array.isArray(data?.tutorLedPrograms) ? data.tutorLedPrograms : [];
     const row = list.find((p) => p.slug === slug);
     if (row) setDraft(cloneProgram(row));
   };

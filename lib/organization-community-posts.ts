@@ -84,67 +84,16 @@ export function formatOrgPostTimeLabel(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/** Preview posts — employee ↔ organisation conversation until API is wired. */
-export function organizationCommunityPostSamples(companyName: string): OrgCommunityPost[] {
-  const org = companyName.trim() || "Your organisation";
-  return [
-    {
-      id: "sample-org-1",
-      audience: "organization",
-      authorName: `${org} Admin`,
-      courseTitle: "Food Safety & HACCP Fundamentals",
-      courseSlug: "food-safety-masterclass",
-      title: "Why we enrolled the team in HACCP",
-      body: "We assigned this program so every site lead meets audit-ready standards before Q3 inspections.",
-      createdAt: new Date(Date.now() - 2 * 86_400_000).toISOString(),
-    },
-    {
-      id: "sample-emp-1",
-      audience: "employee",
-      authorName: "Michael Brown",
-      authorUserId: "EMP-0003",
-      courseTitle: "Food Safety & HACCP Fundamentals",
-      courseSlug: "food-safety-masterclass",
-      title: "Module 3 was especially practical",
-      body: "The case studies map directly to our kitchen workflow — sharing this with the org learning group.",
-      rating: 5,
-      createdAt: new Date(Date.now() - 5 * 86_400_000).toISOString(),
-    },
-    {
-      id: "sample-org-2",
-      audience: "organization",
-      authorName: `${org} L&D`,
-      courseTitle: "Cyber Security Essentials",
-      courseSlug: "cyber-security-essentials",
-      title: "Company-wide security awareness push",
-      body: "Please complete the phishing module this week. Post your takeaways here so leadership can see team progress.",
-      createdAt: new Date(Date.now() - 1 * 86_400_000).toISOString(),
-    },
-    {
-      id: "sample-emp-2",
-      audience: "employee",
-      authorName: "Sarah Johnson",
-      authorUserId: "EMP-0002",
-      courseTitle: "Cyber Security Essentials",
-      courseSlug: "cyber-security-essentials",
-      title: "Shared our team playbook update",
-      body: "After the tutor-led session we updated password policy — attaching learnings for the organisation view.",
-      rating: 4,
-      createdAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
-    },
-  ];
+/** No demo posts — community shows only real learner/org submissions. */
+export function organizationCommunityPostSamples(_companyName: string): OrgCommunityPost[] {
+  return [];
 }
 
 export function mergeOrgCommunityPosts(
   userPosts: OrgCommunityPost[],
-  companyName: string,
+  _companyName: string,
 ): OrgCommunityPost[] {
-  const seen = new Set(userPosts.map((p) => p.id));
-  const merged = [...userPosts];
-  for (const sample of organizationCommunityPostSamples(companyName)) {
-    if (!seen.has(sample.id)) merged.push(sample);
-  }
-  return merged.sort(
+  return [...userPosts].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 }

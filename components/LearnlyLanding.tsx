@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultHomePageConfig, type HomePageConfig, type ManagedCategory, type ManagedCourse } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
-import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import { CoursePrice } from "@/components/CoursePrice";
@@ -485,12 +485,10 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
     () => initialData?.courses ?? fallbackPublishedCatalog(),
   );
   const [tutorLedPrograms, setTutorLedPrograms] = useState<TutorLedProgramStored[]>(
-    () =>
-      initialData?.tutorLedPrograms ??
-      defaultTutorLedPrograms.filter((p) => p.published),
+    () => initialData?.tutorLedPrograms ?? [],
   );
   const [planAudience, setPlanAudience] = useState<"individual" | "organisation">("individual");
-  const [openFaq, setOpenFaq] = useState<string | null>(faqs[0]?.q ?? null);
+  const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [showAllFaqs, setShowAllFaqs] = useState(false);
   const [showAllCourses, setShowAllCourses] = useState(false);
   const [liveCategories, setLiveCategories] = useState<ManagedCategory[] | null>(
@@ -529,10 +527,10 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
         if (!cancelled) {
           setHomeConfig({
             ...defaultHomePageConfig,
-            faqs: data.homeFaqs ?? defaultHomePageConfig.faqs,
+            faqs: data.homeFaqs ?? [],
             faqImage: data.faqImage ?? defaultHomePageConfig.faqImage,
             faqPage: { ...defaultHomePageConfig.faqPage, ...data.faqPage },
-            testimonials: data.testimonials ?? defaultHomePageConfig.testimonials,
+            testimonials: data.testimonials ?? [],
             testimonialsPage: { ...defaultHomePageConfig.testimonialsPage, ...data.testimonialsPage },
           });
         }
@@ -630,19 +628,17 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   const brandDark = "bg-[#0a0a0a]";
   const heroVideoSrc = isLightTheme ? HERO_VIDEO_LIGHT : HERO_VIDEO_DARK;
 
-  const liveTestimonials = homeConfig.testimonials.length > 0
-    ? homeConfig.testimonials.map((t) => ({
-        quote: t.quote,
-        name: t.name,
-        role: t.role,
-        courseBadge: t.courseBadge,
-        photo: t.photo,
-        seed: t.name.toLowerCase().replace(/\s+/g, "-"),
-      }))
-    : testimonials;
-  const liveFaqs = homeConfig.faqs.length > 0 ? homeConfig.faqs : faqs;
-  const liveIndividualPlans = homeConfig.individualPlans.length > 0 ? homeConfig.individualPlans : individualPlans;
-  const liveOrgPlan = homeConfig.orgPlan ?? organisationPlan;
+  const liveTestimonials = homeConfig.testimonials.map((t) => ({
+    quote: t.quote,
+    name: t.name,
+    role: t.role,
+    courseBadge: t.courseBadge,
+    photo: t.photo,
+    seed: t.name.toLowerCase().replace(/\s+/g, "-"),
+  }));
+  const liveFaqs = homeConfig.faqs;
+  const liveIndividualPlans = homeConfig.individualPlans;
+  const liveOrgPlan = homeConfig.orgPlan;
   const liveExploreProgramImages = homeConfig.exploreProgramImages.length > 0 ? homeConfig.exploreProgramImages : exploreProgramImages;
   const liveAccreditationLogos =
     (homeConfig.accreditationLogos?.length ?? 0) > 0
@@ -651,7 +647,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           alt: `Accreditation partner ${index + 1}`,
           large: /cloudinary|irba/i.test(src),
         }))
-      : accreditationLogos;
+      : [];
   const liveLearningFormats = learningFormats.map((item) => {
     const fromCms = (homeConfig.learningPaths ?? []).find((p) => p.id === item.id);
     const imageSrc = fromCms?.imageSrc?.trim();
@@ -668,23 +664,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   const unlockSubtitle = homeConfig.unlock?.subtitle?.trim();
   const unlockCta = homeConfig.unlock?.cta?.trim();
 
-  const useLiveCatalog = liveCategories !== null && liveCategories.length > 0;
-  const catalogForPills = useLiveCatalog
-    ? liveCategories.filter((c) => c.isActive)
-    : fallbackCategoryLabels.map((title) => {
-        const card = fallbackCategoryCards.find((c) => c.title === title);
-        return {
-          slug: title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-          title,
-          subtitle: "",
-          description: card?.desc ?? "",
-          isActive: true,
-          isFeatured: false,
-          isUppercase: false,
-          isBold: false,
-          tone: "violet" as const,
-        };
-      });
+  const catalogForPills = (liveCategories ?? []).filter((c) => c.isActive);
 
   const filteredCatalog =
     activeCategory === "All"
@@ -861,7 +841,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
 
         <div className="mx-auto w-full max-w-[1760px] px-4 pb-6 md:px-6 xl:px-8">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {(homeConfig.stats.length > 0 ? homeConfig.stats.map(s => `${s.value} ${s.label}`) : heroHighlights).map((item) => (
+            {(homeConfig.stats.length > 0 ? homeConfig.stats.map(s => `${s.value} ${s.label}`) : []).map((item) => (
               <div
                 key={item}
                 className="lh-stat-pill rounded-xl border border-amber-400/60 bg-amber-500/15 px-4 py-3 text-center text-sm font-semibold text-amber-100 shadow-[0_0_30px_rgba(249,177,77,0.25)]"
@@ -1106,10 +1086,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             ) : (
               filteredCatalog.map((cat, index) => {
                 const Icon = iconForCategoryTitle(cat.title);
-                const desc =
-                  cat.description ||
-                  fallbackCategoryCards.find((c) => c.title === cat.title)?.desc ||
-                  "Explore programs and courses in this category.";
+                const desc = cat.description?.trim() || cat.subtitle?.trim() || "";
                 const cardImage = liveExploreProgramImages[index % liveExploreProgramImages.length];
                 return (
                   <div
@@ -1368,13 +1345,13 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           ) : (
             <div className="mx-auto mt-10 max-w-4xl">
               <article className="lh-plan-card flex h-full flex-col rounded-2xl border border-amber-500/40 bg-linear-to-b from-[#1b1306] via-[#120d07] to-[#0a0808] p-6 shadow-[0_0_30px_rgba(249,177,77,0.2)] transition-all hover:-translate-y-0.5 hover:border-amber-300/75 hover:shadow-[0_0_42px_rgba(249,177,77,0.3)]">
-                <p className="text-sm font-semibold text-amber-300">{liveOrgPlan.title}</p>
-                <p className="mt-1 text-sm text-gray-300">{liveOrgPlan.tagline}</p>
-                <p className="mt-4 text-sm leading-relaxed text-gray-400">{liveOrgPlan.desc}</p>
-                <CoursePrice label={liveOrgPlan.price} className="mt-5 block text-2xl font-bold text-white" />
-                <p className="mt-1 text-xs text-amber-100/90">{liveOrgPlan.note}</p>
+                <p className="text-sm font-semibold text-amber-300">{liveOrgPlan?.title}</p>
+                <p className="mt-1 text-sm text-gray-300">{liveOrgPlan?.tagline}</p>
+                <p className="mt-4 text-sm leading-relaxed text-gray-400">{liveOrgPlan?.desc}</p>
+                <CoursePrice label={liveOrgPlan?.price ?? ""} className="mt-5 block text-2xl font-bold text-white" />
+                <p className="mt-1 text-xs text-amber-100/90">{liveOrgPlan?.note}</p>
                 <ul className="mt-5 space-y-2 text-sm text-gray-200">
-                  {liveOrgPlan.features.map((feature) => (
+                  {(liveOrgPlan?.features ?? []).map((feature) => (
                     <li key={feature} className="flex items-start gap-2">
                       <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-400" />
                       <span>{feature}</span>
@@ -1385,7 +1362,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                   type="button"
                   className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
                 >
-                  {liveOrgPlan.cta} <ChevronRight size={16} />
+                  {liveOrgPlan?.cta} <ChevronRight size={16} />
                 </button>
               </article>
               <div className="lh-help-card mt-6 rounded-2xl border border-amber-500/45 bg-linear-to-r from-amber-500/16 via-amber-400/10 to-amber-500/16 p-5">
@@ -1453,7 +1430,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           </div>
         </section>
 
-        {/* Testimonials */}
+        {liveTestimonials.length > 0 ? (
         <section className={`${sectionShell} border-t border-white/5 py-16 md:py-20`}>
           <div className="mb-4 flex justify-center">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-500">
@@ -1488,6 +1465,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             ))}
           </div>
         </section>
+        ) : null}
 
         {/* Mid CTA */}
         <section className={`${sectionShell} py-16 md:py-20`}>
@@ -1516,7 +1494,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           </div>
         </section>
 
-        {/* FAQ */}
+        {liveFaqs.length > 0 ? (
         <section className={`${sectionShell} border-t border-white/5 py-16 md:py-20`}>
           <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
             <div className="w-full lg:flex-1">
@@ -1585,6 +1563,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* Newsletter */}
         <section className={`${sectionShell} py-10 md:py-12`}>
