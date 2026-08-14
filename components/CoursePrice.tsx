@@ -27,10 +27,9 @@ export function CoursePrice({ inr, label, exactLabel = false, className = "", va
     );
   }
 
-  if (showPrices) {
-    const text =
-      inr != null ? formatInr(inr) : label ? (exactLabel ? label : formatPriceLabel(label)) : null;
-    if (!text) return null;
+  const text =
+    inr != null ? formatInr(inr) : label ? (exactLabel ? label : formatPriceLabel(label)) : null;
+  if (text) {
     return <span className={className}>{text}</span>;
   }
 
@@ -38,5 +37,5 @@ export function CoursePrice({ inr, label, exactLabel = false, className = "", va
     return <KnowPriceButton className={className} />;
   }
 
-  return <KnowPriceButton className={className} />;
+  return showPrices ? null : <KnowPriceButton className={className} />;
 }

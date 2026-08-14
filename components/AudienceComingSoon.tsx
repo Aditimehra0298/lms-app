@@ -34,10 +34,13 @@ type Props = {
 
 export default function AudienceComingSoon({ audience }: Props) {
   const copy = AUDIENCE_COMING_SOON[audience] ?? AUDIENCE_COMING_SOON.industry;
+  const allAudiences = Object.entries(AUDIENCE_COMING_SOON) as Array<
+    [ComingSoonAudienceId, (typeof AUDIENCE_COMING_SOON)[ComingSoonAudienceId]]
+  >;
 
   return (
-    <div className="min-h-[70vh] bg-[#0a0a0a] px-4 py-20 text-white">
-      <div className="mx-auto max-w-2xl text-center">
+    <div className="min-h-[70vh] bg-[#0a0a0a] px-4 py-16 text-white md:py-20">
+      <div className="mx-auto max-w-3xl text-center">
         <p className="inline-flex items-center gap-2 rounded-full border border-[#F5B800]/40 bg-[#F5B800]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-[#F5B800]">
           <Sparkles size={14} />
           Coming soon
@@ -50,9 +53,32 @@ export default function AudienceComingSoon({ audience }: Props) {
           {copy.body}
         </p>
         <p className="mx-auto mt-3 max-w-lg text-sm text-zinc-500">
-          The main catalog is live today. Browse courses or start learning while we finish this
-          audience page.
+          Dedicated pages for every audience below are coming soon. The main catalog is live today.
         </p>
+
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          {allAudiences.map(([id, item]) => {
+            const selected = id === audience;
+            return (
+              <Link
+                key={id}
+                href={`/coming-soon?for=${id}`}
+                className={`rounded-xl border px-4 py-4 text-left transition ${
+                  selected
+                    ? "border-amber-400/55 bg-amber-500/10"
+                    : "border-white/10 bg-white/[0.03] hover:border-amber-400/35"
+                }`}
+              >
+                <p className="text-[11px] font-bold uppercase tracking-wide text-amber-300">Coming soon</p>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  <span className="font-serif italic lowercase text-amber-200">for </span>
+                  {item.label}
+                </p>
+              </Link>
+            );
+          })}
+        </div>
+
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/courses"

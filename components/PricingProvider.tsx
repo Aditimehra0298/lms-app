@@ -84,7 +84,6 @@ export function PricingProvider({ children }: { children: ReactNode }) {
       }
       if (next) {
         applyRegion(next);
-        // Avoid dispatching window events during provider mount — update storage quietly.
         if (typeof window !== "undefined") {
           window.localStorage.setItem(PRICING_REVEALED_KEY, "true");
         }
@@ -93,10 +92,12 @@ export function PricingProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    applyRegion(null);
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(PRICING_REVEALED_KEY);
-    }
+    // Guests still see admin catalog prices (region from IP, else India).
+    let guest =
+      cached ??
+      (await fetchGuestPricingRegion()) ??
+      cachePricingRegionFromCountryCode("IN");
+    if (guest) applyRegion(guest);
     setReady(true);
   }, [applyRegion]);
 
@@ -179,8 +180,8 @@ export function PricingProvider({ children }: { children: ReactNode }) {
     [region],
   );
 
-  /** Prices only after sign-in; region from MySQL (IP / Google / registration country at login). */
-  const showPrices = loggedIn && region !== null;
+  /** Show the prices saved in Admin (regional row when set, otherwise global). */
+  const showPrices = region !== null;
 
   const value = useMemo(
     () => ({

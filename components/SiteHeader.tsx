@@ -592,6 +592,26 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
             <div className="relative z-[70]">
               <HeaderExploreMenu isLight={false} />
             </div>
+            <nav className="flex flex-col gap-3 text-sm font-semibold text-gray-200">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-300/80">For</p>
+              {audienceTabs.map((tab) => (
+                <Link
+                  key={tab.id}
+                  href={`/coming-soon?for=${tab.id}`}
+                  onClick={() => {
+                    setActiveAudience(tab.id);
+                    window.localStorage.setItem(AUDIENCE_STORAGE_KEY, tab.id);
+                    setIsMenuOpen(false);
+                  }}
+                  className="rounded-lg border border-amber-400/20 bg-white/5 px-3 py-2.5 hover:border-amber-400/45 hover:text-amber-100"
+                >
+                  <AudienceTabLabel label={tab.label} />
+                  <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-amber-300">
+                    Coming soon
+                  </span>
+                </Link>
+              ))}
+            </nav>
             <nav className="flex flex-col gap-6 text-lg font-medium text-gray-300">
               {useLearnerDashboardChrome ? (
                 myLearningMenu.map((item) => (

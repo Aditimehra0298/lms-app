@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const MAX_BYTES = 6 * 1024 * 1024;
-const COVERS_DIR = path.join(process.cwd(), "public", "uploads", "covers");
+const PUBLIC_COVERS_DIR = path.join(process.cwd(), "public", "uploads", "covers");
+const DATA_COVERS_DIR = path.join(process.cwd(), "data", "uploads", "covers");
 
 function extForType(type: string): string {
   switch (type) {
@@ -77,14 +78,16 @@ export async function POST(request: Request) {
     const ext = extForType(mime);
     const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeBase.slice(0, 40)}${ext}`;
 
-    await mkdir(COVERS_DIR, { recursive: true });
+    await mkdir(PUBLIC_COVERS_DIR, { recursive: true });
+    await mkdir(DATA_COVERS_DIR, { recursive: true });
     const buf = Buffer.from(await file.arrayBuffer());
-    const dest = path.join(COVERS_DIR, name);
-    await writeFile(dest, buf);
+    await writeFile(path.join(PUBLIC_COVERS_DIR, name), buf);
+    await writeFile(path.join(DATA_COVERS_DIR, name), buf);
 
     return NextResponse.json({
       ok: true,
-      url: `/uploads/covers/${name}`,
+      url: `/api/covers/${encodeURIComponent(name)}`,
+      publicUrl: `/uploads/covers/${name}`,
       bytes: buf.length,
     });
   } catch (err) {

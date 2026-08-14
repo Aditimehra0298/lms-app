@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { type MouseEvent, type ReactNode } from "react";
 import { CoursePrice } from "@/components/CoursePrice";
 import { PriceDescriptionButtonRow } from "@/components/CourseActionButtons";
@@ -37,7 +36,7 @@ export default function CourseCardActions({
   className = "",
   trailing,
 }: Props) {
-  const { showPrices, ready } = useLearnerPricing();
+  const { ready } = useLearnerPricing();
   const hasCatalogPrice = priceLabel != null && priceLabel !== "";
   const hasInrPrice = priceInr != null;
 
@@ -48,7 +47,7 @@ export default function CourseCardActions({
     >
       {!ready ? (
         <div className="mb-2 h-6 animate-pulse rounded bg-zinc-800/80" aria-hidden />
-      ) : showPrices && (hasCatalogPrice || hasInrPrice) ? (
+      ) : hasCatalogPrice || hasInrPrice ? (
         <div className="mb-2 min-h-[1.75rem]">
           {hasInrPrice ? (
             <CoursePrice inr={priceInr} className="text-base font-bold text-amber-400 sm:text-lg" />
@@ -75,16 +74,7 @@ export default function CourseCardActions({
           ) : null}
         </div>
       ) : (
-        <p className="mb-2 min-h-[1.75rem] text-xs text-zinc-500">
-          <Link
-            href="/account?mode=login"
-            onClick={stopBubble}
-            className="font-semibold text-[#FFB800] hover:underline"
-          >
-            Sign in
-          </Link>{" "}
-          to see price
-        </p>
+        <p className="mb-2 min-h-[1.75rem] text-xs text-zinc-500">Price in Admin → Pricing</p>
       )}
 
       <PriceDescriptionButtonRow descriptionHref={descriptionHref} />

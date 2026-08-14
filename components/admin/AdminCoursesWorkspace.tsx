@@ -625,7 +625,15 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       }
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
       const imageUrl = data.url;
-      setDraft((d) => ({ ...d, image: imageUrl }));
+      setDraft((d) => ({
+        ...d,
+        image: imageUrl,
+        hero: {
+          ...(d.hero ?? {}),
+          previewImage: imageUrl,
+          backgroundImage: imageUrl,
+        },
+      }));
 
       // Persist immediately for existing courses so home/courses/my-learning pick up the cover.
       if (content && !isCreating && (editingSlug || selectedSlug)) {
@@ -649,6 +657,12 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
           ...draft,
           slug,
           image: imageUrl,
+          hero: {
+            ...(existing?.hero ?? {}),
+            ...(draft.hero ?? {}),
+            previewImage: imageUrl,
+            backgroundImage: imageUrl,
+          },
           learningFormat: "self-paced",
           faqs: (draft.faqs ?? existing?.faqs ?? []).filter((f) => f.q.trim() && f.a.trim()),
           curriculum: preservedCurriculum,

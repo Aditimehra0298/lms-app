@@ -553,7 +553,6 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   }, [initialData?.categories]);
 
   useEffect(() => {
-    if (initialData?.courses) return;
     let cancelled = false;
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
@@ -562,9 +561,13 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
         const res = await fetch("/api/courses", { cache: "no-store", signal: controller.signal });
         if (!res.ok) throw new Error("courses");
         const data = (await res.json()) as { courses?: ManagedCourse[] };
-        if (!cancelled) setCatalogCourses(Array.isArray(data.courses) ? data.courses : []);
+        if (!cancelled && Array.isArray(data.courses) && data.courses.length > 0) {
+          setCatalogCourses(data.courses);
+        }
       } catch {
-        if (!cancelled) setCatalogCourses(fallbackPublishedCatalog());
+        if (!cancelled && !initialData?.courses?.length) {
+          setCatalogCourses(fallbackPublishedCatalog());
+        }
       } finally {
         window.clearTimeout(timeoutId);
       }

@@ -8,12 +8,24 @@ const GENERIC_PLACEHOLDERS = new Set([
   "",
   "/course-food-safety.png",
   "/course-food-safety.jpg",
+  "/p1.png",
+  "/p2.png",
+  "/p3.png",
+  "/p4.jpg",
+  "/p4.png",
+  "/p5.png",
+  "/p6.png",
+  "/p7.png",
+  "/p8.png",
+  "/q.png",
 ]);
 
 export function isGenericCoursePlaceholder(src: string | undefined | null): boolean {
-  const s = (src ?? "").trim();
+  const s = (src ?? "").trim().split("?")[0] ?? "";
   if (!s) return true;
-  return GENERIC_PLACEHOLDERS.has(s);
+  if (GENERIC_PLACEHOLDERS.has(s)) return true;
+  if (/^\/p\d+\.(png|jpe?g|webp|gif)$/i.test(s)) return true;
+  return false;
 }
 
 /** True for any LMS-usable image path (public upload, asset, or remote URL). */
@@ -25,6 +37,31 @@ export function isUsableCourseImageSrc(src: string | undefined | null): boolean 
     /^https?:\/\//i.test(s) ||
     s.startsWith("data:")
   );
+}
+
+/** Admin-uploaded cover (not a shared category stock file). */
+export function isUniqueCourseCover(src: string | undefined | null): boolean {
+  const s = resolveCourseImageSrc(src);
+  if (!s || isGenericCoursePlaceholder(s)) return false;
+  const pathOnly = s.split("?")[0] ?? s;
+  return (
+    pathOnly.startsWith("/uploads/covers/") ||
+    pathOnly.startsWith("/api/covers/") ||
+    pathOnly.startsWith("/api/media/serve/") ||
+    pathOnly.startsWith("/uploads/admin/") ||
+    pathOnly.startsWith("/storage/private/") ||
+    /^https?:\/\//i.test(s) ||
+    s.startsWith("data:")
+  );
+}
+
+export function pickUniqueCourseCover(
+  ...candidates: Array<string | undefined | null>
+): string {
+  for (const raw of candidates) {
+    if (isUniqueCourseCover(raw)) return resolveCourseImageSrc(raw);
+  }
+  return "";
 }
 
 /**
@@ -54,25 +91,21 @@ type ThumbSource = {
 
 /**
  * My Learning / catalog card thumbnail for one course.
- * Prefer that course's own cover, hero, or certificate art — never a shared stock default.
+ * Prefer that course's own uploaded cover — never a shared stock default.
  */
 export function resolveCourseListThumbnail(course: ThumbSource | null | undefined): string {
   if (!course) return "";
-  const candidates = [
+  const unique = pickUniqueCourseCover(
     course.image,
     course.hero?.previewImage,
     course.hero?.backgroundImage,
     course.hero?.certificatePreviewImage,
     course.certificateConfig?.badgeImage,
     course.certificateConfig?.templateImage,
-  ];
-  for (const raw of candidates) {
-    const s = resolveCourseImageSrc(raw);
-    if (!s || isGenericCoursePlaceholder(s)) continue;
-    return s;
-  }
-  // Last resort: keep an intentional non-generic path already on the course
-  return resolveCourseImageSrc(course.image);
+  );
+  if (unique) return unique;
+  // Do not fall back to /p2.png etc. — that made every course look the same on the LMS.
+  return "";
 }
 
 export function resolveManagedCourseThumbnail(course: ManagedCourse): string {
@@ -88,12 +121,15 @@ export function catalogCoverFallbackUrls(stored: string): string[] {
   if (!s) return [];
   const out: string[] = [s];
   const serve = s.match(/\/api\/media\/serve\/([^/]+)$/);
+  const coversApi = s.match(/\/api\/covers\/([^/]+)$/);
   const admin = s.match(/\/uploads\/admin\/([^/]+)$/);
-  const encoded = serve?.[1] || admin?.[1];
+  const publicCover = s.match(/\/uploads\/covers\/([^/]+)$/);
+  const encoded = serve?.[1] || coversApi?.[1] || admin?.[1] || publicCover?.[1];
   if (encoded) {
     try {
       const base = decodeURIComponent(encoded);
       if (base && !base.includes("..") && !base.includes("/")) {
+        out.push(`/api/covers/${encodeURIComponent(base)}`);
         out.push(`/uploads/covers/${base}`);
         out.push(`/uploads/admin/${base}`);
       }

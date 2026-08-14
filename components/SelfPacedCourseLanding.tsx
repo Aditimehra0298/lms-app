@@ -247,7 +247,7 @@ function PurchaseCard({
   seatCount: number | "";
   onSeatCountChange: (value: number | "") => void;
 }) {
-  const { showPrices, ready, region } = useLearnerPricing();
+  const { ready, region } = useLearnerPricing();
   const orgReady = isOrganisation && isOrganizationPurchaseReady(course, region, seatCount);
 
   return (
@@ -281,7 +281,7 @@ function PurchaseCard({
           </div>
         ) : !ready ? (
           <div className="mb-4 h-9 animate-pulse rounded-lg bg-zinc-800" />
-        ) : showPrices ? (
+        ) : salePrice ? (
           <div className="mb-1 flex flex-wrap items-end gap-2">
             <CoursePrice label={salePrice} exactLabel className="text-3xl font-extrabold text-white" />
             {listPrice ? (

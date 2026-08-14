@@ -4,6 +4,7 @@ import { curriculumModulesForLearner } from "@/lib/curriculum-learner-filter";
 import { mergeCoursePreferringRicherCurriculum } from "@/lib/curriculum-richness";
 import { getCourseContentFromMysql } from "@/lib/server/course-content-mysql-sync";
 import { readAdminContent } from "@/lib/server/content-store";
+import { pickUniqueCourseCover } from "@/lib/course-thumbnail";
 
 export async function getManagedCourses() {
   const content = await readAdminContent();
@@ -18,8 +19,30 @@ export async function getManagedCourses() {
     published.map(async (course) => {
       const fromMysql = await getCourseContentFromMysql(course.slug).catch(() => null);
       const merged = mergeCoursePreferringRicherCurriculum(course, fromMysql);
+      const uniqueImage = pickUniqueCourseCover(
+        course.image,
+        fromMysql?.image,
+        merged.image,
+        course.hero?.previewImage,
+        fromMysql?.hero?.previewImage,
+        course.hero?.backgroundImage,
+      );
       return {
         ...merged,
+        image: uniqueImage || merged.image || course.image || "",
+        price: course.price?.trim() || fromMysql?.price?.trim() || merged.price || "",
+        oldPrice: course.oldPrice?.trim() || fromMysql?.oldPrice?.trim() || merged.oldPrice || "",
+        regionalPrices:
+          (course.regionalPrices?.length ?? 0) > 0
+            ? course.regionalPrices
+            : fromMysql?.regionalPrices ?? merged.regionalPrices,
+        hero: uniqueImage
+          ? {
+              ...(merged.hero ?? {}),
+              previewImage: uniqueImage,
+              backgroundImage: uniqueImage,
+            }
+          : merged.hero,
         curriculum: curriculumModulesForLearner(merged.curriculum),
       };
     }),
