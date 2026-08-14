@@ -102,7 +102,7 @@ export default function SelfPacedCourseCurriculum({ course, className = "" }: Pr
         ) : null}
       </div>
 
-      <div className="mt-6 space-y-2">
+      <div className="mt-6 max-h-[min(70vh,720px)] space-y-2 overflow-y-auto overscroll-contain pr-1">
         {modules.length === 0 ? (
           <p className="rounded-xl border border-white/10 bg-[#141414] px-4 py-8 text-center text-sm text-zinc-500">
             Curriculum will appear here once modules are added in Admin.
@@ -129,7 +129,7 @@ export default function SelfPacedCourseCurriculum({ course, className = "" }: Pr
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-white md:text-base">{mod.title}</p>
-                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-400">
+                    <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-zinc-300">
                       {curriculumModuleOneLiner(mod)}
                     </p>
                   </div>
@@ -146,15 +146,15 @@ export default function SelfPacedCourseCurriculum({ course, className = "" }: Pr
                           <LessonIcon kind={item.kind} />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm text-zinc-200">{item.label}</p>
-                          <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                          <p className="text-sm text-zinc-100">{item.label}</p>
+                          <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
                             {curriculumKindPublicLabel(item.kind)}
                           </p>
-                          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-zinc-500">
+                          <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-zinc-300">
                             {curriculumItemOneLiner(item)}
                           </p>
                         </div>
-                        <span className="mt-0.5 shrink-0 text-xs text-zinc-500">{lessonDuration(item)}</span>
+                        <span className="mt-0.5 shrink-0 text-xs text-zinc-400">{lessonDuration(item)}</span>
                         <Lock className="mt-1 h-3.5 w-3.5 shrink-0 text-zinc-600" aria-label="Locked until enrollment" />
                       </li>
                     ))}

@@ -98,7 +98,6 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
       return;
     }
     if (pathname === "/") {
-      setActiveAudience("industry");
       return;
     }
     const saved = window.localStorage.getItem(AUDIENCE_STORAGE_KEY);
@@ -217,13 +216,13 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
         >
           <div className="mx-auto flex w-full max-w-[1760px] items-end gap-1.5 px-4 pt-2.5 xl:px-6">
             {audienceTabs.map((tab) => {
-              const active = activeAudience === tab.id;
-              const href = tab.id === "industry" ? "/" : `/?for=${tab.id}`;
+              const active = activeAudience === tab.id && pathname.startsWith("/coming-soon");
+              const href = `/coming-soon?for=${tab.id}`;
               return (
                 <Link
                   key={tab.id}
                   href={href}
-                  scroll={pathname === "/"}
+                  scroll={pathname.startsWith("/coming-soon")}
                   onClick={() => {
                     setActiveAudience(tab.id);
                     window.localStorage.setItem(AUDIENCE_STORAGE_KEY, tab.id);

@@ -100,15 +100,19 @@ export function courseToolsFromLearningSection(
   return sanitizeCourseLearningTools(section?.courseTools) ?? {};
 }
 
-/** Learner-facing rows for the Learning Tools strip. */
+/** Learner-facing rows for the Learning Tools strip (Transcript & PPT hidden from dashboard). */
+const LEARNER_HIDDEN_TOOL_KEYS = new Set<CourseLearningToolKey>(["transcript", "ppt"]);
+
 export function resolveCourseLearningToolItems(tools: CourseLearningTools | undefined) {
   const t = tools ?? {};
-  return COURSE_LEARNING_TOOL_DEFS.map((def) => ({
-    key: def.key,
-    label: def.label,
-    value: (t[def.field] ?? "").trim(),
-    icon: def.icon,
-  }));
+  return COURSE_LEARNING_TOOL_DEFS.filter((def) => !LEARNER_HIDDEN_TOOL_KEYS.has(def.key)).map(
+    (def) => ({
+      key: def.key,
+      label: def.label,
+      value: (t[def.field] ?? "").trim(),
+      icon: def.icon,
+    }),
+  );
 }
 
 export function courseToolResourceLinks(tools: CourseLearningTools | undefined) {

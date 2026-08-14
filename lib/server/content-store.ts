@@ -157,10 +157,10 @@ async function readAdminContentFromDisk(): Promise<AdminContent> {
       aboutPage: parsed.aboutPage
         ? migrateAboutPage({ ...defaultAboutPageConfig, ...parsed.aboutPage })
         : defaultAboutPageConfig,
-      tutorLedPrograms:
-        Array.isArray(parsed.tutorLedPrograms) && parsed.tutorLedPrograms.length > 0
-          ? migrateTutorLedPrograms(parsed.tutorLedPrograms)
-          : defaultAdminContent.tutorLedPrograms,
+      // Empty array is valid (admin deleted every program) — do not resurrect defaults.
+      tutorLedPrograms: Array.isArray(parsed.tutorLedPrograms)
+        ? migrateTutorLedPrograms(parsed.tutorLedPrograms)
+        : defaultAdminContent.tutorLedPrograms,
       globalCertificateAssets:
         parsed.globalCertificateAssets && typeof parsed.globalCertificateAssets === "object"
           ? parsed.globalCertificateAssets

@@ -42,10 +42,11 @@ export default function AdminBatchesWorkspace() {
   const [listFilter, setListFilter] = useState<BatchFilter>("all");
   const [drafts, setDrafts] = useState<Record<string, BatchDraft>>({});
 
-  const programs = useMemo(
-    () => (content?.tutorLedPrograms?.length ? content.tutorLedPrograms : defaultTutorLedPrograms),
-    [content?.tutorLedPrograms],
-  );
+  const programs = useMemo(() => {
+    if (!content) return defaultTutorLedPrograms;
+    if (Array.isArray(content.tutorLedPrograms)) return content.tutorLedPrograms;
+    return defaultTutorLedPrograms;
+  }, [content]);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -54,7 +55,9 @@ export default function AdminBatchesWorkspace() {
       if (!res.ok) throw new Error("load");
       const data = (await res.json()) as AdminContent;
       setContent(data);
-      const rows = data.tutorLedPrograms?.length ? data.tutorLedPrograms : defaultTutorLedPrograms;
+      const rows = Array.isArray(data.tutorLedPrograms)
+        ? data.tutorLedPrograms
+        : defaultTutorLedPrograms;
       const nextDrafts: Record<string, BatchDraft> = {};
       for (const p of rows) {
         nextDrafts[p.slug] = {

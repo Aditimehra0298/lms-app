@@ -108,6 +108,7 @@ export async function POST(request: Request) {
       const ai = await generateCourseLandingFromDescription({
         title: row.title,
         description: row.description,
+        category,
       });
 
       if (!ai.ok) {
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
         slug,
         category,
         sourceDescription: row.description,
+        theme: ai.theme,
       });
 
       generatedCourses.push(course);

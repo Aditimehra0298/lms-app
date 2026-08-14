@@ -575,15 +575,26 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     const course = (content.managedCourses ?? []).find((c) => c.slug === slug);
     const label = course?.title?.trim() || slug;
     if (!window.confirm(`Delete “${label}” from the catalog? This cannot be undone.`)) return;
-    const next = (content.managedCourses ?? []).filter((c) => c.slug !== slug);
-    const ok = await persistManagedCourses(next, { removedCourseSlugs: [slug] });
-    if (!ok) return;
-    setSaveNotice(`Deleted “${label}”.`);
-    if (selectedSlug === slug) {
-      setSelectedSlug("");
-      setIsCreating(false);
-      setEditingSlug(null);
-      setDraft(emptyDraft());
+    setSavingCatalog(true);
+    setLoadError(null);
+    setSaveNotice(null);
+    try {
+      // Slug-only delete — avoids merge leftovers resurrecting the course.
+      await putAdminContent({ removedCourseSlugs: [slug] });
+      const next = (content.managedCourses ?? []).filter((c) => c.slug?.trim() !== slug.trim());
+      setContent({ ...content, managedCourses: next });
+      setSaveNotice(`Deleted “${label}”.`);
+      if (selectedSlug === slug) {
+        setSelectedSlug("");
+        setIsCreating(false);
+        setEditingSlug(null);
+        setDraft(emptyDraft());
+      }
+      void load();
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Delete failed. Try again.");
+    } finally {
+      setSavingCatalog(false);
     }
   };
 

@@ -726,7 +726,7 @@ function CourseExamPageInner() {
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
               <h1 className="text-2xl font-bold md:text-3xl">{examRuntime.title}</h1>
               {examRuntime.description ? (
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-300">
+                <p className="mt-3 max-w-3xl rounded-lg border border-white/15 bg-[#10182c] px-4 py-3 text-base leading-7 text-zinc-50">
                   {examRuntime.description}
                 </p>
               ) : null}

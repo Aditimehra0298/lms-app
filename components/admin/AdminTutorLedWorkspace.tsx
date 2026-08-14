@@ -220,10 +220,12 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
   const [zoomApiBusy, setZoomApiBusy] = useState(false);
   const [zoomApiMessage, setZoomApiMessage] = useState<string | null>(null);
 
-  const programs = useMemo(
-    () => (content?.tutorLedPrograms?.length ? content.tutorLedPrograms : defaultTutorLedPrograms),
-    [content?.tutorLedPrograms],
-  );
+  const programs = useMemo(() => {
+    if (!content) return defaultTutorLedPrograms;
+    // Respect an intentional empty catalog (all programs deleted).
+    if (Array.isArray(content.tutorLedPrograms)) return content.tutorLedPrograms;
+    return defaultTutorLedPrograms;
+  }, [content]);
 
   const scopedPrograms = useMemo(() => {
     if (isWorkshopAdmin) return programs.filter((p) => isWorkshopProgram(p));
@@ -279,7 +281,9 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
   }, []);
 
   const refreshDraftFromSaved = (slug: string, data: AdminContent | null) => {
-    const list = data?.tutorLedPrograms?.length ? data.tutorLedPrograms : defaultTutorLedPrograms;
+    const list = Array.isArray(data?.tutorLedPrograms)
+      ? data.tutorLedPrograms
+      : defaultTutorLedPrograms;
     const row = list.find((p) => p.slug === slug);
     if (row) setDraft(cloneProgram(row));
   };
@@ -375,16 +379,21 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
     next: TutorLedProgramStored[],
     opts?: { keepEditor?: boolean; editorSlug?: string },
   ) => {
-    if (!content) return;
+    if (!content) return false;
     setSaving(true);
     setLoadError(null);
     try {
       const put = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        // Always send the array (including []) so deleting the last program works.
         body: JSON.stringify({ tutorLedPrograms: next }),
       });
-      if (!put.ok) throw new Error("save");
+      if (!put.ok) {
+        const errBody = (await put.json().catch(() => ({}))) as { error?: string };
+        throw new Error(errBody.error ?? "Save failed");
+      }
+      setContent({ ...content, tutorLedPrograms: next });
       await load();
       if (opts?.keepEditor && opts.editorSlug) {
         const refreshed = next.find((p) => p.slug === opts.editorSlug);
@@ -394,8 +403,10 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
         setIsCreating(false);
         setOriginalSlug(null);
       }
-    } catch {
-      setLoadError("Save failed. Try again.");
+      return true;
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Save failed. Try again.");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -539,11 +550,16 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
   };
 
   const deleteProgram = async (slug: string) => {
-    if (!window.confirm(`Delete ${isWorkshopAdmin ? "workshop" : "tutor-led program"} “${slug}”?`)) return;
-    await persistPrograms(programs.filter((p) => p.slug !== slug));
+    if (!window.confirm(`Delete ${isWorkshopAdmin ? "workshop" : "tutor-led program"} “${slug}”?`)) {
+      return;
+    }
+    const next = programs.filter((p) => p.slug !== slug);
+    const ok = await persistPrograms(next);
+    if (!ok) return;
     if (draft?.slug === slug) {
       setDraft(null);
       setIsCreating(false);
+      setOriginalSlug(null);
     }
   };
 

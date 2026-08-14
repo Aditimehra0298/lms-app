@@ -40,6 +40,7 @@ function mergeManagedCoursesPreservingCurriculum(
   existing: ManagedCourse[],
   incoming: ManagedCourse[],
   removedSlugs: Set<string> = new Set(),
+  opts?: { authoritative?: boolean },
 ): ManagedCourse[] {
   const prevBySlug = new Map<string, ManagedCourse>();
   for (const c of existing ?? []) {
@@ -71,8 +72,12 @@ function mergeManagedCoursesPreservingCurriculum(
     mergedIncoming.push(next);
   }
 
-  // Keep existing courses that were not in this PUT (partial/stale catalog payloads),
-  // except slugs the admin explicitly deleted.
+  // Explicit deletes / full catalog replaces must not resurrect omitted rows.
+  if (opts?.authoritative || removedSlugs.size > 0) {
+    return mergedIncoming;
+  }
+
+  // Keep existing courses that were not in this PUT (partial/stale catalog payloads).
   const leftovers = (existing ?? []).filter((c) => {
     const slug = c.slug?.trim();
     return Boolean(slug) && !incomingBySlug.has(slug) && !removedSlugs.has(slug);
@@ -151,6 +156,7 @@ export async function PUT(request: Request) {
           existing.managedCourses ?? [],
           body.managedCourses,
           removedSet,
+          { authoritative: removedSet.size > 0 },
         )
       : removedSet.size > 0
         ? (existing.managedCourses ?? []).filter((c) => !removedSet.has(c.slug?.trim() ?? ""))
@@ -165,6 +171,13 @@ export async function PUT(request: Request) {
           .filter((s) => Boolean(s) && !keptSlugs.has(s)),
       ),
     ];
+
+    // Allow clearing the last tutor-led/workshop program (empty array must persist).
+    const tutorLedProvided = Object.prototype.hasOwnProperty.call(body, "tutorLedPrograms");
+    const nextTutorLedPrograms =
+      tutorLedProvided && Array.isArray(body.tutorLedPrograms)
+        ? body.tutorLedPrograms
+        : existing.tutorLedPrograms;
 
     const nextContent: AdminContent = {
       dashboard: body.dashboard
@@ -190,10 +203,7 @@ export async function PUT(request: Request) {
       coursesPage: body.coursesPage ?? existing.coursesPage,
       homePage: body.homePage ?? existing.homePage,
       aboutPage: body.aboutPage ?? existing.aboutPage,
-      tutorLedPrograms:
-        Array.isArray(body.tutorLedPrograms) && body.tutorLedPrograms.length > 0
-          ? body.tutorLedPrograms
-          : existing.tutorLedPrograms,
+      tutorLedPrograms: nextTutorLedPrograms,
       globalCertificateAssets:
         body.globalCertificateAssets !== undefined
           ? body.globalCertificateAssets

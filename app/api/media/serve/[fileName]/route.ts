@@ -59,7 +59,7 @@ export async function GET(request: Request, { params }: Params) {
 
   const requestUrl = new URL(request.url);
   const token = requestUrl.searchParams.get("t")?.trim();
-  const forceDownload =
+  const wantsDownload =
     requestUrl.searchParams.get("download") === "1" ||
     requestUrl.searchParams.get("dl") === "1";
 
@@ -75,13 +75,19 @@ export async function GET(request: Request, { params }: Params) {
   const filePathEarly = await resolveMediaFilePath(fileName);
   const mimeEarly = filePathEarly ? mimeFromFileName(fileName) : "application/octet-stream";
   const isVideo = mimeEarly.startsWith("video/");
+  const isAudio = mimeEarly.startsWith("audio/");
+  // Podcast / audio: stream inline only — never force a file download.
+  const forceDownload = wantsDownload && !isAudio && !isVideo;
 
   const fetchDest = request.headers.get("sec-fetch-dest")?.trim().toLowerCase();
-  if (payload.scope === "learner" && fetchDest === "document" && isVideo) {
+  if (payload.scope === "learner" && fetchDest === "document" && (isVideo || isAudio)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (payload.scope === "learner" && !learnerMediaStreamAllowed(request, { allowDocument: !isVideo })) {
+  if (
+    payload.scope === "learner" &&
+    !learnerMediaStreamAllowed(request, { allowDocument: !isVideo && !isAudio })
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

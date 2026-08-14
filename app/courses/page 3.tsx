@@ -387,80 +387,6 @@ export default async function CoursesPage({
           </div>
         </section>
 
-        <section className="mt-4 grid gap-4 lg:grid-cols-2">
-          <article className="courses-surface rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold">Recent Updates</h3>
-              <button className="text-xs font-semibold text-amber-200">View All</button>
-            </div>
-            <div className="space-y-3">
-              {cpConfig.recentUpdates.map((update) => (
-                <Link
-                  key={update.title}
-                  href={update.href}
-                  className="courses-inner-card group block overflow-hidden rounded-xl border border-white/10 bg-black/30 transition hover:border-amber-300/40 hover:bg-black/20"
-                >
-                  <div className="flex items-center gap-3 p-3">
-                    <div className="courses-thumb-frame h-14 w-20 shrink-0 overflow-hidden rounded-lg border border-white/10">
-                      <Image
-                        src={update.image}
-                        alt={update.title}
-                        width={80}
-                        height={56}
-                        unoptimized
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-300">
-                        {update.subtitle}
-                      </p>
-                      <p className="mt-0.5 text-sm font-medium text-gray-100 group-hover:text-amber-100">
-                        {update.title}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </article>
-          <article className="courses-surface rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold">Upcoming (Future)</h3>
-              <div className="flex items-center gap-2">
-                <button className="text-xs font-semibold text-amber-200">View All</button>
-                <button className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200 transition hover:border-amber-200/60 hover:bg-amber-500/20">
-                  <BellRing size={12} /> Notify Me
-                </button>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {cpConfig.upcomingItems.map((item) => {
-                const colors = iconColorMap[item.iconColor] ?? iconColorMap.amber;
-                const UpIcon = upcomingIcons[item.iconColor] ?? Lock;
-                return (
-                <div key={item.title} className="courses-inner-card flex items-start gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
-                  <span className={`courses-icon-chip mt-0.5 rounded-lg border p-2 ${colors.border} ${colors.bg} ${colors.tone}`}>
-                    <UpIcon size={14} />
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold">{item.title}</p>
-                    <p className="text-xs text-gray-400">{item.time}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200 transition hover:border-amber-200/60 hover:bg-amber-500/20"
-                  >
-                    <BellRing size={11} />
-                    Notify
-                  </button>
-                </div>
-                );
-              })}
-            </div>
-          </article>
-        </section>
-
         <section className="courses-surface mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-bold">Categories (Sections)</h3>
@@ -566,6 +492,80 @@ export default async function CoursesPage({
               </Link>
             </div>
           ) : null}
+        </section>
+
+        <section className="mt-4 grid gap-4 lg:grid-cols-2">
+          <article className="courses-surface rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold">Recent Updates</h3>
+              <button className="text-xs font-semibold text-amber-200">View All</button>
+            </div>
+            <div className="space-y-3">
+              {cpConfig.recentUpdates.map((update) => (
+                <Link
+                  key={update.title}
+                  href={update.href}
+                  className="courses-inner-card group block overflow-hidden rounded-xl border border-white/10 bg-black/30 transition hover:border-amber-300/40 hover:bg-black/20"
+                >
+                  <div className="flex items-center gap-3 p-3">
+                    <div className="courses-thumb-frame h-14 w-20 shrink-0 overflow-hidden rounded-lg border border-white/10">
+                      <Image
+                        src={update.image}
+                        alt={update.title}
+                        width={80}
+                        height={56}
+                        unoptimized
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-300">
+                        {update.subtitle}
+                      </p>
+                      <p className="mt-0.5 text-sm font-medium text-gray-100 group-hover:text-amber-100">
+                        {update.title}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </article>
+          <article className="courses-surface rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold">Upcoming (Future)</h3>
+              <div className="flex items-center gap-2">
+                <button className="text-xs font-semibold text-amber-200">View All</button>
+                <button className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200 transition hover:border-amber-200/60 hover:bg-amber-500/20">
+                  <BellRing size={12} /> Notify Me
+                </button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {cpConfig.upcomingItems.map((item) => {
+                const colors = iconColorMap[item.iconColor] ?? iconColorMap.amber;
+                const UpIcon = upcomingIcons[item.iconColor] ?? Lock;
+                return (
+                <div key={item.title} className="courses-inner-card flex items-start gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                  <span className={`courses-icon-chip mt-0.5 rounded-lg border p-2 ${colors.border} ${colors.bg} ${colors.tone}`}>
+                    <UpIcon size={14} />
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">{item.title}</p>
+                    <p className="text-xs text-gray-400">{item.time}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200 transition hover:border-amber-200/60 hover:bg-amber-500/20"
+                  >
+                    <BellRing size={11} />
+                    Notify
+                  </button>
+                </div>
+                );
+              })}
+            </div>
+          </article>
         </section>
 
         <section className="mt-4 grid gap-4 lg:grid-cols-2">

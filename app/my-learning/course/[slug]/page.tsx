@@ -14,8 +14,10 @@ import { BRAND_LOGO_PUBLIC_PATH } from "@/lib/brand-logo";
 import BrandLogo from "@/components/BrandLogo";
 import CourseLearningResourceLink, {
   openCourseLearningResource,
+  resolveCourseLearningAudioUrl,
 } from "@/components/CourseLearningResourceLink";
 import { SecureCourseVideoPlayer } from "@/components/SecureCourseVideoPlayer";
+import LearnerContentShield from "@/components/LearnerContentShield";
 import {
   Award,
   BadgeCheck,
@@ -33,8 +35,6 @@ import {
   MessageCircle,
   Play,
   PlayCircle,
-  Presentation,
-  ScrollText,
 } from "lucide-react";
 import TutorLedProgramClient from "@/components/TutorLedProgramClient";
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
@@ -134,6 +134,7 @@ type CourseCurriculumItem = {
 
 type CourseCurriculumModule = {
   title?: string;
+  description?: string;
   items?: CourseCurriculumItem[];
   subModules?: Array<{ title?: string; items?: CourseCurriculumItem[] }>;
 };
@@ -238,6 +239,9 @@ export default function CourseLearningPlayerPage() {
   const [learnerNote, setLearnerNote] = useState("");
   const [resourcesPanelOpen, setResourcesPanelOpen] = useState(false);
   const [activeLessonTab, setActiveLessonTab] = useState<"notes" | "resources">("notes");
+  const [podcastPlayerUrl, setPodcastPlayerUrl] = useState<string | null>(null);
+  const [podcastPlayerLoading, setPodcastPlayerLoading] = useState(false);
+  const [podcastPlayerError, setPodcastPlayerError] = useState<string | null>(null);
   const certRequestRef = useRef<string | null>(null);
   const leftColumnRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -1063,7 +1067,11 @@ export default function CourseLearningPlayerPage() {
         ) : null}
 
         <section className="mt-4 grid gap-4 xl:grid-cols-2 xl:items-start">
-          <div ref={leftColumnRef} className="space-y-3">
+          <LearnerContentShield
+            className="min-w-0"
+            label="SF Trainings — protected lesson"
+          >
+          <div ref={leftColumnRef} className="min-w-0 space-y-3">
             <article className="overflow-hidden rounded-xl border border-white/10 bg-[#0c1324]">
               <div className="relative bg-black">
                 {activeVideoStoredUrl ? (
@@ -1119,6 +1127,9 @@ export default function CourseLearningPlayerPage() {
                     <div className="absolute left-[22%] bottom-[18%] rotate-[-8deg] text-[11px] font-semibold tracking-wide text-white/16">
                       {watermarkUser} · {watermarkTime}
                     </div>
+                    <div className="absolute right-[18%] bottom-[28%] rotate-[6deg] text-[10px] font-semibold tracking-wide text-white/12">
+                      {watermarkUser} · {watermarkTime}
+                    </div>
                   </div>
                 ) : null}
                 {videoLoadError ? (
@@ -1139,13 +1150,13 @@ export default function CourseLearningPlayerPage() {
               </div>
             </article>
 
-            <article className="rounded-xl border border-white/10 bg-[#0c1324] p-4">
+            <article className="rounded-xl border border-white/10 bg-[#0c1324] p-4 md:p-5">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <h3 className="lesson-gold-heading">
                     {activeItem?.label?.trim() || activeModule?.title || "Lesson"}
                   </h3>
-                  <p className="mt-1 text-sm text-gray-300">
+                  <p className="mt-2 text-base leading-relaxed text-zinc-100">
                     {activeItem?.description?.trim() ||
                       "Follow module lessons in order, then attempt module assessments and the final exam."}
                   </p>
@@ -1178,22 +1189,43 @@ export default function CourseLearningPlayerPage() {
                           type="button"
                           onClick={() => {
                             setActiveLearningTool(tool.label);
-                            if (tool.value) {
-                              void openCourseLearningResource(tool.value, slug, "open", {
-                                title: tool.label,
-                              }).then((ok) => {
-                                if (!ok) {
-                                  window.alert(
-                                    `Could not open ${tool.label}. Make sure you are signed in, allow pop-ups for this site, then try again.`,
-                                  );
-                                }
-                              });
+                            if (!tool.value) return;
+
+                            // Podcast: listen inside LMS only (no download / no raw file tab).
+                            if (tool.label === "Podcast") {
+                              setPodcastPlayerError(null);
+                              setPodcastPlayerLoading(true);
+                              setPodcastPlayerUrl(null);
+                              void resolveCourseLearningAudioUrl(tool.value, slug)
+                                .then((url) => {
+                                  if (!url) {
+                                    setPodcastPlayerError(
+                                      "Could not load podcast. Sign in and try again.",
+                                    );
+                                    return;
+                                  }
+                                  setPodcastPlayerUrl(url);
+                                })
+                                .finally(() => setPodcastPlayerLoading(false));
+                              return;
                             }
+
+                            void openCourseLearningResource(tool.value, slug, "open", {
+                              title: tool.label,
+                            }).then((ok) => {
+                              if (!ok) {
+                                window.alert(
+                                  `Could not open ${tool.label}. Make sure you are signed in, allow pop-ups for this site, then try again.`,
+                                );
+                              }
+                            });
                           }}
                           className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs font-semibold transition ${learningToolButtonClass(tool)}`}
                           title={
                             available
-                              ? `Open ${tool.label}`
+                              ? tool.label === "Podcast"
+                                ? `Listen to ${tool.label} in LMS`
+                                : `Open ${tool.label}`
                               : `${tool.label} not uploaded yet`
                           }
                         >
@@ -1206,6 +1238,48 @@ export default function CourseLearningPlayerPage() {
                       );
                     })}
                   </div>
+                  {(podcastPlayerLoading || podcastPlayerUrl || podcastPlayerError) && (
+                    <div className="mt-3 rounded-lg border border-violet-400/30 bg-black/40 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-violet-100">
+                          Podcast — listen in LMS (download disabled)
+                        </p>
+                        {podcastPlayerUrl || podcastPlayerError ? (
+                          <button
+                            type="button"
+                            className="text-[10px] text-zinc-400 hover:text-zinc-200"
+                            onClick={() => {
+                              setPodcastPlayerUrl(null);
+                              setPodcastPlayerError(null);
+                              setPodcastPlayerLoading(false);
+                            }}
+                          >
+                            Close
+                          </button>
+                        ) : null}
+                      </div>
+                      {podcastPlayerLoading ? (
+                        <p className="mt-2 text-xs text-zinc-400">Loading audio…</p>
+                      ) : null}
+                      {podcastPlayerError ? (
+                        <p className="mt-2 text-xs text-rose-300">{podcastPlayerError}</p>
+                      ) : null}
+                      {podcastPlayerUrl ? (
+                        <audio
+                          key={podcastPlayerUrl}
+                          controls
+                          controlsList="nodownload noplaybackrate"
+                          autoPlay
+                          preload="metadata"
+                          className="mt-2 w-full"
+                          src={podcastPlayerUrl}
+                          onContextMenu={(e) => e.preventDefault()}
+                        >
+                          Your browser does not support audio playback.
+                        </audio>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
                 {(() => {
                   const introText = activeItem?.description?.trim() || "";
@@ -1217,32 +1291,37 @@ export default function CourseLearningPlayerPage() {
                       introText.replace(/\s+/g, " ").toLowerCase()
                       ? aboutRaw
                       : "";
-                  if (!aboutUnique && !introText) {
+                  const aboutBody = aboutUnique || introText;
+                  const outcomes = (activeItem?.learningOutcomes ?? [])
+                    .map((p) => p.trim())
+                    .filter(Boolean)
+                    .slice(0, 4);
+                  if (!aboutBody && outcomes.length === 0) {
                     return (
-                      <>
+                      <div className="rounded-lg border border-amber-400/25 bg-amber-500/10 p-4">
                         <h3 className="lesson-gold-heading">About this lesson</h3>
-                        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                        <p className="mt-2 text-base leading-relaxed text-amber-50">
                           Lesson details will appear here once added in Admin.
                         </p>
-                      </>
+                      </div>
                     );
                   }
                   return (
-                    <div className="grid gap-3 lg:grid-cols-2">
-                      <div>
-                        <h3 className="lesson-gold-heading">About this lesson</h3>
-                        <p className="mt-2 text-sm leading-relaxed text-gray-300">
-                          {aboutUnique || introText}
-                        </p>
-                      </div>
-                      {activeItem?.learningOutcomes && activeItem.learningOutcomes.length > 0 ? (
-                        <div>
+                    <div className="flex w-full flex-col gap-4">
+                      {aboutBody ? (
+                        <div className="w-full rounded-lg border border-white/15 bg-[#10182c] p-4">
+                          <h3 className="lesson-gold-heading">About this lesson</h3>
+                          <p className="mt-3 text-base leading-7 text-zinc-50">{aboutBody}</p>
+                        </div>
+                      ) : null}
+                      {outcomes.length > 0 ? (
+                        <div className="w-full rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-4">
                           <h3 className="lesson-gold-heading">Learning outcomes</h3>
-                          <ul className="mt-2 space-y-1.5">
-                            {activeItem.learningOutcomes.slice(0, 3).map((point) => (
+                          <ul className="mt-3 space-y-2">
+                            {outcomes.map((point) => (
                               <li
                                 key={point}
-                                className="rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-xs leading-snug text-gray-300"
+                                className="rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm leading-snug text-zinc-50 sm:text-base"
                               >
                                 {point}
                               </li>
@@ -1345,15 +1424,43 @@ export default function CourseLearningPlayerPage() {
                           key={`${res.label}-${res.url}`}
                           className="rounded-md border border-white/10 bg-black/30 p-2 text-xs"
                         >
-                          <CourseLearningResourceLink
-                            href={res.url}
-                            courseSlug={slug}
-                            mode="open"
-                            className="font-semibold text-violet-200 underline hover:border-violet-300/40"
-                          >
-                            {res.label}
-                          </CourseLearningResourceLink>
-                          {res.label !== "Additional Resources" || !/^https?:\/\//i.test(res.url) ? (
+                          {res.label === "Podcast" ? (
+                            <button
+                              type="button"
+                              className="font-semibold text-violet-200 underline hover:border-violet-300/40"
+                              onClick={() => {
+                                setActiveLessonTab("notes");
+                                setPodcastPlayerError(null);
+                                setPodcastPlayerLoading(true);
+                                setPodcastPlayerUrl(null);
+                                void resolveCourseLearningAudioUrl(res.url, slug)
+                                  .then((url) => {
+                                    if (!url) {
+                                      setPodcastPlayerError(
+                                        "Could not load podcast. Sign in and try again.",
+                                      );
+                                      return;
+                                    }
+                                    setPodcastPlayerUrl(url);
+                                  })
+                                  .finally(() => setPodcastPlayerLoading(false));
+                              }}
+                            >
+                              {res.label}
+                            </button>
+                          ) : (
+                            <CourseLearningResourceLink
+                              href={res.url}
+                              courseSlug={slug}
+                              mode="open"
+                              title={res.label}
+                              className="font-semibold text-violet-200 underline hover:border-violet-300/40"
+                            >
+                              {res.label}
+                            </CourseLearningResourceLink>
+                          )}
+                          {res.label !== "Podcast" &&
+                          res.label !== "Additional Resources" ? (
                             <CourseLearningResourceLink
                               href={res.url}
                               courseSlug={slug}
@@ -1362,7 +1469,11 @@ export default function CourseLearningPlayerPage() {
                             >
                               Download
                             </CourseLearningResourceLink>
-                          ) : null}
+                          ) : (
+                            <span className="ml-2 text-[10px] text-gray-500">
+                              {res.label === "Podcast" ? "Listen only" : "View only"}
+                            </span>
+                          )}
                         </div>
                       ))
                     ) : (
@@ -1391,34 +1502,61 @@ export default function CourseLearningPlayerPage() {
                       resourceLinks.map((res) => {
                         const iconMap: Record<string, typeof FileText> = {
                           "E-Workbook": BookOpen,
-                          Transcript: ScrollText,
-                          PPT: Presentation,
                           Podcast: Headphones,
                           "Additional Resources": Link2,
                           "Exam File": FileText,
                         };
                         const Icon = iconMap[res.label] ?? FileText;
+                        const openPodcastInPage = () => {
+                          setPodcastPlayerError(null);
+                          setPodcastPlayerLoading(true);
+                          setPodcastPlayerUrl(null);
+                          void resolveCourseLearningAudioUrl(res.url, slug)
+                            .then((url) => {
+                              if (!url) {
+                                setPodcastPlayerError(
+                                  "Could not load podcast. Sign in and try again.",
+                                );
+                                return;
+                              }
+                              setPodcastPlayerUrl(url);
+                            })
+                            .finally(() => setPodcastPlayerLoading(false));
+                        };
                         return (
                           <div
                             key={`${res.label}-${res.url}`}
                             className="group rounded-md border border-white/10 bg-black/30 p-2 transition hover:border-violet-300/35 hover:bg-white/5"
                           >
-                            <CourseLearningResourceLink
-                              href={res.url}
-                              courseSlug={slug}
-                              mode="open"
-                              title={res.label}
-                              className="block"
-                            >
-                              <div className="inline-flex items-center gap-1.5 rounded border border-violet-300/30 bg-violet-500/15 px-2 py-1 text-[10px] font-semibold text-violet-100">
-                                <Icon size={12} />
-                                {res.label}
-                              </div>
-                              <p className="mt-2 text-xs text-gray-400 group-hover:text-violet-200">
-                                Open resource
-                              </p>
-                            </CourseLearningResourceLink>
-                            {res.label !== "Additional Resources" || !/^https?:\/\//i.test(res.url) ? (
+                            {res.label === "Podcast" ? (
+                              <button type="button" className="block w-full text-left" onClick={openPodcastInPage}>
+                                <div className="inline-flex items-center gap-1.5 rounded border border-violet-300/30 bg-violet-500/15 px-2 py-1 text-[10px] font-semibold text-violet-100">
+                                  <Icon size={12} />
+                                  {res.label}
+                                </div>
+                                <p className="mt-2 text-xs text-gray-400 group-hover:text-violet-200">
+                                  Listen in LMS
+                                </p>
+                              </button>
+                            ) : (
+                              <CourseLearningResourceLink
+                                href={res.url}
+                                courseSlug={slug}
+                                mode="open"
+                                title={res.label}
+                                className="block"
+                              >
+                                <div className="inline-flex items-center gap-1.5 rounded border border-violet-300/30 bg-violet-500/15 px-2 py-1 text-[10px] font-semibold text-violet-100">
+                                  <Icon size={12} />
+                                  {res.label}
+                                </div>
+                                <p className="mt-2 text-xs text-gray-400 group-hover:text-violet-200">
+                                  Open resource
+                                </p>
+                              </CourseLearningResourceLink>
+                            )}
+                            {res.label !== "Podcast" &&
+                            res.label !== "Additional Resources" ? (
                               <CourseLearningResourceLink
                                 href={res.url}
                                 courseSlug={slug}
@@ -1428,7 +1566,13 @@ export default function CourseLearningPlayerPage() {
                                 <Download size={10} aria-hidden />
                                 Download
                               </CourseLearningResourceLink>
-                            ) : null}
+                            ) : (
+                              <p className="mt-1 text-[10px] text-gray-500">
+                                {res.label === "Podcast"
+                                  ? "Listen only — download disabled"
+                                  : "View only — download disabled"}
+                              </p>
+                            )}
                           </div>
                         );
                       })
@@ -1471,8 +1615,12 @@ export default function CourseLearningPlayerPage() {
               layoutVersion={sidebarLayoutVersion}
             />
           </div>
+          </LearnerContentShield>
 
-          <aside ref={sidebarRef} className="space-y-3">
+          <aside
+            ref={sidebarRef}
+            className="space-y-3 xl:sticky xl:top-24 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overscroll-contain xl:pr-1"
+          >
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
               <div className="flex items-center gap-3 rounded-md border border-white/10 bg-black/30 p-2">
                 <ModuleVideoProgressCircle
@@ -1569,7 +1717,7 @@ export default function CourseLearningPlayerPage() {
                         <span className="min-w-0">
                           <span className="line-clamp-2 font-semibold">{moduleTitle(module, idx)}</span>
                           {module.description?.trim() ? (
-                            <span className="mt-0.5 block line-clamp-2 text-[10px] font-normal leading-snug text-gray-500">
+                            <span className="mt-0.5 block line-clamp-2 text-xs font-normal leading-snug text-zinc-300">
                               {module.description.trim()}
                             </span>
                           ) : null}
@@ -1618,7 +1766,7 @@ export default function CourseLearningPlayerPage() {
                                     <span className="min-w-0">
                                       <span className="block truncate font-medium">{examLabel}</span>
                                       {entry.description?.trim() ? (
-                                        <span className="mt-0.5 block line-clamp-2 text-[10px] leading-snug text-gray-500">
+                                        <span className="mt-0.5 block line-clamp-2 text-xs leading-snug text-zinc-300">
                                           {entry.description.trim()}
                                         </span>
                                       ) : null}
@@ -1654,7 +1802,7 @@ export default function CourseLearningPlayerPage() {
                                         ) : null}
                                       </span>
                                       {entry.description?.trim() ? (
-                                        <span className="mt-0.5 block line-clamp-2 text-[10px] font-normal leading-snug text-emerald-100/70">
+                                        <span className="mt-0.5 block line-clamp-2 text-xs font-normal leading-snug text-emerald-50/90">
                                           {entry.description.trim()}
                                         </span>
                                       ) : null}
@@ -1699,7 +1847,7 @@ export default function CourseLearningPlayerPage() {
                                     {entry.label?.trim() || `Lesson ${entryIdx + 1}`}
                                   </span>
                                   {entry.description?.trim() ? (
-                                    <span className="mt-0.5 block line-clamp-2 text-[10px] leading-snug text-gray-500">
+                                    <span className="mt-0.5 block line-clamp-2 text-xs leading-snug text-zinc-300">
                                       {entry.description.trim()}
                                     </span>
                                   ) : null}
@@ -1746,20 +1894,13 @@ export default function CourseLearningPlayerPage() {
 
             <article className="rounded-xl border border-white/10 bg-[#0c1324] p-3">
               <h3 className="text-sm font-semibold">{learningCopy.quickToolsTitle}</h3>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                 <button
                   type="button"
                   onClick={() => setActiveLearningTool("E-Workbook")}
                   className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
                 >
                   {learningCopy.courseTools?.eWorkbookUrl?.trim() ? "E-Workbook Ready" : "No E-Workbook"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveLearningTool("Transcript")}
-                  className="rounded border border-white/10 bg-black/25 px-2 py-1.5 hover:border-violet-300/40"
-                >
-                  {learningCopy.courseTools?.transcriptUrl?.trim() ? "Transcript Ready" : "No Transcript"}
                 </button>
                 <button
                   type="button"
@@ -1778,15 +1919,6 @@ export default function CourseLearningPlayerPage() {
               >
                 <MessageCircle size={12} /> Ask mentor in community
               </Link>
-              {learningCopy.courseTools?.pptUrl?.trim() ? (
-                <CourseLearningResourceLink
-                  href={learningCopy.courseTools.pptUrl.trim()}
-                  courseSlug={slug}
-                  className="mt-2 inline-flex items-center gap-2 text-xs text-violet-300 underline"
-                >
-                  <Presentation size={12} /> Open course PPT
-                </CourseLearningResourceLink>
-              ) : null}
               <div className="mt-2 inline-flex items-center gap-2 text-xs text-gray-400">
                 <MessageCircle size={12} /> Need help? Use community or contact support below.
               </div>

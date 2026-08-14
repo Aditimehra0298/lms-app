@@ -17,14 +17,16 @@ export function normalizeTutorLedSlug(slug: string): string {
 
 async function loadMergedPrograms(): Promise<Map<string, TutorLedProgramStored>> {
   const content = await readAdminContent();
-  const apiList = content.tutorLedPrograms ?? [];
+  // Admin JSON is the catalog source of truth (including []). Do not re-seed
+  // built-in defaults on top — that made Delete look like a no-op.
+  const apiList = Array.isArray(content.tutorLedPrograms)
+    ? content.tutorLedPrograms
+    : defaultTutorLedPrograms;
   const bySlug = new Map<string, TutorLedProgramStored>();
-  for (const p of defaultTutorLedPrograms) bySlug.set(p.slug, p);
   for (const p of apiList) {
     const s = p.slug?.trim();
     if (!s) continue;
-    const base = bySlug.get(s);
-    bySlug.set(s, base ? { ...base, ...p, slug: s } : { ...p, slug: s });
+    bySlug.set(s, { ...p, slug: s });
   }
   return bySlug;
 }

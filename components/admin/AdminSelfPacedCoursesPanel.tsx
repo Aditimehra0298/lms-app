@@ -172,8 +172,29 @@ export default function AdminSelfPacedCoursesPanel() {
     const course = (content.managedCourses ?? []).find((c) => c.slug === slug);
     const label = course?.title?.trim() || slug;
     if (!window.confirm(`Delete “${label}” from the catalog? This cannot be undone.`)) return;
-    const next = (content.managedCourses ?? []).filter((c) => c.slug !== slug);
-    await persistManagedCourses(next, { removedCourseSlugs: [slug] });
+    setSaving(true);
+    setLoadError(null);
+    try {
+      const put = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ removedCourseSlugs: [slug] }),
+      });
+      if (!put.ok) {
+        const errBody = (await put.json().catch(() => ({}))) as { error?: string };
+        throw new Error(errBody.error ?? "Delete failed");
+      }
+      setContent({
+        ...content,
+        managedCourses: (content.managedCourses ?? []).filter((c) => c.slug?.trim() !== slug.trim()),
+      });
+      setEditorOpen(false);
+      await load();
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Delete failed. Try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const uploadCover = async (file: File) => {

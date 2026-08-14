@@ -130,6 +130,32 @@ export function SecureCourseVideoPlayer({
     return () => window.removeEventListener("keydown", blockSaveKeys);
   }, []);
 
+  // Blank / pause when tab is hidden (screenshot tools, app switch, screen share).
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const blank = () => {
+      try {
+        video.pause();
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") blank();
+    };
+    const onBlur = () => blank();
+
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [playUrl]);
+
   const maybeOfferResume = useCallback(() => {
     const video = videoRef.current;
     if (!video || !playUrl) return;

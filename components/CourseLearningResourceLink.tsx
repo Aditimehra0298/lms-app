@@ -95,8 +95,8 @@ function writeAudioPlayerDocument(popup: Window, src: string, title = "Podcast")
 </style></head><body>
   <div class="card">
     <h1>${safeTitle}</h1>
-    <audio controls autoplay preload="metadata" src="${safeSrc}"></audio>
-    <p>If audio does not start, use the player controls above.</p>
+    <audio controls controlsList="nodownload noplaybackrate" autoplay preload="metadata" src="${safeSrc}" oncontextmenu="return false"></audio>
+    <p>Stream only — downloading is disabled for this resource.</p>
   </div>
 </body></html>`);
     popup.document.close();
@@ -105,29 +105,59 @@ function writeAudioPlayerDocument(popup: Window, src: string, title = "Podcast")
   }
 }
 
+/** Resolve a signed stream URL for in-LMS audio (podcast) — never download. */
+export async function resolveCourseLearningAudioUrl(
+  href: string,
+  courseSlug: string,
+): Promise<string | null> {
+  const raw = normalizeExternalLearningUrl(href);
+  if (!raw) return null;
+  if (!isProtectedMediaUrl(raw)) {
+    return isLearningAudioUrl(raw) ? raw : null;
+  }
+  try {
+    const signed = await resolveProtectedMediaUrl(raw, { courseSlug, scope: "learner" });
+    if (!signed || (isProtectedMediaUrl(signed) && !looksSigned(signed))) return null;
+    return absoluteMediaUrl(signed);
+  } catch {
+    return null;
+  }
+}
+
 /** Open or download course learning-tool files / additional resource links. */
 export async function openCourseLearningResource(
   href: string,
   courseSlug: string,
   mode: "open" | "download" = "open",
-  options?: { title?: string },
-): Promise<boolean> {
+  options?: { title?: string; preferInPageAudio?: boolean },
+): Promise<boolean | "audio-in-page"> {
   const raw = normalizeExternalLearningUrl(href);
   if (!raw) return false;
 
   const audio = isLearningAudioUrl(raw);
   const title = options?.title?.trim() || "Podcast";
+  const forceOpenOnly =
+    audio ||
+    /podcast/i.test(title) ||
+    /additional resources/i.test(title);
+  const effectiveMode = forceOpenOnly ? "open" : mode;
+
+  // Prefer in-page listen for podcast/audio (caller shows embedded player).
+  if (options?.preferInPageAudio && (audio || /podcast/i.test(title))) {
+    return "audio-in-page";
+  }
 
   // External https links (Additional Resources URL) — open directly, never about:blank
   if (!isProtectedMediaUrl(raw)) {
-    if (mode === "open" && audio) {
+    if (effectiveMode === "open" && audio) {
       const popup = window.open("", "_blank");
       if (popup) {
         writeAudioPlayerDocument(popup, raw, title);
         return true;
       }
     }
-    clickAnchor(raw, { download: mode === "download" });
+    // Never force-download podcast/audio or Additional Resources.
+    clickAnchor(raw, { download: effectiveMode === "download" });
     return true;
   }
 
@@ -135,7 +165,7 @@ export async function openCourseLearningResource(
   // Open a temporary tab WITHOUT noopener so we can navigate it after the token is ready.
   // (Using noopener left users stuck on about:blank.)
   const popup =
-    mode === "open"
+    effectiveMode === "open"
       ? window.open("", "_blank")
       : null;
   if (popup) {
@@ -163,7 +193,18 @@ export async function openCourseLearningResource(
       return false;
     }
 
-    if (mode === "download") {
+    if (effectiveMode === "download") {
+      // Audio must never download — stream in player instead.
+      if (audio || isLearningAudioUrl(signed)) {
+        popup?.close();
+        const absolute = absoluteMediaUrl(signed);
+        const player = window.open("", "_blank");
+        if (player) {
+          writeAudioPlayerDocument(player, absolute, title);
+          return true;
+        }
+        return false;
+      }
       signed = withDownloadParam(signed);
       popup?.close();
       clickAnchor(signed);

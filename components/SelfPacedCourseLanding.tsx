@@ -788,7 +788,7 @@ export default function SelfPacedCourseLanding({ course }: Props) {
             <div id="sp-overview" className="space-y-12">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white">{overview.aboutTitle}</h2>
-                <p className="mt-4 text-sm leading-relaxed text-zinc-400 md:text-[15px] md:leading-7">
+                <p className="mt-4 text-base leading-7 text-zinc-100 md:text-[1.05rem]">
                   {formatSimpleRichTextBlock(aboutText)}
                 </p>
                 <p className="mt-8 text-base font-semibold text-white">{overview.youWillLearnTitle}</p>
