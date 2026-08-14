@@ -15,6 +15,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
 import CategoryFaqAccordion from "@/components/CategoryFaqAccordion";
 import LevelFilterSelect from "@/components/LevelFilterSelect";
 import type { CategoryWhyTone, CourseLearningFormat, CourseRegionalPriceRow } from "@/lib/content-schema";
@@ -24,6 +25,7 @@ import {
   whyLearnToRows,
 } from "@/lib/category-page-resolve";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
+import { categoryCatalogFallbackImage, resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import { getManagedCourses } from "@/lib/server/course-catalog";
 import { getPublishedTutorLedPrograms, getPublishedWorkshopPrograms } from "@/lib/server/tutor-led-catalog";
 import { getCategoryWorkshopPlaceholders } from "@/lib/category-page-resolve";
@@ -453,13 +455,20 @@ export default async function CourseCategoryPage({
                   href={catalogCourseLandingHref(course.slug, tutorLedSlugs, course.learningFormat)}
                   className="relative block aspect-[16/10] overflow-hidden bg-black/40"
                 >
-                  <Image
-                    src={course.image ?? heroImage}
-                    alt={course.title}
-                    fill
-                    unoptimized
-                    className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                  />
+                  {(() => {
+                    const fallback = categoryCatalogFallbackImage(categoryKey);
+                    const thumb = resolveCourseListThumbnail(course) || course.image || fallback;
+                    return (
+                      <CatalogMediaImage
+                        storedSrc={thumb}
+                        extraFallback={fallback}
+                        courseSlug={course.slug}
+                        alt={course.title}
+                        fill
+                        className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                      />
+                    );
+                  })()}
                   {i === 0 ? (
                     <span className="absolute left-3 top-3 rounded-md bg-gradient-to-r from-amber-400 to-[#eb9422] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-black">
                       Bestseller

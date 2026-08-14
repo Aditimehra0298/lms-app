@@ -475,8 +475,7 @@ export default function TutorLedPostHeroSections({
               )}
               {!isSelfPaced && tutorLedSchedule ? (
                 <p className="mt-3 text-[10px] text-zinc-600">
-                  * Schedule may change based on trainer availability. Use Admin → Curriculum &amp; days for manual
-                  day-by-day sessions.
+                  * Schedule may change based on trainer availability.
                 </p>
               ) : null}
             </div>

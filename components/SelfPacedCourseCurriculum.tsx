@@ -105,7 +105,7 @@ export default function SelfPacedCourseCurriculum({ course, className = "" }: Pr
       <div className="mt-6 max-h-[min(70vh,720px)] space-y-2 overflow-y-auto overscroll-contain pr-1">
         {modules.length === 0 ? (
           <p className="rounded-xl border border-white/10 bg-[#141414] px-4 py-8 text-center text-sm text-zinc-500">
-            Curriculum will appear here once modules are added in Admin.
+            Curriculum will appear here when this course is ready.
           </p>
         ) : (
           modules.map((mod, index) => {

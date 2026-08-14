@@ -114,9 +114,7 @@ export function CompletionSuggestedCourses({ excludeSlug, className = "" }: Prop
                   const thumb = resolveCourseListThumbnail(course);
                   if (!thumb) {
                     return (
-                      <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-500">
-                        No cover
-                      </div>
+                      <div className="flex h-full w-full items-center justify-center bg-black/40" aria-hidden />
                     );
                   }
                   return (

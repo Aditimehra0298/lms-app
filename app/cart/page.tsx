@@ -8,7 +8,7 @@ import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
 import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 import { resolveCourseImageSrc } from "@/lib/course-thumbnail";
 import type { ManagedCourse } from "@/lib/content-schema";
-import { resolveCoursePrices } from "@/lib/course-regional-pricing";
+import { resolveCoursePrices, displayRegionForResolvedPrice } from "@/lib/course-regional-pricing";
 import {
   computeRegionalCheckoutTotals,
   formatCheckoutMoney,
@@ -67,6 +67,14 @@ export default function CartPage() {
       };
     });
   }, [items, catalog, region]);
+
+  const payRegion = useMemo(() => {
+    const course = catalog.find((c) => c.slug === pricedItems[0]?.slug);
+    if (course) {
+      return displayRegionForResolvedPrice(resolveCoursePrices(course, region), region);
+    }
+    return region;
+  }, [pricedItems, catalog, region]);
 
   const totals = useMemo(() => {
     if (region) return computeRegionalCheckoutTotals(pricedItems, catalog, region, promoDiscount);
@@ -172,7 +180,7 @@ export default function CartPage() {
                   <CheckoutPromoCode
                     slugs={pricedItems.map((i) => i.slug)}
                     subtotal={baseTotals.subtotal}
-                    currency={region?.currency ?? "INR"}
+                    currency={payRegion?.currency ?? region?.currency ?? "USD"}
                     appliedLabel={promoLabel || undefined}
                     onApplied={(discount, label) => {
                       setPromoDiscount(discount);
@@ -190,8 +198,8 @@ export default function CartPage() {
                   <div className="flex items-center justify-between text-gray-300">
                     <span>Subtotal</span>
                     <span>
-                      {region
-                        ? formatCheckoutMoney(totals.subtotal, region)
+                      {payRegion
+                        ? formatCheckoutMoney(totals.subtotal, payRegion)
                         : totals.subtotal.toFixed(2)}
                     </span>
                   </div>
@@ -199,16 +207,16 @@ export default function CartPage() {
                     <span>Discount</span>
                     <span>
                       -{" "}
-                      {region
-                        ? formatCheckoutMoney(totals.discount, region)
+                      {payRegion
+                        ? formatCheckoutMoney(totals.discount, payRegion)
                         : totals.discount.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-gray-300">
                     <span>GST (18%)</span>
                     <span>
-                      {region
-                        ? formatCheckoutMoney(totals.gst, region)
+                      {payRegion
+                        ? formatCheckoutMoney(totals.gst, payRegion)
                         : totals.gst.toFixed(2)}
                     </span>
                   </div>
@@ -216,8 +224,8 @@ export default function CartPage() {
                   <div className="flex items-center justify-between text-lg font-bold">
                     <span>Total</span>
                     <span className="text-amber-300">
-                      {region
-                        ? formatCheckoutMoney(totals.total, region)
+                      {payRegion
+                        ? formatCheckoutMoney(totals.total, payRegion)
                         : totals.total.toFixed(2)}
                     </span>
                   </div>

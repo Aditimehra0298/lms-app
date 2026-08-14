@@ -24,7 +24,7 @@ import {
   computeRegionalCheckoutTotals,
   formatCheckoutMoney,
 } from "@/lib/checkout-regional-pricing";
-import { resolveCoursePrices } from "@/lib/course-regional-pricing";
+import { resolveCoursePrices, displayRegionForResolvedPrice } from "@/lib/course-regional-pricing";
 import CheckoutPromoCode from "@/components/CheckoutPromoCode";
 
 export const dynamic = "force-dynamic";
@@ -202,6 +202,13 @@ export default function CheckoutPage() {
       ? "/my-learning?tab=live"
       : "/my-learning?tab=learning";
 
+  const payRegion = useMemo(() => {
+    const course = catalog.find((c) => c.slug === items[0]?.slug);
+    if (course) {
+      return displayRegionForResolvedPrice(resolveCoursePrices(course, region), region);
+    }
+    return region;
+  }, [items, catalog, region]);
   const totals = useMemo(() => {
     if (region) return computeRegionalCheckoutTotals(items, catalog, region, promoDiscount);
     return computeCheckoutTotals(items, promoDiscount);
@@ -211,9 +218,9 @@ export default function CheckoutPage() {
     return computeCheckoutTotals(items, 0);
   }, [items, catalog, region]);
   const { subtotal, discount, gst, total } = totals;
-  const paymentCurrency = region?.currency ?? "INR";
+  const paymentCurrency = payRegion?.currency ?? region?.currency ?? "USD";
   const formatMoney = (value: number) =>
-    region ? formatCheckoutMoney(value, region) : `₹${value.toFixed(2)}`;
+    payRegion ? formatCheckoutMoney(value, payRegion) : `$${value.toFixed(2)}`;
   const razorpayReady = Boolean(razorpayConfig?.configured && razorpayConfig.keyId);
   if (!isHydrated) {
     return (
@@ -297,7 +304,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           learnerEmail,
           countryCode: region.countryCode,
-          currency: region.currency,
+          currency: payRegion?.currency ?? region.currency,
           promoCode: promoCode || undefined,
           items: items.map((item) => ({
             slug: item.slug,
@@ -532,7 +539,7 @@ export default function CheckoutPage() {
                       <p className="font-semibold text-emerald-100">Pay securely with Razorpay</p>
                       <p className="mt-1 text-sm text-gray-300">
                         {region
-                          ? `Charged in ${region.currency} for ${region.countryName}. UPI, cards, net banking, and wallets are supported where available.`
+                          ? `Charged in ${paymentCurrency} for ${region.countryName}. UPI, cards, net banking, and wallets are supported where available.`
                           : "UPI, cards, net banking, and wallets are supported in the Razorpay checkout window."}
                       </p>
                     </div>

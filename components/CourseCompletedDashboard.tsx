@@ -899,7 +899,7 @@ export function CourseCompletedDashboard({
               />
             ) : (
               <p className="mt-4 text-center text-xs text-gray-500">
-                No badge uploaded for this course yet. Add one in Admin → Courses → Certificate.
+                Your course badge will appear here when it is ready.
               </p>
             )}
           </article>

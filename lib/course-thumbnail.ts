@@ -71,6 +71,26 @@ export function pickUniqueCourseCover(
 export function resolveCourseImageSrc(image: string | undefined | null): string {
   const s = (image ?? "").trim();
   if (!isUsableCourseImageSrc(s)) return "";
+  const pathOnly = s.split("?")[0] ?? s;
+  const coverFile = pathOnly.match(/\/uploads\/covers\/([^/]+)$/)?.[1];
+  if (coverFile) {
+    try {
+      return `/api/covers/${encodeURIComponent(decodeURIComponent(coverFile))}`;
+    } catch {
+      return `/api/covers/${encodeURIComponent(coverFile)}`;
+    }
+  }
+  if (s.startsWith("/") && !s.startsWith("//") && /[^\x21-\x7E]|\s|\(|\)/.test(pathOnly)) {
+    try {
+      const encoded = pathOnly
+        .split("/")
+        .map((seg, i) => (i === 0 || !seg ? seg : encodeURIComponent(decodeURIComponent(seg))))
+        .join("/");
+      return encoded;
+    } catch {
+      return s;
+    }
+  }
   return s;
 }
 
@@ -130,7 +150,9 @@ export function catalogCoverFallbackUrls(stored: string): string[] {
       const base = decodeURIComponent(encoded);
       if (base && !base.includes("..") && !base.includes("/")) {
         out.push(`/api/covers/${encodeURIComponent(base)}`);
+        out.push(`/uploads/covers/${encodeURIComponent(base)}`);
         out.push(`/uploads/covers/${base}`);
+        out.push(`/uploads/admin/${encodeURIComponent(base)}`);
         out.push(`/uploads/admin/${base}`);
       }
     } catch {
@@ -138,4 +160,19 @@ export function catalogCoverFallbackUrls(stored: string): string[] {
     }
   }
   return [...new Set(out)];
+}
+
+/** Category card fallback when a course has no unique cover (files that exist in /public). */
+export function categoryCatalogFallbackImage(categorySlug: string): string {
+  switch (categorySlug) {
+    case "food-safety":
+      return "/lms-blog-food.png";
+    case "cyber-security":
+    case "information-security":
+      return "/lms-blog-cyber.png";
+    case "esg":
+      return "/lms-blog-esg.png";
+    default:
+      return "/lms-blog-selfpaced.png";
+  }
 }

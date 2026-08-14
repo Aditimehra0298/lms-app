@@ -1,17 +1,14 @@
-import { defaultAdminContent, type ManagedCourse } from "@/lib/content-schema";
+import type { ManagedCourse } from "@/lib/content-schema";
 import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import { curriculumModulesForLearner } from "@/lib/curriculum-learner-filter";
 import { mergeCoursePreferringRicherCurriculum } from "@/lib/curriculum-richness";
 import { getCourseContentFromMysql } from "@/lib/server/course-content-mysql-sync";
 import { readAdminContent } from "@/lib/server/content-store";
-import { pickUniqueCourseCover } from "@/lib/course-thumbnail";
+import { pickUniqueCourseCover, isGenericCoursePlaceholder } from "@/lib/course-thumbnail";
 
 export async function getManagedCourses() {
   const content = await readAdminContent();
-  const courses =
-    content.managedCourses && content.managedCourses.length > 0
-      ? content.managedCourses
-      : defaultAdminContent.managedCourses;
+  const courses = content.managedCourses ?? [];
   const published = courses.filter(
     (course) => course.published && course.settings?.showInCatalog !== false,
   );
@@ -29,7 +26,7 @@ export async function getManagedCourses() {
       );
       return {
         ...merged,
-        image: uniqueImage || merged.image || course.image || "",
+        image: uniqueImage || (!isGenericCoursePlaceholder(merged.image) ? merged.image : "") || "",
         price: course.price?.trim() || fromMysql?.price?.trim() || merged.price || "",
         oldPrice: course.oldPrice?.trim() || fromMysql?.oldPrice?.trim() || merged.oldPrice || "",
         regionalPrices:
@@ -80,10 +77,7 @@ export async function getManagedCourseForLearner(slug: string): Promise<ManagedC
   }
 
   const content = await readAdminContent();
-  const all =
-    content.managedCourses && content.managedCourses.length > 0
-      ? content.managedCourses
-      : defaultAdminContent.managedCourses;
+  const all = content.managedCourses ?? [];
 
   const fromJson = all.find((course) => matchSlug(course, key, decoded)) ?? null;
   const fromMysql =

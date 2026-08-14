@@ -157,29 +157,60 @@ export function parseStoredPriceString(value: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** Re-format a price string for a region without corrupting explicit currencies ($, £, €, etc.). */
-export function localizePriceString(priceStr: string, region: PricingRegion): string {
+/** Detect ISO currency on an admin price string (₹4,199, $49.00, AED 179, …). */
+export function currencyCodeFromPriceString(priceStr: string): string | null {
+  const s = priceStr.trim();
+  if (!s) return null;
+  if (/₹|\bINR\b/i.test(s)) return "INR";
+  if (/^A\$|\bAUD\b/i.test(s)) return "AUD";
+  if (/^C\$|\bCAD\b/i.test(s)) return "CAD";
+  if (/^S\$|\bSGD\b/i.test(s)) return "SGD";
+  if (/€|\bEUR\b/i.test(s)) return "EUR";
+  if (/£|\bGBP\b/i.test(s)) return "GBP";
+  if (/\bAED\b/i.test(s)) return "AED";
+  if (/\bSAR\b/i.test(s)) return "SAR";
+  if (/\bPKR\b|₨/i.test(s)) return "PKR";
+  if (/\bBDT\b|৳/i.test(s)) return "BDT";
+  if (/\bNGN\b|₦/i.test(s)) return "NGN";
+  if (/\$|\bUSD\b/i.test(s)) return "USD";
+  return null;
+}
+
+/** Pivot any stored catalog price back to INR for regional conversion. */
+export function storedPriceToInr(priceStr: string): number | null {
+  const amount = parseStoredPriceString(priceStr);
+  if (amount === null) return null;
+  const code = currencyCodeFromPriceString(priceStr);
+  if (!code || code === "INR") return Math.round(amount);
+  const rate = RATE_BY_CURRENCY[code] ?? RATE_BY_CURRENCY.USD;
+  if (!rate) return Math.round(amount);
+  return Math.max(1, Math.round(amount / rate));
+}
+
+/** Keep the admin-entered currency. Bare numbers get ₹ for India rows, otherwise $. */
+export function formatPriceAsEntered(priceStr: string, countryCode?: string): string {
   const trimmed = priceStr.trim();
   if (!trimmed) return trimmed;
-
-  const hasExplicitCurrency =
-    /[₹$€£]|A\$|C\$|S\$|USD|INR|EUR|GBP|AED|SAR|AUD|CAD|SGD|PKR|BDT|NGN/i.test(trimmed);
-  const looksInr = /₹|\bINR\b/i.test(trimmed);
-
-  if (hasExplicitCurrency) {
-    // Only FX-convert when the stored amount is INR and the learner is not in India.
-    if (looksInr && region.countryCode !== "IN") {
-      const amount = parseStoredPriceString(trimmed);
-      if (amount === null) return trimmed;
-      return formatInrAsRegional(amount, region);
-    }
-    return trimmed;
-  }
+  if (currencyCodeFromPriceString(trimmed)) return trimmed;
 
   const amount = parseStoredPriceString(trimmed);
   if (amount === null) return trimmed;
-  if (region.countryCode === "IN") {
+  if ((countryCode ?? "").toUpperCase() === "IN") {
     return `₹${amount.toLocaleString("en-IN")}`;
   }
-  return formatInrAsRegional(amount, region);
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `$${amount.toFixed(2)}`;
+  }
+}
+
+/** Admin prices stay in the currency they were saved in — no automatic FX. */
+export function localizePriceString(priceStr: string, region: PricingRegion): string {
+  return formatPriceAsEntered(priceStr, region.countryCode);
 }

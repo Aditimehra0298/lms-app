@@ -20,7 +20,12 @@ const toCourseSlug = (value: string) =>
     .replace(/^-+|-+$/g, "");
 
 export function MyLearningCalendarPageClient() {
-  const [adminContent, setAdminContent] = useState<AdminContent>(defaultAdminContent);
+  const [adminContent, setAdminContent] = useState<AdminContent>({
+    ...defaultAdminContent,
+    managedCourses: [],
+    tutorLedPrograms: [],
+    learningCourses: [],
+  });
   const [purchased, setPurchased] = useState(readPurchasedCoursesFromStorage());
   const [learnerProfile, setLearnerProfile] = useState(readLearnerProfileFromStorage);
 
@@ -55,10 +60,23 @@ export function MyLearningCalendarPageClient() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/admin/content", { cache: "no-store" });
+        const res = await fetch("/api/learner/site", { cache: "no-store" });
         if (!res.ok) return;
-        const data = await readJsonResponse(res, defaultAdminContent);
-        if (!cancelled) setAdminContent({ ...defaultAdminContent, ...data });
+        const data = await readJsonResponse(res, {} as Partial<AdminContent>);
+        if (!cancelled) {
+          setAdminContent({
+            ...defaultAdminContent,
+            managedCourses: Array.isArray(data.managedCourses) ? data.managedCourses : [],
+            tutorLedPrograms: Array.isArray(data.tutorLedPrograms) ? data.tutorLedPrograms : [],
+            learningCourses: [],
+            dashboard: {
+              ...defaultAdminContent.dashboard,
+              ...data.dashboard,
+              calendarReminders: data.dashboard?.calendarReminders ?? [],
+              communityConnect: data.dashboard?.communityConnect ?? [],
+            },
+          });
+        }
       } catch {
         /* defaults */
       }

@@ -296,7 +296,12 @@ export default function MyLearningPage() {
   const isInviteEmployees = activeTab === "invite-employees";
   const isAssignCourses = activeTab === "assign-courses";
   const isOrgReport = activeTab === "org-report";
-  const [adminContent, setAdminContent] = useState<AdminContent>(defaultAdminContent);
+  const [adminContent, setAdminContent] = useState<AdminContent>({
+    ...defaultAdminContent,
+    managedCourses: [],
+    tutorLedPrograms: [],
+    learningCourses: [],
+  });
   const [learnerFirstName, setLearnerFirstName] = useState("there");
   const [dashboardNow] = useState(() => new Date());
   const [progressTick, setProgressTick] = useState(0);
@@ -362,16 +367,37 @@ export default function MyLearningPage() {
     const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
     (async () => {
       try {
-        const res = await fetch("/api/admin/content", { cache: "no-store", signal: controller.signal });
-        if (!res.ok) throw new Error("admin-content");
-        const data = await readJsonResponse(res, defaultAdminContent);
+        const res = await fetch("/api/learner/site", { cache: "no-store", signal: controller.signal });
+        if (!res.ok) throw new Error("learner-site");
+        const data = await readJsonResponse(res, {} as Partial<AdminContent>);
         if (!cancelled) {
-          const merged = { ...defaultAdminContent, ...data };
-          setAdminContent(merged);
-          setOrganizationTeamAdminConfig(merged.organizationTeam);
+          const next: AdminContent = {
+            ...defaultAdminContent,
+            managedCourses: [],
+            tutorLedPrograms: [],
+            learningCourses: [],
+            ...data,
+            managedCourses: Array.isArray(data.managedCourses) ? data.managedCourses : [],
+            tutorLedPrograms: Array.isArray(data.tutorLedPrograms) ? data.tutorLedPrograms : [],
+            dashboard: {
+              ...defaultAdminContent.dashboard,
+              ...data.dashboard,
+              calendarReminders: data.dashboard?.calendarReminders ?? [],
+              communityConnect: data.dashboard?.communityConnect ?? [],
+            },
+          };
+          setAdminContent(next);
+          setOrganizationTeamAdminConfig(next.organizationTeam);
         }
       } catch {
-        if (!cancelled) setAdminContent(defaultAdminContent);
+        if (!cancelled) {
+          setAdminContent({
+            ...defaultAdminContent,
+            managedCourses: [],
+            tutorLedPrograms: [],
+            learningCourses: [],
+          });
+        }
       } finally {
         window.clearTimeout(timeoutId);
       }

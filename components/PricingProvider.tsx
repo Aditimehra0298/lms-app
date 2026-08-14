@@ -13,6 +13,7 @@ import { X, MapPin, Loader2 } from "lucide-react";
 import {
   formatInrAsRegional,
   localizePriceString,
+  pricingRegionForCountry,
   type PricingRegion,
 } from "@/lib/country-pricing";
 import { CountryFlagImg } from "@/components/CountryFlagImg";
@@ -166,8 +167,10 @@ export function PricingProvider({ children }: { children: ReactNode }) {
 
   const formatInr = useCallback(
     (amountInr: number) => {
-      if (!region) return `₹${amountInr.toLocaleString("en-IN")}`;
-      return formatInrAsRegional(amountInr, region);
+      if (!region || region.countryCode === "IN") {
+        return `₹${amountInr.toLocaleString("en-IN")}`;
+      }
+      return formatInrAsRegional(amountInr, pricingRegionForCountry("US"));
     },
     [region],
   );
@@ -240,7 +243,7 @@ export function PricingProvider({ children }: { children: ReactNode }) {
                   Your pricing region
                 </p>
                 <p className="mt-0.5 text-xs text-zinc-400">
-                  Course prices use your country — currency and admin regional rows when set
+                  If Admin set a price for your country, we show that. Otherwise we show the default dollar price.
                 </p>
               </div>
               <button
@@ -289,8 +292,8 @@ export function PricingProvider({ children }: { children: ReactNode }) {
                 ))}
               </select>
               <p className="mt-3 text-xs leading-relaxed text-zinc-500">
-                Sign in first. We use your account country (from registration, Google, or IP) to show localized prices
-                on courses, cart, and checkout.
+                Sign in first. We use your account country (from registration, Google, or IP). India shows the ₹ price
+                when Admin set one; other countries without a row see the default $ price.
               </p>
             </div>
 

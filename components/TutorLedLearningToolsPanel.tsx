@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Download, NotebookPen, Presentation } from "lucide-react";
-import type { AdminContent } from "@/lib/content-schema";
-import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
+import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import {
   groupLearningMaterialsByKind,
   TUTOR_LED_TOOL_META,
@@ -32,10 +31,10 @@ const GOLD_DOWNLOAD =
   "bg-gradient-to-b from-amber-300 to-amber-500 text-black shadow-[0_0_16px_rgba(255,184,0,0.35)] hover:from-amber-200 hover:to-amber-400";
 
 function resolveMaterials(
-  programs: AdminContent["tutorLedPrograms"] | undefined,
+  programs: TutorLedProgramStored[] | undefined,
   programSlug?: string,
 ): TutorLedLearningMaterial[] {
-  const list = programs?.length ? programs : defaultTutorLedPrograms;
+  const list = programs ?? [];
   const slug = programSlug?.trim();
   const program = slug ? list.find((p) => p.slug === slug) : list[0];
   return program?.learningMaterials ?? [];
@@ -53,10 +52,10 @@ export function TutorLedLearningToolsPanel({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/admin/content", { cache: "no-store" });
+        const res = await fetch("/api/tutor-led/programs", { cache: "no-store" });
         if (!res.ok) throw new Error("content");
-        const data = (await res.json()) as AdminContent;
-        if (!cancelled) setMaterials(resolveMaterials(data.tutorLedPrograms, programSlug));
+        const data = (await res.json()) as { programs?: TutorLedProgramStored[] };
+        if (!cancelled) setMaterials(resolveMaterials(data.programs, programSlug));
       } catch {
         if (!cancelled) setMaterials(resolveMaterials(undefined, programSlug));
       } finally {

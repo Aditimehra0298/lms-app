@@ -49,10 +49,10 @@ export function applyTutorLedShopMeta(
 
 export async function fetchTutorLedProgramsClient(): Promise<TutorLedProgramStored[]> {
   try {
-    const res = await fetch("/api/admin/content", { cache: "no-store" });
+    const res = await fetch("/api/tutor-led/programs", { cache: "no-store" });
     if (!res.ok) return [];
-    const data = (await res.json()) as { tutorLedPrograms?: TutorLedProgramStored[] };
-    return Array.isArray(data.tutorLedPrograms) ? data.tutorLedPrograms : [];
+    const data = (await res.json()) as { programs?: TutorLedProgramStored[] };
+    return Array.isArray(data.programs) ? data.programs : [];
   } catch {
     return [];
   }

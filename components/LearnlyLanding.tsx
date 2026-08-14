@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { defaultAdminContent, defaultHomePageConfig, type AdminContent, type HomePageConfig, type ManagedCategory, type ManagedCourse } from "@/lib/content-schema";
+import { defaultHomePageConfig, type HomePageConfig, type ManagedCategory, type ManagedCourse } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
@@ -454,9 +454,9 @@ function iconForCategoryTitle(title: string) {
   return CATEGORY_ICON_FALLBACK[h];
 }
 
-/** Published defaults so the home catalog renders immediately; `/api/courses` replaces when ready. */
+/** Empty until `/api/courses` or server initialData arrives — never seed demo catalog. */
 function fallbackPublishedCatalog(): ManagedCourse[] {
-  return (defaultAdminContent.managedCourses ?? []).filter((c) => c.published !== false);
+  return [];
 }
 
 export type LearnlyLandingInitialData = {
@@ -517,16 +517,23 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/admin/content", { cache: "no-store" });
+        const res = await fetch("/api/site/home-page", { cache: "no-store" });
         if (!res.ok) return;
-        const data = (await res.json()) as AdminContent;
-        if (!cancelled && data.homePage) {
-          const hp = data.homePage;
+        const data = (await res.json()) as {
+          faqPage?: HomePageConfig["faqPage"];
+          testimonialsPage?: HomePageConfig["testimonialsPage"];
+          faqImage?: string;
+          homeFaqs?: HomePageConfig["faqs"];
+          testimonials?: HomePageConfig["testimonials"];
+        };
+        if (!cancelled) {
           setHomeConfig({
             ...defaultHomePageConfig,
-            ...hp,
-            faqPage: { ...defaultHomePageConfig.faqPage, ...hp.faqPage },
-            testimonialsPage: { ...defaultHomePageConfig.testimonialsPage, ...hp.testimonialsPage },
+            faqs: data.homeFaqs ?? defaultHomePageConfig.faqs,
+            faqImage: data.faqImage ?? defaultHomePageConfig.faqImage,
+            faqPage: { ...defaultHomePageConfig.faqPage, ...data.faqPage },
+            testimonials: data.testimonials ?? defaultHomePageConfig.testimonials,
+            testimonialsPage: { ...defaultHomePageConfig.testimonialsPage, ...data.testimonialsPage },
           });
         }
       } catch { /* use defaults */ }
@@ -1094,7 +1101,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {filteredCatalog.length === 0 ? (
               <p className="col-span-full text-center text-sm text-gray-400">
-                No categories match this filter. Choose &quot;All&quot; or add categories in Admin → Categories.
+                No categories match this filter. Choose &quot;All&quot; to see every category.
               </p>
             ) : (
               filteredCatalog.map((cat, index) => {
@@ -1187,7 +1194,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                 </div>
               ) : filteredCoursesForPath.length === 0 ? (
                 <p className="mt-8 text-center text-sm text-gray-500">
-                  No published courses match this category yet. Try &quot;All&quot; or add courses in Admin.
+                  No published courses match this category yet. Try &quot;All&quot; or another category.
                 </p>
               ) : (
                 <>
@@ -1206,9 +1213,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                               const thumb = resolveCourseListThumbnail(course);
                               if (!thumb) {
                                 return (
-                                  <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">
-                                    No cover image
-                                  </div>
+                                    <div className="flex h-full w-full items-center justify-center bg-zinc-900" aria-hidden />
                                 );
                               }
                               return (

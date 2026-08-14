@@ -93,8 +93,8 @@ export default function FaqPageContent({ meta, groups, faqImage }: Props) {
             ) : (
               <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-8 text-center text-sm text-gray-400">
                 {sectionId
-                  ? "No FAQs for this page yet. Add them in Admin → FAQ Page and choose this page in the dropdown."
-                  : "FAQs will appear here once added in Admin → FAQ Page."}
+                  ? "No FAQs for this page yet. Browse all FAQs for more help."
+                  : "FAQs will appear here soon."}
                 {sectionId ? (
                   <button
                     type="button"

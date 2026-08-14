@@ -167,9 +167,7 @@ export default function SelfPacedCourseHero({ course }: Props) {
                   const thumb = resolveCourseListThumbnail(course);
                   if (!thumb) {
                     return (
-                      <div className="flex h-full w-full items-center justify-center text-sm text-zinc-500">
-                        No cover image
-                      </div>
+                      <div className="flex h-full w-full items-center justify-center bg-zinc-900" aria-hidden />
                     );
                   }
                   return (

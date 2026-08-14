@@ -411,9 +411,7 @@ export default function IndustryProfessionalsLanding({
                           sizes="260px"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-zinc-600">
-                          No cover
-                        </div>
+                        <div className="flex h-full items-center justify-center bg-zinc-900" aria-hidden />
                       )}
                       <span
                         className={`absolute left-2.5 top-2.5 rounded px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide ${

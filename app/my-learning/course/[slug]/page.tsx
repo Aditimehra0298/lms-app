@@ -37,7 +37,7 @@ import {
   PlayCircle,
 } from "lucide-react";
 import TutorLedProgramClient from "@/components/TutorLedProgramClient";
-import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import {
   isCoursePurchased,
   subscribeTutorLedPurchases,
@@ -141,8 +141,10 @@ type CourseCurriculumModule = {
 
 function mergeTutorLedPrograms(apiList: TutorLedProgramStored[]): TutorLedProgramStored[] {
   const mergedBySlug = new Map<string, TutorLedProgramStored>();
-  for (const p of defaultTutorLedPrograms) mergedBySlug.set(p.slug, p);
-  for (const p of apiList) mergedBySlug.set(p.slug, p);
+  for (const p of apiList) {
+    const key = p.slug?.trim();
+    if (key) mergedBySlug.set(key, p);
+  }
   return Array.from(mergedBySlug.values());
 }
 
@@ -216,9 +218,7 @@ export default function CourseLearningPlayerPage() {
     }),
   );
   const [activeLearningTool, setActiveLearningTool] = useState<string>("E-Workbook");
-  const [tutorLedResolved, setTutorLedResolved] = useState<TutorLedProgramStored | null>(
-    () => defaultTutorLedPrograms.find((p) => p.slug === slug) ?? null,
-  );
+  const [tutorLedResolved, setTutorLedResolved] = useState<TutorLedProgramStored | null>(null);
   const [courseDuration, setCourseDuration] = useState("");
   const [certAssets, setCertAssets] = useState({ badge: "", template: "", transcript: "" });
   const [certLayout, setCertLayout] = useState<
@@ -312,35 +312,6 @@ export default function CourseLearningPlayerPage() {
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/admin/content", { cache: "no-store" })
-      .then(async (r) => (r.ok ? readJsonResponse(r, null) : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        const content = data as AdminContent;
-        const assets = resolveCertificateAssetsForSlug(content, slug);
-        const courseCfg = content.managedCourses?.find((c) => c.slug === slug)?.certificateConfig;
-        setCertAssets({
-          badge: assets.badgeImage,
-          template: assets.templateImage,
-          transcript: assets.transcriptFile,
-        });
-        setCertLayout({
-          nameTopPercent: courseCfg?.nameTopPercent,
-          numberTopPercent: courseCfg?.numberTopPercent,
-          dateTopPercent: courseCfg?.dateTopPercent,
-          overlayCourseTitle: courseCfg?.overlayCourseTitle,
-          overlayScore: courseCfg?.overlayScore,
-          overlayBadge: courseCfg?.overlayBadge,
-        });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [slug]);
-
-  useEffect(() => {
-    let cancelled = false;
 
     let isTutorLedPurchase = false;
     let purchasedThisSlug = false;
@@ -363,17 +334,32 @@ export default function CourseLearningPlayerPage() {
       setTutorLedResolved(resolveTutorLedHit(programs, slug, purchasedThisSlug, isTutorLedPurchase));
     };
 
-    applyPrograms(mergeTutorLedPrograms([]));
-
     void (async () => {
       try {
-        const res = await fetch("/api/admin/content", { cache: "no-store" });
+        const res = await fetch("/api/learner/site", { cache: "no-store" });
         if (!res.ok) return;
-        const data = await readJsonResponse(res, {} as { tutorLedPrograms?: TutorLedProgramStored[] });
+        const data = await readJsonResponse(res, {} as Partial<AdminContent> & { tutorLedPrograms?: TutorLedProgramStored[] });
+        if (cancelled || !data) return;
+        const content = data as AdminContent;
+        const assets = resolveCertificateAssetsForSlug(content, slug);
+        const courseCfg = content.managedCourses?.find((c) => c.slug === slug)?.certificateConfig;
+        setCertAssets({
+          badge: assets.badgeImage,
+          template: assets.templateImage,
+          transcript: assets.transcriptFile,
+        });
+        setCertLayout({
+          nameTopPercent: courseCfg?.nameTopPercent,
+          numberTopPercent: courseCfg?.numberTopPercent,
+          dateTopPercent: courseCfg?.dateTopPercent,
+          overlayCourseTitle: courseCfg?.overlayCourseTitle,
+          overlayScore: courseCfg?.overlayScore,
+          overlayBadge: courseCfg?.overlayBadge,
+        });
         const apiList = Array.isArray(data.tutorLedPrograms) ? data.tutorLedPrograms : [];
         applyPrograms(mergeTutorLedPrograms(apiList));
       } catch {
-        // Keep default merge from above.
+        /* keep empty catalog */
       }
     })();
 
@@ -1066,7 +1052,7 @@ export default function CourseLearningPlayerPage() {
           </div>
         ) : null}
 
-        <section className="mt-4 grid gap-4 xl:grid-cols-2 xl:items-start">
+        <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,65fr)_minmax(0,35fr)] xl:items-start">
           <LearnerContentShield
             className="min-w-0"
             label="SF Trainings — protected lesson"
@@ -1301,7 +1287,7 @@ export default function CourseLearningPlayerPage() {
                       <div className="rounded-lg border border-amber-400/25 bg-amber-500/10 p-4">
                         <h3 className="lesson-gold-heading">About this lesson</h3>
                         <p className="mt-2 text-base leading-relaxed text-amber-50">
-                          Lesson details will appear here once added in Admin.
+                          Lesson details for this topic will appear here soon.
                         </p>
                       </div>
                     );

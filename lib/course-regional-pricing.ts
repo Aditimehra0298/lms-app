@@ -1,7 +1,12 @@
 import type { CourseRegionalPriceRow, ManagedCourse } from "@/lib/content-schema";
-import { parseStoredPriceString, pricingRegionForCountry, type PricingRegion } from "@/lib/country-pricing";
+import {
+  currencyCodeFromPriceString,
+  formatPriceAsEntered,
+  parseStoredPriceString,
+  pricingRegionForCountry,
+  type PricingRegion,
+} from "@/lib/country-pricing";
 import { countryDisplayName } from "@/lib/iso-country-list";
-import { detectCurrencyFromPrice } from "@/lib/price-currency-detect";
 
 export type ResolvedCoursePrices = {
   price: string;
@@ -9,6 +14,8 @@ export type ResolvedCoursePrices = {
   discountPercent: number | null;
   /** True when a regional row matched the learner country. */
   isRegionalOverride: boolean;
+  /** ISO currency of the displayed admin price (INR, USD, …). */
+  currency: string;
 };
 
 /** Common markets — quick-add in admin Pricing tab. */
@@ -41,35 +48,44 @@ function findRegionalRow(
   countryCode: string,
 ): CourseRegionalPriceRow | undefined {
   const code = countryCode.trim().toUpperCase();
-  return rows?.find((r) => r.countryCode.trim().toUpperCase() === code);
+  if (!code || !rows?.length) return undefined;
+  const exact = rows.find((r) => (r.countryCode ?? "").trim().toUpperCase() === code);
+  if (exact) return exact;
+  if (code === "IN") {
+    return rows.find((r) => /india/i.test(`${r.countryCode ?? ""}`));
+  }
+  return undefined;
 }
 
-/** Format a regional admin price with the country's currency sign when missing. */
+/** Format a regional admin price, keeping the currency typed in Admin. */
 export function formatPriceForCountry(priceStr: string, countryCode: string): string {
-  const trimmed = priceStr.trim();
-  if (!trimmed) return trimmed;
-  if (detectCurrencyFromPrice(trimmed)) return trimmed;
-
-  const amount = parseStoredPriceString(trimmed);
-  if (amount === null) return trimmed;
-
-  const region = pricingRegionForCountry(countryCode);
-  if (region.countryCode === "IN") {
-    return `₹${amount.toLocaleString("en-IN")}`;
-  }
-
-  try {
-    return new Intl.NumberFormat(region.locale, {
-      style: "currency",
-      currency: region.currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${region.currencySymbol}${amount.toLocaleString(region.locale)}`;
-  }
+  return formatPriceAsEntered(priceStr, countryCode);
 }
 
-/** Resolve sale + list price for a learner region (regional override or global + FX). */
+function currencyOfPrice(price: string, countryCode: string): string {
+  return currencyCodeFromPriceString(price) ?? (countryCode === "IN" ? "INR" : "USD");
+}
+
+function resolvedFromRow(
+  row: Pick<CourseRegionalPriceRow, "price" | "oldPrice">,
+  countryCode: string,
+  isRegionalOverride: boolean,
+): ResolvedCoursePrices {
+  const price = formatPriceForCountry(row.price.trim(), countryCode);
+  const oldPrice = row.oldPrice?.trim() ? formatPriceForCountry(row.oldPrice.trim(), countryCode) : "";
+  return {
+    price,
+    oldPrice,
+    discountPercent: computeDiscountPercent(price, oldPrice),
+    isRegionalOverride,
+    currency: currencyOfPrice(price, countryCode),
+  };
+}
+
+/**
+ * Learner country row from Admin when set (India ₹, US $, …).
+ * If that country has no row, show the default dollar price from Admin.
+ */
 export function resolveCoursePrices(
   course: Pick<ManagedCourse, "price" | "oldPrice" | "regionalPrices">,
   region: PricingRegion | null,
@@ -78,30 +94,29 @@ export function resolveCoursePrices(
   const regional = findRegionalRow(course.regionalPrices, countryCode);
 
   if (regional?.price?.trim()) {
-    const price = formatPriceForCountry(regional.price.trim(), countryCode);
-    const oldPrice = regional.oldPrice?.trim()
-      ? formatPriceForCountry(regional.oldPrice.trim(), countryCode)
-      : "";
-    return {
-      price,
-      oldPrice,
-      discountPercent: computeDiscountPercent(price, oldPrice),
-      isRegionalOverride: true,
-    };
+    return resolvedFromRow(regional, countryCode, true);
   }
 
-  const globalSale = course.price?.trim() ?? "";
-  const globalList = course.oldPrice?.trim() ?? "";
-  const discountPercent = computeDiscountPercent(globalSale, globalList);
-
-  // Keep admin-entered global prices as-is (same string on every LMS page).
-  // Regional rows above already apply country-specific overrides.
+  const globalSale = formatPriceAsEntered(course.price?.trim() ?? "", "US");
+  const globalList = course.oldPrice?.trim() ? formatPriceAsEntered(course.oldPrice.trim(), "US") : "";
   return {
     price: globalSale,
     oldPrice: globalList,
-    discountPercent,
+    discountPercent: computeDiscountPercent(globalSale, globalList),
     isRegionalOverride: false,
+    currency: currencyOfPrice(globalSale, "US"),
   };
+}
+
+/** Region used to format cart/checkout money so it matches the visible admin price. */
+export function displayRegionForResolvedPrice(
+  resolved: Pick<ResolvedCoursePrices, "currency">,
+  learnerRegion: PricingRegion | null,
+): PricingRegion {
+  if (resolved.currency === "INR") return pricingRegionForCountry("IN");
+  if (resolved.currency === "USD") return pricingRegionForCountry("US");
+  if (learnerRegion?.currency === resolved.currency) return learnerRegion;
+  return learnerRegion ?? pricingRegionForCountry("US");
 }
 
 export function sanitizeRegionalPrices(

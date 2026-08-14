@@ -1,4 +1,4 @@
-import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { readAdminContent } from "@/lib/server/content-store";
 import { filterPublishedWorkshops, isWorkshopProgram } from "@/lib/workshop-program";
 
@@ -19,9 +19,7 @@ async function loadMergedPrograms(): Promise<Map<string, TutorLedProgramStored>>
   const content = await readAdminContent();
   // Admin JSON is the catalog source of truth (including []). Do not re-seed
   // built-in defaults on top — that made Delete look like a no-op.
-  const apiList = Array.isArray(content.tutorLedPrograms)
-    ? content.tutorLedPrograms
-    : defaultTutorLedPrograms;
+  const apiList = Array.isArray(content.tutorLedPrograms) ? content.tutorLedPrograms : [];
   const bySlug = new Map<string, TutorLedProgramStored>();
   for (const p of apiList) {
     const s = p.slug?.trim();

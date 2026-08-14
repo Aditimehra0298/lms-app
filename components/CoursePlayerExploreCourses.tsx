@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type RefObject } from "react";
 import { ArrowRight, Compass } from "lucide-react";
-import type { AdminContent, ManagedCourse } from "@/lib/content-schema";
+import type { ManagedCourse } from "@/lib/content-schema";
 import { readLearnerProfileFromStorage } from "@/lib/auth-profile";
 import { readLearningPreferences } from "@/lib/learner-learning-preferences";
 import { rankExploreCourses } from "@/lib/learner-course-recommendations";
@@ -27,12 +27,12 @@ export function CoursePlayerExploreCourses({ currentSlug }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/admin/content", { cache: "no-store" })
-      .then(async (res) => (res.ok ? readJsonResponse(res, null) : null))
+    void fetch("/api/courses", { cache: "no-store" })
+      .then(async (res) => (res.ok ? readJsonResponse(res, { courses: [] as ManagedCourse[] }) : { courses: [] }))
       .then((data) => {
         if (cancelled) return;
-        const courses = data ? ((data as AdminContent).managedCourses ?? []) : [];
-        setCatalog(Array.isArray(courses) ? courses : []);
+        const courses = Array.isArray(data.courses) ? data.courses : [];
+        setCatalog(courses);
         setReady(true);
       })
       .catch(() => {

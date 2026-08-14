@@ -38,7 +38,7 @@ export async function GET(
     if (!examUploadUrl) {
       return NextResponse.json({
         ok: false,
-        message: "No final exam file uploaded in Admin. Upload a CSV on the course or tutor-led learner dashboard.",
+        message: "The final exam is not available yet. Please check back soon.",
       });
     }
 
@@ -46,8 +46,7 @@ export async function GET(
     if (questions.length === 0) {
       return NextResponse.json({
         ok: false,
-        message: "Exam file could not be read or has no valid questions.",
-        examUploadUrl,
+        message: "This exam could not be loaded. Please try again later.",
       });
     }
 
@@ -82,7 +81,7 @@ export async function GET(
   if (!examRow || !examUploadUrl) {
     return NextResponse.json({
       ok: false,
-      message: "No exam file uploaded for this module in Admin. Add a Module Exam and upload your CSV.",
+      message: "This module exam is not available yet. Please check back soon.",
       moduleNumber,
       moduleTitle: mod.title,
     });
@@ -92,10 +91,9 @@ export async function GET(
   if (questions.length === 0) {
     return NextResponse.json({
       ok: false,
-      message: "Exam file could not be read or has no valid questions. Check the CSV format in Admin.",
+      message: "This exam could not be loaded. Please try again later.",
       moduleNumber,
       moduleTitle: mod.title,
-      examUploadUrl,
     });
   }
 

@@ -1,4 +1,4 @@
-import { defaultTutorLedPrograms, type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { deriveCourseProgress } from "@/lib/learner-course-progress";
 import {
   computeCompletedLiveSessions,
@@ -50,12 +50,10 @@ export function mergeTutorLedPrograms(
   adminList?: TutorLedProgramStored[],
 ): TutorLedProgramStored[] {
   const bySlug = new Map<string, TutorLedProgramStored>();
-  for (const p of defaultTutorLedPrograms) bySlug.set(p.slug, p);
   for (const p of adminList ?? []) {
     const key = p.slug?.trim();
     if (!key) continue;
-    const base = bySlug.get(key);
-    bySlug.set(key, base ? { ...base, ...p, slug: key } : { ...p, slug: key });
+    bySlug.set(key, { ...p, slug: key });
   }
   return Array.from(bySlug.values());
 }

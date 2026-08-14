@@ -199,9 +199,7 @@ export default function SelfPacedPostHeroSections({ course, openFaq, setOpenFaq 
                   const thumb = resolveCourseListThumbnail(course);
                   if (!thumb) {
                     return (
-                      <div className="flex aspect-video w-full items-center justify-center bg-zinc-900 text-sm text-zinc-500">
-                        No cover image
-                      </div>
+                      <div className="flex aspect-video w-full items-center justify-center bg-zinc-900" aria-hidden />
                     );
                   }
                   return (

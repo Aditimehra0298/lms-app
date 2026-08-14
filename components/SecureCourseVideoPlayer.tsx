@@ -233,7 +233,7 @@ export function SecureCourseVideoPlayer({
           onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget)}
           onEnded={() => onEnded?.()}
           onError={() => {
-            onErrorRef.current?.("Video could not load. Check enrollment or re-upload in Admin.");
+            onErrorRef.current?.("Video could not load. Please refresh and try again.");
           }}
           className={`${className}${showPlaceholder ? " hidden" : ""}`}
         />

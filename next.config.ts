@@ -10,9 +10,6 @@ const nextConfig: NextConfig = {
     // Legacy strictness debt — app runs correctly; unblock production `npm run build`.
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Allow large learning-tool / video uploads (admin /api/admin/upload up to ~1 GB).
   experimental: {
     proxyClientMaxBodySize: "1gb",
@@ -22,28 +19,33 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: ["@prisma/client", "prisma", "nodemailer"],
   // HTML must never be cached at Cloudflare/nginx — stale HTML points at deleted /_next hashes (404/500 CSS).
+  // Do not mark /_next/static immutable in development: webpack HMR rewrites those files in place.
   async headers() {
+    const htmlNoStore = {
+      source: "/:path*",
+      headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }],
+    };
+    if (process.env.NODE_ENV === "development") {
+      return [htmlNoStore];
+    }
     return [
       {
         source: "/_next/static/:path*",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-        ],
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
-      {
-        source: "/:path*",
-        headers: [
-          { key: "Cache-Control", value: "no-store, must-revalidate" },
-        ],
-      },
+      htmlNoStore,
     ];
   },
-  webpack: (config) => {
+  webpack: (config, { dev }) => {
     config.resolve = config.resolve ?? {};
     config.resolve.alias = {
       ...(config.resolve.alias as Record<string, string | false | string[]>),
       "nanoid/non-secure": nanoidNonSecure,
     };
+    if (dev) {
+      config.output = config.output ?? {};
+      config.output.chunkLoadTimeout = 300000;
+    }
     return config;
   },
   images: {

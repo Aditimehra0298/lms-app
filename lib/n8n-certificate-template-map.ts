@@ -7,7 +7,9 @@ import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 export const N8N_CERTIFICATE_COURSE_NAMES = [
   "Advanced Food Fraud Mitigation and Auditing FSSC 220002018 VERSION 6",
   "Carbon Trading & Reporting",
+  "Carbon Trading & Reporting Practitioner Program",
   "Cybersecurity awareness phishness",
+  "Cybersecurity, Ethical Hacking & Penetration Testing Professional Course",
   "DIPLOMA in Cybersecurity & Ethical Hacking (FOUNDATIONS)",
   "DIPLOMA IN HACCP FOOD SAFETY STANDARDS (LEVEL 2)",
   "ESG Management Development Training Program",
@@ -33,7 +35,7 @@ export type N8nCertificateCourseName = (typeof N8N_CERTIFICATE_COURSE_NAMES)[num
 const ALLOWED_COURSE_NAMES = new Set<string>(N8N_CERTIFICATE_COURSE_NAMES);
 
 export function isAllowedN8nCertificateCourseName(name: string | null | undefined): name is N8nCertificateCourseName {
-  const trimmed = name?.trim();
+  const trimmed = name?.trim().replace(/\.pdf$/i, "");
   return Boolean(trimmed && ALLOWED_COURSE_NAMES.has(trimmed));
 }
 
@@ -44,14 +46,18 @@ export function isAllowedN8nCertificateCourseName(name: string | null | undefine
 export const N8N_CERTIFICATE_TEMPLATE_BY_SLUG: Record<string, N8nCertificateCourseName> = {
   "fssc-22000-v6-food-fraud-mitigation-auditing":
     "Advanced Food Fraud Mitigation and Auditing FSSC 220002018 VERSION 6",
-  "carbon-trading-reporting": "Carbon Trading & Reporting",
-  "essentials-of-carbon-trading-and-reporting": "Carbon Trading & Reporting",
+  "carbon-trading-reporting": "Carbon Trading & Reporting Practitioner Program",
+  "essentials-of-carbon-trading-and-reporting": "Carbon Trading & Reporting Practitioner Program",
   "cyber-security-phishing-awareness-training": "Cybersecurity awareness phishness",
   cybersecurity: "Cybersecurity awareness phishness",
   "diploma-cybersecurity-ethical-hacking-foundations":
     "DIPLOMA in Cybersecurity & Ethical Hacking (FOUNDATIONS)",
   "advanced-cyber-security-professional":
     "DIPLOMA in Cybersecurity & Ethical Hacking (FOUNDATIONS)",
+  "courses-certfied-ethical-hacking-and-penitration-testing":
+    "Cybersecurity, Ethical Hacking & Penetration Testing Professional Course",
+  "certified-ethical-hacking-and-penetration-testing":
+    "Cybersecurity, Ethical Hacking & Penetration Testing Professional Course",
   "food-safety-masterclass": "DIPLOMA IN HACCP FOOD SAFETY STANDARDS (LEVEL 2)",
   "cousers-esg-esg-management-development-training-program":
     "ESG Management Development Training Program",
@@ -92,9 +98,23 @@ function normalizeTitleKey(title: string): string {
 }
 
 /** Title → template name (fallback when slug is not in the map yet). */
-const N8N_CERTIFICATE_TEMPLATE_BY_TITLE: Record<string, N8nCertificateCourseName> = Object.fromEntries(
-  N8N_CERTIFICATE_COURSE_NAMES.map((name) => [normalizeTitleKey(name), name]),
-) as Record<string, N8nCertificateCourseName>;
+const N8N_CERTIFICATE_TEMPLATE_BY_TITLE: Record<string, N8nCertificateCourseName> = {
+  ...(Object.fromEntries(
+    N8N_CERTIFICATE_COURSE_NAMES.map((name) => [normalizeTitleKey(name), name]),
+  ) as Record<string, N8nCertificateCourseName>),
+  [normalizeTitleKey("Certified Ethical Hacking and Penetration Testing")]:
+    "Cybersecurity, Ethical Hacking & Penetration Testing Professional Course",
+  [normalizeTitleKey("Certfied Ethical Hacking and Penitration Testing")]:
+    "Cybersecurity, Ethical Hacking & Penetration Testing Professional Course",
+  [normalizeTitleKey("Carbon Trading and Reporting")]:
+    "Carbon Trading & Reporting Practitioner Program",
+  [normalizeTitleKey("Essentials of Carbon Trading and Reporting")]:
+    "Carbon Trading & Reporting Practitioner Program",
+};
+
+function stripPdfSuffix(name: string): string {
+  return name.trim().replace(/\.pdf$/i, "").trim();
+}
 
 /**
  * Resolve the n8n `courseName` for certificate generation.
@@ -106,7 +126,7 @@ export function resolveN8nCertificateTemplateName(input: {
   /** Per-course override from Admin → Certificate settings. */
   configTemplateName?: string | null;
 }): N8nCertificateCourseName | null {
-  const override = input.configTemplateName?.trim();
+  const override = stripPdfSuffix(input.configTemplateName ?? "");
   if (override && isAllowedN8nCertificateCourseName(override)) return override;
 
   const slug = canonicalCourseSlug(input.courseSlug);

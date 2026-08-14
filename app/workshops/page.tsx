@@ -21,7 +21,7 @@ export default async function WorkshopsIndexPage() {
 
         {workshops.length === 0 ? (
           <p className="mt-10 rounded-xl border border-dashed border-white/15 px-6 py-12 text-center text-sm text-gray-500">
-            No workshops published yet. Admin → Tutor Led → set program kind to <strong className="text-gray-300">Workshop</strong>.
+            No workshops are scheduled right now. Please check back soon.
           </p>
         ) : (
           <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">

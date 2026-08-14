@@ -370,7 +370,7 @@ export function CourseCompletionRewards({
             />
           ) : (
             <p className="mt-4 text-center text-sm text-gray-500">
-              Upload a course badge in Admin → Courses → Certificate for this course.
+              Your course badge will appear here when it is ready.
             </p>
           )}
         </article>

@@ -75,8 +75,7 @@ export function TutorLedLiveZoomPanel({
           <div>
             <p className="text-sm font-bold text-white">Live Zoom classroom</p>
             <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-              Your trainer will attach the Zoom meeting link from Admin → Tutor Led → Zoom &amp; live. Check back
-              before your first session.
+              Your trainer will share the Zoom meeting link before your first session. Check back here when it is time to join.
             </p>
           </div>
         </div>

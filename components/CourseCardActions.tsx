@@ -74,7 +74,7 @@ export default function CourseCardActions({
           ) : null}
         </div>
       ) : (
-        <p className="mb-2 min-h-[1.75rem] text-xs text-zinc-500">Price in Admin → Pricing</p>
+        <p className="mb-2 min-h-[1.75rem] text-xs text-zinc-500">Price on request</p>
       )}
 
       <PriceDescriptionButtonRow descriptionHref={descriptionHref} />

@@ -3,7 +3,11 @@ import type {
   OrganizationSeatBandId,
   OrganizationSeatBandPriceRow,
 } from "@/lib/content-schema";
-import { computeDiscountPercent, resolveCoursePrices } from "@/lib/course-regional-pricing";
+import {
+  computeDiscountPercent,
+  displayRegionForResolvedPrice,
+  resolveCoursePrices,
+} from "@/lib/course-regional-pricing";
 import { parseStoredPriceString, type PricingRegion } from "@/lib/country-pricing";
 
 export type OrganizationSeatBand = {
@@ -174,6 +178,7 @@ export function resolveOrganizationCoursePrice(
   }
 
   const individual = resolveCoursePrices(course, region);
+  const payRegion = displayRegionForResolvedPrice(individual, region);
   const base = parseStoredPriceString(individual.price);
   if (base === null) {
     return {
@@ -194,9 +199,9 @@ export function resolveOrganizationCoursePrice(
   const listBase = parseStoredPriceString(individual.oldPrice) ?? base;
   const teamList = listBase * band.avgSeats;
 
-  const price = formatScaledPrice(teamTotal, individual.price, region);
+  const price = formatScaledPrice(teamTotal, individual.price, payRegion);
   const oldPrice =
-    individual.oldPrice?.trim() ? formatScaledPrice(teamList, individual.oldPrice, region) : "";
+    individual.oldPrice?.trim() ? formatScaledPrice(teamList, individual.oldPrice, payRegion) : "";
 
   return {
     ready: true,

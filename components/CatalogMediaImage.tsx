@@ -11,12 +11,18 @@ type Props = {
   className?: string;
   fill?: boolean;
   sizes?: string;
+  /** Tried after the stored cover 404s (category photo, etc.). */
+  extraFallback?: string;
 };
 
 /** Course card / landing image — native img so covers load without Next optimizer 404/500. */
-export function CatalogMediaImage({ storedSrc, courseSlug, alt, className, fill }: Props) {
+export function CatalogMediaImage({ storedSrc, courseSlug, alt, className, fill, extraFallback }: Props) {
   const signed = useCatalogMediaUrl(storedSrc, courseSlug);
-  const fallbacks = useMemo(() => catalogCoverFallbackUrls(storedSrc), [storedSrc]);
+  const fallbacks = useMemo(() => {
+    const list = catalogCoverFallbackUrls(storedSrc);
+    if (extraFallback?.trim()) list.push(extraFallback.trim());
+    return list;
+  }, [storedSrc, extraFallback]);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
