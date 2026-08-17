@@ -1270,19 +1270,16 @@ export default function CourseLearningPlayerPage() {
                 {(() => {
                   const introText = activeItem?.description?.trim() || "";
                   const aboutRaw = activeItem?.about?.trim() || "";
-                  // Never repeat the introduction under About (same text or empty).
                   const aboutUnique =
                     aboutRaw &&
                     aboutRaw.replace(/\s+/g, " ").toLowerCase() !==
                       introText.replace(/\s+/g, " ").toLowerCase()
                       ? aboutRaw
                       : "";
-                  const aboutBody = aboutUnique || introText;
                   const outcomes = (activeItem?.learningOutcomes ?? [])
                     .map((p) => p.trim())
-                    .filter(Boolean)
-                    .slice(0, 4);
-                  if (!aboutBody && outcomes.length === 0) {
+                    .filter(Boolean);
+                  if (!introText && !aboutUnique && outcomes.length === 0) {
                     return (
                       <div className="rounded-lg border border-amber-400/25 bg-amber-500/10 p-4">
                         <h3 className="lesson-gold-heading">About this lesson</h3>
@@ -1294,10 +1291,22 @@ export default function CourseLearningPlayerPage() {
                   }
                   return (
                     <div className="flex w-full flex-col gap-4">
-                      {aboutBody ? (
+                      {introText ? (
+                        <div className="w-full rounded-lg border border-white/15 bg-[#10182c] p-4">
+                          <h3 className="lesson-gold-heading">
+                            {aboutUnique ? "Lesson description" : "About this lesson"}
+                          </h3>
+                          <p className="mt-3 whitespace-pre-wrap text-base leading-7 text-zinc-50">
+                            {introText}
+                          </p>
+                        </div>
+                      ) : null}
+                      {aboutUnique ? (
                         <div className="w-full rounded-lg border border-white/15 bg-[#10182c] p-4">
                           <h3 className="lesson-gold-heading">About this lesson</h3>
-                          <p className="mt-3 text-base leading-7 text-zinc-50">{aboutBody}</p>
+                          <p className="mt-3 whitespace-pre-wrap text-base leading-7 text-zinc-50">
+                            {aboutUnique}
+                          </p>
                         </div>
                       ) : null}
                       {outcomes.length > 0 ? (
@@ -1701,9 +1710,9 @@ export default function CourseLearningPlayerPage() {
                           {locked ? <Lock size={12} /> : idx + 1}
                         </span>
                         <span className="min-w-0">
-                          <span className="line-clamp-2 font-semibold">{moduleTitle(module, idx)}</span>
+                          <span className="font-semibold">{moduleTitle(module, idx)}</span>
                           {module.description?.trim() ? (
-                            <span className="mt-0.5 block line-clamp-2 text-xs font-normal leading-snug text-zinc-300">
+                            <span className="mt-0.5 block text-xs font-normal leading-snug text-zinc-300">
                               {module.description.trim()}
                             </span>
                           ) : null}

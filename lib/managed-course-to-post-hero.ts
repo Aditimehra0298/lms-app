@@ -1,6 +1,7 @@
 import { Award, BookOpen, Globe, MessageCircle, MonitorPlay, Users, Video, Zap } from "lucide-react";
 import type { ManagedCourse } from "@/lib/content-schema";
 import type { PostHeroCourse } from "@/components/TutorLedPostHeroSections";
+import { flattenModuleCurriculumItems } from "@/lib/curriculum-learner-filter";
 
 const DEFAULT_HIGHLIGHTS = [
   "Learn at your own pace with structured modules",
@@ -46,17 +47,17 @@ function curriculumFromManaged(c: ManagedCourse): PostHeroCourse["curriculum"] {
       },
     ];
   }
-  return mods.map((m, i) => ({
-    week: i + 1,
-    label: m.title.length > 48 ? `${m.title.slice(0, 45)}…` : m.title,
-    topic: m.items[0]?.label ?? m.title,
-    keyLearning:
-      m.items
-        .slice(0, 5)
-        .map((it) => it.label)
-        .join(" · ") || "Lessons and practice",
-    sessionType: m.items.some((x) => x.kind === "exam") ? "Video + quiz" : "On-demand",
-  }));
+  return mods.map((m, i) => {
+    const items = flattenModuleCurriculumItems(m);
+    return {
+      week: i + 1,
+      label: m.title,
+      topic: items[0]?.label ?? m.title,
+      keyLearning:
+        items.map((it) => it.label).filter(Boolean).join(" · ") || "Lessons and practice",
+      sessionType: items.some((x) => x.kind === "exam") ? "Video + quiz" : "On-demand",
+    };
+  });
 }
 
 export function managedCourseToPostHero(c: ManagedCourse): PostHeroCourse {

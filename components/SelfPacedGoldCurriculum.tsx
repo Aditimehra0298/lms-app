@@ -26,9 +26,9 @@ export default function SelfPacedGoldCurriculum({ course, className = "" }: Prop
     diplomaMods && diplomaMods.length > 0
       ? diplomaMods.map((m, i) => ({
           week: i + 1,
-          label: m.title.length > 48 ? `${m.title.slice(0, 45)}…` : m.title,
+          label: m.title,
           topic: m.items[0]?.label ?? m.title,
-          keyLearning: m.items.map((it) => it.label).slice(0, 5).join(" · "),
+          keyLearning: m.items.map((it) => it.label).filter(Boolean).join(" · "),
           sessionType: m.items.some((x) => x.kind === "exam") ? "Video + quiz" : "On-demand",
         }))
       : postHero.curriculum;

@@ -6,24 +6,40 @@ export function curriculumRichnessScore(
 ): number {
   if (!Array.isArray(mods) || mods.length === 0) return 0;
   let media = 0;
+  let lessons = 0;
+  let textChars = 0;
   for (const m of mods) {
     const rows = [
       ...(m.items ?? []),
       ...((m.subModules ?? []).flatMap((s) => s.items ?? [])),
     ];
+    lessons += rows.length;
+    const modDesc = m.description?.trim() ?? "";
+    if (modDesc) textChars += Math.min(modDesc.length, 800);
     for (const item of rows) {
       if (
         item.videoUrl ||
         item.examUploadUrl ||
         item.pdfUrl ||
         item.downloadUrl ||
-        item.pptUrl
+        item.pptUrl ||
+        item.podcastUrl ||
+        item.resourceUrl
       ) {
         media += 1;
       }
+      const desc = item.description?.trim() ?? "";
+      const about = item.about?.trim() ?? "";
+      if (desc) textChars += Math.min(desc.length, 800);
+      if (about) textChars += Math.min(about.length, 800);
+      const outcomes = Array.isArray(item.learningOutcomes)
+        ? item.learningOutcomes.filter((o) => o?.trim()).length
+        : 0;
+      textChars += outcomes * 40;
     }
   }
-  return mods.length * 1000 + media;
+  // Prefer more modules, then more lessons, then media + learner copy text.
+  return mods.length * 100_000 + lessons * 1_000 + media * 100 + Math.min(textChars, 50_000);
 }
 
 /** Prefer the curriculum with more modules / uploaded media. */

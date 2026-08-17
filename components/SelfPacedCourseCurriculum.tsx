@@ -102,7 +102,7 @@ export default function SelfPacedCourseCurriculum({ course, className = "" }: Pr
         ) : null}
       </div>
 
-      <div className="mt-6 max-h-[min(70vh,720px)] space-y-2 overflow-y-auto overscroll-contain pr-1">
+      <div className="mt-6 space-y-2">
         {modules.length === 0 ? (
           <p className="rounded-xl border border-white/10 bg-[#141414] px-4 py-8 text-center text-sm text-zinc-500">
             Curriculum will appear here when this course is ready.
@@ -129,7 +129,7 @@ export default function SelfPacedCourseCurriculum({ course, className = "" }: Pr
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-white md:text-base">{mod.title}</p>
-                    <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-zinc-300">
+                    <p className="mt-1 text-sm leading-relaxed text-zinc-300">
                       {curriculumModuleOneLiner(mod)}
                     </p>
                   </div>
@@ -150,7 +150,7 @@ export default function SelfPacedCourseCurriculum({ course, className = "" }: Pr
                           <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
                             {curriculumKindPublicLabel(item.kind)}
                           </p>
-                          <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-zinc-300">
+                          <p className="mt-1 text-sm leading-relaxed text-zinc-300">
                             {curriculumItemOneLiner(item)}
                           </p>
                         </div>

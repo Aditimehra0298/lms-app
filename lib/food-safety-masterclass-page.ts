@@ -59,13 +59,10 @@ export function mergeFoodSafetyCourseForLanding(course: ManagedCourse): ManagedC
 function curriculumRowsForPostHero(mods: ReturnType<typeof getCurriculumForCourse>): PostHeroCourse["curriculum"] {
   return mods.map((m, i) => ({
     week: i + 1,
-    label: m.title.length > 48 ? `${m.title.slice(0, 45)}…` : m.title,
+    label: m.title,
     topic: m.items[0]?.label ?? m.title,
     keyLearning:
-      m.items
-        .slice(0, 6)
-        .map((it) => it.label)
-        .join(" · ") || "Lessons and practice",
+      m.items.map((it) => it.label).filter(Boolean).join(" · ") || "Lessons and practice",
     sessionType: m.items.some((x) => x.kind === "exam") ? "Video + quiz" : "On-demand",
   }));
 }

@@ -6,12 +6,9 @@ import type {
 
 export type CurriculumKindPublicLabel = "Lecture" | "Document" | "Assessment";
 
-function firstLine(text: string, max = 140): string {
-  const t = text.replace(/\s+/g, " ").trim();
-  if (!t) return "";
-  const sentence = t.match(/^.+?[.!?](?=\s|$)/)?.[0] ?? t;
-  if (sentence.length <= max) return sentence;
-  return `${sentence.slice(0, max - 1).trimEnd()}…`;
+/** Prefer the full Admin description/about — do not cut to one short sentence. */
+function fullLearnerCopy(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
 }
 
 export function curriculumKindPublicLabel(
@@ -37,7 +34,7 @@ function topicFromModuleTitle(title: string): string {
 }
 
 export function curriculumItemOneLiner(item: CourseCurriculumItem): string {
-  const custom = firstLine(item.description ?? item.about ?? "");
+  const custom = fullLearnerCopy(item.description ?? item.about ?? "");
   if (custom) return custom;
   if (item.kind === "exam") {
     return "Complete this assessment to confirm you understood the module before continuing.";
@@ -49,7 +46,7 @@ export function curriculumItemOneLiner(item: CourseCurriculumItem): string {
 }
 
 export function curriculumModuleOneLiner(mod: CourseCurriculumModule): string {
-  const custom = firstLine(mod.description ?? "");
+  const custom = fullLearnerCopy(mod.description ?? "");
   if (custom) return custom;
 
   const items = flattenModuleItems(mod);

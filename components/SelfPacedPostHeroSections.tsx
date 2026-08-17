@@ -137,7 +137,7 @@ export default function SelfPacedPostHeroSections({ course, openFaq, setOpenFaq 
                           {mi + 1}
                         </span>
                         <span className="min-w-0">
-                          <span className="line-clamp-2 block">{mod.title}</span>
+                          <span className="block">{mod.title}</span>
                           <span className="mt-1 block text-xs font-normal leading-relaxed text-zinc-400">
                             {curriculumModuleOneLiner(mod)}
                           </span>
@@ -164,7 +164,7 @@ export default function SelfPacedPostHeroSections({ course, openFaq, setOpenFaq 
                               <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
                                 {curriculumKindPublicLabel(item.kind)}
                               </p>
-                              <p className="mt-0.5 line-clamp-2 text-[11px] font-normal leading-relaxed text-zinc-500">
+                              <p className="mt-0.5 text-[11px] font-normal leading-relaxed text-zinc-500">
                                 {curriculumItemOneLiner(item)}
                               </p>
                             </div>
