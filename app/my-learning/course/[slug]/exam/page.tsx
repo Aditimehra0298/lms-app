@@ -43,6 +43,7 @@ import {
   writeModuleWatchedSeconds,
 } from "@/lib/learner-preview-gate";
 import type { ParsedExamQuestion } from "@/lib/exam-csv-parse";
+import ExamQuestionImage from "@/components/ExamQuestionImage";
 
 export const dynamic = "force-dynamic";
 
@@ -677,8 +678,14 @@ function CourseExamPageInner() {
           <span>Exam</span>
         </div>
 
-        <section className="grid gap-3 xl:grid-cols-[0.35fr_1.65fr_1fr] xl:items-start">
-          <aside className="space-y-2 rounded-xl border border-white/10 bg-[#0c1324] p-3">
+        <section
+          className={`grid gap-3 xl:items-start ${
+            currentQuestion?.questionImageUrl
+              ? "xl:grid-cols-[0.28fr_minmax(0,1fr)_0.85fr]"
+              : "xl:grid-cols-[0.35fr_1.65fr_1fr]"
+          }`}
+        >
+          <aside className="space-y-2 rounded-xl border border-white/10 bg-[#0c1324] p-3 xl:sticky xl:top-3">
             {(
               [
                 ["Overview", CircleHelp, `/my-learning/course/${slug}`],
@@ -785,7 +792,11 @@ function CourseExamPageInner() {
                   {reviewedQuestions.includes(currentQuestionIndex) ? "Marked for Review" : "Mark for Review"}
                 </button>
               </div>
-              <h2 className="text-3xl font-bold leading-snug text-white">
+              <h2
+                className={`font-bold leading-snug text-white ${
+                  currentQuestion?.questionImageUrl ? "text-xl md:text-2xl" : "text-3xl"
+                }`}
+              >
                 {currentQuestion?.question ?? "No questions loaded"}
                 <span className="mt-1.5 block text-sm font-normal text-gray-400">
                   (Select the right answer from the below given options)
@@ -793,17 +804,14 @@ function CourseExamPageInner() {
               </h2>
 
               {currentQuestion?.questionImageUrl ? (
-                <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-black/30 p-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={currentQuestion.questionImageUrl}
-                    alt=""
-                    className="mx-auto max-h-64 w-auto max-w-full object-contain"
-                  />
-                </div>
+                <ExamQuestionImage
+                  src={currentQuestion.questionImageUrl}
+                  alt={currentQuestion.question || "Case study figure"}
+                  variant="question"
+                />
               ) : null}
 
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-2.5">
                 {(currentQuestion?.options ?? []).map((option, idx) => {
                   const letter = String.fromCharCode(97 + idx); // a, b, c, d…
                   const optionText = typeof option === "string" ? option : option.text;
@@ -814,46 +822,49 @@ function CourseExamPageInner() {
                     .replace(/^\s*[a-dA-D]\s+/, "")
                     .trim();
                   const selected = selectedAnswers[currentQuestionIndex] === idx;
+                  const selectOption = () =>
+                    setSelectedAnswers((prev) => {
+                      const next = [...prev];
+                      next[currentQuestionIndex] = idx;
+                      return next;
+                    });
                   return (
-                    <button
+                    <div
                       key={`${idx}-${cleaned || optionImage || "opt"}`}
-                      type="button"
-                      onClick={() =>
-                        setSelectedAnswers((prev) => {
-                          const next = [...prev];
-                          next[currentQuestionIndex] = idx;
-                          return next;
-                        })
-                      }
-                      className={`flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left text-sm transition ${
+                      className={`rounded-lg border px-3.5 py-3.5 transition ${
                         selected
                           ? "border-violet-300/40 bg-violet-500/10 text-violet-100"
-                          : "border-white/10 bg-black/25 hover:bg-white/5"
+                          : "border-white/10 bg-black/25"
                       }`}
                     >
-                      <span
-                        className={`mt-0.5 inline-flex h-6 w-7 shrink-0 items-center justify-center rounded-md border font-semibold tabular-nums ${
-                          selected
-                            ? "border-violet-300/50 bg-violet-500/25 text-violet-100"
-                            : "border-white/15 bg-black/40 text-gray-300"
-                        }`}
-                      >
-                        {letter})
-                      </span>
-                      <span className="min-w-0 flex-1 space-y-2 leading-relaxed">
-                        {optionImage ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                      {optionImage ? (
+                        <div className="mb-3">
+                          <ExamQuestionImage
                             src={optionImage}
                             alt={cleaned || `Option ${letter}`}
-                            className="max-h-40 w-auto max-w-full rounded-md border border-white/10 object-contain"
+                            variant="option"
                           />
-                        ) : null}
-                        {cleaned || (!optionImage ? optionText : "") ? (
-                          <span className="block">{cleaned || optionText}</span>
-                        ) : null}
-                      </span>
-                    </button>
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={selectOption}
+                        className="flex w-full items-start gap-3 text-left text-[15px] leading-relaxed hover:opacity-95"
+                      >
+                        <span
+                          className={`mt-0.5 inline-flex h-7 w-8 shrink-0 items-center justify-center rounded-md border font-semibold tabular-nums ${
+                            selected
+                              ? "border-violet-300/50 bg-violet-500/25 text-violet-100"
+                              : "border-white/15 bg-black/40 text-gray-300"
+                          }`}
+                        >
+                          {letter})
+                        </span>
+                        <span className="min-w-0 flex-1 text-pretty">
+                          {cleaned || optionText || (optionImage ? "Select this option" : "")}
+                        </span>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
