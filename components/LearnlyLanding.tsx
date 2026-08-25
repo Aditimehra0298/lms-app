@@ -14,7 +14,7 @@ import CourseCardActions from "@/components/CourseCardActions";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
 import { CatalogMediaImage } from "@/components/CatalogMediaImage";
 import { NewsletterSubscribeForm } from "@/components/NewsletterSubscribeForm";
-import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
+import { categoryCatalogFallbackImage, resolveCourseImageSrc, resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import TestimonialAvatar from "@/components/TestimonialAvatar";
 import TestimonialCourseBadge from "@/components/TestimonialCourseBadge";
 import {
@@ -1232,15 +1232,19 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                         >
                           <div className="relative aspect-[16/10] bg-black/40">
                             {(() => {
-                              const thumb = resolveCourseListThumbnail(course);
-                              if (!thumb) {
-                                return (
-                                    <div className="flex h-full w-full items-center justify-center bg-zinc-900" aria-hidden />
-                                );
-                              }
+                              const categoryFallback = categoryCatalogFallbackImage(
+                                course.category || "",
+                              );
+                              // Unique admin covers first; otherwise show the course's stored
+                              // image (incl. stock) or a category photo — never a blank card.
+                              const thumb =
+                                resolveCourseListThumbnail(course) ||
+                                resolveCourseImageSrc(course.image) ||
+                                categoryFallback;
                               return (
                                 <CatalogMediaImage
                                   storedSrc={thumb}
+                                  extraFallback={categoryFallback}
                                   courseSlug={course.slug}
                                   alt={course.title}
                                   fill
