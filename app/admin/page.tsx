@@ -308,7 +308,9 @@ function AdminPageInner() {
     students: "0",
     status: "Published",
     slug: "",
+    image: "",
   });
+  const [uploadingCategoryImage, setUploadingCategoryImage] = useState(false);
   const [categoryRows, setCategoryRows] = useState<string[][]>([]);
   const [categoriesReady, setCategoriesReady] = useState(false);
   const [headerDateLabel, setHeaderDateLabel] = useState(() => formatAdminHeaderDate());
@@ -426,6 +428,7 @@ function AdminPageInner() {
       isUppercase: false,
       isBold: false,
       tone: "violet",
+      image: row[7]?.trim() || undefined,
     }));
 
   const rowsFromManagedCategories = (cats: ManagedCategory[]): string[][] =>
@@ -439,6 +442,7 @@ function AdminPageInner() {
         "—",
         row.isActive === false ? "Draft" : "Published",
         row.slug || "",
+        row.image?.trim() || "",
       ];
     });
 
@@ -617,6 +621,7 @@ function AdminPageInner() {
         newCategory.students.trim() || "0",
         newCategory.status,
         toSlug(name) || `category-${categoryRows.length + 1}`,
+        "",
       ],
     ];
     const ok = await persistCategories(nextRows);
@@ -645,7 +650,25 @@ function AdminPageInner() {
       students: row[4] ?? "0",
       status: row[5] === "Draft" ? "Draft" : "Published",
       slug: categorySlugAt(row, index),
+      image: row[7] ?? "",
     });
+  };
+
+  const uploadCategoryImage = async (file: File) => {
+    setUploadingCategoryImage(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/upload-cover", { method: "POST", body: fd });
+      const data = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed");
+      setEditCategory((prev) => ({ ...prev, image: data.url! }));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Image upload failed.";
+      if (typeof window !== "undefined") window.alert(message);
+    } finally {
+      setUploadingCategoryImage(false);
+    }
   };
 
   const saveEditCategory = async () => {
@@ -661,13 +684,14 @@ function AdminPageInner() {
         editCategory.status,
         // Keep slug stable so courses / Explore / URLs stay connected
         row[6]?.trim() || editCategory.slug || toSlug(editCategory.name.trim()),
+        editCategory.image.trim(),
       ];
     });
     const ok = await persistCategories(nextRows);
     if (!ok) return;
     setCategoryRows(nextRows);
     setEditCategoryIndex(null);
-    if (typeof window !== "undefined") window.alert("Category name saved.");
+    if (typeof window !== "undefined") window.alert("Category saved (including image).");
   };
 
   return (
@@ -1181,7 +1205,7 @@ function AdminPageInner() {
                   <table className="w-full min-w-[980px] text-left text-xs">
                     <thead className="text-gray-400">
                       <tr>
-                        {["#", "Category", "Description", "Courses", "Students", "Status", "Actions"].map((h) => (
+                        {["#", "Image", "Category", "Description", "Courses", "Students", "Status", "Actions"].map((h) => (
                           <th key={h} className="border-b border-white/10 py-2 pr-3">{h}</th>
                         ))}
                       </tr>
@@ -1199,6 +1223,23 @@ function AdminPageInner() {
                         return (
                         <tr key={`${row[0]}-${i}`} className="border-b border-white/5">
                           <td className="py-2 pr-3">{i + 1}</td>
+                          <td className="py-2 pr-3">
+                            <div className="relative h-12 w-16 overflow-hidden rounded-md border border-white/10 bg-black/40">
+                              {row[7]?.trim() ? (
+                                <Image
+                                  src={row[7]}
+                                  alt=""
+                                  fill
+                                  unoptimized
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <span className="flex h-full items-center justify-center text-[9px] text-gray-500">
+                                  No image
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="py-2 pr-3">
                             <p className="font-medium">{row[0]}</p>
                             <p className="text-[10px] text-gray-500">{row[1]}</p>
@@ -1231,7 +1272,7 @@ function AdminPageInner() {
                               </button>
                               <button
                                 type="button"
-                                title="Rename / edit category name"
+                                title="Rename / edit category & card image"
                                 onClick={() => openEditCategory(i)}
                                 className="rounded p-1 hover:bg-white/10 hover:text-white"
                               >
@@ -1343,9 +1384,9 @@ function AdminPageInner() {
               {editCategoryIndex !== null && (
                 <div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4">
                   <div className="w-full max-w-xl rounded-xl border border-white/10 bg-[#0b1224] p-4">
-                    <h3 className="text-lg font-semibold">Edit Category Name</h3>
+                    <h3 className="text-lg font-semibold">Edit Category</h3>
                     <p className="mb-3 text-xs text-gray-400">
-                      Change the display name shown on the website. Course links stay connected.
+                      Change name, description, and the card image shown on the home page. Course links stay connected.
                     </p>
                     <div className="grid gap-2 sm:grid-cols-2">
                       <input
@@ -1375,6 +1416,64 @@ function AdminPageInner() {
                         placeholder="Description"
                         rows={3}
                       />
+
+                      <div className="sm:col-span-2 rounded-lg border border-white/10 bg-black/20 p-3">
+                        <p className="mb-2 text-xs font-semibold text-gray-300">Category card image</p>
+                        <div className="flex flex-wrap items-start gap-3">
+                          <div className="relative h-20 w-28 overflow-hidden rounded-md border border-white/10 bg-black/40">
+                            {editCategory.image.trim() ? (
+                              <Image
+                                src={editCategory.image}
+                                alt=""
+                                fill
+                                unoptimized
+                                className="object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-full items-center justify-center text-[10px] text-gray-500">
+                                No image
+                              </span>
+                            )}
+                          </div>
+                          <div className="min-w-[200px] flex-1 space-y-2">
+                            <label className="inline-flex cursor-pointer items-center rounded-lg bg-[#f5b942] px-3 py-2 text-xs font-semibold text-black">
+                              {uploadingCategoryImage ? "Uploading…" : "Upload image"}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                className="hidden"
+                                disabled={uploadingCategoryImage}
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  e.target.value = "";
+                                  if (f) void uploadCategoryImage(f);
+                                }}
+                              />
+                            </label>
+                            <input
+                              value={editCategory.image}
+                              onChange={(e) =>
+                                setEditCategory((prev) => ({ ...prev, image: e.target.value }))
+                              }
+                              className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs outline-none"
+                              placeholder="Or paste image URL /uploads/..."
+                            />
+                            {editCategory.image.trim() ? (
+                              <button
+                                type="button"
+                                onClick={() => setEditCategory((prev) => ({ ...prev, image: "" }))}
+                                className="text-[11px] text-rose-300 hover:underline"
+                              >
+                                Remove image
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                        <p className="mt-2 text-[10px] text-gray-500">
+                          For the big banner on the category page, use the layout grid icon → Hero banner image.
+                        </p>
+                      </div>
+
                       <p className="sm:col-span-2 text-[11px] text-gray-500">
                         URL slug (unchanged):{" "}
                         <span className="font-mono text-amber-200/90">{editCategory.slug}</span>
@@ -1393,7 +1492,7 @@ function AdminPageInner() {
                         onClick={() => void saveEditCategory()}
                         className="rounded-lg bg-[#f5b942] px-3 py-2 text-xs font-semibold text-black"
                       >
-                        Save name
+                        Save category
                       </button>
                     </div>
                   </div>

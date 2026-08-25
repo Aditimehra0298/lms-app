@@ -33,6 +33,7 @@ import {
   MonitorPlay,
   CircleHelp,
   Mail,
+  MapPin,
 } from "lucide-react";
 
 const fallbackCategoryLabels = [
@@ -89,7 +90,7 @@ const fallbackCategoryCards = [
   },
 ];
 
-type LearningPathId = "self-paced" | "interactive" | "live";
+type LearningPathId = "self-paced" | "interactive" | "onsite" | "live";
 
 const learningFormats: {
   id: LearningPathId;
@@ -131,6 +132,22 @@ const learningFormats: {
     ],
     cta: "Choose interactive track",
     imageSrc: "/c2.png",
+  },
+  {
+    id: "onsite",
+    title: "Tutor Led Onsite Trainings Courses",
+    icon: MapPin,
+    desc: "Classroom and onsite instructor-led programs delivered at your workplace or a training venue, with hands-on practice and guided group learning.",
+    keyPoints: [
+      "Face-to-face training with certified industry trainers",
+      "Onsite delivery at your organization or a scheduled venue",
+      "Hands-on exercises, group discussions & case studies",
+      "Printed and digital study materials for each session",
+      "In-class assessments and practical evaluations",
+      "Certification upon successful completion",
+    ],
+    cta: "View onsite trainings",
+    imageSrc: "/c4.png",
   },
   {
     id: "live",
@@ -687,7 +704,8 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
     [publishedTutorLedPrograms],
   );
 
-  const isTutorLedBrowsePath = learningPath === "interactive" || learningPath === "live";
+  const isTutorLedBrowsePath =
+    learningPath === "interactive" || learningPath === "live" || learningPath === "onsite";
 
   const filteredCoursesForPath = useMemo(() => {
     if (catalogCourses.length === 0) return [];
@@ -915,17 +933,19 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           <h2 className={`${sectionTitle} text-center`}>
             Choose Your Path:{" "}
             <span className={goldText}>
-              Self-Paced / E-Learning, Tutor Led Trainings, Live Workshops
+              Self-Paced / E-Learning, Tutor Led Trainings, Tutor Led Onsite Trainings Courses, Live Workshops
             </span>
           </h2>
           <p className={`mx-auto mt-4 max-w-3xl text-center ${mutedP}`}>
-            Pick <strong className="text-gray-200">Self-paced</strong> or{" "}
-            <strong className="text-gray-200">Interactive E-Learning</strong> to open the full course list.
+            Pick <strong className="text-gray-200">Self-paced</strong>,{" "}
+            <strong className="text-gray-200">Tutor Led Trainings</strong>,{" "}
+            <strong className="text-gray-200">Tutor Led Onsite Trainings Courses</strong>, or{" "}
+            <strong className="text-gray-200">LIVE Workshops</strong> to open the matching catalog.
             After you choose a course, use <strong className="text-gray-200">Course Content</strong> for
             videos, readings, and exams.
           </p>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {liveLearningFormats.map((item) => {
               const Icon = item.icon;
               const selected = learningPath === item.id;
@@ -990,25 +1010,30 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             <h2 className={`${sectionTitle} mb-4 text-center`}>
               How It <span className={goldText}>Works</span>
             </h2>
-            <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 {
                   num: "01",
                   title: "Choose Your Learning Path",
-                  text: "Pick Self-Paced / E-Learning, Tutor Led Trainings, or LIVE Workshops based on how you prefer to learn.",
+                  text: "Pick Self-Paced / E-Learning, Tutor Led Trainings, Tutor Led Onsite Trainings Courses, or LIVE Workshops based on how you prefer to learn.",
                 },
                 {
                   num: "02",
-                  title: "Learn With Real-World Practice",
-                  text: "Follow guided modules, tutor-led sessions, and activities—watch, read, participate, and apply concepts through exercises.",
+                  title: "Complete Enrollment",
+                  text: "Select your course, sign in, and complete checkout so your seat is confirmed and learning access is unlocked.",
                 },
                 {
                   num: "03",
+                  title: "Learn Through Guided Activities and Exercises",
+                  text: "Follow guided modules, tutor-led sessions, and activities—watch, read, participate, and apply concepts through exercises.",
+                },
+                {
+                  num: "04",
                   title: "Get Certified & Move Ahead",
                   text: "Complete assessments, earn recognised certifications, and use your new skills in real projects and roles.",
                 },
               ].map((step) => (
-                <div key={step.num} className="space-y-2 md:flex-1">
+                <div key={step.num} className="space-y-2">
                   <div className="inline-flex items-baseline gap-2">
                     <span className="lh-step-num text-5xl font-black leading-none text-amber-300 drop-shadow-[0_0_20px_rgba(249,177,77,0.8)]">
                       {step.num}
@@ -1029,6 +1054,16 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               <p className="mx-auto mt-8 max-w-3xl rounded-xl border border-violet-500/25 bg-violet-500/10 px-4 py-3 text-center text-sm text-violet-100/95">
                 <strong>Interactive E-Learning:</strong> choose a course to follow the structured path—video lessons,
                 uploaded resources, and question-based assessments unlock as you progress.
+              </p>
+            ) : null}
+            {learningPath === "onsite" ? (
+              <p className="mx-auto mt-8 max-w-3xl rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100/95">
+                <strong>Tutor Led Onsite Trainings:</strong> classroom programs delivered at your workplace or a
+                scheduled venue. Browse categories below or open the{" "}
+                <Link href="/courses" className="font-semibold underline underline-offset-2 hover:text-white">
+                  Courses
+                </Link>{" "}
+                page to request an onsite batch.
               </p>
             ) : null}
             {learningPath === "live" ? (
@@ -1087,7 +1122,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               filteredCatalog.map((cat, index) => {
                 const Icon = iconForCategoryTitle(cat.title);
                 const desc = cat.description?.trim() || cat.subtitle?.trim() || "";
-                const cardImage = liveExploreProgramImages[index % liveExploreProgramImages.length];
+                const cardImage =
+                  cat.image?.trim() ||
+                  liveExploreProgramImages[index % liveExploreProgramImages.length];
                 return (
                   <div
                     key={cat.slug}
@@ -1107,6 +1144,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                         alt={`${cat.title} program`}
                         width={1200}
                         height={800}
+                        unoptimized={cardImage.startsWith("http") || cardImage.startsWith("/uploads/")}
                         className="h-auto w-full object-contain"
                       />
                     </div>
@@ -1122,7 +1160,10 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             )}
           </div>
 
-          {(learningPath === "self-paced" || learningPath === "interactive" || learningPath === "live") && (
+          {(learningPath === "self-paced" ||
+            learningPath === "interactive" ||
+            learningPath === "onsite" ||
+            learningPath === "live") && (
             <div className="mt-16 border-t border-white/10 pt-12">
               <h2 className={`${sectionTitle} flex items-center justify-center gap-2 text-center`}>
                 <BookOpen className="lh-section-emoji shrink-0 text-amber-400" size={28} aria-hidden />
@@ -1155,7 +1196,11 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                       </Link>
                       <div className="flex flex-1 flex-col p-4">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">
-                          Tutor-led · Live on Zoom
+                          {learningPath === "onsite"
+                            ? "Tutor-led · Onsite"
+                            : learningPath === "live"
+                              ? "Live workshop"
+                              : "Tutor-led · Live on Zoom"}
                         </p>
                         <h5 className="mt-1 line-clamp-2 text-base font-bold leading-snug text-white">
                           {program.title}

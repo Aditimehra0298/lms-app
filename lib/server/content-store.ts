@@ -62,6 +62,7 @@ export function normalizeManagedCategories(raw: unknown): ManagedCategory[] {
       isUppercase: Boolean(c.isUppercase),
       isBold: Boolean(c.isBold),
       tone,
+      image: typeof c.image === "string" && c.image.trim() ? c.image.trim() : undefined,
     };
   });
 }

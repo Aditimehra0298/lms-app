@@ -7,17 +7,15 @@ import {
   BookOpen,
   Camera,
   Check,
-  ChevronDown,
   Leaf,
-  Search,
   Star,
   Users,
+  Video,
   ScrollText,
 } from "lucide-react";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
 import { CatalogMediaImage } from "@/components/CatalogMediaImage";
 import CategoryFaqAccordion from "@/components/CategoryFaqAccordion";
-import LevelFilterSelect from "@/components/LevelFilterSelect";
 import type { CategoryWhyTone, CourseLearningFormat, CourseRegionalPriceRow } from "@/lib/content-schema";
 import {
   canonicalCategorySlug,
@@ -28,7 +26,7 @@ import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { categoryCatalogFallbackImage, resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import { getManagedCourses } from "@/lib/server/course-catalog";
 import { getPublishedTutorLedPrograms, getPublishedWorkshopPrograms } from "@/lib/server/tutor-led-catalog";
-import { mapProgramToWorkshopCard } from "@/lib/workshop-program";
+import { isWorkshopProgram, mapProgramToWorkshopCard } from "@/lib/workshop-program";
 import { readAdminContent } from "@/lib/server/content-store";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 
@@ -214,6 +212,30 @@ export default async function CourseCategoryPage({
     courses.length === 1 ? "1 Course" : `${courses.length} Courses`;
   const learnerCountLabel =
     learnerTotal === 1 ? "1 Learner" : `${learnerTotal.toLocaleString()} Learners`;
+  const isTutorLedCourse = (course: CourseCard) =>
+    course.learningFormat === "live" || tutorLedSlugs.has(course.slug);
+  const selfPacedCourses = courses.filter((course) => !isTutorLedCourse(course));
+  const tutorLedCourses: CourseCard[] = [
+    ...courses.filter(isTutorLedCourse),
+    ...tutorLedPrograms
+      .filter((program) => !isWorkshopProgram(program))
+      .filter((program) => !courses.some((course) => course.slug === program.slug))
+      .map((program) => ({
+        slug: program.slug,
+        title: program.title,
+        level: "Live",
+        duration: program.schedule || program.batchLabel,
+        rating: "4.7",
+        price: `₹${program.price.toLocaleString("en-IN")}`,
+        oldPrice: program.originalPrice
+          ? `₹${program.originalPrice.toLocaleString("en-IN")}`
+          : undefined,
+        image: program.heroSrc,
+        learningFormat: "live" as const,
+      })),
+  ];
+  const tutorLedCountLabel =
+    tutorLedCourses.length === 1 ? "1 Program" : `${tutorLedCourses.length} Programs`;
 
   if (!title) notFound();
 
@@ -281,7 +303,16 @@ export default async function CourseCategoryPage({
                     </div>
                     <div>
                       <p className="text-lg font-bold text-white">{courseCountLabel}</p>
-                      <p className="text-xs text-gray-500">Structured programs</p>
+                      <p className="text-xs text-gray-500">Self-paced courses</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+                      <Video className="h-5 w-5 text-amber-300" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-white">{tutorLedCountLabel}</p>
+                      <p className="text-xs text-gray-500">Live tutor-led</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -338,60 +369,12 @@ export default async function CourseCategoryPage({
           </div>
         </section>
 
-        {/* Feature strip */}
-        <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {featureStrip.map(({ title: ft, desc, Icon }) => (
-            <article
-              key={ft}
-              className="flex gap-3 rounded-2xl border border-white/10 bg-[#101010] p-4 transition hover:border-amber-500/25"
-            >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300">
-                <Icon className="h-5 w-5" strokeWidth={2} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-white">{ft}</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-gray-500">{desc}</p>
-              </div>
-            </article>
-          ))}
-        </section>
-
-        {/* Filters */}
-        <section className="mt-8 rounded-2xl border border-white/10 bg-[#0c0c0c] p-4">
-          <div className="grid gap-3 lg:grid-cols-[1.4fr_repeat(3,minmax(0,1fr))_auto]">
-            <label className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-              <input
-                type="search"
-                placeholder={`Search within ${title} courses...`}
-                className="w-full rounded-xl border border-white/10 bg-black/50 py-3 pl-10 pr-3 text-sm text-white placeholder:text-gray-600 focus:border-amber-500/35 focus:outline-none"
-              />
-            </label>
-            <LevelFilterSelect variant="category" options={pageCfg.levelFilters} />
-            {["All Durations", "Sort By: Popular"].map((f) => (
-              <button
-                key={f}
-                type="button"
-                className="inline-flex items-center justify-between rounded-xl border border-white/10 bg-black/50 px-3 py-3 text-sm text-gray-200 transition hover:border-white/20"
-              >
-                {f} <ChevronDown className="h-4 w-4 text-gray-500" />
-              </button>
-            ))}
-            <button
-              type="button"
-              className="rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-gray-300 hover:bg-white/10"
-            >
-              Reset
-            </button>
-          </div>
-        </section>
-
-        {/* Course grid */}
+        {/* Self-paced course grid */}
         <section id="course-grid" className="mt-10 scroll-mt-28">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-2xl font-bold md:text-3xl">
               All {title} Courses{" "}
-              <span className="text-amber-400">({courses.length})</span>
+              <span className="text-amber-400">({selfPacedCourses.length})</span>
             </h2>
             <Link
               href="/courses"
@@ -402,12 +385,12 @@ export default async function CourseCategoryPage({
           </div>
 
           <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {courses.length === 0 ? (
+            {selfPacedCourses.length === 0 ? (
               <p className="col-span-full rounded-2xl border border-white/10 bg-[#0f0f0f] px-4 py-10 text-center text-sm text-gray-400">
                 No published courses in this category yet.
               </p>
             ) : (
-            courses.map((course, i) => (
+            selfPacedCourses.map((course, i) => (
               <article
                 key={`${course.slug}-${course.title}-${i}`}
                 className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f0f] transition hover:border-amber-500/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
@@ -463,6 +446,84 @@ export default async function CourseCategoryPage({
             ))
             )}
           </div>
+        </section>
+
+        {tutorLedCourses.length > 0 ? (
+        <section id="tutor-led-courses" className="mt-16 scroll-mt-28">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <h2 className="text-2xl font-bold md:text-3xl">
+              Live Tutor-Led Training{" "}
+              <span className="text-amber-400">({tutorLedCourses.length})</span>
+            </h2>
+          </div>
+          <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {tutorLedCourses.map((course, i) => (
+              <article
+                key={`tutor-${course.slug}-${i}`}
+                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f0f] transition hover:border-amber-500/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+              >
+                <Link
+                  href={liveTutorCourseHref(course.slug)}
+                  className="relative block aspect-[16/10] overflow-hidden bg-black/40"
+                >
+                  {(() => {
+                    const fallback = categoryCatalogFallbackImage(categoryKey);
+                    const thumb = resolveCourseListThumbnail(course) || course.image || fallback;
+                    return (
+                      <CatalogMediaImage
+                        storedSrc={thumb}
+                        extraFallback={fallback}
+                        courseSlug={course.slug}
+                        alt={course.title}
+                        fill
+                        className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                      />
+                    );
+                  })()}
+                  <span className="absolute left-3 top-3 rounded-md bg-red-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Live
+                  </span>
+                </Link>
+                <div className="flex flex-1 flex-col p-4">
+                  <Link href={liveTutorCourseHref(course.slug)}>
+                    <h3 className="line-clamp-2 text-base font-bold leading-snug text-white transition hover:text-amber-200">
+                      {course.title}
+                    </h3>
+                  </Link>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {course.level} · {course.duration}
+                  </p>
+                  <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-amber-200/90">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    {course.rating}
+                  </p>
+                  <CourseResolvedCardActions
+                    course={course}
+                    descriptionHref={liveTutorCourseHref(course.slug)}
+                  />
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+        ) : null}
+
+        {/* Feature strip — after tutor-led courses */}
+        <section className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {featureStrip.map(({ title: ft, desc, Icon }) => (
+            <article
+              key={ft}
+              className="flex gap-3 rounded-2xl border border-white/10 bg-[#101010] p-4 transition hover:border-amber-500/25"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300">
+                <Icon className="h-5 w-5" strokeWidth={2} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white">{ft}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-gray-500">{desc}</p>
+              </div>
+            </article>
+          ))}
         </section>
 
         {workshops.length > 0 ? (

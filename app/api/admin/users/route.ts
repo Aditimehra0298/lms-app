@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server";
 import { getMainAdminEmail, isMainAdminEmail } from "@/lib/server/admin-emails";
 import { assertMainAdmin } from "@/lib/server/admin-api-auth";
-import type { AdminUserListRow } from "@/lib/admin-user-types";
+import type {
+  AdminUserCertificateRow,
+  AdminUserCourseProgressRow,
+  AdminUserListRow,
+} from "@/lib/admin-user-types";
 import { prisma } from "@/lib/prisma";
+import { readAdminContent } from "@/lib/server/content-store";
+import { countLearnerCurriculumModules } from "@/lib/curriculum-learner-filter";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
+import { normalizeLearnerEmail } from "@/lib/learner-email";
+import {
+  readAllLearnerCourseProgressStore,
+  type StoredLearnerCourseProgress,
+} from "@/lib/server/learner-course-progress-store";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +43,18 @@ const userSelect = {
   _count: { select: { purchases: true, certificates: true } },
   purchases: {
     orderBy: { createdAt: "desc" as const },
-    take: 8,
     select: { courseSlug: true, title: true, createdAt: true },
+  },
+  certificates: {
+    orderBy: { issuedAt: "desc" as const },
+    select: {
+      courseSlug: true,
+      courseTitle: true,
+      certificateNumber: true,
+      status: true,
+      issuedAt: true,
+      scorePercent: true,
+    },
   },
   organization: {
     select: {
@@ -68,6 +90,14 @@ type UserRow = {
   createdAt: Date;
   _count: { purchases: number; certificates: number };
   purchases: { courseSlug: string; title: string; createdAt: Date }[];
+  certificates: {
+    courseSlug: string;
+    courseTitle: string;
+    certificateNumber: string;
+    status: string;
+    issuedAt: Date;
+    scorePercent: number | null;
+  }[];
   organization: {
     identificationNumber: number;
     companyName: string;
@@ -78,8 +108,137 @@ type UserRow = {
   } | null;
 };
 
-function serializeUser(user: UserRow, mainAdminEmail: string): AdminUserListRow {
+function deriveStatus(
+  completed: number,
+  total: number,
+): AdminUserCourseProgressRow["status"] {
+  if (total > 0 && completed >= total) return "Completed";
+  if (completed > 0) return "In Progress";
+  return "Not Started";
+}
+
+function mapCertStatus(status?: string | null): AdminUserCourseProgressRow["certificateStatus"] {
+  if (status === "pending" || status === "ready" || status === "failed") return status;
+  return "none";
+}
+
+function findProgress(
+  progressBySlug: Record<string, StoredLearnerCourseProgress> | undefined,
+  slug: string,
+): StoredLearnerCourseProgress | undefined {
+  if (!progressBySlug) return undefined;
+  if (progressBySlug[slug]) return progressBySlug[slug];
+  for (const [key, value] of Object.entries(progressBySlug)) {
+    if (canonicalCourseSlug(key) === slug) return value;
+  }
+  return undefined;
+}
+
+function buildCourseProgress(
+  user: UserRow,
+  progressBySlug: Record<string, StoredLearnerCourseProgress> | undefined,
+  moduleCountBySlug: Map<string, number>,
+  titleBySlug: Map<string, string>,
+): AdminUserCourseProgressRow[] {
+  const certBySlug = new Map(
+    user.certificates.map((c) => [canonicalCourseSlug(c.courseSlug), c] as const),
+  );
+  const purchaseBySlug = new Map(
+    user.purchases.map((p) => [canonicalCourseSlug(p.courseSlug), p] as const),
+  );
+
+  const slugs = new Set<string>();
+  for (const p of user.purchases) slugs.add(canonicalCourseSlug(p.courseSlug));
+  for (const slug of Object.keys(progressBySlug ?? {})) {
+    const key = canonicalCourseSlug(slug);
+    if (key) slugs.add(key);
+  }
+  for (const c of user.certificates) slugs.add(canonicalCourseSlug(c.courseSlug));
+
+  const rows: AdminUserCourseProgressRow[] = [];
+  for (const slug of slugs) {
+    if (!slug) continue;
+    const purchase = purchaseBySlug.get(slug);
+    const progress = findProgress(progressBySlug, slug);
+    const cert = certBySlug.get(slug);
+    const completedModules = progress?.completedModules?.length ?? 0;
+    const totalModules = moduleCountBySlug.get(slug) ?? 0;
+    const examScores = progress?.examScores ?? {};
+    const examEntries = Object.values(examScores);
+    const examAttemptCount = examEntries.length;
+    const examPassedCount = examEntries.filter((e) => e.passed).length;
+    const lastExamPercent =
+      examEntries.length > 0
+        ? examEntries.reduce((best, e) => (e.percent > best ? e.percent : best), 0)
+        : null;
+    const percent =
+      totalModules > 0
+        ? Math.min(100, Math.round((completedModules / totalModules) * 100))
+        : completedModules > 0
+          ? 100
+          : 0;
+    const status =
+      cert?.status === "ready" || (totalModules > 0 && completedModules >= totalModules)
+        ? "Completed"
+        : deriveStatus(completedModules, totalModules);
+
+    rows.push({
+      courseSlug: slug,
+      title:
+        purchase?.title?.trim() ||
+        cert?.courseTitle?.trim() ||
+        titleBySlug.get(slug) ||
+        slug,
+      enrolledAt: purchase?.createdAt.toISOString() ?? null,
+      completedModules,
+      totalModules,
+      percent: status === "Completed" && percent < 100 && totalModules > 0 ? 100 : percent,
+      status,
+      examPassedCount,
+      examAttemptCount,
+      lastExamPercent,
+      updatedAt: progress?.updatedAt ?? null,
+      certificateStatus: mapCertStatus(cert?.status),
+      certificateNumber: cert?.certificateNumber ?? null,
+    });
+  }
+
+  rows.sort((a, b) => {
+    const order = { Completed: 0, "In Progress": 1, "Not Started": 2 };
+    const d = order[a.status] - order[b.status];
+    if (d !== 0) return d;
+    return a.title.localeCompare(b.title);
+  });
+  return rows;
+}
+
+function serializeCertificates(user: UserRow): AdminUserCertificateRow[] {
+  return user.certificates.map((c) => ({
+    courseSlug: c.courseSlug,
+    courseTitle: c.courseTitle,
+    certificateNumber: c.certificateNumber,
+    status: c.status,
+    issuedAt: c.issuedAt.toISOString(),
+    scorePercent: c.scorePercent,
+  }));
+}
+
+function serializeUser(
+  user: UserRow,
+  mainAdminEmail: string,
+  opts?: {
+    progressBySlug?: Record<string, StoredLearnerCourseProgress>;
+    moduleCountBySlug?: Map<string, number>;
+    titleBySlug?: Map<string, string>;
+  },
+): AdminUserListRow {
   const isMainAdmin = user.email.toLowerCase() === mainAdminEmail;
+  const courseProgress = buildCourseProgress(
+    user,
+    opts?.progressBySlug,
+    opts?.moduleCountBySlug ?? new Map(),
+    opts?.titleBySlug ?? new Map(),
+  );
   return {
     id: user.id,
     email: user.email,
@@ -119,6 +278,8 @@ function serializeUser(user: UserRow, mainAdminEmail: string): AdminUserListRow 
       title: p.title,
       enrolledAt: p.createdAt.toISOString(),
     })),
+    courseProgress,
+    certificates: serializeCertificates(user),
   };
 }
 
@@ -159,7 +320,7 @@ export async function GET(request: Request) {
       ],
     };
 
-    const [total, users, roleCounts, accountTypeCounts, withPurchases, withCertificates] =
+    const [total, users, roleCounts, accountTypeCounts, withPurchases, withCertificates, content, progressStore] =
       await Promise.all([
         prisma.lmsUser.count({ where }),
         prisma.lmsUser.findMany({
@@ -173,7 +334,18 @@ export async function GET(request: Request) {
         prisma.lmsUser.groupBy({ by: ["accountType"], _count: { _all: true } }),
         prisma.lmsUser.count({ where: { purchases: { some: {} } } }),
         prisma.lmsUser.count({ where: { certificates: { some: {} } } }),
+        readAdminContent(),
+        readAllLearnerCourseProgressStore(),
       ]);
+
+    const moduleCountBySlug = new Map<string, number>();
+    const titleBySlug = new Map<string, string>();
+    for (const course of content.managedCourses ?? []) {
+      const slug = canonicalCourseSlug(course.slug);
+      if (!slug) continue;
+      moduleCountBySlug.set(slug, countLearnerCurriculumModules(course.curriculum));
+      titleBySlug.set(slug, course.title);
+    }
 
     return NextResponse.json(
       {
@@ -190,7 +362,14 @@ export async function GET(request: Request) {
           withPurchases,
           withCertificates,
         },
-        users: users.map((u) => serializeUser(u, mainAdminEmail)),
+        users: users.map((u) => {
+          const email = normalizeLearnerEmail(u.email);
+          return serializeUser(u, mainAdminEmail, {
+            progressBySlug: progressStore[email] ?? {},
+            moduleCountBySlug,
+            titleBySlug,
+          });
+        }),
       },
       { headers: noStore },
     );
@@ -266,8 +445,28 @@ export async function PATCH(request: Request) {
       select: userSelect,
     });
 
+    const [content, progressStore] = await Promise.all([
+      readAdminContent(),
+      readAllLearnerCourseProgressStore(),
+    ]);
+    const moduleCountBySlug = new Map<string, number>();
+    const titleBySlug = new Map<string, string>();
+    for (const course of content.managedCourses ?? []) {
+      const slug = canonicalCourseSlug(course.slug);
+      if (!slug) continue;
+      moduleCountBySlug.set(slug, countLearnerCurriculumModules(course.curriculum));
+      titleBySlug.set(slug, course.title);
+    }
+
     return NextResponse.json(
-      { ok: true, user: serializeUser(updated, mainAdminEmail) },
+      {
+        ok: true,
+        user: serializeUser(updated, mainAdminEmail, {
+          progressBySlug: progressStore[normalizeLearnerEmail(updated.email)] ?? {},
+          moduleCountBySlug,
+          titleBySlug,
+        }),
+      },
       { headers: noStore },
     );
   } catch (err) {

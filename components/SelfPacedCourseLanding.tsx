@@ -247,7 +247,7 @@ function PurchaseCard({
   seatCount: number | "";
   onSeatCountChange: (value: number | "") => void;
 }) {
-  const { ready, region } = useLearnerPricing();
+  const { ready, region, showPrices } = useLearnerPricing();
   const orgReady = isOrganisation && isOrganizationPurchaseReady(course, region, seatCount);
 
   return (
@@ -281,6 +281,10 @@ function PurchaseCard({
           </div>
         ) : !ready ? (
           <div className="mb-4 h-9 animate-pulse rounded-lg bg-zinc-800" />
+        ) : !showPrices ? (
+          <div className="mb-3">
+            <KnowPriceButton className="w-full justify-center py-2.5" />
+          </div>
         ) : salePrice ? (
           <div className="mb-1 flex flex-wrap items-end gap-2">
             <CoursePrice label={salePrice} exactLabel className="text-3xl font-extrabold text-white" />
@@ -293,11 +297,7 @@ function PurchaseCard({
               </span>
             ) : null}
           </div>
-        ) : (
-          <div className="mb-3">
-            <KnowPriceButton className="w-full justify-center py-2.5" />
-          </div>
-        )}
+        ) : null}
         <p className="mb-4 flex items-center gap-1.5 text-[11px] text-zinc-400">
           <Shield className="h-3.5 w-3.5 shrink-0 text-zinc-500" aria-hidden />
           {hero.moneyBackGuarantee}

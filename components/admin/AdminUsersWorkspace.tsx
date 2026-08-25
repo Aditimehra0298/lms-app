@@ -191,7 +191,7 @@ export default function AdminUsersWorkspace() {
                 <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">Users</h1>
                 <p className="mt-2 max-w-2xl text-xs leading-relaxed text-gray-400">
                   Full learner registry from <span className="font-mono text-gray-500">lms_user</span> — registration
-                  IDs, contact details, enrollments, and certificates.
+                  IDs, contact details, course progress, enrollments, and certificates.
                 </p>
               </div>
             </div>
@@ -528,44 +528,148 @@ export default function AdminUsersWorkspace() {
                                   </>
                                 ) : null}
                                 <p className="mb-2 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                                  <BookOpen className="h-3 w-3" /> Enrollments
-                                  {row.purchaseCount > row.recentPurchases.length ? (
+                                  <BookOpen className="h-3 w-3" /> Course progress
+                                  {row.courseProgress?.length ? (
                                     <span className="font-normal normal-case text-gray-600">
-                                      (showing latest {row.recentPurchases.length} of {row.purchaseCount})
+                                      ({row.courseProgress.filter((c) => c.status === "Completed").length} completed ·{" "}
+                                      {row.courseProgress.length} total)
                                     </span>
                                   ) : null}
                                 </p>
-                                {row.recentPurchases.length === 0 ? (
-                                  <p className="text-[11px] text-gray-600">No purchases in MySQL.</p>
-                                ) : (
-                                  <table className="w-full text-[11px]">
-                                    <thead>
-                                      <tr className="border-b border-white/10 text-[10px] uppercase text-gray-600">
-                                        <th className="py-1 text-left">Course</th>
-                                        <th className="py-1 text-left">Slug</th>
-                                        <th className="py-1 text-left">Enrolled</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/[0.06]">
-                                      {row.recentPurchases.map((p) => (
-                                        <tr key={`${p.courseSlug}-${p.enrolledAt}`}>
-                                          <td className="py-1.5 text-gray-200">{p.title}</td>
-                                          <td className="py-1.5 font-mono text-[10px] text-gray-500">{p.courseSlug}</td>
-                                          <td className="py-1.5 text-gray-500">{formatWhen(p.enrolledAt, true)}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                )}
-                                {row.certificateCount > 0 ? (
-                                  <p className="mt-3 flex items-center gap-1 text-[10px] text-amber-300/80">
-                                    <Award className="h-3 w-3" />
-                                    {row.certificateCount} certificate(s) on file — manage in{" "}
-                                    <Link href="/admin?panel=certificates" className="underline hover:text-amber-200">
-                                      Certificates
-                                    </Link>
+                                {!row.courseProgress?.length ? (
+                                  <p className="text-[11px] text-gray-600">
+                                    No enrollments or progress recorded yet.
                                   </p>
-                                ) : null}
+                                ) : (
+                                  <div className="overflow-x-auto rounded-lg border border-white/10">
+                                    <table className="w-full min-w-[640px] text-[11px]">
+                                      <thead>
+                                        <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] uppercase text-gray-600">
+                                          <th className="px-2 py-1.5 text-left">Course</th>
+                                          <th className="px-2 py-1.5 text-left">Status</th>
+                                          <th className="px-2 py-1.5 text-left">Modules</th>
+                                          <th className="px-2 py-1.5 text-left">Progress</th>
+                                          <th className="px-2 py-1.5 text-left">Exams</th>
+                                          <th className="px-2 py-1.5 text-left">Certificate</th>
+                                          <th className="px-2 py-1.5 text-left">Updated</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-white/[0.06]">
+                                        {row.courseProgress.map((c) => (
+                                          <tr key={c.courseSlug}>
+                                            <td className="px-2 py-2">
+                                              <p className="font-medium text-gray-200">{c.title}</p>
+                                              <p className="font-mono text-[10px] text-gray-600">{c.courseSlug}</p>
+                                              {c.enrolledAt ? (
+                                                <p className="text-[10px] text-gray-600">
+                                                  Enrolled {formatWhen(c.enrolledAt, true)}
+                                                </p>
+                                              ) : null}
+                                            </td>
+                                            <td className="px-2 py-2">
+                                              <span
+                                                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                                                  c.status === "Completed"
+                                                    ? "bg-emerald-500/20 text-emerald-300"
+                                                    : c.status === "In Progress"
+                                                      ? "bg-amber-500/20 text-amber-200"
+                                                      : "bg-white/5 text-gray-400"
+                                                }`}
+                                              >
+                                                {c.status}
+                                              </span>
+                                            </td>
+                                            <td className="px-2 py-2 text-gray-300">
+                                              {c.completedModules}
+                                              {c.totalModules > 0 ? ` / ${c.totalModules}` : ""}
+                                            </td>
+                                            <td className="px-2 py-2">
+                                              <div className="flex items-center gap-2">
+                                                <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/10">
+                                                  <div
+                                                    className={`h-full rounded-full ${
+                                                      c.status === "Completed" ? "bg-emerald-400" : "bg-amber-400"
+                                                    }`}
+                                                    style={{ width: `${Math.min(100, c.percent)}%` }}
+                                                  />
+                                                </div>
+                                                <span className="text-gray-400">{c.percent}%</span>
+                                              </div>
+                                            </td>
+                                            <td className="px-2 py-2 text-gray-400">
+                                              {c.examAttemptCount > 0
+                                                ? `${c.examPassedCount}/${c.examAttemptCount} passed${
+                                                    c.lastExamPercent != null ? ` · best ${c.lastExamPercent}%` : ""
+                                                  }`
+                                                : "—"}
+                                            </td>
+                                            <td className="px-2 py-2 text-gray-400">
+                                              {c.certificateStatus !== "none" ? (
+                                                <span>
+                                                  {c.certificateStatus}
+                                                  {c.certificateNumber ? (
+                                                    <span className="mt-0.5 block font-mono text-[10px] text-amber-200/80">
+                                                      {c.certificateNumber}
+                                                    </span>
+                                                  ) : null}
+                                                </span>
+                                              ) : (
+                                                "—"
+                                              )}
+                                            </td>
+                                            <td className="px-2 py-2 text-gray-500">
+                                              {c.updatedAt ? formatWhen(c.updatedAt, true) : "—"}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+
+                                {row.certificates?.length ? (
+                                  <div className="mt-4">
+                                    <p className="mb-2 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                      <Award className="h-3 w-3" /> Certificates
+                                    </p>
+                                    <table className="w-full text-[11px]">
+                                      <thead>
+                                        <tr className="border-b border-white/10 text-[10px] uppercase text-gray-600">
+                                          <th className="py-1 text-left">Course</th>
+                                          <th className="py-1 text-left">Number</th>
+                                          <th className="py-1 text-left">Status</th>
+                                          <th className="py-1 text-left">Score</th>
+                                          <th className="py-1 text-left">Issued</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-white/[0.06]">
+                                        {row.certificates.map((cert) => (
+                                          <tr key={cert.certificateNumber}>
+                                            <td className="py-1.5 text-gray-200">{cert.courseTitle}</td>
+                                            <td className="py-1.5 font-mono text-[10px] text-amber-200/80">
+                                              {cert.certificateNumber}
+                                            </td>
+                                            <td className="py-1.5 capitalize text-gray-400">{cert.status}</td>
+                                            <td className="py-1.5 text-gray-400">
+                                              {cert.scorePercent != null ? `${cert.scorePercent}%` : "—"}
+                                            </td>
+                                            <td className="py-1.5 text-gray-500">
+                                              {formatWhen(cert.issuedAt, true)}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                    <p className="mt-2 text-[10px] text-gray-600">
+                                      Manage PDFs in{" "}
+                                      <Link href="/admin?panel=certificates" className="underline hover:text-amber-200">
+                                        Certificates
+                                      </Link>
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <p className="mt-3 text-[11px] text-gray-600">No certificates on file.</p>
+                                )}
                               </div>
                             </div>
                           </td>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
-import { KnowPriceButton } from "@/components/KnowPriceButton";
 
 type Props = {
   /** Tutor-led numeric price in INR */
@@ -11,11 +10,10 @@ type Props = {
   /** Show label as-is (already regional / formatted) */
   exactLabel?: boolean;
   className?: string;
-  /** Button-style lock CTA for hero / cards */
-  variant?: "text" | "button" | "hero";
 };
 
-export function CoursePrice({ inr, label, exactLabel = false, className = "", variant = "text" }: Props) {
+/** Renders the amount only. Sign-in CTA lives in `KnowPriceButton` / `PriceDescriptionButtonRow` so it is not duplicated. */
+export function CoursePrice({ inr, label, exactLabel = false, className = "" }: Props) {
   const { showPrices, formatInr, formatPriceLabel, ready } = useLearnerPricing();
 
   if (!ready) {
@@ -27,15 +25,11 @@ export function CoursePrice({ inr, label, exactLabel = false, className = "", va
     );
   }
 
+  if (!showPrices) return null;
+
   const text =
     inr != null ? formatInr(inr) : label ? (exactLabel ? label : formatPriceLabel(label)) : null;
-  if (text) {
-    return <span className={className}>{text}</span>;
-  }
+  if (!text) return null;
 
-  if (variant === "hero" || variant === "button") {
-    return <KnowPriceButton className={className} />;
-  }
-
-  return showPrices ? null : <KnowPriceButton className={className} />;
+  return <span className={className}>{text}</span>;
 }

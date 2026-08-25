@@ -76,8 +76,8 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
   ];
   const navLinks = [
     { label: "Home", href: "/" },
-    { label: "About", href: "/about" },
     { label: "Courses", href: "/courses" },
+    { label: "About", href: "/about" },
     { label: "Contact", href: "/contact" },
   ] as const;
   const audienceTabs = AUDIENCE_TABS;
@@ -335,22 +335,30 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
                   ? "border-[#b4965a]/45 bg-[#f6efe3] text-slate-700 hover:bg-[#ecdfcb]"
                   : "border-white/15 bg-white/5 text-amber-100 hover:border-amber-400/60 hover:text-amber-200"
               }`}
-              aria-label="Toggle light and dark theme"
-              title="Toggle theme"
+              aria-label={isLight ? "Switch to night theme" : "Switch to day theme"}
+              title={isLight ? "Day theme — click for night" : "Night theme — click for day"}
             >
-              <Sun size={14} className={isLight ? "text-slate-700" : "text-gray-500"} />
+              <Sun
+                size={14}
+                className={isLight ? "text-amber-500" : "text-gray-500"}
+                aria-hidden
+              />
               <span
                 className={`relative h-5 w-9 rounded-full transition-colors ${
-                  isLight ? "bg-slate-300" : "bg-slate-600"
+                  isLight ? "bg-amber-300/70" : "bg-slate-600"
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full ${isLight ? "bg-[#f8f4ec]" : "bg-white"} transition-all ${
-                    isLight ? "left-4" : "left-0.5"
+                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${
+                    isLight ? "left-0.5" : "left-4"
                   }`}
                 />
               </span>
-              <Moon size={14} className={isLight ? "text-slate-500" : "text-amber-300"} />
+              <Moon
+                size={14}
+                className={isLight ? "text-slate-400" : "text-amber-300"}
+                aria-hidden
+              />
             </button>
             <div className="relative hidden shrink-0 md:block">
               <button

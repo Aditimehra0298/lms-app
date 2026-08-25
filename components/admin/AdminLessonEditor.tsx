@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { CourseCurriculumItem, CourseCurriculumKind } from "@/lib/content-schema";
 import AdminAssetUrlField from "@/components/admin/AdminAssetUrlField";
+import AdminExamImageOptionsBuilder from "@/components/admin/AdminExamImageOptionsBuilder";
 
 const EXAM_FILE_ACCEPT =
   ".pdf,.doc,.docx,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,application/csv";
@@ -508,6 +509,23 @@ export default function AdminLessonEditor({
           </label>
           <div className="rounded-lg border border-white/10 bg-[#0a1120] p-3">
             <p className="mb-2 text-[11px] font-medium text-amber-100">Exam paper / attachment</p>
+            <div className="mb-3">
+              <AdminExamImageOptionsBuilder
+                courseSlug={courseSlug}
+                existingExamUploadUrl={lesson.examUploadUrl}
+                uploadExamFile={uploadAdminFile}
+                onExamSaved={(url) => {
+                  onPatch({ examUploadUrl: url });
+                  setExamSource("upload");
+                  setUploadError(null);
+                }}
+              />
+              <p className="mt-1.5 text-[10px] text-gray-500">
+                Images are optional. Opens your existing quiz so you can add pictures on only a
+                few questions. Or upload CSV with{" "}
+                <code className="text-gray-400">text || IMAGE:/uploads/covers/…</code>.
+              </p>
+            </div>
             <div className="flex flex-wrap gap-4 text-xs">
               <label className="inline-flex cursor-pointer items-center gap-2 text-gray-200">
                 <input

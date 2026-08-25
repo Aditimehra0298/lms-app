@@ -61,6 +61,25 @@ export async function getLearnerCourseProgressFromStore(
   return store.learners[email]?.[slug] ?? null;
 }
 
+/** All course progress rows for one learner (email key in the JSON store). */
+export async function listLearnerCourseProgressFromStore(
+  learnerEmail: string,
+): Promise<Record<string, StoredLearnerCourseProgress>> {
+  const email = normalizeLearnerEmail(learnerEmail);
+  if (!email) return {};
+  const store = await readStore();
+  const bySlug = store.learners[email];
+  return bySlug && typeof bySlug === "object" ? { ...bySlug } : {};
+}
+
+/** Full progress file map: email → courseSlug → progress (one disk read). */
+export async function readAllLearnerCourseProgressStore(): Promise<
+  Record<string, Record<string, StoredLearnerCourseProgress>>
+> {
+  const store = await readStore();
+  return store.learners ?? {};
+}
+
 export async function upsertLearnerCourseProgressInStore(input: {
   learnerEmail: string;
   courseSlug: string;

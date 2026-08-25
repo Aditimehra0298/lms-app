@@ -44,6 +44,7 @@ model LmsUser {
   payments       LmsPayment[]
   certificates   LmsCertificate[]
   organization   LmsOrganization?
+  studentProfiles LmsStudent[]
 
   @@map("lms_user")
 }
@@ -68,6 +69,9 @@ model LmsOrganization {
 
   user         LmsUser?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   certificates LmsCertificate[]
+  students     LmsStudent[]
+  videoAccessRequests VideoAccessRequest[]
+  staffLinks   InstituteStaffLink[]
 
   @@index([companyName])
   @@map("lms_organization")
@@ -318,4 +322,259 @@ model LmsFormSubmission {
   @@index([status])
   @@index([createdAt])
   @@map("lms_form_submission")
+}
+
+/// Institute students synced from institute apps (also linked to lms_user when available).
+model LmsStudent {
+  id             String   @id @default(cuid())
+  /// Public student UID e.g. SFT-STU-101
+  uid            String   @unique @db.VarChar(64)
+  name           String   @db.VarChar(255)
+  email          String?  @db.VarChar(255)
+  phone          String?  @db.VarChar(32)
+  photoUrl       String?  @db.VarChar(1024)
+  batch          String?  @db.VarChar(128)
+  grade          String?  @db.VarChar(32)
+  courseSlug     String?  @db.VarChar(191)
+  courseTitle    String?  @db.VarChar(512)
+  organizationId String?
+  userId         String?
+  /// active | inactive | graduated
+  status         String   @default("active") @db.VarChar(32)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   LmsOrganization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user           LmsUser?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  trainingVideos StudentTrainingVideo[]
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([email])
+  @@index([courseSlug])
+  @@map("students")
+}
+
+/// Public / verify-site video unlock requests.
+model VideoAccessRequest {
+  id             String   @id @default(cuid())
+  name           String   @db.VarChar(255)
+  organisation   String   @db.VarChar(255)
+  email          String   @db.VarChar(255)
+  location       String   @db.VarChar(255)
+  organizationId String?
+  /// new | reviewed | approved | rejected
+  status         String   @default("new") @db.VarChar(32)
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization LmsOrganization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([status])
+  @@index([organizationId])
+  @@index([createdAt])
+  @@map("video_access_requests")
+}
+
+/// Per-student training video status (uploaded | missing | approved).
+model StudentTrainingVideo {
+  id        String   @id @default(cuid())
+  studentId String
+  title     String   @db.VarChar(512)
+  courseSlug String? @db.VarChar(191)
+  /// uploaded | missing | approved
+  status    String   @default("missing") @db.VarChar(32)
+  videoUrl  String?  @db.VarChar(1024)
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student LmsStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([status])
+  @@index([courseSlug])
+  @@map("student_training_videos")
+}
+
+/// Maps institute staff email → organisation (institute sees only own data).
+model InstituteStaffLink {
+  id             String   @id @default(cuid())
+  email          String   @unique @db.VarChar(255)
+  organizationId String
+  name           String?  @db.VarChar(255)
+  /// institute_admin | institute_viewer
+  role           String   @default("institute_admin") @db.VarChar(32)
+  createdAt      DateTime @default(now())
+
+  organization LmsOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("institute_staff_link")
+}
+
+// =============================================================================
+// SFT Global Skill Assessment Council — legacy multi-institute registry tables
+// =============================================================================
+
+/// Training institute onboarded under the Council (global admin sees all).
+model SftInstitute {
+  id        String   @id @default(cuid())
+  /// Public institute UID e.g. SFT-INS-1001
+  uid       String   @unique @db.VarChar(64)
+  name      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  logoUrl   String?  @db.VarChar(1024)
+  /// active | inactive | pending
+  status    String   @default("pending") @db.VarChar(32)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses       SftInstituteCourse[]
+  students      SftInstituteStudent[]
+  trainingVideos SftTrainingVideo[]
+  certificates  SftInstituteCertificate[]
+  unlockForms   SftVerifyUnlockForm[]
+  staffUsers    SftInstituteStaff[]
+
+  @@index([status])
+  @@index([name])
+  @@map("sft_institute")
+}
+
+/// Institute staff login mapping (email → institute). Global admin has no row.
+model SftInstituteStaff {
+  id          String   @id @default(cuid())
+  instituteId String
+  email       String   @unique @db.VarChar(255)
+  name        String?  @db.VarChar(255)
+  /// institute_admin | institute_viewer
+  role        String   @default("institute_admin") @db.VarChar(32)
+  createdAt   DateTime @default(now())
+
+  institute SftInstitute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  @@index([instituteId])
+  @@map("sft_institute_staff")
+}
+
+/// Course created by an institute (stored centrally, not only locally).
+model SftInstituteCourse {
+  id          String   @id @default(cuid())
+  instituteId String
+  title       String   @db.VarChar(512)
+  code        String?  @db.VarChar(64)
+  /// draft | published | archived
+  status      String   @default("draft") @db.VarChar(32)
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  institute      SftInstitute            @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  students       SftInstituteStudent[]
+  trainingVideos SftTrainingVideo[]
+  certificates   SftInstituteCertificate[]
+
+  @@index([instituteId])
+  @@index([status])
+  @@unique([instituteId, code])
+  @@map("sft_institute_course")
+}
+
+/// Student belonging to an institute (photo + UID + course + batch + grade).
+model SftInstituteStudent {
+  id          String   @id @default(cuid())
+  instituteId String
+  courseId    String?
+  /// Public student UID e.g. SFT-STU-2001
+  uid         String   @unique @db.VarChar(64)
+  name        String   @db.VarChar(255)
+  photoUrl    String?  @db.VarChar(1024)
+  phone       String?  @db.VarChar(32)
+  email       String?  @db.VarChar(255)
+  batch       String?  @db.VarChar(128)
+  grade       String?  @db.VarChar(32)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  institute    SftInstitute             @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  course       SftInstituteCourse?      @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  certificates SftInstituteCertificate[]
+
+  @@index([instituteId])
+  @@index([courseId])
+  @@index([email])
+  @@map("sft_institute_student")
+}
+
+/// Training video upload status per institute/course.
+model SftTrainingVideo {
+  id          String   @id @default(cuid())
+  instituteId String
+  courseId    String?
+  title       String   @db.VarChar(512)
+  /// uploaded | missing | approved
+  status      String   @default("missing") @db.VarChar(32)
+  videoUrl    String?  @db.VarChar(1024)
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  institute SftInstitute       @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  course    SftInstituteCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([instituteId])
+  @@index([courseId])
+  @@index([status])
+  @@map("sft_training_video")
+}
+
+/// Certificates issued via institutes (central PDF + verify link).
+model SftInstituteCertificate {
+  id                String   @id @default(cuid())
+  instituteId       String
+  courseId          String?
+  studentId         String?
+  certificateNumber String   @unique @db.VarChar(64)
+  issueDate         DateTime @default(now())
+  pdfUrl            String?  @db.VarChar(1024)
+  verifyUrl         String?  @db.VarChar(1024)
+  /// pending | ready | revoked
+  status            String   @default("pending") @db.VarChar(32)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  institute SftInstitute        @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  course    SftInstituteCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  student   SftInstituteStudent? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@index([instituteId])
+  @@index([studentId])
+  @@index([courseId])
+  @@map("sft_institute_certificate")
+}
+
+/// Public verify-website unlock form submissions (same MySQL DB).
+model SftVerifyUnlockForm {
+  id           String   @id @default(cuid())
+  instituteId  String?
+  name         String   @db.VarChar(255)
+  organisation String   @db.VarChar(255)
+  email        String   @db.VarChar(255)
+  location     String   @db.VarChar(255)
+  /// new | reviewed | unlocked | rejected
+  status       String   @default("new") @db.VarChar(32)
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  institute SftInstitute? @relation(fields: [instituteId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([status])
+  @@index([instituteId])
+  @@index([createdAt])
+  @@map("sft_verify_unlock_form")
 }

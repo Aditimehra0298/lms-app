@@ -93,12 +93,12 @@ export function PricingProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Guests still see admin catalog prices (region from IP, else India).
-    let guest =
-      cached ??
-      (await fetchGuestPricingRegion()) ??
-      cachePricingRegionFromCountryCode("IN");
-    if (guest) applyRegion(guest);
+    // Guests: detect region silently (for formatting if they sign in later)
+    // but DON'T reveal prices until they sign in.
+    if (!cached) {
+      const detected = await fetchGuestPricingRegion();
+      if (detected) applyRegion(detected);
+    }
     setReady(true);
   }, [applyRegion]);
 
@@ -183,8 +183,8 @@ export function PricingProvider({ children }: { children: ReactNode }) {
     [region],
   );
 
-  /** Show the prices saved in Admin (regional row when set, otherwise global). */
-  const showPrices = region !== null;
+  /** Show prices only after the learner signs in and their country is known. */
+  const showPrices = loggedIn && region !== null;
 
   const value = useMemo(
     () => ({

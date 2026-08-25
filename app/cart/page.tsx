@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, ShieldCheck, Trash2 } from "lucide-react";
 import { hasViewedCourseLanding, prePaymentLandingHref } from "@/lib/course-landing";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { KnowPriceButton } from "@/components/KnowPriceButton";
 import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 import { resolveCourseImageSrc } from "@/lib/course-thumbnail";
 import type { ManagedCourse } from "@/lib/content-schema";
@@ -27,7 +28,7 @@ type CartItem = {
 const CART_STORAGE_KEY = "sft_cart";
 
 export default function CartPage() {
-  const { showPrices, ready, region, openPricingPanel } = useLearnerPricing();
+  const { showPrices, ready, region } = useLearnerPricing();
   const [items, setItems] = useState<CartItem[]>([]);
   const [catalog, setCatalog] = useState<ManagedCourse[]>([]);
   const [promoDiscount, setPromoDiscount] = useState(0);
@@ -231,24 +232,14 @@ export default function CartPage() {
                   </div>
                 </div>
               ) : ready ? (
-                <button
-                  type="button"
-                  onClick={openPricingPanel}
-                  className="mt-3 w-full rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-bold text-amber-200 hover:bg-amber-500/20"
-                >
-                  Price
-                </button>
+                <div className="mt-3">
+                  <KnowPriceButton className="w-full justify-center" />
+                </div>
               ) : null}
 
               <button
                 type="button"
-                onClick={() => {
-                  if (ready && !showPrices) {
-                    openPricingPanel();
-                    return;
-                  }
-                  handleCheckout();
-                }}
+                onClick={handleCheckout}
                 disabled={pricedItems.length === 0}
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-400 py-2.5 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
               >

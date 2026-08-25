@@ -350,6 +350,8 @@ export type ManagedCategory = {
   isUppercase: boolean;
   isBold: boolean;
   tone: CategoryTone;
+  /** Card / listing image on home & explore (URL or /uploads/...). */
+  image?: string;
 };
 
 export type CategoryWhyTone = "amber" | "emerald" | "blue" | "violet";
@@ -659,6 +661,21 @@ export const defaultHomePageConfig: HomePageConfig = {
       ],
       cta: "Choose interactive track",
       imageSrc: "/c2.png",
+    },
+    {
+      id: "onsite",
+      title: "Tutor Led Onsite Trainings Courses",
+      desc: "Classroom and onsite instructor-led programs delivered at your workplace or a training venue, with hands-on practice and guided group learning.",
+      keyPoints: [
+        "Face-to-face training with certified industry trainers",
+        "Onsite delivery at your organization or a scheduled venue",
+        "Hands-on exercises, group discussions & case studies",
+        "Printed and digital study materials for each session",
+        "In-class assessments and practical evaluations",
+        "Certification upon successful completion",
+      ],
+      cta: "View onsite trainings",
+      imageSrc: "/c4.png",
     },
     {
       id: "live",

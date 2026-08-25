@@ -307,6 +307,8 @@ export default function MyLearningPage() {
   const [progressTick, setProgressTick] = useState(0);
   const [courseFilter, setCourseFilter] = useState<"all" | "in-progress" | "completed" | "not-started">("all");
   const [courseSort, setCourseSort] = useState<"recent" | "title">("recent");
+  const [examCourseSlug, setExamCourseSlug] = useState("all");
+  const [examOpenOnly, setExamOpenOnly] = useState(false);
   const [earnedBadges, setEarnedBadges] = useState<ReturnType<typeof readLearnerBadges>>([]);
   const [learnerProfile, setLearnerProfile] = useState(readLearnerProfileFromStorage);
   const [prefsTick, setPrefsTick] = useState(0);
@@ -875,6 +877,35 @@ export default function MyLearningPage() {
     [learnerAssignmentRows],
   );
 
+  const examCourseOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const task of enrolledExamTasks) {
+      if (!map.has(task.courseSlug)) map.set(task.courseSlug, task.courseTitle);
+    }
+    return [...map.entries()].map(([slug, title]) => ({ slug, title }));
+  }, [enrolledExamTasks]);
+
+  const filteredExamTasks = useMemo(() => {
+    const byCourse =
+      examCourseSlug === "all"
+        ? enrolledExamTasks
+        : enrolledExamTasks.filter((task) => task.courseSlug === examCourseSlug);
+    const openedFirst = [...byCourse].sort((a, b) => {
+      const aOpen = a.ready && a.unlocked ? 1 : 0;
+      const bOpen = b.ready && b.unlocked ? 1 : 0;
+      return bOpen - aOpen;
+    });
+    if (examOpenOnly) {
+      return openedFirst.filter((task) => task.ready && task.unlocked);
+    }
+    return openedFirst;
+  }, [enrolledExamTasks, examCourseSlug, examOpenOnly]);
+
+  const openedExamCount = useMemo(
+    () => filteredExamTasks.filter((task) => task.ready && task.unlocked && task.status !== "Completed").length,
+    [filteredExamTasks],
+  );
+
   const isOrgLearner = isOrganisationLearner(learnerProfile);
   const orgDashboardSnapshot = useMemo(
     () =>
@@ -1034,34 +1065,78 @@ export default function MyLearningPage() {
                     No module exams are configured on your enrolled courses yet.
                   </p>
                 ) : (
-                  <ul className="space-y-2">
-                    {enrolledExamTasks.slice(0, 6).map((task) => (
-                      <li
-                        key={`${task.courseSlug}-${task.href}`}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/25 px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-white">{task.label}</p>
-                          <p className="truncate text-xs text-gray-400">
-                            {task.courseTitle}
-                            {task.marksLabel !== "—" ? ` · ${task.marksLabel}` : ""}
-                          </p>
-                        </div>
-                        {task.ready && task.unlocked ? (
-                          <Link
-                            href={task.href}
-                            className="shrink-0 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/20"
+                  <>
+                    <div className="mb-3 flex flex-wrap items-end gap-2">
+                      {examCourseOptions.length > 1 ? (
+                        <label className="min-w-[220px] flex-1 text-xs text-gray-400">
+                          Course
+                          <select
+                            value={examCourseSlug}
+                            onChange={(e) => setExamCourseSlug(e.target.value)}
+                            className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2.5 py-1.5 text-sm text-white outline-none focus:border-emerald-400/40"
                           >
-                            {task.status === "Completed" ? "Review" : "Start exam"}
-                          </Link>
-                        ) : task.status === "Locked" ? (
-                          <span className="shrink-0 text-xs text-zinc-500">Locked</span>
-                        ) : (
-                          <span className="shrink-0 text-xs text-zinc-500">Not available yet</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                            <option value="all">All courses</option>
+                            {examCourseOptions.map((option) => (
+                              <option key={option.slug} value={option.slug}>
+                                {option.title}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                      <label className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={examOpenOnly}
+                          onChange={(e) => setExamOpenOnly(e.target.checked)}
+                          className="rounded border-white/20 bg-black/40 text-emerald-400"
+                        />
+                        Opened exams only
+                      </label>
+                    </div>
+                    <p className="mb-2 text-xs text-emerald-200/80">
+                      {openedExamCount === 0
+                        ? "No exams are open for this selection yet."
+                        : `${openedExamCount} exam${openedExamCount === 1 ? "" : "s"} open`}
+                    </p>
+                    {filteredExamTasks.length === 0 ? (
+                      <p className="text-sm text-gray-400">
+                        No matching exams for this course filter.
+                      </p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {(examCourseSlug === "all" && !examOpenOnly
+                          ? filteredExamTasks.slice(0, 6)
+                          : filteredExamTasks
+                        ).map((task) => (
+                          <li
+                            key={`${task.courseSlug}-${task.href}`}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/25 px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-white">{task.label}</p>
+                              <p className="truncate text-xs text-gray-400">
+                                {task.courseTitle}
+                                {task.marksLabel !== "—" ? ` · ${task.marksLabel}` : ""}
+                              </p>
+                            </div>
+                            {task.ready && task.unlocked ? (
+                              <Link
+                                href={task.href}
+                                className="shrink-0 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/20"
+                              >
+                                {task.status === "Completed" ? "Review" : "Start exam"}
+                              </Link>
+                            ) : task.status === "Locked" ? (
+                              <span className="shrink-0 text-xs text-zinc-500">Locked</span>
+                            ) : (
+                              <span className="shrink-0 text-xs text-zinc-500">Not available yet</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
                 )}
               </article>
             ) : null}
@@ -1411,7 +1486,7 @@ export default function MyLearningPage() {
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
                   <ListChecks size={18} className="text-emerald-300" />
-                  Exams & assessments
+                  Exams & Assessments
                 </h2>
                 <Link
                   href="/my-learning?tab=assignments"

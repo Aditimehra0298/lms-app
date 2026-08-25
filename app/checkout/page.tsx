@@ -11,7 +11,6 @@ import {
 } from "@/lib/shop-cart";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
 import { hasViewedCourseLanding, prePaymentLandingHref } from "@/lib/course-landing";
-import { SignInToViewPrices } from "@/components/SignInToViewPrices";
 import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 import { resolveCourseImageSrc } from "@/lib/course-thumbnail";
 import type { ManagedCourse } from "@/lib/content-schema";
@@ -500,11 +499,9 @@ export default function CheckoutPage() {
                 <span className="text-amber-300">{formatMoney(total)}</span>
               </div>
             </div>
-            ) : ready ? (
-              <div className="mt-4">
-                <SignInToViewPrices compact />
-              </div>
-            ) : null}
+            ) : (
+              <p className="mt-4 text-sm text-gray-400">Loading pricing…</p>
+            )}
           </article>
 
           <div className="space-y-3">
@@ -568,12 +565,8 @@ export default function CheckoutPage() {
               ) : null}
 
               <button
-                disabled={items.length === 0 || payLoading}
+                disabled={items.length === 0 || payLoading || !showPrices}
                 onClick={() => {
-                  if (ready && !showPrices) {
-                    window.location.href = `/account?mode=login&redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-                    return;
-                  }
                   if (razorpayReady) {
                     void payWithRazorpay();
                     return;
@@ -588,7 +581,7 @@ export default function CheckoutPage() {
                     ? razorpayReady
                       ? `Pay ${formatMoney(total)} with Razorpay`
                       : `Complete demo purchase (${formatMoney(total)})`
-                    : "Price"}
+                    : "Loading pricing…"}
               </button>
               <p className="mt-2 text-xs text-gray-400">
                 {razorpayReady

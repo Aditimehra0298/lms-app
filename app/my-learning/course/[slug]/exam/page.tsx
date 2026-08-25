@@ -792,17 +792,31 @@ function CourseExamPageInner() {
                 </span>
               </h2>
 
+              {currentQuestion?.questionImageUrl ? (
+                <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-black/30 p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={currentQuestion.questionImageUrl}
+                    alt=""
+                    className="mx-auto max-h-64 w-auto max-w-full object-contain"
+                  />
+                </div>
+              ) : null}
+
               <div className="mt-4 space-y-2">
                 {(currentQuestion?.options ?? []).map((option, idx) => {
                   const letter = String.fromCharCode(97 + idx); // a, b, c, d…
-                  const cleaned = option
+                  const optionText = typeof option === "string" ? option : option.text;
+                  const optionImage =
+                    typeof option === "string" ? undefined : option.imageUrl?.trim();
+                  const cleaned = (optionText ?? "")
                     .replace(/^\s*[a-dA-D][\).\:\-]\s*/, "")
                     .replace(/^\s*[a-dA-D]\s+/, "")
                     .trim();
                   const selected = selectedAnswers[currentQuestionIndex] === idx;
                   return (
                     <button
-                      key={`${idx}-${option}`}
+                      key={`${idx}-${cleaned || optionImage || "opt"}`}
                       type="button"
                       onClick={() =>
                         setSelectedAnswers((prev) => {
@@ -826,7 +840,19 @@ function CourseExamPageInner() {
                       >
                         {letter})
                       </span>
-                      <span className="min-w-0 flex-1 leading-relaxed">{cleaned || option}</span>
+                      <span className="min-w-0 flex-1 space-y-2 leading-relaxed">
+                        {optionImage ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={optionImage}
+                            alt={cleaned || `Option ${letter}`}
+                            className="max-h-40 w-auto max-w-full rounded-md border border-white/10 object-contain"
+                          />
+                        ) : null}
+                        {cleaned || (!optionImage ? optionText : "") ? (
+                          <span className="block">{cleaned || optionText}</span>
+                        ) : null}
+                      </span>
                     </button>
                   );
                 })}

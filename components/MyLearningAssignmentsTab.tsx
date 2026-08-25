@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import {
@@ -30,8 +31,28 @@ type Props = {
 
 export function MyLearningAssignmentsTab({ rows }: Props) {
   const visible = filterLearnerVisibleAssignments(rows);
-  const pending = visible.filter((r) => r.status === "pending" || r.status === "failed").length;
-  const passed = visible.filter((r) => r.status === "passed").length;
+  const [courseSlug, setCourseSlug] = useState("all");
+  const [openOnly, setOpenOnly] = useState(false);
+  const courseOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const row of visible) {
+      if (!map.has(row.courseSlug)) map.set(row.courseSlug, row.courseTitle);
+    }
+    return [...map.entries()].map(([slug, title]) => ({ slug, title }));
+  }, [visible]);
+  const filtered = useMemo(() => {
+    const byCourse =
+      courseSlug === "all" ? visible : visible.filter((row) => row.courseSlug === courseSlug);
+    const openedFirst = [...byCourse].sort((a, b) => {
+      const aOpen = a.ready && a.unlocked ? 1 : 0;
+      const bOpen = b.ready && b.unlocked ? 1 : 0;
+      return bOpen - aOpen;
+    });
+    return openOnly ? openedFirst.filter((row) => row.ready && row.unlocked) : openedFirst;
+  }, [visible, courseSlug, openOnly]);
+  const pending = filtered.filter((r) => r.status === "pending" || r.status === "failed").length;
+  const passed = filtered.filter((r) => r.status === "passed").length;
+  const opened = filtered.filter((r) => r.ready && r.unlocked && r.status !== "passed").length;
 
   return (
     <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 shadow-[0_0_24px_rgba(0,0,0,0.35)]">
@@ -51,9 +72,44 @@ export function MyLearningAssignmentsTab({ rows }: Props) {
         ) : null}
       </div>
 
+      {courseOptions.length > 1 ? (
+        <div className="mt-4 flex flex-wrap items-end gap-2">
+          <label className="min-w-[240px] flex-1 text-xs text-gray-400">
+            Course
+            <select
+              value={courseSlug}
+              onChange={(e) => setCourseSlug(e.target.value)}
+              className="mt-1 w-full rounded-md border border-white/15 bg-black/50 px-2.5 py-2 text-sm text-white outline-none focus:border-emerald-400/40"
+            >
+              <option value="all">All courses</option>
+              {courseOptions.map((option) => (
+                <option key={option.slug} value={option.slug}>
+                  {option.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-xs text-gray-300">
+            <input
+              type="checkbox"
+              checked={openOnly}
+              onChange={(e) => setOpenOnly(e.target.checked)}
+              className="rounded border-white/20 bg-black/40 text-emerald-400"
+            />
+            Opened exams only
+          </label>
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-xs text-emerald-200/80">
+        {opened === 0
+          ? "No exams are open for this selection yet."
+          : `${opened} exam${opened === 1 ? "" : "s"} open for this selection`}
+      </p>
+
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {[
-          ["Total", String(visible.length)],
+          ["Total", String(filtered.length)],
           ["Pending / retake", String(pending)],
           ["Passed", String(passed)],
         ].map(([label, value]) => (
@@ -65,10 +121,11 @@ export function MyLearningAssignmentsTab({ rows }: Props) {
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-black/30">
-        {visible.length === 0 ? (
+        {filtered.length === 0 ? (
           <p className="p-8 text-center text-sm text-gray-400">
-            No exams are available for your courses yet. Check back after you progress in your
-            lessons or live sessions.
+            {visible.length === 0
+              ? "No exams are available for your courses yet. Check back after you progress in your lessons or live sessions."
+              : "No matching exams for this course filter."}
           </p>
         ) : (
           <table className="w-full min-w-[760px] text-left text-sm">
@@ -83,7 +140,7 @@ export function MyLearningAssignmentsTab({ rows }: Props) {
               </tr>
             </thead>
             <tbody>
-              {visible.map((row) => (
+              {filtered.map((row) => (
                 <tr key={row.id} className="border-b border-white/5 last:border-0">
                   <td className="px-3 py-3">
                     <p className="font-semibold text-white">{row.courseTitle}</p>
