@@ -52,6 +52,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: result.message }, { status: 400 });
     }
 
+    /** 100% OFF / zero total — never open Razorpay for ₹0. */
+    if (("freeCheckout" in result && result.freeCheckout) || Number(result.amount) <= 0) {
+      return NextResponse.json({
+        ok: true,
+        freeCheckout: true,
+        orderId: "FREE",
+        amount: 0,
+        currency: result.currency,
+        totals: result.totals,
+        promoCode: result.promoCode,
+        promoLabel: result.promoLabel,
+        region: result.region,
+        message: "No payment required. Complete free enrollment on checkout.",
+      });
+    }
+
     await createPendingRazorpayPayment({
       learnerEmail,
       orderId: result.orderId,

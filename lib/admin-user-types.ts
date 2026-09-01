@@ -51,6 +51,8 @@ export type AdminUserListRow = {
   companySize: string | null;
   countryCode: string | null;
   countryName: string | null;
+  ipv4: string | null;
+  ipv6: string | null;
   identificationNumber: number | null;
   registrationMonth: number | null;
   registrationYear: number | null;

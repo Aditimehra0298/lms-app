@@ -120,8 +120,8 @@ function CropModal({ src, aspect: initialAspect, onCrop, onCancel }: { src: stri
   const resetAll = () => { setCrop({ x: 0, y: 0 }); setZoom(1); setRotation(0); setFlipH(false); };
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4" onClick={onCancel}>
-      <div className="relative flex w-full max-w-4xl flex-col rounded-3xl border border-white/8 bg-[#070b14] shadow-[0_0_100px_rgba(245,158,11,0.08),0_32px_80px_rgba(0,0,0,0.7)]" onClick={(e) => e.stopPropagation()} style={{ maxHeight: "92vh" }}>
+    <div className="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/90 backdrop-blur-xl p-4 py-6" onClick={onCancel}>
+      <div className="relative my-auto flex w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-white/8 bg-[#070b14] shadow-[0_0_100px_rgba(245,158,11,0.08),0_32px_80px_rgba(0,0,0,0.7)]" onClick={(e) => e.stopPropagation()} style={{ maxHeight: "min(92vh, calc(100vh - 3rem))" }}>
         <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-[#f59e0b]/60 to-transparent" />
         {/* Header - fixed */}
         <div className="relative flex shrink-0 items-center justify-between px-6 py-4">
@@ -138,8 +138,8 @@ function CropModal({ src, aspect: initialAspect, onCrop, onCancel }: { src: stri
           </div>
         </div>
         {/* Scrollable middle */}
-        <div className="flex-1 overflow-y-auto px-4 pb-2">
-          <div className="relative overflow-hidden rounded-2xl bg-black/80 ring-1 ring-white/5" style={{ height: "clamp(200px, 45vh, 500px)" }}>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-2">
+          <div className="relative overflow-hidden rounded-2xl bg-black/80 ring-1 ring-white/5" style={{ height: "clamp(180px, 38vh, 420px)" }}>
             <Cropper image={src} crop={crop} zoom={zoom} rotation={rotation} aspect={ar || undefined} onCropChange={setCrop} onZoomChange={setZoom} onRotationChange={setRotation} onCropComplete={onCropComplete} showGrid cropShape="rect" objectFit="contain"
               style={{ containerStyle: { borderRadius: "1rem", background: "#05080f" }, mediaStyle: { transform: flipH ? "scaleX(-1)" : undefined }, cropAreaStyle: { border: "2px solid rgba(245, 158, 11, 0.7)", boxShadow: "0 0 30px rgba(245, 158, 11, 0.15)" } }} />
           </div>
@@ -155,13 +155,13 @@ function CropModal({ src, aspect: initialAspect, onCrop, onCancel }: { src: stri
           </div>
         </div>
         {/* Footer - always visible */}
-        <div className="relative flex shrink-0 items-center justify-between border-t border-white/5 px-6 py-5">
+        <div className="relative z-10 flex shrink-0 items-center justify-between border-t border-white/10 bg-[#070b14] px-6 py-4">
           <div>{cropError && <p className="text-xs font-medium text-red-400">{cropError}</p>}{!cropError && <p className="text-[10px] text-gray-600">Drag to pan · Scroll to zoom</p>}</div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={onCancel} className="rounded-xl px-5 py-3 text-sm font-medium text-gray-400 ring-1 ring-white/10 transition hover:bg-white/5">Cancel</button>
             <button type="button" onClick={handleApply} disabled={applying} className="flex items-center gap-2 rounded-xl bg-linear-to-r from-[#22c55e] to-[#16a34a] px-8 py-3 text-sm font-bold text-white shadow-[0_4px_20px_rgba(34,197,94,0.35)] hover:shadow-[0_8px_30px_rgba(34,197,94,0.5)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 transition-all">
               {applying ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-              {applying ? "Processing..." : "Done"}
+              {applying ? "Saving..." : "Save image"}
             </button>
           </div>
         </div>

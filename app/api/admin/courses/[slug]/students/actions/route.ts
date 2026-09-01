@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
+import { grantLearnerCertificateDownloadAccess } from "@/lib/server/admin-grant-certificate-access";
 import { findCertificateProgram } from "@/lib/certificate-program-resolve";
 import { normalizeLearnerEmail } from "@/lib/learner-email";
 import { prisma } from "@/lib/prisma";
-import { issueCourseCertificate } from "@/lib/server/certificate-service";
 import { readAdminContent } from "@/lib/server/content-store";
 import {
   findExistingEnrollment,
   reconcileEnrollmentIdentity,
 } from "@/lib/server/enrollment-lookup";
-import { isCertificateApiProvider } from "@/lib/server/certificate-generation-policy";
-import { resolveCertificatePermissions } from "@/lib/server/certificate-permissions";
-import { requestCourseCertificate } from "@/lib/server/n8n-certificate-service";
 import { recordPurchasesForLearner } from "@/lib/server/record-purchase";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +51,21 @@ export async function POST(
           select: { id: true },
         });
         await reconcileEnrollmentIdentity(existing, learnerEmail, user?.id ?? null);
+
+        const cert = await grantLearnerCertificateDownloadAccess({ learnerEmail, courseSlug });
+        if (cert.ok && cert.granted) {
+          return NextResponse.json({
+            ok: true,
+            message: `Learner is already enrolled. ${cert.message}`,
+          });
+        }
+        if (!cert.ok) {
+          return NextResponse.json({
+            ok: true,
+            message: `Learner is already enrolled. Certificate could not be issued: ${cert.message}`,
+          });
+        }
+
         return NextResponse.json({
           ok: true,
           message: "Learner is already enrolled for this course.",
@@ -71,61 +83,36 @@ export async function POST(
       if (!result.ok) {
         return NextResponse.json({ ok: false, message: result.message }, { status: 400 });
       }
+
+      const cert = await grantLearnerCertificateDownloadAccess({ learnerEmail, courseSlug });
+      if (cert.ok && cert.granted) {
+        return NextResponse.json({
+          ok: true,
+          message: `Learner added to this course. ${cert.message}`,
+        });
+      }
+      if (!cert.ok) {
+        return NextResponse.json({
+          ok: true,
+          message: `Learner added to this course. Certificate could not be issued: ${cert.message}`,
+        });
+      }
+
       return NextResponse.json({ ok: true, message: "Learner added to this course." });
     }
 
-    // manual-certificate-pass
-    const content = await readAdminContent();
-    const program = findCertificateProgram(content, courseSlug);
-    const perms = program ? resolveCertificatePermissions(program) : null;
-
-    if (perms && isCertificateApiProvider(perms)) {
-      const apiResult = await requestCourseCertificate({
-        learnerEmail,
-        courseSlug,
-        forceRetry: true,
-      });
-      if (!apiResult.ok) {
-        return NextResponse.json({ ok: false, message: apiResult.message }, { status: 400 });
-      }
-      await prisma.lmsCertificate.update({
-        where: { id: apiResult.certificate.id },
-        data: { visibleToLearner: true },
-      });
-      return NextResponse.json({
-        ok: true,
-        message:
-          "Certificate generated using this course's uploaded templates.",
-      });
+    const cert = await grantLearnerCertificateDownloadAccess({ learnerEmail, courseSlug });
+    if (!cert.ok) {
+      return NextResponse.json({ ok: false, message: cert.message }, { status: 400 });
     }
-
-    let cert = await prisma.lmsCertificate.findFirst({
-      where: { learnerEmail, courseSlug },
-      orderBy: { issuedAt: "desc" },
-      select: { id: true },
-    });
-
-    if (!cert) {
-      const issued = await issueCourseCertificate({
-        learnerEmail,
-        courseSlug,
-      });
-      if (!issued.ok) {
-        return NextResponse.json({ ok: false, message: issued.message }, { status: 400 });
+    if (!cert.granted) {
+      const content = await readAdminContent();
+      const program = findCertificateProgram(content, courseSlug);
+      if (!program) {
+        return NextResponse.json({ ok: false, message: "Course not found in catalog." }, { status: 400 });
       }
-      cert = { id: issued.certificate.id };
+      return NextResponse.json({ ok: false, message: cert.message }, { status: 400 });
     }
-
-    await prisma.lmsCertificate.update({
-      where: { id: cert.id },
-      data: {
-        status: "ready",
-        visibleToLearner: true,
-      },
-    });
-
-    const { ensureLocalCertificatePdf } = await import("@/lib/server/local-certificate-fallback");
-    await ensureLocalCertificatePdf(cert.id);
 
     return NextResponse.json({
       ok: true,

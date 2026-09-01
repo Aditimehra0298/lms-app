@@ -33,6 +33,8 @@ const userSelect = {
   companySize: true,
   countryCode: true,
   countryName: true,
+  ipv4: true,
+  ipv6: true,
   identificationNumber: true,
   registrationMonth: true,
   registrationYear: true,
@@ -81,6 +83,8 @@ type UserRow = {
   companySize: string | null;
   countryCode: string | null;
   countryName: string | null;
+  ipv4: string | null;
+  ipv6: string | null;
   identificationNumber: number | null;
   registrationMonth: number | null;
   registrationYear: number | null;
@@ -252,6 +256,8 @@ function serializeUser(
     companySize: user.companySize,
     countryCode: user.countryCode,
     countryName: user.countryName,
+    ipv4: user.ipv4,
+    ipv6: user.ipv6,
     identificationNumber: user.identificationNumber,
     registrationMonth: user.registrationMonth,
     registrationYear: user.registrationYear,

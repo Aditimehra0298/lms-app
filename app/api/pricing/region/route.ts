@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { pricingRegionForCountry } from "@/lib/country-pricing";
 import { countryDisplayName } from "@/lib/iso-country-list";
 import { prisma } from "@/lib/prisma";
-import { resolveLearnerCountry } from "@/lib/server/resolve-learner-country";
+import { resolveLearnerCountry, ipsForStorage } from "@/lib/server/resolve-learner-country";
 import { getClientIps } from "@/lib/request-ip";
 
 export const dynamic = "force-dynamic";
@@ -55,23 +55,29 @@ export async function GET(request: Request) {
   try {
     const user = await prisma.lmsUser.findUnique({ where: { email } });
     if (!user) {
-      const fallback = pricingRegionForCountry("IN", "India");
+      const geo = await resolveLearnerCountry(request, requestIps);
+      const ips = ipsForStorage(requestIps, geo);
+      const region = pricingRegionForCountry(geo.countryCode, geo.countryName);
       return NextResponse.json({
         ok: true,
         showPrices: true,
-        region: fallback,
-        countrySource: "default",
+        region,
+        ipv4: ips.ipv4,
+        ipv6: ips.ipv6,
+        countrySource: geo.source === "default" ? "default" : geo.source,
       });
     }
 
     if (user.countryCode) {
+      const geo = await resolveLearnerCountry(request, requestIps);
+      const ips = ipsForStorage(requestIps, geo);
       const region = pricingRegionForCountry(user.countryCode, user.countryName ?? undefined);
       await prisma.lmsUser
         .update({
           where: { email },
           data: {
-            ipv4: requestIps.ipv4 ?? undefined,
-            ipv6: requestIps.ipv6 ?? undefined,
+            ipv4: ips.ipv4 ?? user.ipv4 ?? undefined,
+            ipv6: ips.ipv6 ?? user.ipv6 ?? undefined,
           },
         })
         .catch(() => null);
@@ -79,8 +85,8 @@ export async function GET(request: Request) {
         ok: true,
         showPrices: true,
         region,
-        ipv4: requestIps.ipv4 ?? user.ipv4,
-        ipv6: requestIps.ipv6 ?? user.ipv6,
+        ipv4: ips.ipv4 ?? user.ipv4,
+        ipv6: ips.ipv6 ?? user.ipv6,
         countrySource: "stored",
       });
     }
@@ -89,6 +95,7 @@ export async function GET(request: Request) {
       ipv4: requestIps.ipv4 ?? user.ipv4,
       ipv6: requestIps.ipv6 ?? user.ipv6,
     });
+    const ips = ipsForStorage(requestIps, geo);
     const region = pricingRegionForCountry(geo.countryCode, geo.countryName);
 
     await prisma.lmsUser.update({
@@ -96,8 +103,8 @@ export async function GET(request: Request) {
       data: {
         countryCode: region.countryCode,
         countryName: region.countryName,
-        ipv4: requestIps.ipv4 ?? user.ipv4 ?? undefined,
-        ipv6: requestIps.ipv6 ?? user.ipv6 ?? undefined,
+        ipv4: ips.ipv4 ?? user.ipv4 ?? undefined,
+        ipv6: ips.ipv6 ?? user.ipv6 ?? undefined,
       },
     });
 
@@ -105,8 +112,8 @@ export async function GET(request: Request) {
       ok: true,
       showPrices: true,
       region,
-      ipv4: requestIps.ipv4 ?? user.ipv4,
-      ipv6: requestIps.ipv6 ?? user.ipv6,
+      ipv4: ips.ipv4 ?? user.ipv4,
+      ipv6: ips.ipv6 ?? user.ipv6,
       countrySource: geo.source,
     });
   } catch (err) {

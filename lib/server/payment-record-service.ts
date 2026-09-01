@@ -3,6 +3,7 @@ import type { AdminPaymentRow, PaymentLineItem } from "@/lib/payment-types";
 import { prisma } from "@/lib/prisma";
 import { recordPurchasesForLearner } from "@/lib/server/record-purchase";
 import { resolveGrantableOfferingTitle } from "@/lib/server/admin-grantable-offerings";
+import { grantLearnerCertificateDownloadAccess } from "@/lib/server/admin-grant-certificate-access";
 import {
   createRazorpayRefund,
   fetchRazorpayOrder,
@@ -269,10 +270,24 @@ export async function grantCourseAccessWithoutPayment(input: {
   });
   if (!enrolled.ok) return { ok: false, message: enrolled.message };
 
+  const cert = await grantLearnerCertificateDownloadAccess({
+    learnerEmail: email,
+    courseSlug: slug,
+  });
+
+  let message =
+    enrolled.recorded > 0 ? "Course access granted." : "Learner already had access — grant recorded.";
+  if (cert.ok && cert.granted) {
+    message = `${message} ${cert.message}`;
+  } else if (!cert.ok) {
+    message = `${message} Certificate could not be issued: ${cert.message}`;
+  }
+
   return {
     ok: true,
     paymentId: row.id,
-    message: enrolled.recorded > 0 ? "Course access granted." : "Learner already had access — grant recorded.",
+    message,
+    certificateGranted: cert.ok && cert.granted,
   };
 }
 

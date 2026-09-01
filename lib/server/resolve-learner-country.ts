@@ -1,7 +1,7 @@
 import { countryFromGoogleLocale } from "@/lib/country-from-google";
 import { countryDisplayName, isValidCountryCode } from "@/lib/iso-country-list";
 import { countryFromRequestHeaders, lookupCountryFromIp, type GeoCountry } from "@/lib/geo-country";
-import { primaryGeoIp } from "@/lib/request-ip";
+import { mergeClientIps, primaryGeoIp, type ClientIps } from "@/lib/request-ip";
 
 export type CountrySource = "manual" | "google" | "headers" | "ip" | "default";
 
@@ -15,7 +15,7 @@ export type CountryHints = {
 
 export async function resolveLearnerCountry(
   request: Request,
-  ips: { ipv4: string | null; ipv6: string | null },
+  ips: ClientIps,
   hints?: CountryHints,
 ): Promise<ResolvedCountry> {
   const manual = hints?.countryCode?.trim().toUpperCase();
@@ -43,5 +43,13 @@ export async function resolveLearnerCountry(
 
   const geoIp = primaryGeoIp(ips);
   const fromIp = await lookupCountryFromIp(geoIp);
-  return { ...fromIp, source: geoIp ? "ip" : "default" };
+  return {
+    ...fromIp,
+    source: geoIp || fromIp.detectedIp ? "ip" : "default",
+  };
+}
+
+/** Header IPs plus public IP discovered during geo lookup (localhost / missing proxies). */
+export function ipsForStorage(headerIps: ClientIps, geo: Pick<ResolvedCountry, "detectedIp">): ClientIps {
+  return mergeClientIps(headerIps, geo.detectedIp);
 }

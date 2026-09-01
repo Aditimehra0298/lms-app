@@ -29,6 +29,7 @@ const USER_COLUMNS = [
   "Phone",
   "Company / Org",
   "Country",
+  "IP",
   "Industry",
   "Account",
   "DB role",
@@ -391,6 +392,20 @@ export default function AdminUsersWorkspace() {
                           {row.countryCode ? (
                             <span className="text-[9px] text-gray-600"> ({row.countryCode})</span>
                           ) : null}
+                        </td>
+                        <td className="max-w-[140px] px-3 py-2.5 font-mono text-[10px] text-gray-400">
+                          {row.ipv4 || row.ipv6 ? (
+                            <>
+                              {row.ipv4 ? <p className="truncate">{row.ipv4}</p> : null}
+                              {row.ipv6 ? (
+                                <p className="truncate text-[9px] text-gray-600" title={row.ipv6}>
+                                  {row.ipv6}
+                                </p>
+                              ) : null}
+                            </>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="max-w-[100px] truncate px-3 py-2.5 text-gray-500">
                           {cellMuted(row.industryType ?? row.organization?.industryType)}

@@ -359,8 +359,8 @@ export default function AdminPaymentsWorkspace() {
           <h2 className="text-sm font-semibold text-white">Give free access (no payment)</h2>
         </div>
         <p className="mb-4 text-xs text-gray-400">
-          Enroll a learner in any program without charging them — self-paced courses, tutor-led training, workshops,
-          and other catalog formats.
+          Enroll a learner in any program without charging them. When certificates are enabled for the
+          program, the learner can download their certificate right away.
         </p>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="block text-xs text-gray-400">

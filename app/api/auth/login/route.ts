@@ -4,6 +4,7 @@ import { verifyPassword } from "@/lib/server/password-hash";
 import { fetchLmsUserProfile } from "@/lib/server/lms-user-profile";
 import { prisma } from "@/lib/prisma";
 import { getClientIps } from "@/lib/request-ip";
+import { resolveLearnerCountry, ipsForStorage } from "@/lib/server/resolve-learner-country";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
 
   const user = await prisma.lmsUser.findUnique({
     where: { email },
-    select: { passwordHash: true, accountType: true },
+    select: { passwordHash: true, accountType: true, countryCode: true },
   });
 
   if (!user) {
@@ -56,12 +57,20 @@ export async function POST(request: Request) {
   }
 
   const ips = getClientIps(request);
+  const geo = await resolveLearnerCountry(request, ips);
+  const storedIps = ipsForStorage(ips, geo);
   await prisma.lmsUser.update({
     where: { email },
     data: {
       lastLoginAt: new Date(),
-      ipv4: ips.ipv4 ?? undefined,
-      ipv6: ips.ipv6 ?? undefined,
+      ipv4: storedIps.ipv4 ?? undefined,
+      ipv6: storedIps.ipv6 ?? undefined,
+      ...(!user.countryCode
+        ? {
+            countryCode: geo.countryCode,
+            countryName: geo.countryName,
+          }
+        : {}),
     },
   });
 

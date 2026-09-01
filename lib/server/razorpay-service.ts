@@ -77,6 +77,28 @@ export async function createRazorpayOrder(input: {
   const totals = computeRegionalCheckoutTotals(items, catalog, region, promo.extraDiscount);
   const amount = toSmallestCurrencyUnit(totals.total, currency);
   const minAmount = minimumPaymentAmountSmallestUnit(currency);
+
+  /** Fully discounted order — do not call Razorpay (₹0 / $0 not allowed by gateway). */
+  if (amount <= 0) {
+    return {
+      ok: true as const,
+      freeCheckout: true as const,
+      orderId: "FREE",
+      amount: 0,
+      currency,
+      receipt: `free_${nanoid(12)}`,
+      keyId: getRazorpayKeyId()!,
+      totals,
+      promoCode: promo.code || undefined,
+      promoLabel: promo.label || undefined,
+      region: {
+        countryCode: region.countryCode,
+        countryName: region.countryName,
+        currency: region.currency,
+      },
+    };
+  }
+
   if (amount < minAmount) {
     return {
       ok: false as const,

@@ -218,9 +218,10 @@ export default function CheckoutPage() {
   }, [items, catalog, region]);
   const { subtotal, discount, gst, total } = totals;
   const paymentCurrency = payRegion?.currency ?? region?.currency ?? "USD";
+  const isFreeCheckout = ready && showPrices && total <= 0;
   const formatMoney = (value: number) =>
     payRegion ? formatCheckoutMoney(value, payRegion) : `$${value.toFixed(2)}`;
-  const razorpayReady = Boolean(razorpayConfig?.configured && razorpayConfig.keyId);
+  const razorpayReady = Boolean(razorpayConfig?.configured && razorpayConfig.keyId) && !isFreeCheckout;
   if (!isHydrated) {
     return (
       <div className="checkout-page min-h-screen bg-[#0a0a0a] text-white">
@@ -243,7 +244,7 @@ export default function CheckoutPage() {
     setIsSuccess(true);
   };
 
-  const completePurchase = async () => {
+  const completePurchase = async (method: "demo" | "free" = "demo") => {
     const learnerEmail = learnerInfo.email.trim().toLowerCase();
     if (learnerEmail) {
       try {
@@ -254,7 +255,7 @@ export default function CheckoutPage() {
             learnerEmail,
             countryCode: region?.countryCode,
             currency: paymentCurrency,
-            amount: toSmallestCurrencyUnit(total, paymentCurrency),
+            amount: toSmallestCurrencyUnit(Math.max(0, total), paymentCurrency),
             promoCode: promoCode || undefined,
             items: items.map((item) => ({
               slug: item.slug,
@@ -270,15 +271,28 @@ export default function CheckoutPage() {
     }
 
     await finalizePurchase({
-      orderId: "DEMO",
+      orderId: method === "free" ? "FREE" : "DEMO",
       paymentId: "—",
-      method: "demo",
+      method,
       currency: paymentCurrency,
     });
   };
 
   const payWithRazorpay = async () => {
-    if (!razorpayReady || !razorpayConfig?.keyId) {
+    if (isFreeCheckout || total <= 0) {
+      setPayLoading(true);
+      setPayError("");
+      try {
+        await completePurchase("free");
+      } catch (err) {
+        setPayError(err instanceof Error ? err.message : "Could not complete free enrollment.");
+      } finally {
+        setPayLoading(false);
+      }
+      return;
+    }
+
+    if (!razorpayConfig?.configured || !razorpayConfig.keyId) {
       setPayError("Razorpay is not configured. Add API keys to .env.local and restart the server.");
       return;
     }
@@ -320,8 +334,18 @@ export default function CheckoutPage() {
         amount?: number;
         currency?: string;
         keyId?: string;
+        freeCheckout?: boolean;
       };
-      if (!orderRes.ok || !orderData.ok || !orderData.orderId || orderData.amount == null) {
+      if (!orderRes.ok || !orderData.ok || orderData.amount == null) {
+        throw new Error(orderData.message ?? "Could not start Razorpay checkout.");
+      }
+
+      if (orderData.freeCheckout || Number(orderData.amount) <= 0) {
+        await completePurchase("free");
+        return;
+      }
+
+      if (!orderData.orderId || !orderData.keyId && !razorpayConfig.keyId) {
         throw new Error(orderData.message ?? "Could not start Razorpay checkout.");
       }
 
@@ -369,7 +393,9 @@ export default function CheckoutPage() {
         <main className="mx-auto max-w-[1760px] px-4 py-6 md:px-6 xl:px-8">
           <section className="mx-auto max-w-4xl rounded-2xl border border-white/10 bg-white/3 p-6 text-center">
             <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-300" />
-            <h1 className="mt-3 text-4xl font-bold">Payment Successful!</h1>
+            <h1 className="mt-3 text-4xl font-bold">
+              {paymentReceipt?.method === "free" ? "Enrollment Successful!" : "Payment Successful!"}
+            </h1>
             <p className="mt-2 text-gray-300">
               {successHasTutorLed ? (
                 <>
@@ -391,7 +417,11 @@ export default function CheckoutPage() {
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <p className="text-gray-400">Payment Method</p>
                 <p className="font-semibold uppercase">
-                  {paymentReceipt?.method === "razorpay" ? "Razorpay" : paymentReceipt?.method ?? "Demo"}
+                  {paymentReceipt?.method === "razorpay"
+                    ? "Razorpay"
+                    : paymentReceipt?.method === "free"
+                      ? "100% OFF / Free"
+                      : paymentReceipt?.method ?? "Demo"}
                 </p>
               </div>
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
@@ -528,7 +558,20 @@ export default function CheckoutPage() {
 
             <article className="rounded-2xl border border-white/10 bg-white/3 p-4">
               <h3 className="text-lg font-bold">Payment</h3>
-              {razorpayReady ? (
+              {isFreeCheckout ? (
+                <div className="mt-3 rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
+                    <div>
+                      <p className="font-semibold text-emerald-100">No payment required</p>
+                      <p className="mt-1 text-sm text-gray-300">
+                        Your promo covers 100% of this order ({formatMoney(0)} due). Click below to enroll
+                        instantly — Razorpay is not used for free checkouts.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : razorpayReady ? (
                 <div className="mt-3 rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-4">
                   <div className="flex items-start gap-3">
                     <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
@@ -567,26 +610,48 @@ export default function CheckoutPage() {
               <button
                 disabled={items.length === 0 || payLoading || !showPrices}
                 onClick={() => {
+                  if (isFreeCheckout || total <= 0) {
+                    void (async () => {
+                      setPayLoading(true);
+                      setPayError("");
+                      try {
+                        await completePurchase("free");
+                      } catch (err) {
+                        setPayError(
+                          err instanceof Error ? err.message : "Could not complete free enrollment.",
+                        );
+                      } finally {
+                        setPayLoading(false);
+                      }
+                    })();
+                    return;
+                  }
                   if (razorpayReady) {
                     void payWithRazorpay();
                     return;
                   }
-                  void completePurchase();
+                  void completePurchase("demo");
                 }}
                 className="mt-4 w-full rounded-lg bg-amber-400 py-2.5 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {payLoading
-                  ? "Opening Razorpay…"
+                  ? isFreeCheckout
+                    ? "Enrolling…"
+                    : "Opening Razorpay…"
                   : ready && showPrices
-                    ? razorpayReady
-                      ? `Pay ${formatMoney(total)} with Razorpay`
-                      : `Complete demo purchase (${formatMoney(total)})`
+                    ? isFreeCheckout
+                      ? "Complete free enrollment"
+                      : razorpayReady
+                        ? `Pay ${formatMoney(total)} with Razorpay`
+                        : `Complete demo purchase (${formatMoney(total)})`
                     : "Loading pricing…"}
               </button>
               <p className="mt-2 text-xs text-gray-400">
-                {razorpayReady
-                  ? "You will be redirected to Razorpay to complete payment. Enrollment unlocks after verification."
-                  : "Demo mode completes enrollment without charging a card."}
+                {isFreeCheckout
+                  ? "No card charge. Your courses unlock as soon as enrollment is confirmed."
+                  : razorpayReady
+                    ? "You will be redirected to Razorpay to complete payment. Enrollment unlocks after verification."
+                    : "Demo mode completes enrollment without charging a card."}
               </p>
             </article>
           </div>

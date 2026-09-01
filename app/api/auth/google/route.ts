@@ -13,7 +13,7 @@ import {
   countryUpdateFields,
   pricingRegionForAuthResponse,
 } from "@/lib/server/auth-country-persist";
-import { resolveLearnerCountry } from "@/lib/server/resolve-learner-country";
+import { resolveLearnerCountry, ipsForStorage } from "@/lib/server/resolve-learner-country";
 import { fetchLmsUserProfile } from "@/lib/server/lms-user-profile";
 import { prisma } from "@/lib/prisma";
 import { registrationPeriodFromDate } from "@/lib/registration-ids";
@@ -114,12 +114,13 @@ export async function POST(request: Request) {
   const name = googleUser.name?.trim() || null;
   const avatarUrl = googleUser.picture?.trim() || null;
 
-  const ips = getClientIps(request);
-  const geo = await resolveLearnerCountry(request, ips, {
+  const ipsHeader = getClientIps(request);
+  const geo = await resolveLearnerCountry(request, ipsHeader, {
     countryCode: body.countryCode,
     countryName: body.countryName,
     googleLocale: googleUser.locale,
   });
+  const ips = ipsForStorage(ipsHeader, geo);
   const resolvedRegion = pricingRegionForCountry(geo.countryCode, geo.countryName);
   const hasManualCountry = Boolean(body.countryCode?.trim());
 
