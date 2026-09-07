@@ -7,20 +7,11 @@ import {
   protectedMediaServePath,
   savePrivateMediaBlob,
 } from "@/lib/server/private-media-storage";
+import { requireLearnerWriter } from "@/lib/server/learner-request-identity";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const DOC_TYPES = new Set(["application/pdf"]);
 const MAX_BYTES = 10 * 1024 * 1024;
-
-function learnerFromRequest(request: Request): { email: string; name: string } | null {
-  const email = request.headers.get("x-learner-email")?.trim().toLowerCase();
-  if (!email) return null;
-  const name =
-    request.headers.get("x-learner-name")?.trim() ||
-    email.split("@")[0]?.replace(/[._-]+/g, " ") ||
-    "Learner";
-  return { email, name };
-}
 
 function extForType(type: string): string {
   switch (type) {
@@ -38,10 +29,9 @@ function extForType(type: string): string {
 }
 
 export async function POST(request: Request) {
-  const learner = learnerFromRequest(request);
-  if (!learner) {
-    return NextResponse.json({ ok: false, error: "Sign in to upload files." }, { status: 401 });
-  }
+  const learnerAuth = requireLearnerWriter(request);
+  if ("response" in learnerAuth) return learnerAuth.response;
+  const learner = learnerAuth;
 
   try {
     const form = await request.formData();

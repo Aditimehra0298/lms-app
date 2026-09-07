@@ -20,6 +20,9 @@ const MUTATION_PREFIXES = [
   "/api/organization/",
   "/api/pricing/region",
   "/api/auth/record",
+  "/api/courses/",
+  "/api/community/",
+  "/api/media/token",
 ];
 
 function readCookie(name: string): string {

@@ -1,6 +1,5 @@
 "use client";
 
-import { getLearnerEmail } from "@/lib/learner-session-client";
 import { readJsonResponse } from "@/lib/safe-json";
 
 /** True for LMS private storage paths that need a signed token. */
@@ -28,14 +27,13 @@ export async function resolveProtectedMediaUrl(
     url.startsWith("/storage/private/");
   if (!isLocal) return url;
 
-  const email = getLearnerEmail()?.trim().toLowerCase() ?? "";
   try {
     const res = await fetch("/api/media/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({
         url,
-        email: email || undefined,
         courseSlug: options?.courseSlug,
         scope: options?.scope,
       }),

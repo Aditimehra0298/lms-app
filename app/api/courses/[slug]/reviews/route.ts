@@ -1,21 +1,13 @@
 import { NextResponse } from "next/server";
 import { createCourseReview, listReviewsForCourse } from "@/lib/server/course-reviews-store";
+import {
+  requireLearnerWriter,
+  resolveLearnerViewer,
+} from "@/lib/server/learner-request-identity";
 
 export const dynamic = "force-dynamic";
 
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
-
-function learnerFromRequest(request: Request): { email: string; name: string } | null {
-  const email =
-    request.headers.get("x-learner-email")?.trim().toLowerCase() ||
-    new URL(request.url).searchParams.get("email")?.trim().toLowerCase();
-  if (!email) return null;
-  const name =
-    request.headers.get("x-learner-name")?.trim() ||
-    email.split("@")[0]?.replace(/[._-]+/g, " ") ||
-    "Learner";
-  return { email, name };
-}
 
 function formatDaysAgo(iso: string): string {
   const then = new Date(iso).getTime();
@@ -38,7 +30,7 @@ export async function GET(
     return NextResponse.json({ ok: false, message: "Missing course" }, { status: 400 });
   }
 
-  const viewer = learnerFromRequest(request);
+  const viewer = resolveLearnerViewer(request);
   const rows = await listReviewsForCourse(courseSlug, viewer?.email);
 
   return NextResponse.json(
@@ -71,13 +63,9 @@ export async function POST(
     return NextResponse.json({ ok: false, message: "Missing course" }, { status: 400 });
   }
 
-  const learner = learnerFromRequest(request);
-  if (!learner) {
-    return NextResponse.json(
-      { ok: false, message: "Sign in to leave feedback." },
-      { status: 401 },
-    );
-  }
+  const learnerAuth = requireLearnerWriter(request);
+  if ("response" in learnerAuth) return learnerAuth.response;
+  const learner = learnerAuth;
 
   let body: { rating?: number; review?: string; body?: string };
   try {

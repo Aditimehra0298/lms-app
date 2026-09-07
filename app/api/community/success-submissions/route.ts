@@ -3,23 +3,17 @@ import {
   createCommunitySuccessSubmission,
   listSubmissionsForViewer,
 } from "@/lib/server/community-success-submissions-store";
+import {
+  requireLearnerWriter,
+  resolveLearnerViewer,
+} from "@/lib/server/learner-request-identity";
 
 export const dynamic = "force-dynamic";
 
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
 
-function learnerFromRequest(request: Request): { email: string; name: string } | null {
-  const email = request.headers.get("x-learner-email")?.trim().toLowerCase();
-  if (!email) return null;
-  const name =
-    request.headers.get("x-learner-name")?.trim() ||
-    email.split("@")[0]?.replace(/[._-]+/g, " ") ||
-    "Learner";
-  return { email, name };
-}
-
 export async function GET(request: Request) {
-  const viewer = learnerFromRequest(request);
+  const viewer = resolveLearnerViewer(request);
   const rows = await listSubmissionsForViewer(viewer?.email);
   return NextResponse.json(
     {
@@ -42,13 +36,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const learner = learnerFromRequest(request);
-  if (!learner) {
-    return NextResponse.json(
-      { ok: false, message: "Sign in to submit your success story." },
-      { status: 401 },
-    );
-  }
+  const learnerAuth = requireLearnerWriter(request);
+  if ("response" in learnerAuth) return learnerAuth.response;
+  const learner = learnerAuth;
 
   let body: {
     courseSlug?: string;

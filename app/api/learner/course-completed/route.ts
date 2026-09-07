@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { normalizeLearnerEmail } from "@/lib/learner-email";
+import { requireLearnerMutationAuth } from "@/lib/server/learner-session";
 import { queueCourseCompletionEmail } from "@/lib/server/n8n-course-lifecycle-emails";
 import type { PurchaseDeliveryKind } from "@/lib/server/n8n-purchase-confirmation-service";
 
 export const dynamic = "force-dynamic";
 
 type Body = {
-  learnerEmail?: string;
   courseSlug?: string;
   courseName?: string;
   learnerName?: string;
@@ -14,22 +13,21 @@ type Body = {
   certificateId?: string;
 };
 
-/** POST — same n8n course-completion webhook for self-paced and tutor-led. */
+/** POST — course-completion for the signed-in learner only. */
 export async function POST(request: Request) {
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+
   try {
     const body = (await request.json()) as Body;
-    const learnerEmail = normalizeLearnerEmail(body.learnerEmail?.trim() ?? "");
     const courseSlug = body.courseSlug?.trim() ?? "";
 
-    if (!learnerEmail) {
-      return NextResponse.json({ ok: false, message: "learnerEmail is required." }, { status: 400 });
-    }
     if (!courseSlug) {
       return NextResponse.json({ ok: false, message: "courseSlug is required." }, { status: 400 });
     }
 
     const result = await queueCourseCompletionEmail({
-      learnerEmail,
+      learnerEmail: auth.email,
       courseSlug,
       courseName: body.courseName,
       learnerName: body.learnerName,

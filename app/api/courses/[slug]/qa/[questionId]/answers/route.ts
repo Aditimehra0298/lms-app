@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
 import { questionToCourseQAItem } from "@/lib/course-qa-present";
 import { createAnswer, readCourseQAStore } from "@/lib/server/course-qa-store";
+import { requireLearnerWriter } from "@/lib/server/learner-request-identity";
 
 export const dynamic = "force-dynamic";
 
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
-
-function learnerFromRequest(request: Request): { email: string; name: string } | null {
-  const email = request.headers.get("x-learner-email")?.trim().toLowerCase();
-  if (!email) return null;
-  const name = request.headers.get("x-learner-name")?.trim() || "Learner";
-  return { email, name };
-}
 
 export async function POST(
   request: Request,
@@ -19,14 +13,9 @@ export async function POST(
 ) {
   const { slug, questionId } = await context.params;
   const courseSlug = slug.trim();
-  const learner = learnerFromRequest(request);
-
-  if (!learner) {
-    return NextResponse.json(
-      { ok: false, message: "Sign in to post an answer." },
-      { status: 401 },
-    );
-  }
+  const learnerAuth = requireLearnerWriter(request);
+  if ("response" in learnerAuth) return learnerAuth.response;
+  const learner = learnerAuth;
 
   let payload: { body?: string };
   try {

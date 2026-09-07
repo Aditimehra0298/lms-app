@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { normalizeLearnerEmail } from "@/lib/learner-email";
 import { fetchLmsUserProfile } from "@/lib/server/lms-user-profile";
+import { requireLearnerMutationAuth } from "@/lib/server/learner-session";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 type Body = {
-  email?: string;
   name?: string;
   phone?: string;
   companyName?: string;
@@ -20,14 +19,14 @@ function trimOrNull(value?: string): string | null {
   return v ? v : null;
 }
 
-/** Update learner profile — editable after registration. */
+/** Update own learner profile only — session identity, never body.email. */
 export async function POST(request: Request) {
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+  const email = auth.email;
+
   try {
     const body = (await request.json()) as Body;
-    const email = normalizeLearnerEmail(body.email?.trim() ?? "");
-    if (!email) {
-      return NextResponse.json({ ok: false, message: "Email is required" }, { status: 400 });
-    }
 
     const existing = await prisma.lmsUser.findUnique({ where: { email }, select: { id: true } });
     if (!existing) {

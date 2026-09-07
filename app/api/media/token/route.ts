@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mediaAccessAllowed } from "@/lib/server/media-access-policy";
 import { createMediaAccessToken, verifyMediaAccessToken } from "@/lib/server/media-access-token";
 import { readAdminSessionEmail } from "@/lib/server/admin-session";
+import { readLearnerSessionEmail } from "@/lib/server/learner-session";
 import {
   isManagedLocalMediaUrl,
   protectedMediaServePath,
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
     }
 
     const sessionAdmin = readAdminSessionEmail(request);
+    const sessionLearner = readLearnerSessionEmail(request);
 
     if (!isManagedLocalMediaUrl(url) && !url.startsWith("/api/media/serve/")) {
       let scope =
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Invalid media url" }, { status: 400 });
     }
 
-    const clientEmail = body.email?.trim().toLowerCase() ?? "";
+    void body.email; // never trust client email for media access
     let scope = body.scope;
     if (!scope) {
       if (sessionAdmin) scope = "admin";
@@ -67,13 +69,16 @@ export async function POST(request: Request) {
       }
     }
 
-    const email =
-      scope === "admin" ? sessionAdmin! : clientEmail;
-
-    // Client cannot self-promote to admin by sending the admin email.
-    if (scope === "admin" && clientEmail && clientEmail !== sessionAdmin) {
-      return NextResponse.json({ ok: false, error: "Access denied" }, { status: 403 });
+    if (scope === "learner" && !sessionLearner && !sessionAdmin) {
+      return NextResponse.json({ ok: false, error: "Sign in required" }, { status: 401 });
     }
+
+    const email =
+      scope === "admin"
+        ? sessionAdmin!
+        : scope === "learner"
+          ? sessionLearner || sessionAdmin || ""
+          : sessionLearner || "";
 
     const adminTtl = Number(process.env.MEDIA_TOKEN_TTL_ADMIN_SECONDS || "");
     const learnerTtl = Number(process.env.MEDIA_TOKEN_TTL_LEARNER_SECONDS || "");
@@ -109,9 +114,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Access denied" }, { status: 403 });
     }
 
-    const playUrl = `${protectedMediaServePath(fileName)}?t=${encodeURIComponent(token)}${
-      scope !== "admin" && email ? `&email=${encodeURIComponent(email)}` : ""
-    }`;
+    // Identity is baked into the signed token — do not append spoofable ?email=.
+    const playUrl = `${protectedMediaServePath(fileName)}?t=${encodeURIComponent(token)}`;
 
     return NextResponse.json({ ok: true, playUrl });
   } catch (e) {

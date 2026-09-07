@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
-import { normalizeLearnerEmail } from "@/lib/learner-email";
+import { requireLearnerMutationAuth } from "@/lib/server/learner-session";
 import { sendCourseProgressReportEmail } from "@/lib/server/n8n-progress-report-service";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 type Body = {
-  email?: string;
   slug?: string;
   courseName?: string;
   learnerName?: string;
@@ -15,23 +14,22 @@ type Body = {
 };
 
 /**
- * POST { email, slug, learnerName?, courseName?, force? }
- * Sends a course progress report email via n8n (backend proxy — credentials stay server-side).
+ * POST { slug, learnerName?, courseName?, force? }
+ * Sends progress report for the signed-in learner only.
  */
 export async function POST(request: Request) {
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+
   try {
     const body = (await request.json().catch(() => ({}))) as Body;
-    const email = normalizeLearnerEmail(body.email?.trim() ?? "");
     const slug = canonicalCourseSlug(body.slug?.trim() ?? "");
-    if (!email) {
-      return NextResponse.json({ ok: false, message: "email is required" }, { status: 400 });
-    }
     if (!slug) {
       return NextResponse.json({ ok: false, message: "slug is required" }, { status: 400 });
     }
 
     const result = await sendCourseProgressReportEmail({
-      learnerEmail: email,
+      learnerEmail: auth.email,
       learnerName: body.learnerName,
       courseSlug: slug,
       courseName: body.courseName,
