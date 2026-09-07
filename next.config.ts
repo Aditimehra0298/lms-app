@@ -47,6 +47,8 @@ const nextConfig: NextConfig = {
           "media-src 'self' blob: https:",
         ].join("; "),
       },
+      // Allow Google OAuth popups (avoids COOP window.closed console noise).
+      { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
     ];
     const hsts =
       process.env.NODE_ENV === "production"

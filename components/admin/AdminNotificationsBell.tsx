@@ -34,7 +34,7 @@ type Props = {
 function adminHeaders(): Record<string, string> {
   const email = getLearnerEmail();
   return {
-    "Content-Type": "application/json",
+    "Content-Type": "application/json",
   };
 }
 
@@ -78,8 +78,14 @@ export default function AdminNotificationsBell({ onNavigate }: Props) {
       const qs = withScan ? "?scan=1" : "";
       const res = await fetch(`/api/admin/notifications${qs}`, {
         cache: "no-store",
+        credentials: "include",
         headers: adminHeaders(),
       });
+      if (res.status === 401 || res.status === 403) {
+        // Exclusive session ended or not admin — stop polling and leave /admin.
+        window.location.replace("/account?admin=1&reason=session");
+        return;
+      }
       const json = (await res.json()) as {
         ok?: boolean;
         message?: string;
@@ -99,12 +105,17 @@ export default function AdminNotificationsBell({ onNavigate }: Props) {
   }, []);
 
   useEffect(() => {
+    let stopped = false;
     void load(!scannedOnce.current);
     scannedOnce.current = true;
     const id = window.setInterval(() => {
-      void load(true);
+      if (stopped) return;
+      void load(false);
     }, 90_000);
-    return () => window.clearInterval(id);
+    return () => {
+      stopped = true;
+      window.clearInterval(id);
+    };
   }, [load]);
 
   useEffect(() => {

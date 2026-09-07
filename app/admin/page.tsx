@@ -382,7 +382,8 @@ function AdminPageInner() {
         status: "denied",
         message: data.message,
       });
-      router.replace("/account?admin=1&reason=session");
+      // Hard navigate so this tab cannot keep polling admin APIs.
+      window.location.replace("/account?admin=1&reason=session");
     };
 
     const check = () =>
@@ -395,16 +396,16 @@ function AdminPageInner() {
               status: "denied",
               message: "Could not verify admin permission. Sign in at Admin login.",
             });
-            router.replace("/account?admin=1");
+            window.location.replace("/account?admin=1");
           }
         });
 
     // Server JWT session cookie is the only proof of admin — never trust localStorage alone.
     void check();
-    // Kick this browser if another device took the exclusive admin session.
+    // Kick this browser quickly if another device took the exclusive admin session.
     const heartbeat = window.setInterval(() => {
       void check();
-    }, 20_000);
+    }, 5_000);
 
     return () => {
       cancelled = true;

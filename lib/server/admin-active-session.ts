@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Exclusive admin panel session: only one active login at a time.
- * Primary store: MySQL (works across PM2 / restarts).
- * Fallback: data/admin-active-session.json if DB table not ready.
+ * Primary store: MySQL. File fallback kept in sync.
  */
 
 const storePath = path.join(process.cwd(), "data", "admin-active-session.json");
@@ -62,6 +61,15 @@ function fromDbRow(row: {
   };
 }
 
+function pickNewer(
+  a: ActiveAdminSession | null,
+  b: ActiveAdminSession | null,
+): ActiveAdminSession | null {
+  if (!a) return b;
+  if (!b) return a;
+  return a.createdAt >= b.createdAt ? a : b;
+}
+
 export function readActiveAdminSessionSync(): ActiveAdminSession | null {
   try {
     const raw = readFileSync(storePath, "utf8");
@@ -82,7 +90,7 @@ export function readActiveAdminSessionSync(): ActiveAdminSession | null {
 
 async function readFromDb(): Promise<ActiveAdminSession | null> {
   try {
-    if (!prisma.adminActiveSession) return null;
+    if (!("adminActiveSession" in prisma) || !prisma.adminActiveSession) return null;
     const row = await prisma.adminActiveSession.findUnique({ where: { id: ROW_ID } });
     if (!row) return null;
     const session = fromDbRow(row);
@@ -91,14 +99,15 @@ async function readFromDb(): Promise<ActiveAdminSession | null> {
       return null;
     }
     return session;
-  } catch {
+  } catch (err) {
+    console.error("[admin-active-session] db read failed", err);
     return null;
   }
 }
 
 async function writeToDb(session: ActiveAdminSession): Promise<boolean> {
   try {
-    if (!prisma.adminActiveSession) return false;
+    if (!("adminActiveSession" in prisma) || !prisma.adminActiveSession) return false;
     await prisma.adminActiveSession.upsert({
       where: { id: ROW_ID },
       create: {
@@ -124,7 +133,7 @@ async function writeToDb(session: ActiveAdminSession): Promise<boolean> {
 
 async function clearDb(sid?: string): Promise<void> {
   try {
-    if (!prisma.adminActiveSession) return;
+    if (!("adminActiveSession" in prisma) || !prisma.adminActiveSession) return;
     if (sid) {
       const row = await prisma.adminActiveSession.findUnique({ where: { id: ROW_ID } });
       if (row && row.sid !== sid) return;
@@ -137,21 +146,34 @@ async function clearDb(sid?: string): Promise<void> {
 
 export async function readActiveAdminSession(): Promise<ActiveAdminSession | null> {
   const fromDb = await readFromDb();
-  if (fromDb) return fromDb;
-
+  let fromFile: ActiveAdminSession | null = null;
   try {
     const raw = await fs.readFile(storePath, "utf8");
-    const session = parseSession(raw);
-    if (!session) {
-      await clearActiveAdminSession();
-      return null;
-    }
-    // Best-effort promote file → DB so cluster nodes agree.
-    void writeToDb(session);
-    return session;
+    fromFile = parseSession(raw);
   } catch {
+    fromFile = null;
+  }
+
+  const session = pickNewer(fromDb, fromFile);
+  if (!session) {
+    if (fromFile === null && fromDb === null) return null;
+    await clearActiveAdminSession();
     return null;
   }
+
+  // Keep both stores aligned on the winning sid.
+  if (!fromDb || fromDb.sid !== session.sid) {
+    void writeToDb(session);
+  }
+  if (!fromFile || fromFile.sid !== session.sid) {
+    try {
+      await ensureDir();
+      await fs.writeFile(storePath, JSON.stringify(session, null, 2), "utf8");
+    } catch {
+      /* ignore */
+    }
+  }
+  return session;
 }
 
 export async function writeActiveAdminSession(session: ActiveAdminSession): Promise<void> {
@@ -160,8 +182,13 @@ export async function writeActiveAdminSession(session: ActiveAdminSession): Prom
   await fs.writeFile(storePath, JSON.stringify(session, null, 2), "utf8");
   if (!dbOk) {
     console.warn(
-      "[admin-active-session] Using file only — run: npx prisma db push (table lms_admin_active_session)",
+      "[admin-active-session] DB write failed — using file only. Check prisma generate / lms_admin_active_session table.",
     );
+  }
+  // Confirm readable
+  const check = await readActiveAdminSession();
+  if (!check || check.sid !== session.sid) {
+    throw new Error("Failed to register exclusive admin session.");
   }
 }
 
@@ -178,10 +205,6 @@ export async function clearActiveAdminSession(sid?: string): Promise<void> {
   }
 }
 
-/**
- * True when another device already holds the admin panel session.
- * Same-device renewals (matching sid) are allowed.
- */
 export async function isAdminSessionHeldElsewhere(currentSid?: string | null): Promise<{
   held: boolean;
   session: ActiveAdminSession | null;
@@ -192,7 +215,6 @@ export async function isAdminSessionHeldElsewhere(currentSid?: string | null): P
   return { held: true, session };
 }
 
-/** Validate JWT sid against the exclusive registry. */
 export async function isAdminSessionSidActive(
   email: string,
   sid: string | undefined | null,

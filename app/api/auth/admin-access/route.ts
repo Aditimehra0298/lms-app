@@ -28,16 +28,26 @@ export async function GET(request: Request) {
   const allowed = Boolean(claims?.email && isMainAdminEmail(claims.email));
 
   if (!allowed) {
-    return NextResponse.json(
+    const res = NextResponse.json(
       {
         ok: true,
         allowed: false,
         configured: true,
         message:
-          "Admin access requires signing in at /account?admin=1. If signed in on another device, sign out there first.",
+          "Admin access requires signing in at /account?admin=1. If signed in on another device, sign out there first — or use Continue on this device.",
       },
       { headers: { "Cache-Control": "no-store" } },
     );
+    // Drop stale admin cookies so this browser stops hammering /api/admin/*.
+    const {
+      clearAdminSessionCookieHeader,
+      clearAdminCsrfCookieHeader,
+      clearAdminXsrfCookieHeader,
+    } = await import("@/lib/server/admin-session");
+    res.headers.append("Set-Cookie", clearAdminSessionCookieHeader());
+    res.headers.append("Set-Cookie", clearAdminCsrfCookieHeader());
+    res.headers.append("Set-Cookie", clearAdminXsrfCookieHeader());
+    return res;
   }
 
   const res = NextResponse.json(

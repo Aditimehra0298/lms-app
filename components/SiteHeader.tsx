@@ -302,7 +302,6 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
             <Image
               src={isLight ? sfLightLogo : sfWhiteLogo}
               alt={COMPANY_DISPLAY_NAME}
-              priority
               className={`w-auto object-contain ${compactHeader ? "h-11" : "h-16"}`}
             />
             <div className="hidden md:block">
