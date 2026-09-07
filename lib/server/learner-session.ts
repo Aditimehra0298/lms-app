@@ -1,22 +1,28 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { sharedAuthCookieDomain } from "@/lib/server/auth-cookie-domain";
+import { isSameSiteOrigin } from "@/lib/server/csrf-origin";
 
 /**
  * JWT-style learner session (HMAC-SHA256):
  *   base64url(JSON payload).base64url(signature)
- * Payload: { v, email, exp }
+ * Payload: { v, email, exp, csrf }
  *
- * HttpOnly cookie is the only trusted learner identity for private APIs.
- * Never trust ?email=, body.email, or the forgeable sft_learner_email cookie.
+ * Security tokens (Coursera-style layering):
+ * 1) HttpOnly session cookie — identity
+ * 2) Readable CSRF cookie + X-CSRF-Token header — double-submit
+ * 3) Same-origin check on mutations
  */
 export const LEARNER_SESSION_COOKIE = "sft_learner_session";
+export const LEARNER_CSRF_COOKIE = "sft_learner_csrf";
+export const LEARNER_CSRF_HEADER = "x-csrf-token";
 
 const DEFAULT_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
 
 export type LearnerSessionClaims = {
   email: string;
   exp: number;
+  csrf: string;
 };
 
 function signingSecret(): string {
@@ -50,14 +56,19 @@ function signPayload(payloadJson: string): string {
   return createHmac("sha256", signingSecret()).update(payloadJson).digest("base64url");
 }
 
+export function createLearnerCsrfToken(): string {
+  return randomBytes(32).toString("base64url");
+}
+
 export function createLearnerSessionToken(
   email: string,
   ttlSeconds: number = DEFAULT_TTL_SECONDS,
-): string {
+  csrf: string = createLearnerCsrfToken(),
+): { token: string; csrf: string; exp: number } {
   const normalized = email.trim().toLowerCase();
   const exp = Math.floor(Date.now() / 1000) + Math.max(300, ttlSeconds);
-  const payload = JSON.stringify({ v: 1, email: normalized, exp });
-  return `${b64url(payload)}.${signPayload(payload)}`;
+  const payload = JSON.stringify({ v: 2, email: normalized, exp, csrf });
+  return { token: `${b64url(payload)}.${signPayload(payload)}`, csrf, exp };
 }
 
 export function verifyLearnerSessionClaims(
@@ -70,10 +81,14 @@ export function verifyLearnerSessionClaims(
     if (!payloadB64 || !sig) return null;
     const payloadJson = b64urlDecode(payloadB64);
     if (!safeEqual(sig, signPayload(payloadJson))) return null;
-    const parsed = JSON.parse(payloadJson) as { email?: string; exp?: number };
+    const parsed = JSON.parse(payloadJson) as { email?: string; exp?: number; csrf?: string };
     if (!parsed.email || !Number.isFinite(parsed.exp)) return null;
     if (Math.floor(Date.now() / 1000) > (parsed.exp as number)) return null;
-    return { email: parsed.email.trim().toLowerCase(), exp: parsed.exp as number };
+    return {
+      email: parsed.email.trim().toLowerCase(),
+      exp: parsed.exp as number,
+      csrf: typeof parsed.csrf === "string" ? parsed.csrf : "",
+    };
   } catch {
     return null;
   }
@@ -84,14 +99,14 @@ function cookieSecure(): boolean {
   return appUrl.startsWith("https://") || process.env.NODE_ENV === "production";
 }
 
-function cookieBase(name: string, value: string, maxAge: number): string {
+function cookieBase(name: string, value: string, maxAge: number, httpOnly: boolean): string {
   const parts = [
     `${name}=${value}`,
     "Path=/",
-    "HttpOnly",
     "SameSite=Lax",
     `Max-Age=${maxAge}`,
   ];
+  if (httpOnly) parts.splice(2, 0, "HttpOnly");
   const domain = sharedAuthCookieDomain();
   if (domain) parts.push(`Domain=${domain}`);
   if (cookieSecure()) parts.push("Secure");
@@ -99,11 +114,19 @@ function cookieBase(name: string, value: string, maxAge: number): string {
 }
 
 export function learnerSessionCookieHeader(token: string): string {
-  return cookieBase(LEARNER_SESSION_COOKIE, token, DEFAULT_TTL_SECONDS);
+  return cookieBase(LEARNER_SESSION_COOKIE, token, DEFAULT_TTL_SECONDS, true);
+}
+
+export function learnerCsrfCookieHeader(csrf: string): string {
+  return cookieBase(LEARNER_CSRF_COOKIE, csrf, DEFAULT_TTL_SECONDS, false);
 }
 
 export function clearLearnerSessionCookieHeader(): string {
-  return cookieBase(LEARNER_SESSION_COOKIE, "", 0);
+  return cookieBase(LEARNER_SESSION_COOKIE, "", 0, true);
+}
+
+export function clearLearnerCsrfCookieHeader(): string {
+  return cookieBase(LEARNER_CSRF_COOKIE, "", 0, false);
 }
 
 export function readLearnerSessionCookie(request: Request): string | null {
@@ -117,28 +140,92 @@ export function readLearnerSessionCookie(request: Request): string | null {
   }
 }
 
-export function readLearnerSessionEmail(request: Request): string | null {
-  return verifyLearnerSessionClaims(readLearnerSessionCookie(request))?.email ?? null;
+export function readLearnerCsrfCookie(request: Request): string | null {
+  const header = request.headers.get("cookie") || "";
+  const match = header.match(new RegExp(`(?:^|;\\s*)${LEARNER_CSRF_COOKIE}=([^;]*)`));
+  if (!match?.[1]) return null;
+  try {
+    return decodeURIComponent(match[1].trim());
+  } catch {
+    return match[1].trim();
+  }
 }
 
-/**
- * Resolve authenticated learner email from the httpOnly session only.
- * Optional ?email= / body email may only match the session — never authorize alone.
- */
+export function readLearnerSessionClaims(request: Request): LearnerSessionClaims | null {
+  return verifyLearnerSessionClaims(readLearnerSessionCookie(request));
+}
+
+export function readLearnerSessionEmail(request: Request): string | null {
+  return readLearnerSessionClaims(request)?.email ?? null;
+}
+
 export function requireLearnerSessionEmail(request: Request): string | null {
   return readLearnerSessionEmail(request);
 }
 
+/** Double-submit CSRF + same-origin for learner mutations. */
+export function assertLearnerCsrf(
+  request: Request,
+  claims: LearnerSessionClaims,
+): string | null {
+  const method = request.method.toUpperCase();
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return null;
+
+  if (!isSameSiteOrigin(request)) {
+    return "Cross-site request blocked.";
+  }
+  if (!claims.csrf) {
+    return "Session outdated. Sign in again.";
+  }
+
+  const headerToken =
+    request.headers.get(LEARNER_CSRF_HEADER)?.trim() ||
+    request.headers.get("x-xsrf-token")?.trim() ||
+    "";
+  const cookieToken = readLearnerCsrfCookie(request)?.trim() || "";
+  if (!headerToken || !cookieToken) {
+    return "Missing CSRF token. Refresh the page and try again.";
+  }
+  if (!safeEqual(headerToken, cookieToken) || !safeEqual(headerToken, claims.csrf)) {
+    return "Invalid CSRF token.";
+  }
+  return null;
+}
+
+/**
+ * Session + CSRF for learner write APIs.
+ * Returns email or a ready-to-return error response.
+ */
+export function requireLearnerMutationAuth(
+  request: Request,
+): { email: string } | { response: NextResponse } {
+  const claims = readLearnerSessionClaims(request);
+  if (!claims?.email) {
+    return { response: learnerAuthRequiredResponse() };
+  }
+  const csrfError = assertLearnerCsrf(request, claims);
+  if (csrfError) {
+    return {
+      response: NextResponse.json(
+        { ok: false, message: csrfError },
+        { status: 403, headers: { "Cache-Control": "no-store" } },
+      ),
+    };
+  }
+  return { email: claims.email };
+}
+
 export function attachLearnerSession(response: NextResponse, email: string): NextResponse {
-  response.headers.append(
-    "Set-Cookie",
-    learnerSessionCookieHeader(createLearnerSessionToken(email)),
-  );
+  const { token, csrf } = createLearnerSessionToken(email);
+  response.headers.append("Set-Cookie", learnerSessionCookieHeader(token));
+  response.headers.append("Set-Cookie", learnerCsrfCookieHeader(csrf));
+  response.headers.set("X-Learner-CSRF", csrf);
   return response;
 }
 
 export function clearLearnerSession(response: NextResponse): NextResponse {
   response.headers.append("Set-Cookie", clearLearnerSessionCookieHeader());
+  response.headers.append("Set-Cookie", clearLearnerCsrfCookieHeader());
   return response;
 }
 

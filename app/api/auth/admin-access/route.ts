@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { isMainAdminEmail } from "@/lib/server/admin-emails";
 import {
   ADMIN_CSRF_COOKIE,
+  ADMIN_XSRF_COOKIE,
   adminCsrfCookieHeader,
+  adminXsrfCookieHeader,
   readAdminSessionClaimsActive,
 } from "@/lib/server/admin-session";
 
@@ -45,16 +47,23 @@ export async function GET(request: Request) {
       configured: true,
       email: claims!.email,
       csrfToken: claims!.csrf || undefined,
+      xsrfToken: claims!.xsrf || undefined,
       message: "Access granted.",
     },
     { headers: { "Cache-Control": "no-store" } },
   );
 
+  const existing = request.headers.get("cookie") || "";
   if (claims?.csrf) {
-    const existing = request.headers.get("cookie") || "";
     const hasCsrf = new RegExp(`(?:^|;\\s*)${ADMIN_CSRF_COOKIE}=`).test(existing);
     if (!hasCsrf) {
       res.headers.append("Set-Cookie", adminCsrfCookieHeader(claims.csrf));
+    }
+  }
+  if (claims?.xsrf) {
+    const hasXsrf = new RegExp(`(?:^|;\\s*)${ADMIN_XSRF_COOKIE}=`).test(existing);
+    if (!hasXsrf) {
+      res.headers.append("Set-Cookie", adminXsrfCookieHeader(claims.xsrf));
     }
   }
 

@@ -7,6 +7,7 @@ import {
 import {
   canAccessTicket,
   resolveTicketAuth,
+  resolveTicketMutationAuth,
   ticketAuthRequiredResponse,
   ticketForbiddenResponse,
 } from "@/lib/server/ticket-api-auth";
@@ -49,8 +50,9 @@ export async function GET(req: NextRequest) {
  * userEmail is bound to the session — client cannot spoof another user.
  */
 export async function POST(req: NextRequest) {
-  const auth = resolveTicketAuth(req);
-  if (!auth) return ticketAuthRequiredResponse();
+  const authOrErr = resolveTicketMutationAuth(req);
+  if ("error" in authOrErr) return authOrErr.error;
+  const auth = authOrErr;
 
   try {
     const body = (await req.json()) as Record<string, unknown>;

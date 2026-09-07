@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { finalizeRazorpayPayment } from "@/lib/server/payment-record-service";
 import { isRazorpayConfigured } from "@/lib/server/razorpay-config";
 import {
-  learnerAuthRequiredResponse,
-  requireLearnerSessionEmail,
+  requireLearnerMutationAuth,
 } from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
@@ -20,8 +19,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Razorpay is not configured." }, { status: 503 });
   }
 
-  const sessionEmail = requireLearnerSessionEmail(request);
-  if (!sessionEmail) return learnerAuthRequiredResponse();
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+  const sessionEmail = auth.email;
 
   try {
     const body = (await request.json()) as Body;

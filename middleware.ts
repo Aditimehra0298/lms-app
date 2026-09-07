@@ -3,7 +3,9 @@ import type { NextRequest } from "next/server";
 
 const ADMIN_SESSION_COOKIE = "sft_admin_session";
 const ADMIN_CSRF_COOKIE = "sft_admin_csrf";
+const ADMIN_XSRF_COOKIE = "sft_admin_xsrf";
 const ADMIN_CSRF_HEADER = "x-csrf-token";
+const ADMIN_XSRF_HEADER = "x-xsrf-token";
 
 function signingSecret(): string {
   const s =
@@ -59,7 +61,7 @@ async function hmacSign(payload: string): Promise<string> {
   return bytesToB64url(buf);
 }
 
-type Claims = { email: string; csrf: string };
+type Claims = { email: string; csrf: string; xsrf: string };
 
 async function verifyAdminSessionToken(token: string | null | undefined): Promise<Claims | null> {
   if (!token?.trim()) return null;
@@ -68,7 +70,6 @@ async function verifyAdminSessionToken(token: string | null | undefined): Promis
     const main = getMainAdminEmail();
     if (!main) return null;
 
-    // JWT-style: payload.sig
     if (raw.includes(".")) {
       const [payloadB64, sig] = raw.split(".");
       if (!payloadB64 || !sig) return null;
@@ -79,14 +80,18 @@ async function verifyAdminSessionToken(token: string | null | undefined): Promis
         email?: string;
         exp?: number;
         csrf?: string;
+        xsrf?: string;
       };
       if (!parsed.email || !parsed.csrf || !Number.isFinite(parsed.exp)) return null;
       if (Math.floor(Date.now() / 1000) > (parsed.exp as number)) return null;
       if (parsed.email.trim().toLowerCase() !== main) return null;
-      return { email: parsed.email.trim().toLowerCase(), csrf: parsed.csrf };
+      return {
+        email: parsed.email.trim().toLowerCase(),
+        csrf: parsed.csrf,
+        xsrf: typeof parsed.xsrf === "string" ? parsed.xsrf : "",
+      };
     }
 
-    // Legacy email|exp|sig
     const decoded = new TextDecoder().decode(b64urlToBytes(raw));
     const parts = decoded.split("|");
     if (parts.length !== 3) return null;
@@ -98,7 +103,7 @@ async function verifyAdminSessionToken(token: string | null | undefined): Promis
     const payload = `${email}|${exp}`;
     const expected = await hmacSign(payload);
     if (!safeEqualStr(sig, expected)) return null;
-    return { email: email.trim().toLowerCase(), csrf: "" };
+    return { email: email.trim().toLowerCase(), csrf: "", xsrf: "" };
   } catch {
     return null;
   }
@@ -111,6 +116,18 @@ function allowedOrigins(request: NextRequest): Set<string> {
   if (appUrl) {
     try {
       set.add(new URL(appUrl).origin);
+    } catch {
+      /* ignore */
+    }
+  }
+  for (const origin of [...set]) {
+    try {
+      const u = new URL(origin);
+      if (u.hostname.startsWith("www.")) {
+        set.add(`${u.protocol}//${u.hostname.slice(4)}`);
+      } else if (u.hostname.includes(".")) {
+        set.add(`${u.protocol}//www.${u.hostname}`);
+      }
     } catch {
       /* ignore */
     }
@@ -130,32 +147,32 @@ function isSameOrigin(request: NextRequest): boolean {
       return false;
     }
   }
-  // Non-browser clients (curl) without Origin — block mutating admin APIs.
   return false;
 }
 
 function csrfOk(request: NextRequest, claims: Claims): boolean {
   const method = request.method.toUpperCase();
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") return true;
-
-  // Always require same-origin for mutating admin APIs.
   if (!isSameOrigin(request)) return false;
+  if (!claims.csrf) return true;
 
-  // New JWT sessions: also require double-submit CSRF.
-  if (!claims.csrf) return true; // legacy until re-login
+  const csrfHeader = request.headers.get(ADMIN_CSRF_HEADER)?.trim() || "";
+  const csrfCookie = request.cookies.get(ADMIN_CSRF_COOKIE)?.value?.trim() || "";
+  if (!csrfHeader || !csrfCookie) return false;
+  if (!safeEqualStr(csrfHeader, csrfCookie) || !safeEqualStr(csrfHeader, claims.csrf)) return false;
 
-  const header =
-    request.headers.get(ADMIN_CSRF_HEADER)?.trim() ||
-    request.headers.get("x-xsrf-token")?.trim() ||
-    "";
-  const cookie = request.cookies.get(ADMIN_CSRF_COOKIE)?.value?.trim() || "";
-  if (!header || !cookie) return false;
-  return safeEqualStr(header, cookie) && safeEqualStr(header, claims.csrf);
+  if (claims.xsrf) {
+    const xsrfHeader = request.headers.get(ADMIN_XSRF_HEADER)?.trim() || "";
+    const xsrfCookie = request.cookies.get(ADMIN_XSRF_COOKIE)?.value?.trim() || "";
+    if (!xsrfHeader || !xsrfCookie) return false;
+    if (!safeEqualStr(xsrfHeader, xsrfCookie) || !safeEqualStr(xsrfHeader, claims.xsrf)) return false;
+  }
+  return true;
 }
 
 /**
  * Protect private media paths, /admin UI, and /api/admin/* APIs.
- * Session = JWT-style httpOnly cookie. Mutations also need CSRF + same origin.
+ * Session + dual CSRF/XSRF + same-origin on mutations.
  */
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;

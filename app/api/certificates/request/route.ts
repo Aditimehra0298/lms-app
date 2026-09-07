@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { assertLearnerMayRequestCertificate } from "@/lib/server/certificate-access";
 import { requestCourseCertificate } from "@/lib/server/n8n-certificate-service";
 import {
-  learnerAuthRequiredResponse,
-  requireLearnerSessionEmail,
+  requireLearnerMutationAuth,
 } from "@/lib/server/learner-session";
 import { prisma } from "@/lib/prisma";
 
@@ -11,8 +10,9 @@ export const dynamic = "force-dynamic";
 
 /** Start certificate generation after verified enrollment + completion (session-bound). */
 export async function POST(request: Request) {
-  const sessionEmail = requireLearnerSessionEmail(request);
-  if (!sessionEmail) return learnerAuthRequiredResponse();
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+  const sessionEmail = auth.email;
 
   let body: {
     learnerEmail?: string;

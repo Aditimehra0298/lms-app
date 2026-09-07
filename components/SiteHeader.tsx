@@ -18,6 +18,7 @@ import {
   syncLearnerEmailCookie,
   syncLearnerProfileFromServer,
 } from "@/lib/learner-session-client";
+import { installLearnerCsrfFetch } from "@/lib/learner-csrf-client";
 import MyLearningHeaderLink from "@/components/MyLearningHeaderLink";
 import { PricingRegionBadge } from "@/components/PricingRegionBadge";
 import HeaderExploreMenu from "@/components/HeaderExploreMenu";
@@ -120,6 +121,10 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem("sft_theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    return installLearnerCsrfFetch();
+  }, []);
 
   useEffect(() => {
     const applyLocalAuth = () => {

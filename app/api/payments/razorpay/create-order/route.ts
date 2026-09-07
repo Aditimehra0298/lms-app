@@ -8,6 +8,7 @@ import { isRazorpayConfigured } from "@/lib/server/razorpay-config";
 import { promoNote } from "@/lib/server/checkout-promo";
 import {
   learnerAuthRequiredResponse,
+  requireLearnerMutationAuth,
   requireLearnerSessionEmail,
 } from "@/lib/server/learner-session";
 
@@ -22,8 +23,9 @@ type Body = {
 };
 
 export async function POST(request: Request) {
-  const sessionEmail = requireLearnerSessionEmail(request);
-  if (!sessionEmail) return learnerAuthRequiredResponse();
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+  const sessionEmail = auth.email;
 
   try {
     const body = (await request.json()) as Body;

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { recordDemoPayment } from "@/lib/server/payment-record-service";
 import {
-  learnerAuthRequiredResponse,
-  requireLearnerSessionEmail,
+  requireLearnerMutationAuth,
 } from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
@@ -28,8 +27,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const sessionEmail = requireLearnerSessionEmail(request);
-  if (!sessionEmail) return learnerAuthRequiredResponse();
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+  const sessionEmail = auth.email;
 
   try {
     const body = (await request.json()) as Body;

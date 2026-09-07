@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateTicketStatus } from "@/lib/server/support-ticket-service";
 import {
-  resolveTicketAuth,
-  ticketAuthRequiredResponse,
+  resolveTicketMutationAuth,
   ticketForbiddenResponse,
 } from "@/lib/server/ticket-api-auth";
 
@@ -15,9 +14,9 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = resolveTicketAuth(req);
-  if (!auth) return ticketAuthRequiredResponse();
-  if (auth.role !== "admin") return ticketForbiddenResponse();
+  const authOrErr = resolveTicketMutationAuth(req);
+  if ("error" in authOrErr) return authOrErr.error;
+  if (authOrErr.role !== "admin") return ticketForbiddenResponse();
 
   try {
     const { id } = await params;

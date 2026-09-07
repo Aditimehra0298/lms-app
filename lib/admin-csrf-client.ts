@@ -1,18 +1,17 @@
 /**
- * Browser helper: attach JWT CSRF double-submit header on admin API calls.
- * Install once on the /admin page so all existing fetch() calls stay protected.
+ * Browser helper: attach Coursera-style dual CSRF/XSRF headers on admin API calls.
  */
 
 export const ADMIN_CSRF_COOKIE = "sft_admin_csrf";
+export const ADMIN_XSRF_COOKIE = "sft_admin_xsrf";
 export const ADMIN_CSRF_HEADER = "x-csrf-token";
+export const ADMIN_XSRF_HEADER = "x-xsrf-token";
 
 const FLAG = "__sft_admin_csrf_fetch__";
 
-function readCsrfCookie(): string {
+function readCookie(name: string): string {
   if (typeof document === "undefined") return "";
-  const match = document.cookie.match(
-    new RegExp(`(?:^|;\\s*)${ADMIN_CSRF_COOKIE}=([^;]*)`),
-  );
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
   if (!match?.[1]) return "";
   try {
     return decodeURIComponent(match[1].trim());
@@ -30,13 +29,18 @@ function isAdminApiUrl(input: RequestInfo | URL): boolean {
           ? input.href
           : input.url;
     const url = new URL(raw, window.location.origin);
-    return url.origin === window.location.origin && url.pathname.startsWith("/api/admin");
+    if (url.origin !== window.location.origin) return false;
+    return (
+      url.pathname.startsWith("/api/admin") ||
+      url.pathname.startsWith("/api/tickets") ||
+      url.pathname.startsWith("/api/issues")
+    );
   } catch {
     return false;
   }
 }
 
-/** Patch window.fetch once so admin mutations send X-CSRF-Token automatically. */
+/** Patch window.fetch once so admin mutations send CSRF + XSRF headers. */
 export function installAdminCsrfFetch(): () => void {
   if (typeof window === "undefined") return () => undefined;
   const w = window as Window & { [FLAG]?: boolean };
@@ -56,9 +60,13 @@ export function installAdminCsrfFetch(): () => void {
     );
 
     if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
-      const csrf = readCsrfCookie();
+      const csrf = readCookie(ADMIN_CSRF_COOKIE);
+      const xsrf = readCookie(ADMIN_XSRF_COOKIE);
       if (csrf && !headers.has(ADMIN_CSRF_HEADER)) {
         headers.set(ADMIN_CSRF_HEADER, csrf);
+      }
+      if (xsrf && !headers.has(ADMIN_XSRF_HEADER)) {
+        headers.set(ADMIN_XSRF_HEADER, xsrf);
       }
     }
 
@@ -76,5 +84,9 @@ export function installAdminCsrfFetch(): () => void {
 }
 
 export function getAdminCsrfToken(): string {
-  return readCsrfCookie();
+  return readCookie(ADMIN_CSRF_COOKIE);
+}
+
+export function getAdminXsrfToken(): string {
+  return readCookie(ADMIN_XSRF_COOKIE);
 }

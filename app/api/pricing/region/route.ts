@@ -6,6 +6,7 @@ import { resolveLearnerCountry, ipsForStorage } from "@/lib/server/resolve-learn
 import { getClientIps } from "@/lib/request-ip";
 import {
   learnerAuthRequiredResponse,
+  requireLearnerMutationAuth,
   requireLearnerSessionEmail,
 } from "@/lib/server/learner-session";
 
@@ -13,8 +14,9 @@ export const dynamic = "force-dynamic";
 
 /** Save learner country for localized pricing (manual override from region panel). */
 export async function POST(request: Request) {
-  const sessionEmail = requireLearnerSessionEmail(request);
-  if (!sessionEmail) return learnerAuthRequiredResponse();
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+  const sessionEmail = auth.email;
 
   let body: { email?: string; countryCode?: string };
   try {

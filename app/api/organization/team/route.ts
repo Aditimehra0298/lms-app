@@ -8,6 +8,7 @@ import {
 } from "@/lib/server/organization-team-store";
 import {
   learnerAuthRequiredResponse,
+  requireLearnerMutationAuth,
   requireLearnerSessionEmail,
 } from "@/lib/server/learner-session";
 
@@ -46,8 +47,9 @@ export async function GET(request: Request) {
 
 /** One-time migration from browser localStorage demo data */
 export async function POST(request: Request) {
-  const sessionEmail = requireLearnerSessionEmail(request);
-  if (!sessionEmail) return learnerAuthRequiredResponse();
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+  const sessionEmail = auth.email;
 
   try {
     const body = (await request.json()) as Body;
@@ -79,8 +81,9 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const sessionEmail = requireLearnerSessionEmail(request);
-  if (!sessionEmail) return learnerAuthRequiredResponse();
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+  const sessionEmail = auth.email;
 
   try {
     const body = (await request.json()) as Body;

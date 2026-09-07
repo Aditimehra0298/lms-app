@@ -8,19 +8,24 @@ import {
   writeActiveAdminSession,
 } from "@/lib/server/admin-active-session";
 import { sharedAuthCookieDomain } from "@/lib/server/auth-cookie-domain";
+import { isSameSiteOrigin } from "@/lib/server/csrf-origin";
 
 /**
  * JWT-style admin session (HMAC-SHA256):
  *   base64url(JSON payload).base64url(signature)
- * Payload: { v, email, exp, csrf, sid }
+ * Payload: { v, email, exp, csrf, xsrf, sid }
  *
- * HttpOnly cookie = proof of login (JS cannot forge it).
- * CSRF cookie (readable) + X-CSRF-Token header = stops cross-site abuse.
- * `sid` is registered server-side so only one admin device is active at a time.
+ * Coursera-style multi-token stack:
+ * 1) HttpOnly session cookie — identity + sid (exclusive device)
+ * 2) CSRF cookie + X-CSRF-Token — primary double-submit
+ * 3) XSRF cookie + X-XSRF-TOKEN — secondary double-submit
+ * 4) Same-origin / Referer check (middleware + assertAdminCsrf)
  */
 export const ADMIN_SESSION_COOKIE = "sft_admin_session";
 export const ADMIN_CSRF_COOKIE = "sft_admin_csrf";
+export const ADMIN_XSRF_COOKIE = "sft_admin_xsrf";
 export const ADMIN_CSRF_HEADER = "x-csrf-token";
+export const ADMIN_XSRF_HEADER = "x-xsrf-token";
 
 /** Default session lifetime: 12 hours. */
 const DEFAULT_TTL_SECONDS = 12 * 60 * 60;
@@ -29,6 +34,7 @@ export type AdminSessionClaims = {
   email: string;
   exp: number;
   csrf: string;
+  xsrf: string;
   /** Exclusive session id — must match data/admin-active-session.json */
   sid: string;
 };
@@ -76,19 +82,21 @@ export function createAdminSessionToken(
   email: string,
   ttlSeconds: number = DEFAULT_TTL_SECONDS,
   csrf: string = createCsrfToken(),
+  xsrf: string = createCsrfToken(),
   sid: string = createAdminSessionId(),
-): { token: string; csrf: string; exp: number; sid: string } {
+): { token: string; csrf: string; xsrf: string; exp: number; sid: string } {
   const normalized = email.trim().toLowerCase();
   const exp = Math.floor(Date.now() / 1000) + Math.max(300, ttlSeconds);
   const payload = JSON.stringify({
-    v: 2,
+    v: 3,
     email: normalized,
     exp,
     csrf,
+    xsrf,
     sid,
   });
   const token = `${b64url(payload)}.${signPayload(payload)}`;
-  return { token, csrf, exp, sid };
+  return { token, csrf, xsrf, exp, sid };
 }
 
 /**
@@ -115,6 +123,7 @@ export function verifyAdminSessionClaims(
         email?: string;
         exp?: number;
         csrf?: string;
+        xsrf?: string;
         sid?: string;
       };
       if (!parsed.email || !parsed.csrf || !Number.isFinite(parsed.exp)) return null;
@@ -124,6 +133,7 @@ export function verifyAdminSessionClaims(
         email: parsed.email.trim().toLowerCase(),
         exp: parsed.exp as number,
         csrf: parsed.csrf,
+        xsrf: typeof parsed.xsrf === "string" ? parsed.xsrf : "",
         sid: typeof parsed.sid === "string" ? parsed.sid : "",
       };
     }
@@ -144,6 +154,7 @@ export function verifyAdminSessionClaims(
       email: email.trim().toLowerCase(),
       exp,
       csrf: "",
+      xsrf: "",
       sid: "",
     };
   } catch {
@@ -194,12 +205,20 @@ export function adminCsrfCookieHeader(csrf: string): string {
   return cookieBase(ADMIN_CSRF_COOKIE, csrf, DEFAULT_TTL_SECONDS, false);
 }
 
+export function adminXsrfCookieHeader(xsrf: string): string {
+  return cookieBase(ADMIN_XSRF_COOKIE, xsrf, DEFAULT_TTL_SECONDS, false);
+}
+
 export function clearAdminSessionCookieHeader(): string {
   return cookieBase(ADMIN_SESSION_COOKIE, "", 0, true);
 }
 
 export function clearAdminCsrfCookieHeader(): string {
   return cookieBase(ADMIN_CSRF_COOKIE, "", 0, false);
+}
+
+export function clearAdminXsrfCookieHeader(): string {
+  return cookieBase(ADMIN_XSRF_COOKIE, "", 0, false);
 }
 
 export function readAdminSessionCookie(request: Request): string | null {
@@ -216,6 +235,17 @@ export function readAdminSessionCookie(request: Request): string | null {
 export function readAdminCsrfCookie(request: Request): string | null {
   const header = request.headers.get("cookie") || "";
   const match = header.match(new RegExp(`(?:^|;\\s*)${ADMIN_CSRF_COOKIE}=([^;]*)`));
+  if (!match?.[1]) return null;
+  try {
+    return decodeURIComponent(match[1].trim());
+  } catch {
+    return match[1].trim();
+  }
+}
+
+export function readAdminXsrfCookie(request: Request): string | null {
+  const header = request.headers.get("cookie") || "";
+  const match = header.match(new RegExp(`(?:^|;\\s*)${ADMIN_XSRF_COOKIE}=([^;]*)`));
   if (!match?.[1]) return null;
   try {
     return decodeURIComponent(match[1].trim());
@@ -249,20 +279,37 @@ export function assertAdminCsrf(request: Request, claims: AdminSessionClaims): s
   const method = request.method.toUpperCase();
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") return null;
 
+  if (!isSameSiteOrigin(request)) {
+    return "Cross-site admin request blocked.";
+  }
+
+  // Legacy sessions without csrf: require same-origin only (checked above).
   if (!claims.csrf) return null;
 
-  const headerToken =
+  const csrfHeader =
     request.headers.get(ADMIN_CSRF_HEADER)?.trim() ||
-    request.headers.get("x-xsrf-token")?.trim() ||
     "";
-  const cookieToken = readAdminCsrfCookie(request)?.trim() || "";
+  const csrfCookie = readAdminCsrfCookie(request)?.trim() || "";
 
-  if (!headerToken || !cookieToken) {
+  if (!csrfHeader || !csrfCookie) {
     return "Missing CSRF token. Refresh /admin and try again.";
   }
-  if (!safeEqual(headerToken, cookieToken) || !safeEqual(headerToken, claims.csrf)) {
+  if (!safeEqual(csrfHeader, csrfCookie) || !safeEqual(csrfHeader, claims.csrf)) {
     return "Invalid CSRF token.";
   }
+
+  // Second token (XSRF) when present on the session — Coursera-style dual submit.
+  if (claims.xsrf) {
+    const xsrfHeader = request.headers.get(ADMIN_XSRF_HEADER)?.trim() || "";
+    const xsrfCookie = readAdminXsrfCookie(request)?.trim() || "";
+    if (!xsrfHeader || !xsrfCookie) {
+      return "Missing XSRF token. Refresh /admin and try again.";
+    }
+    if (!safeEqual(xsrfHeader, xsrfCookie) || !safeEqual(xsrfHeader, claims.xsrf)) {
+      return "Invalid XSRF token.";
+    }
+  }
+
   return null;
 }
 
@@ -270,7 +317,7 @@ export async function attachAdminSession(
   response: NextResponse,
   email: string,
 ): Promise<NextResponse> {
-  const { token, csrf, exp, sid } = createAdminSessionToken(email);
+  const { token, csrf, xsrf, exp, sid } = createAdminSessionToken(email);
   await writeActiveAdminSession({
     email: email.trim().toLowerCase(),
     sid,
@@ -279,7 +326,9 @@ export async function attachAdminSession(
   });
   response.headers.append("Set-Cookie", adminSessionCookieHeader(token));
   response.headers.append("Set-Cookie", adminCsrfCookieHeader(csrf));
+  response.headers.append("Set-Cookie", adminXsrfCookieHeader(xsrf));
   response.headers.set("X-Admin-CSRF", csrf);
+  response.headers.set("X-Admin-XSRF", xsrf);
   return response;
 }
 
@@ -295,5 +344,6 @@ export async function clearAdminSession(
   }
   response.headers.append("Set-Cookie", clearAdminSessionCookieHeader());
   response.headers.append("Set-Cookie", clearAdminCsrfCookieHeader());
+  response.headers.append("Set-Cookie", clearAdminXsrfCookieHeader());
   return response;
 }

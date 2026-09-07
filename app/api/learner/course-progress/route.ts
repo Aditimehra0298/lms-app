@@ -10,6 +10,7 @@ import { queueCourseProgressReportCheck } from "@/lib/server/n8n-progress-report
 import { queueModuleCompletedEmails } from "@/lib/server/n8n-module-completed-service";
 import {
   learnerAuthRequiredResponse,
+  requireLearnerMutationAuth,
   requireLearnerSessionEmail,
 } from "@/lib/server/learner-session";
 import { hitRateLimit, enforceMinGap } from "@/lib/server/otp-rate-limit";
@@ -100,8 +101,9 @@ type PutBody = {
  * Body.email is ignored; enrollment required; exam pass flags derived server-side.
  */
 export async function PUT(request: Request) {
-  const sessionEmail = requireLearnerSessionEmail(request);
-  if (!sessionEmail) return learnerAuthRequiredResponse();
+  const auth = requireLearnerMutationAuth(request);
+  if ("response" in auth) return auth.response;
+  const sessionEmail = auth.email;
 
   try {
     const body = (await request.json()) as PutBody;

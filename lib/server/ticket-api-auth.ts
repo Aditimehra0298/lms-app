@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
-import { readAdminSessionEmail } from "@/lib/server/admin-session";
-import { readLearnerSessionEmail } from "@/lib/server/learner-session";
+import {
+  assertAdminCsrf,
+  readAdminSessionClaims,
+  readAdminSessionEmail,
+} from "@/lib/server/admin-session";
+import {
+  assertLearnerCsrf,
+  readLearnerSessionClaims,
+  readLearnerSessionEmail,
+} from "@/lib/server/learner-session";
 
 export type TicketAuth =
   | { role: "admin"; email: string }
@@ -13,6 +21,52 @@ export function resolveTicketAuth(request: Request): TicketAuth | null {
   const learner = readLearnerSessionEmail(request);
   if (learner) return { role: "learner", email: learner };
   return null;
+}
+
+/** Auth + CSRF for ticket/issue write methods. */
+export function resolveTicketMutationAuth(
+  request: Request,
+): TicketAuth | { error: NextResponse } {
+  const adminClaims = readAdminSessionClaims(request);
+  if (adminClaims?.email && adminClaims.sid) {
+    const csrfError = assertAdminCsrf(request, adminClaims);
+    if (csrfError) {
+      return {
+        error: NextResponse.json(
+          { ok: false, error: csrfError },
+          { status: 403, headers: { "Cache-Control": "no-store" } },
+        ),
+      };
+    }
+    // Exclusive sid is enforced by readAdminSessionEmail for admin role paths that use it;
+    // mutation paths should prefer readAdminSessionEmail which checks sid sync.
+    const admin = readAdminSessionEmail(request);
+    if (!admin) {
+      return {
+        error: NextResponse.json(
+          { ok: false, error: "Admin session expired. Sign in again." },
+          { status: 403, headers: { "Cache-Control": "no-store" } },
+        ),
+      };
+    }
+    return { role: "admin", email: admin };
+  }
+
+  const learnerClaims = readLearnerSessionClaims(request);
+  if (learnerClaims?.email) {
+    const csrfError = assertLearnerCsrf(request, learnerClaims);
+    if (csrfError) {
+      return {
+        error: NextResponse.json(
+          { ok: false, error: csrfError },
+          { status: 403, headers: { "Cache-Control": "no-store" } },
+        ),
+      };
+    }
+    return { role: "learner", email: learnerClaims.email };
+  }
+
+  return { error: ticketAuthRequiredResponse() };
 }
 
 export function ticketAuthRequiredResponse(): NextResponse {
