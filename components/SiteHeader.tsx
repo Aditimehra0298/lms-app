@@ -134,7 +134,12 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
       const email = getLearnerEmail();
       if (!email) return;
       void syncLearnerProfileFromServer(email).then((p) => {
-        if (p) setUserProfile(p);
+        if (p) {
+          setUserProfile(p);
+          setIsLoggedIn(true);
+        } else {
+          applyLocalAuth();
+        }
       });
     };
 

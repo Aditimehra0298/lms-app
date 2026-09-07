@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { sharedAuthCookieDomain } from "@/lib/server/auth-cookie-domain";
 
 /**
  * JWT-style learner session (HMAC-SHA256):
@@ -91,6 +92,8 @@ function cookieBase(name: string, value: string, maxAge: number): string {
     "SameSite=Lax",
     `Max-Age=${maxAge}`,
   ];
+  const domain = sharedAuthCookieDomain();
+  if (domain) parts.push(`Domain=${domain}`);
   if (cookieSecure()) parts.push("Secure");
   return parts.join("; ");
 }

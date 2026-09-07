@@ -141,6 +141,9 @@ export function clearLearnerProfileStorage(): void {
   for (const key of Object.values(AUTH_PROFILE_KEYS)) {
     window.localStorage.removeItem(key);
   }
+  window.localStorage.removeItem("sft_logged_in");
+  window.localStorage.removeItem("sft_learner_email");
+  document.cookie = "sft_learner_email=; path=/; max-age=0";
 }
 
 export function profileInitial(name?: string | null, email?: string | null): string {

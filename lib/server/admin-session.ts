@@ -7,6 +7,7 @@ import {
   isAdminSessionSidActiveSync,
   writeActiveAdminSession,
 } from "@/lib/server/admin-active-session";
+import { sharedAuthCookieDomain } from "@/lib/server/auth-cookie-domain";
 
 /**
  * JWT-style admin session (HMAC-SHA256):
@@ -179,6 +180,8 @@ function cookieBase(name: string, value: string, maxAge: number, httpOnly: boole
     `Max-Age=${maxAge}`,
   ];
   if (httpOnly) parts.splice(2, 0, "HttpOnly");
+  const domain = sharedAuthCookieDomain();
+  if (domain) parts.push(`Domain=${domain}`);
   if (cookieSecure()) parts.push("Secure");
   return parts.join("; ");
 }

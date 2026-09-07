@@ -166,7 +166,20 @@ export async function syncLearnerProfileFromServer(email: string): Promise<Learn
       cache: "no-store",
       credentials: "include",
     });
-    const data = await readJsonResponse(res, {} as { ok?: boolean; profile?: LmsUserProfilePayload });
+    const data = await readJsonResponse(res, {} as {
+      ok?: boolean;
+      authenticated?: boolean;
+      profile?: LmsUserProfilePayload;
+    });
+    // Stale localStorage after session deploy / logout / exclusive admin lock.
+    if (res.status === 401 || data.authenticated === false) {
+      const hadLocal = window.localStorage.getItem(AUTH_KEYS.loggedIn) === "true";
+      if (hadLocal) {
+        clearLearnerProfileStorage();
+        window.dispatchEvent(new Event("sft_auth_updated"));
+      }
+      return null;
+    }
     if (!res.ok || !data.ok || !data.profile) return null;
     return applyDbProfileToSession(data.profile);
   } catch {
