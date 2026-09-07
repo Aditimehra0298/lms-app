@@ -143,7 +143,19 @@ export function clearLearnerProfileStorage(): void {
   }
   window.localStorage.removeItem("sft_logged_in");
   window.localStorage.removeItem("sft_learner_email");
-  document.cookie = "sft_learner_email=; path=/; max-age=0";
+  // Never keep PII in cookies — wipe legacy email/role cookies.
+  document.cookie = "sft_learner_email=; path=/; max-age=0; SameSite=Lax";
+  document.cookie = "sft_user_role=; path=/; max-age=0; SameSite=Lax";
+  try {
+    const host = window.location.hostname.toLowerCase();
+    const base = host.startsWith("www.") ? host.slice(4) : host;
+    if (base.includes(".")) {
+      document.cookie = `sft_learner_email=; path=/; max-age=0; Domain=.${base}; SameSite=Lax`;
+      document.cookie = `sft_user_role=; path=/; max-age=0; Domain=.${base}; SameSite=Lax`;
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function profileInitial(name?: string | null, email?: string | null): string {

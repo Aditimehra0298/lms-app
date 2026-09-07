@@ -46,15 +46,29 @@ export function getLearnerEmail(): string | null {
   return window.localStorage.getItem(AUTH_KEYS.email);
 }
 
-/** Keep cookie in sync so certificate PDF GET works without ?email= in the URL. */
-export function syncLearnerEmailCookie(): void {
+/**
+ * Never store email/name/phone in cookies.
+ * Identity for APIs comes from httpOnly session only (`/api/auth/me`, learner session).
+ * This only wipes legacy PII cookies (e.g. old sft_learner_email).
+ */
+export function clearLearnerPiiCookies(): void {
   if (typeof window === "undefined") return;
-  const email = getLearnerEmail()?.trim().toLowerCase();
-  if (email) {
-    document.cookie = `${AUTH_KEYS.email}=${encodeURIComponent(email)}; path=/; max-age=31536000; SameSite=Lax`;
-  } else {
-    document.cookie = `${AUTH_KEYS.email}=; path=/; max-age=0`;
+  const names = [AUTH_KEYS.email, AUTH_KEYS.role, "sft_user_role", "sft_learner_name", "sft_learner_phone"];
+  const host = window.location.hostname.toLowerCase();
+  const base = host.startsWith("www.") ? host.slice(4) : host;
+  const domains = ["", `Domain=${host}`, ...(base.includes(".") ? [`Domain=.${base}`] : [])];
+  for (const name of names) {
+    for (const domainPart of domains) {
+      const parts = [`${name}=`, "Path=/", "Max-Age=0", "SameSite=Lax"];
+      if (domainPart) parts.push(domainPart);
+      document.cookie = parts.join("; ");
+    }
   }
+}
+
+/** @deprecated Use clearLearnerPiiCookies — email must not live in cookies. */
+export function syncLearnerEmailCookie(): void {
+  clearLearnerPiiCookies();
 }
 
 /** Pass `redirectPath` from `usePathname()` in render to avoid hydration mismatch. */
@@ -138,7 +152,7 @@ export function applyDbProfileToSession(profile: LmsUserProfilePayload): Learner
   const prevRole = window.localStorage.getItem(AUTH_KEYS.role);
   window.localStorage.setItem(AUTH_KEYS.email, profile.email);
   window.localStorage.setItem(AUTH_KEYS.role, nextRole);
-  syncLearnerEmailCookie();
+  clearLearnerPiiCookies();
   cacheLearnerProfile(learner);
   if (profile.countryCode && profile.countryName) {
     const cached = getCachedPricingRegion();

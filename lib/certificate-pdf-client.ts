@@ -1,9 +1,9 @@
 import { readJsonResponse, safeJsonParse } from "@/lib/safe-json";
 
-/** Build download URL for stored LMS certificate PDFs (requires ?email=). */
+/** Build download URL for stored LMS certificate PDFs (session auth — no email in URL). */
 export function certificatePdfDownloadHref(
   pdfUrl: string | null | undefined,
-  email: string | null | undefined,
+  _email?: string | null | undefined,
   options?: { attachment?: boolean },
 ): string | null {
   if (!pdfUrl?.trim()) return null;
@@ -22,12 +22,17 @@ export function certificatePdfDownloadHref(
     return url;
   }
 
-  if (url.startsWith("/api/certificates/") && email?.trim()) {
-    const params = new URLSearchParams();
-    params.set("email", email.trim().toLowerCase());
-    if (options?.attachment !== false) params.set("download", "1");
-    const sep = url.includes("?") ? "&" : "?";
-    return `${url}${sep}${params.toString()}`;
+  if (url.startsWith("/api/certificates/")) {
+    // Strip any legacy ?email= from stored URLs.
+    try {
+      const u = new URL(url, "https://local.invalid");
+      u.searchParams.delete("email");
+      if (options?.attachment !== false) u.searchParams.set("download", "1");
+      const q = u.searchParams.toString();
+      return `${u.pathname}${q ? `?${q}` : ""}`;
+    } catch {
+      return url;
+    }
   }
   return url;
 }

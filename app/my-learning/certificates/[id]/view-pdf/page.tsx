@@ -1,19 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useParams } from "next/navigation";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { fetchSavedCertificatePdf, savePdfBlob } from "@/lib/certificate-pdf-client";
 import {
   getLearnerEmail,
   subscribeLearnerAuth,
-  syncLearnerEmailCookie,
+  clearLearnerPiiCookies,
 } from "@/lib/learner-session-client";
 
 export default function CertificatePdfViewerPage() {
   const params = useParams();
-  const searchParams = useSearchParams();
   const id = typeof params.id === "string" ? params.id : "";
   const [downloading, setDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -26,13 +25,10 @@ export default function CertificatePdfViewerPage() {
     () => "",
   );
 
-  const effectiveEmail = useMemo(() => {
-    const fromQuery = searchParams.get("email")?.trim().toLowerCase() ?? "";
-    return fromQuery || sessionEmail;
-  }, [searchParams, sessionEmail]);
+  const effectiveEmail = sessionEmail;
 
   useEffect(() => {
-    syncLearnerEmailCookie();
+    clearLearnerPiiCookies();
   }, [sessionEmail]);
 
   useEffect(() => {

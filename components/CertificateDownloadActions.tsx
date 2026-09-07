@@ -14,7 +14,7 @@ import {
 import {
   getLearnerEmail,
   subscribeLearnerAuth,
-  syncLearnerEmailCookie,
+  clearLearnerPiiCookies,
 } from "@/lib/learner-session-client";
 import {
   fetchSavedCertificatePdf,
@@ -74,7 +74,7 @@ export function CertificateDownloadActions({
 
   useEffect(() => {
     setMounted(true);
-    syncLearnerEmailCookie();
+    clearLearnerPiiCookies();
   }, [sessionEmail]);
 
   useEffect(() => {
@@ -83,12 +83,9 @@ export function CertificateDownloadActions({
     }
   }, [pdfReady, pdfUrl]);
 
-  const viewPageHref =
-    certificateId && effectiveEmail
-      ? `/my-learning/certificates/${encodeURIComponent(certificateId)}/view-pdf?email=${encodeURIComponent(effectiveEmail)}`
-      : certificateId
-        ? `/my-learning/certificates/${encodeURIComponent(certificateId)}/view-pdf`
-        : null;
+  const viewPageHref = certificateId
+      ? `/my-learning/certificates/${encodeURIComponent(certificateId)}/view-pdf`
+      : null;
 
   const resolveCertificateId = useCallback(async (): Promise<string | null> => {
     const existing = certificateId?.trim();

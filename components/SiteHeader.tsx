@@ -15,7 +15,7 @@ import {
 } from "@/lib/auth-profile";
 import {
   getLearnerEmail,
-  syncLearnerEmailCookie,
+  clearLearnerPiiCookies,
   syncLearnerProfileFromServer,
 } from "@/lib/learner-session-client";
 import { installLearnerCsrfFetch } from "@/lib/learner-csrf-client";
@@ -131,7 +131,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
       const loggedIn = window.localStorage.getItem("sft_logged_in") === "true";
       setIsLoggedIn(loggedIn);
       setUserProfile(readLearnerProfileFromStorage());
-      syncLearnerEmailCookie();
+      clearLearnerPiiCookies();
       return loggedIn;
     };
 
