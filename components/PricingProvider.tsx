@@ -13,7 +13,6 @@ import { X, MapPin, Loader2 } from "lucide-react";
 import {
   formatInrAsRegional,
   localizePriceString,
-  pricingRegionForCountry,
   type PricingRegion,
 } from "@/lib/country-pricing";
 import { CountryFlagImg } from "@/components/CountryFlagImg";
