@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { extractApiMessage } from "@/lib/api-error";
+import { readJsonResponse } from "@/lib/safe-json";
 
 type Props = {
   email: string;
@@ -30,11 +32,14 @@ export default function EmailOtpField({
   const [verifying, setVerifying] = useState(false);
   const [resendIn, setResendIn] = useState(0);
   const [localInfo, setLocalInfo] = useState("");
+  const [localTone, setLocalTone] = useState<"error" | "success" | "info">("info");
+  const [devCode, setDevCode] = useState("");
 
   useEffect(() => {
     onVerifiedChange(false);
     setOtpCode("");
     setLocalInfo("");
+    setDevCode("");
   }, [email, onVerifiedChange]);
 
   useEffect(() => {
@@ -46,6 +51,7 @@ export default function EmailOtpField({
   const notify = useCallback(
     (message: string, type: "error" | "success" | "info") => {
       setLocalInfo(message);
+      setLocalTone(type);
       onStatusMessage?.(message, type);
     },
     [onStatusMessage],
@@ -59,28 +65,46 @@ export default function EmailOtpField({
     }
     setSending(true);
     setLocalInfo("");
+    setDevCode("");
     try {
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ email: normalized }),
       });
-      const data = (await res.json()) as {
+      const data = await readJsonResponse(res, {} as {
         ok?: boolean;
         message?: string;
+        error?: string;
         devLogged?: boolean;
-      };
-      if (!data.ok) {
-        notify(data.message ?? "Could not send OTP.", "error");
+        devCode?: string;
+      });
+      if (!res.ok || !data.ok) {
+        notify(
+          extractApiMessage(data, res.status === 429
+            ? "Too many OTP requests. Wait a minute and try again."
+            : "Could not send OTP."),
+          "error",
+        );
         return;
       }
-      notify(
-        data.message ?? "OTP sent.",
-        data.devLogged ? "info" : "success",
-      );
+      if (data.devCode && /^\d{6}$/.test(data.devCode)) {
+        setDevCode(data.devCode);
+        setOtpCode(data.devCode);
+        notify(
+          data.message ?? `Use this verification code: ${data.devCode}`,
+          "info",
+        );
+      } else {
+        notify(
+          data.message ?? "OTP sent. Check your inbox and spam folder.",
+          "success",
+        );
+      }
       setResendIn(RESEND_SECONDS);
     } catch {
-      notify("Network error. Is the dev server running?", "error");
+      notify("Network error. Check your connection and try again.", "error");
     } finally {
       setSending(false);
     }
@@ -101,22 +125,34 @@ export default function EmailOtpField({
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ email: normalized, code: otpCode.trim() }),
       });
-      const data = (await res.json()) as { ok?: boolean; message?: string };
-      if (!data.ok) {
-        notify(data.message ?? "Invalid OTP.", "error");
+      const data = await readJsonResponse(res, {} as {
+        ok?: boolean;
+        message?: string;
+        error?: string;
+      });
+      if (!res.ok || !data.ok) {
+        notify(extractApiMessage(data, "Invalid OTP."), "error");
         onVerifiedChange(false);
         return;
       }
       notify(data.message ?? "Email verified.", "success");
       onVerifiedChange(true);
     } catch {
-      notify("Could not verify OTP.", "error");
+      notify("Could not verify OTP. Try again.", "error");
     } finally {
       setVerifying(false);
     }
   };
+
+  const infoClass =
+    localTone === "error"
+      ? "text-red-300"
+      : localTone === "success" || verified
+        ? "text-emerald-300"
+        : "text-amber-100";
 
   return (
     <div className={`md:col-span-2 space-y-3 ${className}`}>
@@ -166,13 +202,13 @@ export default function EmailOtpField({
         </button>
       </div>
 
-      {localInfo && (
-        <p
-          className={`text-sm ${verified ? "text-emerald-300" : localInfo.includes("verification code:") ? "font-mono text-lg text-amber-100" : localInfo.includes("terminal") ? "text-amber-200" : "text-gray-300"}`}
-        >
-          {localInfo}
+      {devCode ? (
+        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 font-mono text-lg tracking-[0.35em] text-amber-100">
+          {devCode}
         </p>
-      )}
+      ) : null}
+
+      {localInfo ? <p className={`text-sm ${infoClass}`}>{localInfo}</p> : null}
     </div>
   );
 }

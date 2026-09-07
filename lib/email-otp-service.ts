@@ -18,6 +18,8 @@ export type OtpSendResult = {
   ok: boolean;
   message?: string;
   devLogged?: boolean;
+  /** Only returned when SMTP is intentionally disabled / local dev. */
+  devCode?: string;
   expiresInMinutes?: number;
 };
 
@@ -85,17 +87,28 @@ export async function sendOtpForPurpose(email: string, purpose: OtpPurpose): Pro
 
   try {
     const mail = await sendOtpEmail(email, code, mailKindForPurpose(purpose));
-    const devMode = mail.devLogged;
+    const devMode = Boolean(mail.devLogged);
+    // Production without SMTP was returning ok:true with no inbox delivery and no on-page code.
+    if (devMode && process.env.NODE_ENV === "production" && process.env.OTP_USE_SMTP !== "false") {
+      return {
+        ok: false,
+        message:
+          "Email OTP is not configured on the server. Set SMTP_HOST, SMTP_USER, and SMTP_PASS (Gmail app password), then restart the app.",
+      };
+    }
     return {
       ok: true,
       devLogged: mail.devLogged,
+      // Show code on the form only when SMTP is off / explicitly allowed (local + OTP_USE_SMTP=false).
+      devCode: mail.devCode,
       expiresInMinutes: OTP_TTL_MINUTES,
-      message: devMode
-        ? "SMTP is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS in .env.local (see .env.example)."
+      message: mail.devCode
+        ? `SMTP is off — use this verification code: ${mail.devCode} (expires in ${OTP_TTL_MINUTES} minutes).`
         : `Code sent to ${email}. Check inbox and spam. Code expires in ${OTP_TTL_MINUTES} minutes.`,
     };
   } catch (err) {
     const detail = err instanceof Error ? err.message : "Failed to send email";
+    console.error("[otp/send-mail]", email, detail);
     return {
       ok: false,
       message:

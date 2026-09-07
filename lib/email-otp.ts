@@ -17,7 +17,7 @@ export const OTP_IP_VERIFY_WINDOW_MINUTES = 15;
 export const OTP_MAX_IP_VERIFY_ATTEMPTS = 30;
 /** Per-IP OTP send attempts in this window (not spoofable via client XFF alone). */
 export const OTP_IP_SEND_WINDOW_MINUTES = 15;
-export const OTP_MAX_IP_SENDS = 5;
+export const OTP_MAX_IP_SENDS = 20;
 /** Minimum ms between verify attempts for the same email (slows Intruder). */
 export const OTP_MIN_VERIFY_GAP_MS = 800;
 

@@ -6,7 +6,7 @@ import { emailAppName, emailAppUrl, emailLogoSrc } from "@/lib/email-brand-confi
 
 export type { OtpEmailKind } from "@/lib/email-templates/otp";
 
-export type SendEmailResult = { sent: boolean; devLogged?: boolean };
+export type SendEmailResult = { sent: boolean; devLogged?: boolean; devCode?: string };
 export type SendOtpResult = SendEmailResult;
 
 export type TransactionalEmailPayload = {
@@ -63,7 +63,20 @@ function logDevEmail(to: string, subject: string, reason: string, preview?: stri
 }
 
 function logDevOtp(to: string, code: string, reason: string): SendOtpResult {
-  return logDevEmail(to, "OTP", reason, `code: ${code}`);
+  const result = logDevEmail(to, "OTP", reason, `code: ${code}`);
+  return { ...result, devCode: code };
+}
+
+/** When true, OTP is logged / shown instead of sent over SMTP. */
+export function otpSmtpDisabled(): boolean {
+  return process.env.OTP_USE_SMTP === "false" || !smtpConfigured();
+}
+
+function allowDevOtpOnPage(): boolean {
+  if (process.env.OTP_DEV_EXPOSE_CODE === "true") return true;
+  if (process.env.OTP_USE_SMTP === "false") return true;
+  if (!smtpConfigured() && process.env.NODE_ENV !== "production") return true;
+  return false;
 }
 
 async function sendWithNodemailer(payload: TransactionalEmailPayload): Promise<void> {
@@ -133,6 +146,20 @@ export async function sendOtpEmail(
     appUrl: emailAppUrl(),
     logoSrc: emailLogoSrc(),
   });
+
+  if (!useRealSmtp()) {
+    const reason = !smtpConfigured()
+      ? "SMTP not configured — set SMTP_HOST / SMTP_USER / SMTP_PASS"
+      : "OTP_USE_SMTP=false — email preview in terminal only";
+    if (allowDevOtpOnPage()) {
+      return logDevOtp(to, code, reason);
+    }
+    // Production without SMTP: do not pretend the email was sent.
+    console.error(`[email] OTP blocked for ${to}: ${reason}`);
+    throw new Error(
+      "SMTP is not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASS on the server.",
+    );
+  }
 
   return sendTransactionalEmail({ to, subject, text, html });
 }

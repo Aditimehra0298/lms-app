@@ -85,6 +85,8 @@ export async function POST(request: Request) {
         ok: true,
         expiresInMinutes: result.expiresInMinutes,
         message: result.message,
+        devLogged: result.devLogged,
+        ...(result.devCode ? { devCode: result.devCode } : {}),
       },
       { headers: { "Cache-Control": "no-store" } },
     );
