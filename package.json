@@ -46,10 +46,12 @@
     "razorpay": "^2.9.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-easy-crop": "^5.5.7"
+    "react-easy-crop": "^5.5.7",
+    "@tailwindcss/postcss": "^4",
+    "postcss": "8.4.49",
+    "tailwindcss": "^4"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
     "@types/busboy": "^1.5.4",
     "@types/node": "20.19.39",
     "@types/nodemailer": "^6.4.17",
@@ -59,9 +61,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
     "napi-postinstall": "^0.3.4",
-    "postcss": "8.4.49",
     "prisma": "^6.19.0",
-    "tailwindcss": "^4",
     "typescript": "5.9.3"
   }
 }

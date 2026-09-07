@@ -28,12 +28,9 @@ if [[ ! -f .env.local ]] && [[ ! -f .env ]]; then
   echo "WARNING: No .env.local or .env found — set SMTP + secrets before go-live"
 fi
 
-echo "==> npm install (if needed)"
-if [[ ! -d node_modules ]] || [[ package-lock.json -nt node_modules ]]; then
-  npm ci --omit=dev 2>/dev/null || npm install --omit=dev
-else
-  npm install --omit=dev
-fi
+echo "==> npm install (include build tools: Tailwind/PostCSS/TypeScript)"
+# Do NOT use --omit=dev: Next production build needs @tailwindcss/postcss, typescript, prisma CLI.
+npm install
 
 echo "==> Prisma generate + db push (users blockedAt, admin active session table)"
 npx prisma generate
