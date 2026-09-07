@@ -12,6 +12,7 @@ export async function resolveCheckoutPromoDiscount(input: {
   slugs: string[];
   subtotal: number;
   currency: string;
+  countryCode?: string;
   catalog: ManagedCourse[];
 }): Promise<{ extraDiscount: number; code: string; label: string } | { extraDiscount: 0; code: ""; label: "" }> {
   const code = input.code?.trim().toUpperCase() ?? "";
@@ -22,14 +23,18 @@ export async function resolveCheckoutPromoDiscount(input: {
     ? sanitizePromotions(content.promotions)
     : defaultPromotions;
 
+  const country =
+    input.countryCode?.trim().toUpperCase() ||
+    (input.currency.toUpperCase() === "INR" ? "IN" : "");
+
   let baseFloor = 0;
   for (const slug of input.slugs) {
     const course = input.catalog.find((c) => c.slug === slug) ??
       (content.managedCourses ?? []).find((c) => c.slug === slug);
     if (!course) continue;
-    const regional = course.regionalPrices?.find(
-      (r) => r.countryCode.toUpperCase() === (input.currency === "INR" ? "IN" : ""),
-    );
+    const regional = country
+      ? course.regionalPrices?.find((r) => r.countryCode.toUpperCase() === country)
+      : undefined;
     const n = parseStoredPriceString(regional?.basePrice || course.basePrice || "");
     if (n != null) baseFloor += n;
   }

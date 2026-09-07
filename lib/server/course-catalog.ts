@@ -8,6 +8,21 @@ import {
 } from "@/lib/server/course-content-mysql-sync";
 import { readAdminContent } from "@/lib/server/content-store";
 import { pickUniqueCourseCover, isGenericCoursePlaceholder } from "@/lib/course-thumbnail";
+import { ensureCourseRegionalPricing } from "@/lib/standard-course-pricing";
+
+function pickRegionalPrices(
+  jsonRows: ManagedCourse["regionalPrices"],
+  mysqlRows: ManagedCourse["regionalPrices"],
+  mergedRows: ManagedCourse["regionalPrices"],
+): ManagedCourse["regionalPrices"] {
+  const jsonLen = jsonRows?.length ?? 0;
+  const mysqlLen = mysqlRows?.length ?? 0;
+  // Prefer the richer country-price set (DB often has the designed sheet).
+  if (mysqlLen > jsonLen) return mysqlRows;
+  if (jsonLen > 0) return jsonRows;
+  if (mysqlLen > 0) return mysqlRows;
+  return mergedRows;
+}
 
 export async function getManagedCourses() {
   const content = await readAdminContent();
@@ -29,15 +44,29 @@ export async function getManagedCourses() {
         fromMysql?.hero?.previewImage,
         course.hero?.backgroundImage,
       );
-      return {
+      const priced = ensureCourseRegionalPricing({
         ...merged,
         image: uniqueImage || (!isGenericCoursePlaceholder(merged.image) ? merged.image : "") || "",
-        price: course.price?.trim() || fromMysql?.price?.trim() || merged.price || "",
-        oldPrice: course.oldPrice?.trim() || fromMysql?.oldPrice?.trim() || merged.oldPrice || "",
-        regionalPrices:
-          (course.regionalPrices?.length ?? 0) > 0
-            ? course.regionalPrices
-            : fromMysql?.regionalPrices ?? merged.regionalPrices,
+        price:
+          fromMysql?.price?.trim() ||
+          course.price?.trim() ||
+          merged.price ||
+          "",
+        oldPrice:
+          fromMysql?.oldPrice?.trim() ||
+          course.oldPrice?.trim() ||
+          merged.oldPrice ||
+          "",
+        basePrice:
+          fromMysql?.basePrice?.trim() ||
+          course.basePrice?.trim() ||
+          merged.basePrice ||
+          "",
+        regionalPrices: pickRegionalPrices(
+          course.regionalPrices,
+          fromMysql?.regionalPrices,
+          merged.regionalPrices,
+        ),
         hero: uniqueImage
           ? {
               ...(merged.hero ?? {}),
@@ -46,7 +75,8 @@ export async function getManagedCourses() {
             }
           : merged.hero,
         curriculum: curriculumModulesForLearner(merged.curriculum),
-      };
+      });
+      return priced;
     }),
   );
 }
@@ -95,8 +125,16 @@ export async function getManagedCourseForLearner(slug: string): Promise<ManagedC
 
   if (!merged) return null;
 
-  return {
+  return ensureCourseRegionalPricing({
     ...merged,
+    price: fromMysql?.price?.trim() || merged.price || "",
+    oldPrice: fromMysql?.oldPrice?.trim() || merged.oldPrice || "",
+    basePrice: fromMysql?.basePrice?.trim() || merged.basePrice || "",
+    regionalPrices: pickRegionalPrices(
+      fromJson?.regionalPrices,
+      fromMysql?.regionalPrices,
+      merged.regionalPrices,
+    ),
     curriculum: curriculumModulesForLearner(merged.curriculum),
-  };
+  });
 }

@@ -65,6 +65,7 @@ export async function createRazorpayOrder(input: {
     slugs: items.map((i) => i.slug),
     subtotal: baseTotals.subtotal,
     currency,
+    countryCode: region.countryCode,
     catalog,
   });
   if (input.promoCode?.trim() && !promo.code) {

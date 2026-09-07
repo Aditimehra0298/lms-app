@@ -7,6 +7,7 @@ import {
   type PricingRegion,
 } from "@/lib/country-pricing";
 import { countryDisplayName } from "@/lib/iso-country-list";
+import { standardRegionalRowForCountry } from "@/lib/standard-course-pricing";
 
 export type ResolvedCoursePrices = {
   price: string;
@@ -83,8 +84,8 @@ function resolvedFromRow(
 }
 
 /**
- * Learner country row from Admin when set (India ₹, US $, …).
- * If that country has no row, show the default dollar price from Admin.
+ * Learner country row from Admin/DB when set (India ₹, US $, …).
+ * Falls back to the designed standard country sheet, then global USD.
  */
 export function resolveCoursePrices(
   course: Pick<ManagedCourse, "price" | "oldPrice" | "regionalPrices">,
@@ -95,6 +96,11 @@ export function resolveCoursePrices(
 
   if (regional?.price?.trim()) {
     return resolvedFromRow(regional, countryCode, true);
+  }
+
+  const standard = standardRegionalRowForCountry(countryCode);
+  if (standard?.price?.trim()) {
+    return resolvedFromRow(standard, countryCode, true);
   }
 
   const globalSale = formatPriceAsEntered(course.price?.trim() ?? "", "US");

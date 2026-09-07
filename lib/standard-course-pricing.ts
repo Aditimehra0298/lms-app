@@ -33,3 +33,48 @@ export function applyStandardCoursePricing<T extends Pick<ManagedCourse, "price"
     regionalPrices: STANDARD_REGIONAL_PRICES.map((row) => ({ ...row })),
   };
 }
+
+/**
+ * Keep admin/DB country rows; fill any missing standard markets so country pricing stays active.
+ */
+export function ensureCourseRegionalPricing<
+  T extends Pick<ManagedCourse, "price" | "oldPrice" | "regionalPrices"> & { basePrice?: string },
+>(course: T): T {
+  const existing = Array.isArray(course.regionalPrices) ? course.regionalPrices : [];
+  const byCode = new Map<string, CourseRegionalPriceRow>();
+  for (const row of existing) {
+    const code = (row.countryCode ?? "").trim().toUpperCase();
+    if (!code || !row.price?.trim()) continue;
+    byCode.set(code, {
+      countryCode: code,
+      price: row.price.trim(),
+      oldPrice: row.oldPrice?.trim() || undefined,
+      basePrice: row.basePrice?.trim() || undefined,
+    });
+  }
+  for (const std of STANDARD_REGIONAL_PRICES) {
+    if (!byCode.has(std.countryCode)) {
+      byCode.set(std.countryCode, { ...std });
+    }
+  }
+
+  const regionalPrices = [...byCode.values()];
+  const hasSale = Boolean(course.price?.trim());
+  const hasList = Boolean(course.oldPrice?.trim());
+  const hasBase = Boolean(course.basePrice?.trim());
+
+  return {
+    ...course,
+    price: hasSale ? course.price : STANDARD_GLOBAL_PRICES.price,
+    oldPrice: hasList ? course.oldPrice : STANDARD_GLOBAL_PRICES.oldPrice,
+    basePrice: hasBase ? course.basePrice : STANDARD_GLOBAL_PRICES.basePrice,
+    regionalPrices,
+  };
+}
+
+export function standardRegionalRowForCountry(
+  countryCode: string,
+): CourseRegionalPriceRow | undefined {
+  const code = countryCode.trim().toUpperCase();
+  return STANDARD_REGIONAL_PRICES.find((r) => r.countryCode === code);
+}

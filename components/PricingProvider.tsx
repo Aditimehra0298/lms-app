@@ -170,7 +170,7 @@ export function PricingProvider({ children }: { children: ReactNode }) {
       if (!region || region.countryCode === "IN") {
         return `₹${amountInr.toLocaleString("en-IN")}`;
       }
-      return formatInrAsRegional(amountInr, pricingRegionForCountry("US"));
+      return formatInrAsRegional(amountInr, region);
     },
     [region],
   );
