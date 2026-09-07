@@ -9,7 +9,10 @@ import {
 } from "@/lib/server/admin-emails";
 import { verifyAdminVerifyToken } from "@/lib/server/admin-verify-token";
 import { attachAdminSession, readAdminSessionClaims } from "@/lib/server/admin-session";
-import { isAdminSessionHeldElsewhere } from "@/lib/server/admin-active-session";
+import {
+  clearActiveAdminSession,
+  isAdminSessionHeldElsewhere,
+} from "@/lib/server/admin-active-session";
 import { attachLearnerSession } from "@/lib/server/learner-session";
 import { fetchGoogleUserInfo } from "@/lib/server/google-userinfo";
 import {
@@ -39,6 +42,8 @@ type Body = {
   countryName?: string;
   /** From step 1 admin password login — Google must match same email */
   adminVerifyToken?: string;
+  /** End other admin device and open this one. */
+  forceTakeover?: boolean;
 };
 
 const ACCOUNT_TYPES = new Set<AccountTypeId>(["individual", "organisation", "self"]);
@@ -246,15 +251,19 @@ export async function POST(request: Request) {
     const existingAdmin = readAdminSessionClaims(request);
     const held = await isAdminSessionHeldElsewhere(existingAdmin?.sid ?? null);
     if (held.held) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            "Admin panel is already signed in on another device. Sign out from that device first.",
-          sessionActiveElsewhere: true,
-        },
-        { status: 409 },
-      );
+      if (!body.forceTakeover) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Admin panel is already signed in on another device. Sign out there, or continue on this device to end that session.",
+            sessionActiveElsewhere: true,
+            canForceTakeover: true,
+          },
+          { status: 409 },
+        );
+      }
+      await clearActiveAdminSession();
     }
     return attachAdminSession(res, email);
   }

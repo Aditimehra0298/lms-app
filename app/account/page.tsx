@@ -231,6 +231,7 @@ export default function AccountPage() {
   const [adminAwaitingGoogle, setAdminAwaitingGoogle] = useState(false);
   const adminGoogleTriggered = useRef(false);
   const [authError, setAuthError] = useState("");
+  const [adminBlockedElsewhere, setAdminBlockedElsewhere] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleScriptReady, setGoogleScriptReady] = useState(false);
   const [browserOrigin, setBrowserOrigin] = useState("");
@@ -487,6 +488,7 @@ export default function AccountPage() {
 
     if (selectedAccountType === "self") {
       setAuthError("");
+      setAdminBlockedElsewhere(false);
       if (adminRequirePassword && !passwordValue) {
         setAuthError("Admin password is required.");
         return;
@@ -499,6 +501,7 @@ export default function AccountPage() {
           body: JSON.stringify({
             email: normalizedEmail,
             password: passwordValue,
+            forceTakeover: false,
           }),
         });
         const data = (await res.json()) as {
@@ -511,14 +514,18 @@ export default function AccountPage() {
           role?: string;
           accountType?: string;
           sessionActiveElsewhere?: boolean;
+          canForceTakeover?: boolean;
         };
         if (!res.ok || !data.ok) {
-          setAuthError(
-            data.sessionActiveElsewhere || res.status === 409
-              ? data.message ??
-                  "Admin is already signed in on another device. Sign out from that device first."
-              : data.message ?? "Admin sign-in failed.",
-          );
+          if (data.sessionActiveElsewhere || res.status === 409 || data.canForceTakeover) {
+            setAdminBlockedElsewhere(true);
+            setAuthError(
+              data.message ??
+                "Admin is already signed in on another device. Use Continue on this device to end that session.",
+            );
+            return;
+          }
+          setAuthError(data.message ?? "Admin sign-in failed.");
           return;
         }
 
@@ -680,18 +687,31 @@ export default function AccountPage() {
         authView === "register" && selectedAccountType !== "self" && countryCodeForRegister
           ? authCountryInput(countryCodeForRegister)
           : undefined;
+      const forceTakeover =
+        typeof window !== "undefined" &&
+        window.sessionStorage.getItem("sft_admin_force_takeover") === "1";
       const result = await signInWithGoogleAccessToken(
         accessToken,
         selectedAccountType,
         selectedAccountType === "self" ? "login" : authView,
         country,
         selectedAccountType === "self" ? verifyTokenForAdmin : undefined,
+        selectedAccountType === "self" ? forceTakeover : false,
       );
       if (!result.ok) {
         adminGoogleTriggered.current = false;
+        const blocked = Boolean(
+          (result as { sessionActiveElsewhere?: boolean }).sessionActiveElsewhere ||
+            (result as { canForceTakeover?: boolean }).canForceTakeover,
+        );
+        if (blocked) setAdminBlockedElsewhere(true);
         setAuthError(result.message ?? "Google sign-in failed.");
         return;
       }
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem("sft_admin_force_takeover");
+      }
+      setAdminBlockedElsewhere(false);
       if (!result.dbSaved && authView === "register") {
         setAuthError(
           "Google sign-in succeeded but could not save to the database. Ensure MySQL is running, then run: npm run db:push",
@@ -1303,6 +1323,92 @@ export default function AccountPage() {
                     {!adminAwaitingGoogle && authError && (
                       <p className="mb-2 text-sm text-rose-300">{authError}</p>
                     )}
+                    {adminBlockedElsewhere && !adminAwaitingGoogle ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const normalizedEmail = selfEmail.trim().toLowerCase();
+                          const passwordValue = selfPassword;
+                          if (adminRequirePassword && !passwordValue) {
+                            setAuthError("Admin password is required.");
+                            return;
+                          }
+                          setAuthError("");
+                          try {
+                            const res = await fetch("/api/auth/admin-login", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              credentials: "include",
+                              body: JSON.stringify({
+                                email: normalizedEmail,
+                                password: passwordValue,
+                                forceTakeover: true,
+                              }),
+                            });
+                            const data = (await res.json()) as {
+                              ok?: boolean;
+                              message?: string;
+                              email?: string;
+                              verifyToken?: string;
+                              requiresGoogleVerification?: boolean;
+                              profile?: LmsUserProfilePayload;
+                            };
+                            if (!res.ok || !data.ok) {
+                              setAuthError(data.message ?? "Could not take over admin session.");
+                              return;
+                            }
+                            setAdminBlockedElsewhere(false);
+                            if (typeof window !== "undefined") {
+                              window.sessionStorage.setItem("sft_admin_force_takeover", "1");
+                            }
+                            if (data.requiresGoogleVerification === false) {
+                              if (data.profile) {
+                                applyDbProfileToSession(data.profile);
+                              } else {
+                                window.localStorage.setItem(
+                                  "sft_learner_email",
+                                  data.email ?? normalizedEmail,
+                                );
+                                window.localStorage.setItem("sft_user_role", "admin");
+                              }
+                              window.localStorage.setItem("sft_logged_in", "true");
+                              window.sessionStorage.removeItem("sft_admin_force_takeover");
+                              window.location.href = "/admin";
+                              return;
+                            }
+                            if (!data.verifyToken) {
+                              setAuthError(data.message ?? "Admin sign-in failed.");
+                              return;
+                            }
+                            const verifyToken = data.verifyToken;
+                            setAdminVerifyToken(verifyToken);
+                            setAdminAwaitingGoogle(true);
+                            setSelfPassword("");
+                            adminGoogleTriggered.current = false;
+                            const openGoogleAfterPassword = (attempt = 0) => {
+                              if (window.google?.accounts?.oauth2) {
+                                setGoogleScriptReady(true);
+                                runAdminGoogleVerification(verifyToken);
+                                return;
+                              }
+                              if (attempt < 30) {
+                                window.setTimeout(() => openGoogleAfterPassword(attempt + 1), 200);
+                                return;
+                              }
+                              setAuthError(
+                                "Google is still loading. Click Continue with Google when ready.",
+                              );
+                            };
+                            openGoogleAfterPassword();
+                          } catch {
+                            setAuthError("Could not reach the server.");
+                          }
+                        }}
+                        className="mb-3 w-full rounded-xl border border-amber-400/50 bg-amber-500/20 px-6 py-3.5 text-sm font-bold text-amber-50 transition hover:bg-amber-500/30"
+                      >
+                        Continue on this device (end other session)
+                      </button>
+                    ) : null}
                     <button
                       type="submit"
                       className={`w-full rounded-xl px-6 py-3.5 font-bold text-black transition-all hover:-translate-y-0.5 hover:brightness-110 ${goldGradient}`}

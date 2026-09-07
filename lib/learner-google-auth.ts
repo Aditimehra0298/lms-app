@@ -30,6 +30,7 @@ export async function signInWithGoogleAccessToken(
   action: "login" | "register",
   country?: AuthCountryInput,
   adminVerifyToken?: string | null,
+  forceTakeover = false,
 ): Promise<GoogleAuthResult> {
   const res = await fetch("/api/auth/google", {
     method: "POST",
@@ -42,9 +43,13 @@ export async function signInWithGoogleAccessToken(
       countryCode: country?.countryCode,
       countryName: country?.countryName,
       adminVerifyToken: adminVerifyToken ?? undefined,
+      forceTakeover: forceTakeover || undefined,
     }),
   });
-  const data = (await res.json()) as GoogleAuthResult;
+  const data = (await res.json()) as GoogleAuthResult & {
+    sessionActiveElsewhere?: boolean;
+    canForceTakeover?: boolean;
+  };
   if (!res.ok) {
     data.ok = false;
     return data;

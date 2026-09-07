@@ -3,7 +3,10 @@ import { isMainAdminEmail } from "@/lib/server/admin-emails";
 import { isAdminPasswordConfigured, verifyAdminPanelPassword } from "@/lib/server/admin-password";
 import { createAdminVerifyToken } from "@/lib/server/admin-verify-token";
 import { attachAdminSession, readAdminSessionClaims } from "@/lib/server/admin-session";
-import { isAdminSessionHeldElsewhere } from "@/lib/server/admin-active-session";
+import {
+  clearActiveAdminSession,
+  isAdminSessionHeldElsewhere,
+} from "@/lib/server/admin-active-session";
 import { readAdminPanelSettings } from "@/lib/server/admin-panel-settings";
 import { fetchLmsUserProfile } from "@/lib/server/lms-user-profile";
 import { prisma } from "@/lib/prisma";
@@ -49,11 +52,12 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { email?: string; password?: string };
+  let body: { email?: string; password?: string; forceTakeover?: boolean };
   try {
     body = (await request.json()) as {
       email?: string;
       password?: string;
+      forceTakeover?: boolean;
     };
   } catch {
     return jsonError("Invalid JSON", 400);
@@ -61,6 +65,7 @@ export async function POST(request: Request) {
 
   const email = body.email?.trim().toLowerCase() ?? "";
   const password = body.password ?? "";
+  const forceTakeover = body.forceTakeover === true;
   const ip = getTrustedClientIp(request);
 
   const ipLimit = hitRateLimit(
@@ -143,12 +148,16 @@ export async function POST(request: Request) {
   const currentClaims = readAdminSessionClaims(request);
   const held = await isAdminSessionHeldElsewhere(currentClaims?.sid);
   if (held.held) {
-    return jsonError(
-      "Admin panel is already signed in on another device. Sign out from that device first.",
-      409,
-      undefined,
-      { sessionActiveElsewhere: true },
-    );
+    if (!forceTakeover) {
+      return jsonError(
+        "Admin panel is already signed in on another device. Sign out there, or use “Continue on this device” below to end that session.",
+        409,
+        undefined,
+        { sessionActiveElsewhere: true, canForceTakeover: true },
+      );
+    }
+    // Password already verified — end the other device session and continue here.
+    await clearActiveAdminSession();
   }
 
   const googleConfigured = Boolean(
