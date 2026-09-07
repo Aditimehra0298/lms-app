@@ -1,9 +1,11 @@
 /**
- * Browser helper: attach learner CSRF double-submit header on private write APIs.
+ * Browser helper: attach Z+ dual CSRF/XSRF headers on learner write APIs.
  */
 
 export const LEARNER_CSRF_COOKIE = "sft_learner_csrf";
+export const LEARNER_XSRF_COOKIE = "sft_learner_xsrf";
 export const LEARNER_CSRF_HEADER = "x-csrf-token";
+export const LEARNER_XSRF_HEADER = "x-xsrf-token";
 
 const FLAG = "__sft_learner_csrf_fetch__";
 
@@ -20,11 +22,9 @@ const MUTATION_PREFIXES = [
   "/api/auth/record",
 ];
 
-function readCsrfCookie(): string {
+function readCookie(name: string): string {
   if (typeof document === "undefined") return "";
-  const match = document.cookie.match(
-    new RegExp(`(?:^|;\\s*)${LEARNER_CSRF_COOKIE}=([^;]*)`),
-  );
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
   if (!match?.[1]) return "";
   try {
     return decodeURIComponent(match[1].trim());
@@ -58,7 +58,7 @@ function isSameOriginApi(input: RequestInfo | URL): { ok: boolean; pathname: str
   }
 }
 
-/** Patch window.fetch so learner mutations send X-CSRF-Token automatically. */
+/** Patch window.fetch so learner mutations send CSRF + XSRF automatically. */
 export function installLearnerCsrfFetch(): () => void {
   if (typeof window === "undefined") return () => undefined;
   const w = window as Window & { [FLAG]?: boolean };
@@ -79,10 +79,14 @@ export function installLearnerCsrfFetch(): () => void {
     );
 
     if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
-      const csrf = readCsrfCookie();
+      const csrf = readCookie(LEARNER_CSRF_COOKIE);
+      const xsrf = readCookie(LEARNER_XSRF_COOKIE);
       // Don't overwrite admin dual-token headers if both cookies exist on /api/tickets from admin UI.
       if (csrf && !headers.has(LEARNER_CSRF_HEADER)) {
         headers.set(LEARNER_CSRF_HEADER, csrf);
+      }
+      if (xsrf && !headers.has(LEARNER_XSRF_HEADER)) {
+        headers.set(LEARNER_XSRF_HEADER, xsrf);
       }
     }
 
@@ -100,5 +104,9 @@ export function installLearnerCsrfFetch(): () => void {
 }
 
 export function getLearnerCsrfToken(): string {
-  return readCsrfCookie();
+  return readCookie(LEARNER_CSRF_COOKIE);
+}
+
+export function getLearnerXsrfToken(): string {
+  return readCookie(LEARNER_XSRF_COOKIE);
 }
