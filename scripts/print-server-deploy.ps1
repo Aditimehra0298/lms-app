@@ -1,8 +1,4 @@
 #Requires -Version 5.1
-<#
-.SYNOPSIS
-  Prints the exact commands to run on the GCE LMS server after GitHub is updated.
-#>
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
@@ -21,33 +17,27 @@ if ($head -ne $remote) {
 
 Write-Host ""
 Write-Host "=== Run on GCE (SSH) ===" -ForegroundColor Yellow
-Write-Host @"
-cd /var/www/lms
-git pull origin main
-bash scripts/deploy-gce.sh
-"@
+Write-Host "cd /var/www/lms"
+Write-Host "git pull origin main"
+Write-Host "bash scripts/deploy-gce.sh"
 
 Write-Host ""
 Write-Host "=== Or one-liner ===" -ForegroundColor Yellow
-Write-Host @"
-cd /var/www/lms && git pull origin main && bash scripts/deploy-gce.sh
-"@
+Write-Host "cd /var/www/lms && git pull origin main && bash scripts/deploy-gce.sh"
 
 Write-Host ""
 Write-Host "=== Env checklist (.env.local) ===" -ForegroundColor Yellow
-Write-Host @"
-NEXT_PUBLIC_APP_URL=https://sftlms.com
-DATABASE_URL=mysql://...
-ADMIN_SESSION_SECRET=<long-random>
-MAIN_ADMIN_EMAIL=<admin@...>
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=...
-SMTP_PASS=<gmail-app-password>
-SMTP_FROM="SF Trainings <...>"
-OTP_USE_SMTP=true
-"@
+Write-Host "NEXT_PUBLIC_APP_URL=https://sftlms.com"
+Write-Host "DATABASE_URL=mysql://..."
+Write-Host "ADMIN_SESSION_SECRET=<long-random>"
+Write-Host "MAIN_ADMIN_EMAIL=<admin@...>"
+Write-Host "SMTP_HOST=smtp.gmail.com"
+Write-Host "SMTP_PORT=587"
+Write-Host "SMTP_SECURE=false"
+Write-Host "SMTP_USER=..."
+Write-Host "SMTP_PASS=<gmail-app-password>"
+Write-Host "SMTP_FROM=SF Trainings <...>"
+Write-Host "OTP_USE_SMTP=true"
 
 Write-Host ""
 Write-Host "This release includes:" -ForegroundColor Cyan
