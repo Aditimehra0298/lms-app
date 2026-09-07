@@ -364,39 +364,51 @@ function AdminPageInner() {
     authCheckStarted.current = true;
 
     let cancelled = false;
-    // Server JWT session cookie is the only proof of admin — never trust localStorage alone.
-    fetch("/api/auth/admin-access", { cache: "no-store", credentials: "include" })
-      .then((r) => r.json())
-      .then((data: { allowed?: boolean; message?: string; email?: string }) => {
-        if (cancelled) return;
-        if (data.allowed) {
-          if (data.email) {
-            window.localStorage.setItem("sft_learner_email", data.email);
-            window.localStorage.setItem("sft_logged_in", "true");
-          }
-          window.localStorage.setItem("sft_user_role", "admin");
-          setAccess({ status: "allowed" });
-          return;
+
+    const applyAccess = (data: { allowed?: boolean; message?: string; email?: string }) => {
+      if (cancelled) return;
+      if (data.allowed) {
+        if (data.email) {
+          window.localStorage.setItem("sft_learner_email", data.email);
+          window.localStorage.setItem("sft_logged_in", "true");
         }
-        window.localStorage.setItem("sft_user_role", "learner");
-        window.sessionStorage.removeItem("sft_admin_access_email");
-        setAccess({
-          status: "denied",
-          message: data.message,
-        });
-        router.replace("/account?admin=1");
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAccess({
-            status: "denied",
-            message: "Could not verify admin permission. Sign in at Admin login.",
-          });
-          router.replace("/account?admin=1");
-        }
+        window.localStorage.setItem("sft_user_role", "admin");
+        setAccess({ status: "allowed" });
+        return;
+      }
+      window.localStorage.setItem("sft_user_role", "learner");
+      window.sessionStorage.removeItem("sft_admin_access_email");
+      setAccess({
+        status: "denied",
+        message: data.message,
       });
+      router.replace("/account?admin=1&reason=session");
+    };
+
+    const check = () =>
+      fetch("/api/auth/admin-access", { cache: "no-store", credentials: "include" })
+        .then((r) => r.json())
+        .then(applyAccess)
+        .catch(() => {
+          if (!cancelled) {
+            setAccess({
+              status: "denied",
+              message: "Could not verify admin permission. Sign in at Admin login.",
+            });
+            router.replace("/account?admin=1");
+          }
+        });
+
+    // Server JWT session cookie is the only proof of admin — never trust localStorage alone.
+    void check();
+    // Kick this browser if another device took the exclusive admin session.
+    const heartbeat = window.setInterval(() => {
+      void check();
+    }, 20_000);
+
     return () => {
       cancelled = true;
+      window.clearInterval(heartbeat);
     };
   }, [router]);
 

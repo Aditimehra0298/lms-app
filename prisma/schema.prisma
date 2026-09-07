@@ -51,6 +51,18 @@ model LmsUser {
   @@map("lms_user")
 }
 
+/// Singleton row — only one admin panel login allowed at a time (shared across PM2).
+model AdminActiveSession {
+  id        String   @id @default("main") @db.VarChar(32)
+  email     String   @db.VarChar(255)
+  sid       String   @db.VarChar(128)
+  createdAt Int
+  exp       Int
+  updatedAt DateTime @updatedAt
+
+  @@map("lms_admin_active_session")
+}
+
 /// Organisation accounts — permanent ID from 101 (certificate format: {id}-org/{MM-YYYY}/{seq}).
 model LmsOrganization {
   id                   String   @id @default(cuid())

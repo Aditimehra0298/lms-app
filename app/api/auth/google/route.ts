@@ -8,7 +8,7 @@ import {
   roleForEmail,
 } from "@/lib/server/admin-emails";
 import { verifyAdminVerifyToken } from "@/lib/server/admin-verify-token";
-import { attachAdminSession } from "@/lib/server/admin-session";
+import { attachAdminSession, readAdminSessionClaims } from "@/lib/server/admin-session";
 import { isAdminSessionHeldElsewhere } from "@/lib/server/admin-active-session";
 import { attachLearnerSession } from "@/lib/server/learner-session";
 import { fetchGoogleUserInfo } from "@/lib/server/google-userinfo";
@@ -243,7 +243,8 @@ export async function POST(request: Request) {
     googleRecommendationSignals,
   });
   if (isAdminGoogleStep && isMainAdminEmail(email)) {
-    const held = await isAdminSessionHeldElsewhere(null);
+    const existingAdmin = readAdminSessionClaims(request);
+    const held = await isAdminSessionHeldElsewhere(existingAdmin?.sid ?? null);
     if (held.held) {
       return NextResponse.json(
         {
