@@ -4,6 +4,7 @@ import { Suspense, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import ApiStatusBanner from "@/components/ApiStatusBanner";
 import { PricingProvider } from "@/components/PricingProvider";
 import CartAbandonmentTracker from "@/components/CartAbandonmentTracker";
 import DeferredChatbots from "@/components/DeferredChatbots";
@@ -22,11 +23,17 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
   }, [tutorLedMarketing]);
 
   if (isAdmin) {
-    return <>{children}</>;
+    return (
+      <>
+        <ApiStatusBanner />
+        {children}
+      </>
+    );
   }
 
   return (
     <PricingProvider>
+      <ApiStatusBanner />
       <Suspense fallback={<div className="h-[7.5rem] border-b border-white/5 bg-[#0a0a0a]" aria-hidden />}>
         <SiteHeader forceDarkChrome={tutorLedMarketing} />
       </Suspense>

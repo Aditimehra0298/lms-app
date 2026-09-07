@@ -14,6 +14,13 @@ export type TicketAuth =
   | { role: "admin"; email: string }
   | { role: "learner"; email: string };
 
+function ticketJson(message: string, status: number): NextResponse {
+  return NextResponse.json(
+    { ok: false, message, error: message },
+    { status, headers: { "Cache-Control": "no-store" } },
+  );
+}
+
 /** Admin session wins; otherwise learner session. */
 export function resolveTicketAuth(request: Request): TicketAuth | null {
   const admin = readAdminSessionEmail(request);
@@ -31,23 +38,13 @@ export function resolveTicketMutationAuth(
   if (adminClaims?.email && adminClaims.sid) {
     const csrfError = assertAdminCsrf(request, adminClaims);
     if (csrfError) {
-      return {
-        error: NextResponse.json(
-          { ok: false, error: csrfError },
-          { status: 403, headers: { "Cache-Control": "no-store" } },
-        ),
-      };
+      return { error: ticketJson(csrfError, 403) };
     }
     // Exclusive sid is enforced by readAdminSessionEmail for admin role paths that use it;
     // mutation paths should prefer readAdminSessionEmail which checks sid sync.
     const admin = readAdminSessionEmail(request);
     if (!admin) {
-      return {
-        error: NextResponse.json(
-          { ok: false, error: "Admin session expired. Sign in again." },
-          { status: 403, headers: { "Cache-Control": "no-store" } },
-        ),
-      };
+      return { error: ticketJson("Admin session expired. Sign in again.", 403) };
     }
     return { role: "admin", email: admin };
   }
@@ -56,12 +53,7 @@ export function resolveTicketMutationAuth(
   if (learnerClaims?.email) {
     const csrfError = assertLearnerCsrf(request, learnerClaims);
     if (csrfError) {
-      return {
-        error: NextResponse.json(
-          { ok: false, error: csrfError },
-          { status: 403, headers: { "Cache-Control": "no-store" } },
-        ),
-      };
+      return { error: ticketJson(csrfError, 403) };
     }
     return { role: "learner", email: learnerClaims.email };
   }
@@ -70,17 +62,11 @@ export function resolveTicketMutationAuth(
 }
 
 export function ticketAuthRequiredResponse(): NextResponse {
-  return NextResponse.json(
-    { ok: false, error: "Sign in required." },
-    { status: 401, headers: { "Cache-Control": "no-store" } },
-  );
+  return ticketJson("Sign in required.", 401);
 }
 
 export function ticketForbiddenResponse(): NextResponse {
-  return NextResponse.json(
-    { ok: false, error: "Forbidden." },
-    { status: 403, headers: { "Cache-Control": "no-store" } },
-  );
+  return ticketJson("You do not have access to this ticket.", 403);
 }
 
 /** Admin may see any ticket; learner only their own (case-insensitive email match). */

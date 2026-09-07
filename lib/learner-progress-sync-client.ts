@@ -7,7 +7,7 @@ import {
 } from "@/lib/learner-course-progress";
 import type { ModuleExamScore } from "@/lib/learner-exam-scores";
 import { examScoresStorageKey, readModuleExamScores } from "@/lib/learner-exam-scores";
-import { readJsonResponse } from "@/lib/safe-json";
+import { readApiResult } from "@/lib/safe-json";
 import type { StoredLearnerCourseProgress } from "@/lib/server/learner-course-progress-store";
 
 const pushTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -47,9 +47,14 @@ export async function pushLearnerCourseProgressToServerNow(
         examScores: readModuleExamScores(slug),
       }),
     });
-    const data = await readJsonResponse(res, {} as { ok?: boolean });
-    return res.ok && data.ok === true;
+    const result = await readApiResult(res, {} as { ok?: boolean });
+    return result.ok && result.data.ok === true;
   } catch {
+    const { publishApiNotice } = await import("@/lib/api-error");
+    publishApiNotice({
+      kind: "network",
+      message: "Could not save progress. Check your connection and try again.",
+    });
     return false;
   }
 }
