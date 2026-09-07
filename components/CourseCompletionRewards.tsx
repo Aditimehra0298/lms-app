@@ -105,7 +105,7 @@ export function CourseCompletionRewards({
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch(`/api/certificates?email=${encodeURIComponent(email)}`, {
+        const res = await fetch(`/api/certificates`, { credentials: "include", 
           cache: "no-store",
         });
         const data = await readJsonResponse(res, {} as {
@@ -205,7 +205,7 @@ export function CourseCompletionRewards({
     const email = getLearnerEmail();
     if (!email) return;
     try {
-      const res = await fetch(`/api/certificates?email=${encodeURIComponent(email)}`, {
+      const res = await fetch(`/api/certificates`, { credentials: "include", 
         cache: "no-store",
       });
       const data = await readJsonResponse(res, {} as {

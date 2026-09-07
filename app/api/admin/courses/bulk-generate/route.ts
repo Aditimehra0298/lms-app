@@ -10,6 +10,7 @@ import {
 import { readAdminContent, writeAdminContent } from "@/lib/server/content-store";
 import { syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
 import { syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -28,7 +29,10 @@ type RequestBody = {
   skipExisting?: boolean;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   return NextResponse.json(
     {
       ok: true,
@@ -40,6 +44,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   try {
     const body = (await request.json()) as RequestBody;
     const category = body.category?.trim() || "food-safety";

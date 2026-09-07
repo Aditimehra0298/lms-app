@@ -61,7 +61,7 @@ export default function AdminAnalyticsWorkspace({ onNavigate }: Props) {
       const email = getLearnerEmail();
       const res = await fetch("/api/admin/overview", {
         cache: "no-store",
-        headers: email ? { "x-admin-email": email } : {},
+        headers: {},
       });
       const json = (await res.json()) as Overview & { ok?: boolean; message?: string };
       if (!res.ok || !json.ok) throw new Error(json.message ?? "Could not load analytics");

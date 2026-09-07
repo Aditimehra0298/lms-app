@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadExamQuestionsFromStoredUrl } from "@/lib/server/load-exam-questions";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,9 @@ export const dynamic = "force-dynamic";
  * GET ?url=/api/media/... or storage path used as examUploadUrl
  */
 export async function GET(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("url")?.trim();
   if (!url) {

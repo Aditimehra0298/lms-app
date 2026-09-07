@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { assertCertificateOwnerOrAdmin } from "@/lib/server/certificate-access";
 import { generateCertificateFromCourseTemplate } from "@/lib/server/local-certificate-fallback";
 
 export const dynamic = "force-dynamic";
@@ -13,22 +15,28 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ ok: false, message: "Missing certificate id" }, { status: 400 });
   }
 
-  let body: { email?: string; forceRegenerate?: boolean };
-  try {
-    body = (await request.json()) as { email?: string; forceRegenerate?: boolean };
-  } catch {
-    return NextResponse.json({ ok: false, message: "Invalid JSON" }, { status: 400 });
+  const row = await prisma.lmsCertificate.findUnique({
+    where: { id: id.trim() },
+    select: { learnerEmail: true },
+  });
+  if (!row) {
+    return NextResponse.json({ ok: false, message: "Certificate not found." }, { status: 404 });
   }
 
-  const email = body.email?.trim().toLowerCase();
-  if (!email) {
-    return NextResponse.json({ ok: false, message: "email required" }, { status: 400 });
+  const denied = assertCertificateOwnerOrAdmin(request, row.learnerEmail);
+  if (denied) return denied;
+
+  let body: { forceRegenerate?: boolean } = {};
+  try {
+    body = (await request.json()) as { forceRegenerate?: boolean };
+  } catch {
+    /* empty body ok */
   }
 
   try {
     const result = await generateCertificateFromCourseTemplate({
       certificateId: id.trim(),
-      learnerEmail: email,
+      learnerEmail: row.learnerEmail.trim().toLowerCase(),
       forceRegenerate: body.forceRegenerate === true,
     });
     if (!result.ok) {
@@ -39,10 +47,7 @@ export async function POST(request: Request, { params }: Params) {
     const detail = err instanceof Error ? err.message : String(err);
     console.error("[certificates/generate-from-template]", err);
     return NextResponse.json(
-      {
-        ok: false,
-        message: `Could not generate certificate from course template. ${detail}`,
-      },
+      { ok: false, message: "Could not generate from template.", detail },
       { status: 503 },
     );
   }

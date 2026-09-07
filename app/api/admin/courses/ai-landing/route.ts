@@ -11,6 +11,7 @@ import {
 import { readAdminContentFromDisk, writeAdminContent } from "@/lib/server/content-store";
 import { syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
 import { syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -40,7 +41,10 @@ function findCourse(courses: ManagedCourse[], slug?: string, title?: string): Ma
   return courses.find((c) => c.title.trim().toLowerCase() === t);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   return NextResponse.json(
     {
       ok: true,
@@ -52,6 +56,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   try {
     if (!isCourseLandingAiConfigured()) {
       return NextResponse.json(

@@ -67,7 +67,7 @@ async function databaseStatusForAdmin() {
 }
 
 export async function GET(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   const settings = await readAdminPanelSettings();
@@ -97,10 +97,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
-  const adminEmail = adminEmailFromRequest(request);
+  // Session email only — x-admin-email is never trusted (POC-D-13).
+  const adminEmail = await adminEmailFromRequest(request);
   if (!adminEmail || !isMainAdminEmail(adminEmail)) {
     return NextResponse.json({ ok: false, message: "Main administrator only." }, { status: 403 });
   }
@@ -124,10 +125,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Invalid request." }, { status: 400 });
   }
 
-  const settings = await readAdminPanelSettings();
-
+  /** Always require email OTP for password / security changes (POC-D-13) — not optional. */
   const requireOtpForAction = async (actionLabel: string) => {
-    if (!settings.requireEmailVerificationForSensitive) return null;
     const code = body.verificationCode?.trim() ?? "";
     if (!code) {
       return NextResponse.json(
@@ -141,7 +140,10 @@ export async function POST(request: Request) {
     }
     const otp = await verifyOtpForPurpose(adminEmail, code, "admin_security");
     if (!otp.ok) {
-      return NextResponse.json({ ok: false, message: otp.message ?? "Invalid verification code." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, message: otp.message ?? "Invalid verification code." },
+        { status: otp.httpStatus ?? 400 },
+      );
     }
     return null;
   };

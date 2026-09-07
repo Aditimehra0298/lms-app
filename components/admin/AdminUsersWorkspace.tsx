@@ -15,7 +15,6 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { getLearnerEmail } from "@/lib/learner-session-client";
 import type { AdminUserListRow, AdminUserListStats } from "@/lib/admin-user-types";
 
 type RoleFilter = "all" | "learner" | "admin";
@@ -71,10 +70,8 @@ export default function AdminUsersWorkspace() {
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
   const adminHeaders = useCallback((): Record<string, string> => {
-    const email = getLearnerEmail();
     return {
       "Content-Type": "application/json",
-      ...(email ? { "x-admin-email": email } : {}),
     };
   }, []);
 
@@ -82,12 +79,10 @@ export default function AdminUsersWorkspace() {
     setLoading(true);
     setLoadError(null);
     try {
-      const email = getLearnerEmail();
       const params = new URLSearchParams({ limit: "100" });
       if (searchQuery.trim()) params.set("q", searchQuery.trim());
       if (roleFilter !== "all") params.set("role", roleFilter);
       if (accountFilter !== "all") params.set("accountType", accountFilter);
-      if (email) params.set("email", email);
 
       const res = await fetch(`/api/admin/users?${params}`, {
         cache: "no-store",

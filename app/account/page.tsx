@@ -307,7 +307,7 @@ export default function AccountPage() {
       .then((r) => r.json())
       .then(
         (data: {
-          mainAdminEmail?: string | null;
+          configured?: boolean;
           googleConfigured?: boolean;
           passwordConfigured?: boolean;
           requirePanelPassword?: boolean;
@@ -495,7 +495,11 @@ export default function AccountPage() {
         const res = await fetch("/api/auth/admin-login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: normalizedEmail, password: passwordValue }),
+          credentials: "include",
+          body: JSON.stringify({
+            email: normalizedEmail,
+            password: passwordValue,
+          }),
         });
         const data = (await res.json()) as {
           ok?: boolean;
@@ -506,9 +510,15 @@ export default function AccountPage() {
           profile?: LmsUserProfilePayload;
           role?: string;
           accountType?: string;
+          sessionActiveElsewhere?: boolean;
         };
         if (!res.ok || !data.ok) {
-          setAuthError(data.message ?? "Admin sign-in failed.");
+          setAuthError(
+            data.sessionActiveElsewhere || res.status === 409
+              ? data.message ??
+                  "Admin is already signed in on another device. Sign out from that device first."
+              : data.message ?? "Admin sign-in failed.",
+          );
           return;
         }
 
@@ -566,6 +576,7 @@ export default function AccountPage() {
         const loginRes = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ email: normalizedEmail, password: passwordValue }),
         });
         const loginData = (await loginRes.json()) as {

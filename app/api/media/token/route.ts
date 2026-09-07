@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { isAdminEmail } from "@/lib/server/admin-emails";
 import { mediaAccessAllowed } from "@/lib/server/media-access-policy";
 import { createMediaAccessToken, verifyMediaAccessToken } from "@/lib/server/media-access-token";
+import { readAdminSessionEmail } from "@/lib/server/admin-session";
 import {
   isManagedLocalMediaUrl,
   protectedMediaServePath,
@@ -25,12 +25,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Missing url" }, { status: 400 });
     }
 
+    const sessionAdmin = readAdminSessionEmail(request);
+
     if (!isManagedLocalMediaUrl(url) && !url.startsWith("/api/media/serve/")) {
-      const emailEarly = body.email?.trim().toLowerCase() ?? "";
-      const scope =
-        body.scope ?? (body.courseSlug?.trim() ? "learner" : emailEarly && isAdminEmail(emailEarly) ? "admin" : "catalog");
+      let scope =
+        body.scope ??
+        (body.courseSlug?.trim() ? "learner" : sessionAdmin ? "admin" : "catalog");
+      if (scope === "admin" && !sessionAdmin) {
+        return NextResponse.json({ ok: false, error: "Admin session required" }, { status: 403 });
+      }
       if (scope === "learner") {
-        // Block external *video* embeds; allow podcast/audio and document links (https).
         const looksVideo =
           /\.(mp4|webm|mov|m4v|mkv)(\?|#|$)/i.test(url) ||
           /youtube\.com|youtu\.be|vimeo\.com|wistia\.|loom\.com/i.test(url);
@@ -49,12 +53,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Invalid media url" }, { status: 400 });
     }
 
-    const email = body.email?.trim().toLowerCase() ?? "";
+    const clientEmail = body.email?.trim().toLowerCase() ?? "";
     let scope = body.scope;
     if (!scope) {
-      if (email && isAdminEmail(email)) scope = "admin";
+      if (sessionAdmin) scope = "admin";
       else if (body.courseSlug?.trim()) scope = "learner";
       else scope = "catalog";
+    }
+
+    if (scope === "admin") {
+      if (!sessionAdmin) {
+        return NextResponse.json({ ok: false, error: "Admin session required" }, { status: 403 });
+      }
+    }
+
+    const email =
+      scope === "admin" ? sessionAdmin! : clientEmail;
+
+    // Client cannot self-promote to admin by sending the admin email.
+    if (scope === "admin" && clientEmail && clientEmail !== sessionAdmin) {
+      return NextResponse.json({ ok: false, error: "Access denied" }, { status: 403 });
     }
 
     const adminTtl = Number(process.env.MEDIA_TOKEN_TTL_ADMIN_SECONDS || "");
@@ -86,19 +104,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Token error" }, { status: 500 });
     }
 
-    const allowed = await mediaAccessAllowed(payload, email);
+    const allowed = await mediaAccessAllowed(payload, email || undefined);
     if (!allowed) {
       return NextResponse.json({ ok: false, error: "Access denied" }, { status: 403 });
     }
 
     const playUrl = `${protectedMediaServePath(fileName)}?t=${encodeURIComponent(token)}${
-      email ? `&email=${encodeURIComponent(email)}` : ""
+      scope !== "admin" && email ? `&email=${encodeURIComponent(email)}` : ""
     }`;
 
     return NextResponse.json({ ok: true, playUrl });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Token failed";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    console.error("[media/token]", e);
+    return NextResponse.json({ ok: false, error: "Could not issue media token." }, { status: 500 });
   }
 }
 
@@ -106,7 +124,7 @@ function fileNameFromServe(url: string): string | null {
   const m = url.match(/^\/api\/media\/serve\/([^?]+)/);
   if (!m) return null;
   try {
-    const name = decodeURIComponent(m[1]);
+    const name = decodeURIComponent(m[1]!);
     return name.includes("..") ? null : name;
   } catch {
     return null;

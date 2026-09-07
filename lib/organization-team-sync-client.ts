@@ -103,11 +103,10 @@ export async function syncOrganizationTeamFromServer(
       Boolean(legacyPlan?.planId);
 
     const res = await fetch(
-      `/api/organization/team?email=${encodeURIComponent(email)}${
-        hasLegacy ? "&migrateLegacy=1" : ""
-      }`,
+      `/api/organization/team${hasLegacy ? "?migrateLegacy=1" : ""}`,
       {
         cache: "no-store",
+        credentials: "include",
         method: hasLegacy ? "POST" : "GET",
         headers: hasLegacy ? { "Content-Type": "application/json" } : undefined,
         body: hasLegacy
@@ -157,7 +156,7 @@ export async function saveOrganizationTeamToServer(patch: {
   if (!email) return { ok: false, message: "Not signed in" };
 
   try {
-    const res = await fetch("/api/organization/team", {
+    const res = await fetch("/api/organization/team", { credentials: "include",
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, ...patch }),

@@ -27,7 +27,7 @@ type Body = {
 };
 
 export async function GET(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   try {
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   try {

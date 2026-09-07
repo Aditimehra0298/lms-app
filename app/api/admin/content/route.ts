@@ -8,6 +8,7 @@ import {
 import { deleteCoursesFromMysql, syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
 import { readAdminContentFromDisk, writeAdminContent, normalizeManagedCategories } from "@/lib/server/content-store";
 import { sanitizePromotions } from "@/lib/promotions";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 /** Always read fresh JSON from disk — marketing/admin UIs must not serve a stale cached payload. */
 export const dynamic = "force-dynamic";
@@ -85,7 +86,10 @@ function mergeManagedCoursesPreservingCurriculum(
   return [...mergedIncoming, ...leftovers];
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   // Bypass React cache so admin always sees the latest disk write.
   const content = await readAdminContentFromDisk();
   const { courses, addedSlugs } = await hydrateManagedCoursesFromMysql(
@@ -109,6 +113,9 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   try {
     // Always read fresh from disk (not request-scoped React cache).
     const existing = await readAdminContentFromDisk();

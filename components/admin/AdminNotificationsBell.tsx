@@ -34,8 +34,7 @@ type Props = {
 function adminHeaders(): Record<string, string> {
   const email = getLearnerEmail();
   return {
-    "Content-Type": "application/json",
-    ...(email ? { "x-admin-email": email } : {}),
+    "Content-Type": "application/json",
   };
 }
 

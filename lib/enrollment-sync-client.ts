@@ -55,8 +55,9 @@ export async function syncEnrollmentsFromServer(
   if (!email) return { ok: false, message: "Not signed in" };
 
   try {
-    const res = await fetch(`/api/purchases?email=${encodeURIComponent(email)}`, {
+    const res = await fetch(`/api/purchases`, {
       cache: "no-store",
+      credentials: "include",
     });
     const data = await readJsonResponse(res, {} as {
       ok?: boolean;
@@ -99,33 +100,16 @@ export async function syncEnrollmentsFromServer(
   }
 }
 
-/** Push all local enrollments for this learner to MySQL (admin Students tab source of truth). */
+/**
+ * Local → server enrollment push is disabled (POC-C-06 payment bypass).
+ * Keep the name for callers; only refresh localStorage from verified server purchases.
+ */
 export async function syncEnrollmentsToServer(
   learnerEmail?: string,
-): Promise<{ ok: boolean; recorded?: number; skipped?: number; message?: string }> {
-  const email = normalizeLearnerEmail(learnerEmail ?? getLearnerEmail() ?? "");
-  if (!email) return { ok: false, message: "Not signed in" };
-
-  const courses = collectLocalEnrollmentsForSync(email);
-  if (courses.length === 0) return { ok: true, recorded: 0, skipped: 0 };
-
-  try {
-    const res = await fetch("/api/purchases", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ learnerEmail: email, courses }),
-    });
-    const data = await readJsonResponse(res, {} as {
-      ok?: boolean;
-      recorded?: number;
-      skipped?: number;
-      message?: string;
-    });
-    if (!res.ok || !data.ok) {
-      return { ok: false, message: data.message ?? "Could not save enrollments" };
-    }
-    return { ok: true, recorded: data.recorded ?? 0, skipped: data.skipped ?? 0 };
-  } catch {
-    return { ok: false, message: "Network error saving enrollments" };
+): Promise<{ ok: boolean; recorded?: number; skipped?: number; message?: string; added?: number }> {
+  const pull = await syncEnrollmentsFromServer(learnerEmail);
+  if (!pull.ok) {
+    return { ok: false, message: pull.message ?? "Could not refresh enrollments" };
   }
+  return { ok: true, recorded: 0, skipped: 0, added: pull.added ?? 0 };
 }

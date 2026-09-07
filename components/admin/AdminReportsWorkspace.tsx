@@ -80,7 +80,7 @@ export default function AdminReportsWorkspace() {
       const email = getLearnerEmail();
       const res = await fetch(`/api/admin/overview?report=${encodeURIComponent(kind)}`, {
         cache: "no-store",
-        headers: email ? { "x-admin-email": email } : {},
+        headers: {},
       });
       const data = (await res.json()) as {
         ok?: boolean;

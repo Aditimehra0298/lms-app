@@ -56,8 +56,7 @@ export default function AdminGlobalSkillsAssessmentsWorkspace() {
 
   const adminHeaders = useCallback((): Record<string, string> => {
     const email = getLearnerEmail();
-    return {
-      ...(email ? { "x-admin-email": email } : {}),
+    return {
     };
   }, []);
 

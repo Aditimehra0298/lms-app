@@ -6,31 +6,14 @@ import {
   type FormSubmissionStatus,
   type FormSubmissionView,
 } from "@/lib/server/form-submissions-store";
-import { isMainAdminEmail } from "@/lib/server/admin-emails";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
 
-function adminEmailFromRequest(request: Request): string | null {
-  const url = new URL(request.url);
-  return (
-    request.headers.get("x-admin-email")?.trim().toLowerCase() ||
-    url.searchParams.get("email")?.trim().toLowerCase() ||
-    null
-  );
-}
-
-function assertAdmin(request: Request): NextResponse | null {
-  const email = adminEmailFromRequest(request);
-  if (!email || !isMainAdminEmail(email)) {
-    return NextResponse.json({ ok: false, message: "Admin access required." }, { status: 403 });
-  }
-  return null;
-}
-
 export async function GET(request: Request) {
-  const denied = assertAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   const url = new URL(request.url);
@@ -54,7 +37,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const denied = assertAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   let body: { id?: string; status?: FormSubmissionStatus; action?: "revert" };

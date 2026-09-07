@@ -265,7 +265,7 @@ export default function CourseLearningPlayerPage() {
       return;
     }
     let cancelled = false;
-    void fetch(`/api/certificates?email=${encodeURIComponent(email)}`, { cache: "no-store" })
+    void fetch(`/api/certificates`, { credentials: "include",  cache: "no-store" })
       .then((res) => readJsonResponse(res, {} as { ok?: boolean; certificates?: CertificateRowDto[] }))
       .then((data) => {
         if (cancelled || !data.ok || !data.certificates) return;

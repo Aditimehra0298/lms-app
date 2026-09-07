@@ -14,7 +14,7 @@ const noStoreJson = { "Cache-Control": "private, no-store, max-age=0" };
 
 /** List all organisations. */
 export async function GET(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   try {
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 
 /** Create or update an organisation from the admin panel. */
 export async function POST(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   let body: {

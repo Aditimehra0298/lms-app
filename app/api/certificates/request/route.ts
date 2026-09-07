@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
+import { assertLearnerMayRequestCertificate } from "@/lib/server/certificate-access";
 import { requestCourseCertificate } from "@/lib/server/n8n-certificate-service";
+import {
+  learnerAuthRequiredResponse,
+  requireLearnerSessionEmail,
+} from "@/lib/server/learner-session";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-/** Start certificate generation (n8n or builtin) after exam pass. */
+/** Start certificate generation after verified enrollment + completion (session-bound). */
 export async function POST(request: Request) {
+  const sessionEmail = requireLearnerSessionEmail(request);
+  if (!sessionEmail) return learnerAuthRequiredResponse();
+
   let body: {
     learnerEmail?: string;
     learnerName?: string;
@@ -18,13 +27,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Invalid JSON" }, { status: 400 });
   }
 
+  const courseSlug = String(body.courseSlug ?? "").trim();
+  if (!courseSlug) {
+    return NextResponse.json({ ok: false, message: "courseSlug is required." }, { status: 400 });
+  }
+
+  // Never trust body.learnerEmail / scorePercent for authorization (POC-D-01).
+  const gate = await assertLearnerMayRequestCertificate(sessionEmail, courseSlug);
+  if (!gate.ok) {
+    return NextResponse.json({ ok: false, message: gate.message }, { status: 403 });
+  }
+
+  const user = await prisma.lmsUser.findUnique({
+    where: { email: sessionEmail },
+    select: { name: true },
+  });
+
   try {
     const result = await requestCourseCertificate({
-      learnerEmail: body.learnerEmail ?? "",
-      learnerName: body.learnerName,
-      courseSlug: body.courseSlug ?? "",
-      scorePercent: body.scorePercent,
+      learnerEmail: sessionEmail,
+      learnerName: user?.name ?? body.learnerName,
+      courseSlug,
+      scorePercent: gate.scorePercent,
       forceRetry: body.forceRetry === true,
+      bypassLearnerGates: true, // already gated above
     });
     if (!result.ok) {
       return NextResponse.json(result, { status: 400 });

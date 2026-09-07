@@ -162,8 +162,9 @@ export function applyDbProfileToSession(profile: LmsUserProfilePayload): Learner
 export async function syncLearnerProfileFromServer(email: string): Promise<LearnerAuthProfile | null> {
   if (typeof window === "undefined" || !email.trim()) return null;
   try {
-    const res = await fetch(`/api/auth/me?email=${encodeURIComponent(email.trim().toLowerCase())}`, {
+    const res = await fetch(`/api/auth/me`, {
       cache: "no-store",
+      credentials: "include",
     });
     const data = await readJsonResponse(res, {} as { ok?: boolean; profile?: LmsUserProfilePayload });
     if (!res.ok || !data.ok || !data.profile) return null;
@@ -191,6 +192,7 @@ export async function recordLearnerAuth(
   const res = await fetch("/api/auth/record", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({
       email: email.trim().toLowerCase(),
       action,
@@ -238,6 +240,7 @@ export async function saveLearnerPricingCountry(countryCode: string): Promise<Pr
     const res = await fetch("/api/pricing/region", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ email, countryCode: code }),
     });
     const data = await readJsonResponse(res, {} as { ok?: boolean; region?: PricingRegion });
@@ -269,8 +272,9 @@ export async function refreshPricingRegion(force = false): Promise<PricingRegion
 
   pricingRegionInflight = (async () => {
     try {
-      const res = await fetch(`/api/pricing/region?email=${encodeURIComponent(email)}`, {
+      const res = await fetch(`/api/pricing/region`, {
         cache: "no-store",
+        credentials: "include",
       });
       if (!res.ok) return getCachedPricingRegion();
       const data = await readJsonResponse(res, {} as { region?: PricingRegion });

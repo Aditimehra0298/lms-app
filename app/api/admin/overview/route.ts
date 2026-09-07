@@ -17,7 +17,7 @@ function daysAgo(n: number): Date {
 }
 
 export async function GET(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   const url = new URL(request.url);
@@ -91,8 +91,15 @@ export async function GET(request: Request) {
         label: "Admin panel lock",
         ok: Boolean(main),
         detail: main
-          ? `Only the main administrator (${maskEmailForDisplay(main)}) can open this panel.`
+          ? `Only the signed-in main administrator (${maskEmailForDisplay(main)}) can call /api/admin/* (httpOnly session + CSRF). Client headers like x-admin-email are ignored.`
           : "Main administrator is not set. Ask your technical team to secure the panel.",
+      },
+      {
+        id: "admin-session",
+        label: "Admin session auth",
+        ok: true,
+        detail:
+          "Admin APIs require a verified httpOnly session cookie. Forging x-admin-email or ?email= cannot grant access.",
       },
       {
         id: "payments",

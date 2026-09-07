@@ -1,19 +1,38 @@
 import { NextResponse } from "next/server";
 import { isMainAdminEmail } from "@/lib/server/admin-emails";
+import {
+  assertAdminCsrf,
+  readAdminSessionClaimsActive,
+  readAdminSessionEmailActive,
+} from "@/lib/server/admin-session";
 
-export function adminEmailFromRequest(request: Request): string | null {
-  const url = new URL(request.url);
-  return (
-    request.headers.get("x-admin-email")?.trim().toLowerCase() ||
-    url.searchParams.get("email")?.trim().toLowerCase() ||
-    null
-  );
+/**
+ * Admin identity from the httpOnly JWT-style session cookie only.
+ * Do NOT trust x-admin-email / ?email= — those are forgeable by attackers.
+ */
+export async function adminEmailFromRequest(request: Request): Promise<string | null> {
+  return readAdminSessionEmailActive(request);
 }
 
-export function assertMainAdmin(request: Request): NextResponse | null {
-  const email = adminEmailFromRequest(request);
-  if (!email || !isMainAdminEmail(email)) {
-    return NextResponse.json({ ok: false, message: "Admin access required." }, { status: 403 });
+/**
+ * Returns a 403 response when the request lacks a valid exclusive admin session
+ * (and CSRF on mutations).
+ */
+export async function assertMainAdmin(request: Request): Promise<NextResponse | null> {
+  const claims = await readAdminSessionClaimsActive(request);
+  if (!claims?.email || !isMainAdminEmail(claims.email)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message:
+          "Admin access required. Sign in at /account?admin=1. If you were signed in elsewhere, that session may still be active.",
+      },
+      { status: 403 },
+    );
+  }
+  const csrfError = assertAdminCsrf(request, claims);
+  if (csrfError) {
+    return NextResponse.json({ ok: false, message: csrfError }, { status: 403 });
   }
   return null;
 }

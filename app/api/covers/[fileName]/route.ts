@@ -1,21 +1,20 @@
 import { createReadStream } from "node:fs";
-import { access, constants } from "node:fs/promises";
+import { access, constants, open } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
+import { detectContentKind } from "@/lib/server/upload-content-validation";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ fileName: string }> };
 
-function mimeFromName(fileName: string): string {
-  const ext = path.extname(fileName).toLowerCase();
-  if (ext === ".png") return "image/png";
-  if (ext === ".webp") return "image/webp";
-  if (ext === ".gif") return "image/gif";
-  if (ext === ".svg") return "image/svg+xml";
-  return "image/jpeg";
-}
+const IMAGE_MIME: Record<string, string> = {
+  "image/jpeg": "image/jpeg",
+  "image/png": "image/png",
+  "image/webp": "image/webp",
+  "image/gif": "image/gif",
+};
 
 async function firstExisting(paths: string[]): Promise<string | null> {
   for (const filePath of paths) {
@@ -29,10 +28,20 @@ async function firstExisting(paths: string[]): Promise<string | null> {
   return null;
 }
 
+async function sniffImageMime(filePath: string): Promise<string | null> {
+  const fh = await open(filePath, "r");
+  try {
+    const buf = Buffer.alloc(64);
+    const { bytesRead } = await fh.read(buf, 0, 64, 0);
+    const kind = detectContentKind(buf.subarray(0, bytesRead));
+    return IMAGE_MIME[kind] ?? null;
+  } finally {
+    await fh.close();
+  }
+}
+
 /**
- * Public course covers. Files are written to public/uploads/covers and
- * data/uploads/covers so they survive `rm -rf .next` and still load if nginx
- * does not map /uploads to the app public folder.
+ * Public course covers. Served with magic-derived Content-Type + nosniff (POC-C-07).
  */
 export async function GET(_request: Request, { params }: Params) {
   const { fileName: raw } = await params;
@@ -46,6 +55,9 @@ export async function GET(_request: Request, { params }: Params) {
   if (!base || base.includes("..") || base !== fileName.replace(/\\/g, "/")) {
     return NextResponse.json({ error: "Invalid file" }, { status: 400 });
   }
+  if (!/\.(jpe?g|png|webp|gif)$/i.test(base)) {
+    return NextResponse.json({ error: "Unsupported cover type" }, { status: 400 });
+  }
 
   const found = await firstExisting([
     path.join(process.cwd(), "data", "uploads", "covers", base),
@@ -56,11 +68,21 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const mime = await sniffImageMime(found);
+  if (!mime) {
+    return NextResponse.json(
+      { error: "Stored file is not a valid image." },
+      { status: 415 },
+    );
+  }
+
   const stream = createReadStream(found);
   return new Response(Readable.toWeb(stream) as ReadableStream, {
     status: 200,
     headers: {
-      "Content-Type": mimeFromName(base),
+      "Content-Type": mime,
+      "X-Content-Type-Options": "nosniff",
+      "Content-Disposition": `inline; filename="${base.replace(/"/g, "")}"`,
       "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
     },
   });

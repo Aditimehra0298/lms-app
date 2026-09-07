@@ -912,7 +912,6 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(email ? { "x-admin-email": email } : {}),
         },
         body: JSON.stringify({
           slug: selectedCourse.slug,

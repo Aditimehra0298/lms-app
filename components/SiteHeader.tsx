@@ -183,15 +183,20 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
   }, []);
 
   const handleLogout = () => {
-    window.localStorage.removeItem("sft_logged_in");
-    window.localStorage.removeItem("sft_learner_email");
-    window.localStorage.removeItem("sft_user_role");
-    window.sessionStorage.removeItem("sft_admin_access_email");
-    clearLearnerProfileStorage();
-    setIsLoggedIn(false);
-    setUserProfile({});
-    setIsProfileOpen(false);
-    window.location.href = "/";
+    void fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    }).finally(() => {
+      window.localStorage.removeItem("sft_logged_in");
+      window.localStorage.removeItem("sft_learner_email");
+      window.localStorage.removeItem("sft_user_role");
+      window.sessionStorage.removeItem("sft_admin_access_email");
+      clearLearnerProfileStorage();
+      setIsLoggedIn(false);
+      setUserProfile({});
+      setIsProfileOpen(false);
+      window.location.href = "/";
+    });
   };
 
   const profileAvatar = userProfile.avatarUrl?.trim();

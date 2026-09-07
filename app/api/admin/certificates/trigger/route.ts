@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /** Admin: issue / re-issue a certificate for a learner + course. */
 export async function POST(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   let body: {

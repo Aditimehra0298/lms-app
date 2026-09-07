@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 import { recoverPendingCertificatesForEmail } from "@/lib/server/local-certificate-fallback";
 
 export const dynamic = "force-dynamic";
 
-/** Dev/admin: finish pending certificates when n8n callback cannot reach localhost. */
+/** Admin only: finish pending certificates when n8n callback cannot reach the host. */
 export async function POST(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   let body: { email?: string };
   try {
     body = (await request.json()) as { email?: string };

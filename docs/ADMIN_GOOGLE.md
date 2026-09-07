@@ -1,23 +1,24 @@
 # Admin sign-in (password, then Google)
 
-## Your admin account
+## Admin account
 
 | Setting | Value |
 |--------|--------|
-| Email | `social.sftrainings@gmail.com` (in `MAIN_ADMIN_EMAIL`) |
+| Email | Set only in `.env.local` as `MAIN_ADMIN_EMAIL` (never commit the real address) |
 | Password | Set in `.env.local` as `ADMIN_PASSWORD` (server only — not in code) |
 
 ## `.env.local`
 
 ```env
-MAIN_ADMIN_EMAIL=social.sftrainings@gmail.com
+MAIN_ADMIN_EMAIL=your-admin@example.com
 ADMIN_PASSWORD=your-password-here
+ADMIN_SESSION_SECRET=long-random-string
 
 GOOGLE_CLIENT_ID=...
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=...
 ```
 
-Restart: `npm run dev`
+Restart: `npm run dev` (or `pm2 restart lms --update-env` on the server)
 
 ## Sign-in flow (both steps required)
 
@@ -39,4 +40,5 @@ To enable Google’s extra check on new devices:
 - A short-lived token links step 1 to step 2; Google must match the same email (`/api/auth/google` with `adminVerifyToken`).
 - **Google-only** or **password-only** admin sign-in is blocked.
 - Only `MAIN_ADMIN_EMAIL` can be admin.
+- Do **not** put the real admin email, password, or social account names in source code, docs, or comments.
 - Do not commit `.env.local`.

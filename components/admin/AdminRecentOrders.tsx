@@ -24,7 +24,7 @@ export default function AdminRecentOrders({ onViewAll }: Props) {
     try {
       const email = getLearnerEmail();
       const res = await fetch("/api/admin/payments?limit=8", {
-        headers: email ? { "x-admin-email": email } : {},
+        headers: {},
         cache: "no-store",
       });
       const data = (await res.json()) as { ok?: boolean; payments?: AdminPaymentRow[] };

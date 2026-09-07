@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { chatProvider, isChatConfigured, sendChat } from "@/lib/server/chat-service";
 import { getChatCategoriesForUi } from "@/lib/server/chat-course-catalog";
 import type { ChatHistoryItem } from "@/lib/server/chat-local-reply";
+import { readLearnerSessionEmail } from "@/lib/server/learner-session";
+import { readAdminSessionEmail } from "@/lib/server/admin-session";
 
 export const dynamic = "force-dynamic";
 
@@ -41,16 +43,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Invalid JSON" }, { status: 400 });
   }
 
+  // Bind identity to server session — never trust client-supplied email for tickets.
+  const sessionEmail =
+    readAdminSessionEmail(request) || readLearnerSessionEmail(request) || undefined;
+
   try {
     const result = await sendChat({
       message: body.message ?? "",
       sessionId: body.sessionId,
       pagePath: body.pagePath,
       threadId: body.threadId,
-      learnerEmail: body.learnerEmail,
+      learnerEmail: sessionEmail,
       learnerName: body.learnerName,
       learnerPhone: body.learnerPhone,
-      authenticated: Boolean(body.authenticated),
+      authenticated: Boolean(sessionEmail),
       history: body.history,
     });
 

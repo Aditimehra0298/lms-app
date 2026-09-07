@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { readAdminContent } from "@/lib/server/content-store";
 import { syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
 /** Sync all catalog courses from admin JSON into MySQL lms_course. */
-export async function POST() {
+export async function POST(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   try {
     const content = await readAdminContent();
     const sync = await syncManagedCoursesToMysql(content.managedCourses ?? []);

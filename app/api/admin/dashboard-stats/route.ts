@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,10 @@ type ContentCategory = {
   isActive?: boolean;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   try {
     const [
       totalUsers,

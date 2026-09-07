@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { assertCertificateOwnerOrAdmin } from "@/lib/server/certificate-access";
 import {
   N8N_ARCHIVED_PDF_MIN_BYTES,
   readCertificatePdfBuffer,
@@ -13,7 +14,7 @@ type Params = { params: Promise<{ id: string }> };
 
 /**
  * One-shot learner download: prepare (n8n once if needed) → return PDF bytes.
- * Avoids fragile prepare-then-fetch two-step flow in the browser.
+ * Requires owner session or admin session (POC-D-01).
  */
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
@@ -21,7 +22,16 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ ok: false, message: "Missing certificate id" }, { status: 400 });
   }
 
-  let body: { email?: string; forceRegenerate?: boolean; attachment?: boolean };
+  const certificateId = id.trim();
+  const row = await prisma.lmsCertificate.findUnique({ where: { id: certificateId } });
+  if (!row) {
+    return NextResponse.json({ ok: false, message: "Certificate not found." }, { status: 404 });
+  }
+
+  const denied = assertCertificateOwnerOrAdmin(request, row.learnerEmail);
+  if (denied) return denied;
+
+  let body: { forceRegenerate?: boolean; attachment?: boolean } = {};
   const contentType = request.headers.get("content-type") ?? "";
   try {
     if (contentType.includes("application/json")) {
@@ -33,27 +43,21 @@ export async function POST(request: Request, { params }: Params) {
       const form = await request.formData();
       const attachmentRaw = form.get("attachment");
       body = {
-        email: form.get("email")?.toString(),
         forceRegenerate: form.get("forceRegenerate") === "true",
         attachment: attachmentRaw !== "false" && attachmentRaw !== "0",
       };
-    } else {
+    } else if (contentType.trim()) {
       return NextResponse.json({ ok: false, message: "Unsupported content type" }, { status: 415 });
     }
   } catch {
     return NextResponse.json({ ok: false, message: "Invalid request body" }, { status: 400 });
   }
 
-  const email = body.email?.trim().toLowerCase();
-  if (!email) {
-    return NextResponse.json({ ok: false, message: "email required" }, { status: 400 });
-  }
-
-  const certificateId = id.trim();
+  const email = row.learnerEmail.trim().toLowerCase();
   const attachment = body.attachment !== false;
 
   try {
-    let prepared = await ensureCertificatePdfReady({
+    const prepared = await ensureCertificatePdfReady({
       certificateId,
       learnerEmail: email,
       forceRegenerate: body.forceRegenerate === true,
@@ -65,9 +69,7 @@ export async function POST(request: Request, { params }: Params) {
       });
     }
 
-    const row = await prisma.lmsCertificate.findUnique({ where: { id: certificateId } });
-    const minBytes =
-      row?.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
+    const minBytes = row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
 
     let buffer = await readCertificatePdfBuffer(certificateId, { minBytes });
 
@@ -89,7 +91,7 @@ export async function POST(request: Request, { params }: Params) {
       );
     }
 
-    const filename = `${(row?.certificateNumber ?? certificateId).replace(/[^\w.-]+/g, "_")}.pdf`;
+    const filename = `${(row.certificateNumber ?? certificateId).replace(/[^\w.-]+/g, "_")}.pdf`;
 
     return new Response(new Uint8Array(buffer), {
       status: 200,

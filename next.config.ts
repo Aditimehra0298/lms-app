@@ -6,6 +6,7 @@ const nanoidNonSecure = path.join(process.cwd(), "vendor/nanoid-non-secure.cjs")
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(process.cwd()),
+  poweredByHeader: false,
   typescript: {
     // Legacy strictness debt — app runs correctly; unblock production `npm run build`.
     ignoreBuildErrors: true,
@@ -21,18 +22,62 @@ const nextConfig: NextConfig = {
   // HTML must never be cached at Cloudflare/nginx — stale HTML points at deleted /_next hashes (404/500 CSS).
   // Do not mark /_next/static immutable in development: webpack HMR rewrites those files in place.
   async headers() {
+    const securityHeaders = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      {
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=(), payment=(self)",
+      },
+      {
+        key: "Content-Security-Policy",
+        value: [
+          "default-src 'self'",
+          "base-uri 'self'",
+          "form-action 'self'",
+          "frame-ancestors 'none'",
+          "object-src 'none'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://checkout.razorpay.com https://js.razorpay.com",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+          "img-src 'self' data: blob: https:",
+          "font-src 'self' data: https://fonts.gstatic.com",
+          "connect-src 'self' https: wss:",
+          "frame-src 'self' https://accounts.google.com https://api.razorpay.com https://checkout.razorpay.com",
+          "media-src 'self' blob: https:",
+        ].join("; "),
+      },
+    ];
+    const hsts =
+      process.env.NODE_ENV === "production"
+        ? [
+            {
+              key: "Strict-Transport-Security",
+              value: "max-age=63072000; includeSubDomains; preload",
+            },
+          ]
+        : [];
+
+    const coverHeaders = {
+      source: "/uploads/covers/:path*",
+      headers: [
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Content-Disposition", value: "inline" },
+      ],
+    };
     const htmlNoStore = {
       source: "/:path*",
-      headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }],
+      headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }, ...securityHeaders, ...hsts],
     };
     if (process.env.NODE_ENV === "development") {
-      return [htmlNoStore];
+      return [coverHeaders, htmlNoStore];
     }
     return [
       {
         source: "/_next/static/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
+      coverHeaders,
       htmlNoStore,
     ];
   },

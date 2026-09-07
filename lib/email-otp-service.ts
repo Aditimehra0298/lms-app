@@ -1,6 +1,8 @@
 import {
   OTP_MAX_SENDS_PER_WINDOW,
+  OTP_MAX_VERIFY_ATTEMPTS,
   OTP_SEND_WINDOW_MINUTES,
+  OTP_TTL_MINUTES,
   OTP_VERIFIED_WINDOW_MINUTES,
   generateOtpCode,
   hashOtpCode,
@@ -17,6 +19,14 @@ export type OtpSendResult = {
   message?: string;
   devLogged?: boolean;
   expiresInMinutes?: number;
+};
+
+export type OtpVerifyResult = {
+  ok: boolean;
+  message?: string;
+  /** Hint for HTTP status: 429 when locked / rate-limited. */
+  httpStatus?: number;
+  remainingAttempts?: number;
 };
 
 function otpModel() {
@@ -52,12 +62,24 @@ export async function sendOtpForPurpose(email: string, purpose: OtpPurpose): Pro
   const codeHash = hashOtpCode(code);
   const expiresAt = otpExpiresAt();
 
+  // Invalidate older unused codes so only the latest is valid (shrinks brute window).
+  await otpModel().updateMany({
+    where: {
+      email,
+      purpose,
+      verifiedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    data: { expiresAt: new Date() },
+  });
+
   await otpModel().create({
     data: {
       email,
       codeHash,
       purpose,
       expiresAt,
+      attemptCount: 0,
     },
   });
 
@@ -67,10 +89,10 @@ export async function sendOtpForPurpose(email: string, purpose: OtpPurpose): Pro
     return {
       ok: true,
       devLogged: mail.devLogged,
-      expiresInMinutes: 10,
+      expiresInMinutes: OTP_TTL_MINUTES,
       message: devMode
         ? "SMTP is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS in .env.local (see .env.example)."
-        : `Code sent to ${email}. Check inbox and spam.`,
+        : `Code sent to ${email}. Check inbox and spam. Code expires in ${OTP_TTL_MINUTES} minutes.`,
     };
   } catch (err) {
     const detail = err instanceof Error ? err.message : "Failed to send email";
@@ -87,8 +109,12 @@ export async function sendRegistrationOtp(email: string): Promise<OtpSendResult>
   return sendOtpForPurpose(email, "register");
 }
 
-export async function sendPasswordResetOtp(email: string): Promise<OtpSendResult> {
-  return sendOtpForPurpose(email, "reset_password");
+export async function sendPasswordResetOtp(_email: string): Promise<OtpSendResult> {
+  // POC-D-02: 6-digit password-reset OTPs are disabled. Use /api/auth/forgot-password/send (link token).
+  return {
+    ok: false,
+    message: "Password reset codes are disabled. Use the forgot-password email link instead.",
+  };
 }
 
 export async function sendAdminSecurityOtp(email: string): Promise<OtpSendResult> {
@@ -99,10 +125,10 @@ export async function verifyOtpForPurpose(
   email: string,
   code: string,
   purpose: OtpPurpose,
-): Promise<{ ok: boolean; message?: string }> {
+): Promise<OtpVerifyResult> {
   const trimmed = code.trim();
   if (!/^\d{6}$/.test(trimmed)) {
-    return { ok: false, message: "Enter the 6-digit code from your email." };
+    return { ok: false, message: "Enter the 6-digit code from your email.", httpStatus: 400 };
   }
 
   const codeHash = hashOtpCode(trimmed);
@@ -119,20 +145,75 @@ export async function verifyOtpForPurpose(
   });
 
   if (!record) {
-    return { ok: false, message: "No valid code found. Request a new code." };
+    return {
+      ok: false,
+      message: "No valid code found. Request a new code.",
+      httpStatus: 400,
+    };
   }
 
   if (isOtpExpired(record.expiresAt, now)) {
-    return { ok: false, message: "Code expired. Request a new code." };
+    return { ok: false, message: "Code expired. Request a new code.", httpStatus: 400 };
+  }
+
+  const priorAttempts = Number(record.attemptCount ?? 0);
+  if (priorAttempts >= OTP_MAX_VERIFY_ATTEMPTS) {
+    await otpModel().update({
+      where: { id: record.id },
+      data: { expiresAt: now },
+    });
+    return {
+      ok: false,
+      message: "Too many incorrect codes. Request a new code and try again later.",
+      httpStatus: 429,
+      remainingAttempts: 0,
+    };
   }
 
   if (record.codeHash !== codeHash) {
-    return { ok: false, message: "Incorrect code. Try again." };
+    const updated = await otpModel().update({
+      where: { id: record.id },
+      data: { attemptCount: { increment: 1 } },
+    });
+    const attempts = Number(updated.attemptCount ?? priorAttempts + 1);
+    const remaining = Math.max(0, OTP_MAX_VERIFY_ATTEMPTS - attempts);
+
+    if (attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
+      await otpModel().update({
+        where: { id: record.id },
+        data: { expiresAt: now },
+      });
+      return {
+        ok: false,
+        message: "Too many incorrect codes. This code is locked. Request a new code.",
+        httpStatus: 429,
+        remainingAttempts: 0,
+      };
+    }
+
+    return {
+      ok: false,
+      message: `Incorrect code. Try again. (${remaining} attempt${remaining === 1 ? "" : "s"} left)`,
+      httpStatus: 400,
+      remainingAttempts: remaining,
+    };
   }
 
   await otpModel().update({
     where: { id: record.id },
     data: { verifiedAt: now },
+  });
+
+  // Burn any other open codes for this email/purpose.
+  await otpModel().updateMany({
+    where: {
+      email,
+      purpose,
+      verifiedAt: null,
+      id: { not: record.id },
+      expiresAt: { gt: now },
+    },
+    data: { expiresAt: now },
   });
 
   if (purpose === "register") {
@@ -142,13 +223,16 @@ export async function verifyOtpForPurpose(
     });
   }
 
-  return { ok: true, message: purpose === "reset_password" ? "Code verified." : "Email verified." };
+  return {
+    ok: true,
+    message: purpose === "reset_password" ? "Code verified." : "Email verified.",
+  };
 }
 
 export async function verifyRegistrationOtp(
   email: string,
   code: string,
-): Promise<{ ok: boolean; message?: string }> {
+): Promise<OtpVerifyResult> {
   return verifyOtpForPurpose(email, code, "register");
 }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isAdminEmail } from "@/lib/server/admin-emails";
+import { assertCertificateOwnerOrAdmin } from "@/lib/server/certificate-access";
 import {
   N8N_ARCHIVED_PDF_MIN_BYTES,
   isTemporaryRemotePdfUrl,
@@ -8,7 +8,7 @@ import {
   resolveCertificatePdfPath,
 } from "@/lib/server/certificate-pdf-store";
 import { ensureCertificatePdfReady } from "@/lib/server/n8n-certificate-service";
-import { learnerEmailFromRequest } from "@/lib/server/learner-email-from-request";
+import { requireLearnerSessionEmail } from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
 
@@ -26,31 +26,32 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ ok: false, message: "Not found" }, { status: 404 });
   }
 
-  const email = learnerEmailFromRequest(request);
-  const forceDownload = new URL(request.url).searchParams.get("download") === "1";
-  const isOwner = email && email === row.learnerEmail.trim().toLowerCase();
-  const isAdmin = email && isAdminEmail(email);
-
-  if (!isOwner && !isAdmin) {
-    return NextResponse.json(
-      {
-        ok: false,
-        message: email
-          ? row.visibleToLearner
-            ? "You do not have access to this certificate."
-            : "Certificate is awaiting admin approval before download."
-          : "Add ?email= with your signed-in learner email.",
-      },
-      { status: 403 },
-    );
+  const denied = assertCertificateOwnerOrAdmin(request, row.learnerEmail);
+  if (denied) {
+    if (!row.visibleToLearner) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Certificate is awaiting admin approval before download.",
+        },
+        { status: 403 },
+      );
+    }
+    return denied;
   }
+
+  const sessionEmail = requireLearnerSessionEmail(request);
+  const isOwner =
+    Boolean(sessionEmail) &&
+    sessionEmail === row.learnerEmail.trim().toLowerCase();
+  const forceDownload = new URL(request.url).searchParams.get("download") === "1";
 
   const minBytes = row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
   let buffer = await readCertificatePdfBuffer(id.trim(), { minBytes });
-  if (!buffer && isOwner && isTemporaryRemotePdfUrl(row.pdfUrl)) {
+  if (!buffer && isOwner && isTemporaryRemotePdfUrl(row.pdfUrl) && sessionEmail) {
     await ensureCertificatePdfReady({
       certificateId: id.trim(),
-      learnerEmail: email!,
+      learnerEmail: sessionEmail,
       forceRegenerate: false,
     });
     buffer = await readCertificatePdfBuffer(id.trim(), { minBytes });

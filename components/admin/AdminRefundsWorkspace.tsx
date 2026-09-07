@@ -49,8 +49,7 @@ export default function AdminRefundsWorkspace() {
   const adminHeaders = useCallback((): Record<string, string> => {
     const email = getLearnerEmail();
     return {
-      "Content-Type": "application/json",
-      ...(email ? { "x-admin-email": email } : {}),
+      "Content-Type": "application/json",
     };
   }, []);
 

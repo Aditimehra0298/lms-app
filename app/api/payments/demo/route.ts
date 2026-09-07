@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
-import { normalizeLearnerEmail } from "@/lib/learner-email";
 import { recordDemoPayment } from "@/lib/server/payment-record-service";
+import {
+  learnerAuthRequiredResponse,
+  requireLearnerSessionEmail,
+} from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +16,23 @@ type Body = {
   items?: { slug?: string; title?: string; qty?: number; price?: string }[];
 };
 
+/**
+ * Demo payment — disabled in production unless ENABLE_DEMO_CHECKOUT=true.
+ * Always requires a signed-in learner session (POC-C-06).
+ */
 export async function POST(request: Request) {
+  if (process.env.ENABLE_DEMO_CHECKOUT !== "true") {
+    return NextResponse.json(
+      { ok: false, message: "Demo checkout is disabled." },
+      { status: 403 },
+    );
+  }
+
+  const sessionEmail = requireLearnerSessionEmail(request);
+  if (!sessionEmail) return learnerAuthRequiredResponse();
+
   try {
     const body = (await request.json()) as Body;
-    const learnerEmail = normalizeLearnerEmail(body.learnerEmail?.trim() ?? "");
-    if (!learnerEmail) {
-      return NextResponse.json({ ok: false, message: "learnerEmail is required." }, { status: 400 });
-    }
 
     const items = Array.isArray(body.items)
       ? body.items
@@ -33,7 +46,7 @@ export async function POST(request: Request) {
       : [];
 
     const result = await recordDemoPayment({
-      learnerEmail,
+      learnerEmail: sessionEmail,
       items,
       amount: Math.max(0, Number(body.amount) || 0),
       currency: body.currency?.trim() || "INR",

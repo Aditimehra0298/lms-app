@@ -79,13 +79,15 @@ model LmsOrganization {
 
 /// One-time codes for email verification during registration.
 model LmsEmailOtp {
-  id         String    @id @default(cuid())
-  email      String    @db.VarChar(255)
-  codeHash   String    @db.VarChar(128)
-  purpose    String    @default("register") @db.VarChar(32)
-  expiresAt  DateTime
-  verifiedAt DateTime?
-  createdAt  DateTime  @default(now())
+  id           String    @id @default(cuid())
+  email        String    @db.VarChar(255)
+  codeHash     String    @db.VarChar(128)
+  purpose      String    @default("register") @db.VarChar(32)
+  expiresAt    DateTime
+  verifiedAt   DateTime?
+  /// Failed verify attempts against this code (lockout after OTP_MAX_VERIFY_ATTEMPTS).
+  attemptCount Int       @default(0)
+  createdAt    DateTime  @default(now())
 
   @@index([email, purpose])
   @@index([expiresAt])
@@ -230,7 +232,7 @@ model LmsCertificate {
   templateImage       String?  @db.VarChar(512)
   badgeImage          String?  @db.VarChar(512)
   supplementaryDocs   Json?
-  /// pending | ready | failed
+  /// pending | ready | failed | revoked
   status              String   @default("pending") @db.VarChar(32)
   /// Admin can hide/show on learner dashboard
   visibleToLearner    Boolean  @default(false)

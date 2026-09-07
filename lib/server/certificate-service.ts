@@ -8,6 +8,7 @@ import {
 import { allocateSftCertificateNumber } from "@/lib/server/certificate-number-issue";
 import { allocateDelegateNumber } from "@/lib/server/delegate-number-issue";
 import { buildCertificateVerifyUrl } from "@/lib/certificate-verify-url";
+import { appBaseUrl } from "@/lib/server/certificate-app-url";
 import { prisma } from "@/lib/prisma";
 import {
   isValidArchivedCertificatePdf,
@@ -259,14 +260,6 @@ export async function issueEmployeeCourseCertificate(input: {
   });
 
   return { ok: true, certificate: await enrichCertificate(serializeCertificate(row, companyName)) };
-}
-
-function appBaseUrl(): string {
-  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (explicit) return explicit.replace(/\/$/, "");
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel}`;
-  return "http://localhost:3000";
 }
 
 function serializeCertificate(

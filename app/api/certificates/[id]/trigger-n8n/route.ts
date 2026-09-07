@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { assertCertificateOwnerOrAdmin } from "@/lib/server/certificate-access";
 import { triggerN8nCertificateGeneration } from "@/lib/server/n8n-certificate-service";
 
 export const dynamic = "force-dynamic";
@@ -13,22 +15,21 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ ok: false, message: "Missing certificate id" }, { status: 400 });
   }
 
-  let body: { email?: string };
-  try {
-    body = (await request.json()) as { email?: string };
-  } catch {
-    return NextResponse.json({ ok: false, message: "Invalid JSON" }, { status: 400 });
+  const row = await prisma.lmsCertificate.findUnique({
+    where: { id: id.trim() },
+    select: { learnerEmail: true },
+  });
+  if (!row) {
+    return NextResponse.json({ ok: false, message: "Certificate not found." }, { status: 404 });
   }
 
-  const email = body.email?.trim().toLowerCase();
-  if (!email) {
-    return NextResponse.json({ ok: false, message: "email required" }, { status: 400 });
-  }
+  const denied = assertCertificateOwnerOrAdmin(request, row.learnerEmail);
+  if (denied) return denied;
 
   try {
     const result = await triggerN8nCertificateGeneration({
       certificateId: id.trim(),
-      learnerEmail: email,
+      learnerEmail: row.learnerEmail.trim().toLowerCase(),
     });
     if (!result.ok) {
       return NextResponse.json(result, { status: 409 });

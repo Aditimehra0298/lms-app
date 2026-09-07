@@ -58,7 +58,7 @@ function labelFromAsset(asset: MediaRow): string {
  * POST { slug, dryRun?, includeOrphans? } — append missing videos as new modules, save JSON+MySQL.
  */
 export async function GET(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   const slug = new URL(request.url).searchParams.get("slug")?.trim() || "";
@@ -130,7 +130,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   try {

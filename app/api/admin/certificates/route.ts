@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 /** List certificate rows for admin — all courses, or filter by courseSlug. */
 export async function GET(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   const courseSlug = new URL(request.url).searchParams.get("courseSlug")?.trim();

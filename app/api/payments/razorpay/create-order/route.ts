@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
-import { normalizeLearnerEmail } from "@/lib/learner-email";
-import { createPendingRazorpayPayment } from "@/lib/server/payment-record-service";
+import {
+  createPendingRazorpayPayment,
+  recordDemoPayment,
+} from "@/lib/server/payment-record-service";
 import { createRazorpayOrder, type RazorpayCheckoutItem } from "@/lib/server/razorpay-service";
 import { isRazorpayConfigured } from "@/lib/server/razorpay-config";
 import { promoNote } from "@/lib/server/checkout-promo";
+import {
+  learnerAuthRequiredResponse,
+  requireLearnerSessionEmail,
+} from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
 
@@ -16,19 +22,12 @@ type Body = {
 };
 
 export async function POST(request: Request) {
-  if (!isRazorpayConfigured()) {
-    return NextResponse.json(
-      { ok: false, message: "Razorpay is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env.local." },
-      { status: 503 },
-    );
-  }
+  const sessionEmail = requireLearnerSessionEmail(request);
+  if (!sessionEmail) return learnerAuthRequiredResponse();
 
   try {
     const body = (await request.json()) as Body;
-    const learnerEmail = normalizeLearnerEmail(body.learnerEmail?.trim() ?? "");
-    if (!learnerEmail) {
-      return NextResponse.json({ ok: false, message: "learnerEmail is required." }, { status: 400 });
-    }
+    const learnerEmail = sessionEmail;
 
     const items = Array.isArray(body.items)
       ? body.items
@@ -52,8 +51,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: result.message }, { status: 400 });
     }
 
-    /** 100% OFF / zero total — never open Razorpay for ₹0. */
+    /** 100% OFF / zero total — enroll after server promo validation (never trust client POST /api/purchases). */
     if (("freeCheckout" in result && result.freeCheckout) || Number(result.amount) <= 0) {
+      const enrolled = await recordDemoPayment({
+        learnerEmail,
+        items: items.map((item) => ({
+          slug: item.slug,
+          title: item.title || item.slug,
+          qty: item.qty,
+          price: item.price,
+        })),
+        amount: 0,
+        currency: result.currency,
+        countryCode: body.countryCode?.trim(),
+        promoCode: result.promoCode,
+      });
+      if (!enrolled.ok) {
+        return NextResponse.json({ ok: false, message: enrolled.message }, { status: 400 });
+      }
       return NextResponse.json({
         ok: true,
         freeCheckout: true,
@@ -64,8 +79,20 @@ export async function POST(request: Request) {
         promoCode: result.promoCode,
         promoLabel: result.promoLabel,
         region: result.region,
-        message: "No payment required. Complete free enrollment on checkout.",
+        paymentId: enrolled.paymentId,
+        message: "No payment required. Courses unlocked.",
       });
+    }
+
+    if (!isRazorpayConfigured()) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Razorpay is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env.local.",
+        },
+        { status: 503 },
+      );
     }
 
     await createPendingRazorpayPayment({

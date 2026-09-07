@@ -89,7 +89,7 @@ export default function AdminCourseCertificateApprovals({
         cache: "no-store",
         headers: (() => {
           const email = getLearnerEmail();
-          return email ? { "x-admin-email": email } : {};
+          return {};
         })(),
       });
       const data = (await res.json()) as { ok?: boolean; certificates?: AdminCertificateRowDto[] };
@@ -136,8 +136,7 @@ export default function AdminCourseCertificateApprovals({
     const res = await fetch(`/api/admin/certificates/${id}`, {
       method: "PATCH",
       headers: {
-        "Content-Type": "application/json",
-        ...(getLearnerEmail() ? { "x-admin-email": getLearnerEmail()! } : {}),
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
     });

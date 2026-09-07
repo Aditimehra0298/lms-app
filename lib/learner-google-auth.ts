@@ -34,6 +34,7 @@ export async function signInWithGoogleAccessToken(
   const res = await fetch("/api/auth/google", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({
       accessToken,
       accountType,

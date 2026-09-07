@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { normalizeLearnerEmail } from "@/lib/learner-email";
 import type { OrgPremiumPlanId, OrgTeamRosterEntry } from "@/lib/organization-team-config";
 import {
   ensureOrganizationTeam,
@@ -7,6 +6,10 @@ import {
   readOrganizationTeamAdminConfig,
   writeOrganizationTeam,
 } from "@/lib/server/organization-team-store";
+import {
+  learnerAuthRequiredResponse,
+  requireLearnerSessionEmail,
+} from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +25,8 @@ type Body = {
 };
 
 export async function GET(request: Request) {
-  const email = normalizeLearnerEmail(new URL(request.url).searchParams.get("email")?.trim() ?? "");
-  if (!email) {
-    return NextResponse.json({ ok: false, message: "email query required" }, { status: 400 });
-  }
+  const email = requireLearnerSessionEmail(request);
+  if (!email) return learnerAuthRequiredResponse();
 
   try {
     const adminConfig = await readOrganizationTeamAdminConfig();
@@ -45,12 +46,12 @@ export async function GET(request: Request) {
 
 /** One-time migration from browser localStorage demo data */
 export async function POST(request: Request) {
+  const sessionEmail = requireLearnerSessionEmail(request);
+  if (!sessionEmail) return learnerAuthRequiredResponse();
+
   try {
     const body = (await request.json()) as Body;
-    const email = normalizeLearnerEmail(body.email?.trim() ?? "");
-    if (!email) {
-      return NextResponse.json({ ok: false, message: "email required" }, { status: 400 });
-    }
+    const email = sessionEmail;
 
     const existing = await readOrganizationTeam(email);
     if (existing?.roster.some((r) => r.invited)) {
@@ -78,14 +79,17 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const sessionEmail = requireLearnerSessionEmail(request);
+  if (!sessionEmail) return learnerAuthRequiredResponse();
+
   try {
     const body = (await request.json()) as Body;
-    const email = normalizeLearnerEmail(body.email?.trim() ?? "");
-    if (!email) {
-      return NextResponse.json({ ok: false, message: "email required" }, { status: 400 });
-    }
+    const email = sessionEmail;
 
-    const existing = await ensureOrganizationTeam({ workEmail: email, companyName: body.companyName });
+    const existing = await ensureOrganizationTeam({
+      workEmail: email,
+      companyName: body.companyName,
+    });
     const team = await writeOrganizationTeam({
       ...existing,
       workEmail: email,

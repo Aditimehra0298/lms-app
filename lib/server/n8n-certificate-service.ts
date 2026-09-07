@@ -358,6 +358,8 @@ export async function requestCourseCertificate(input: {
   courseSlug: string;
   scorePercent?: number;
   forceRetry?: boolean;
+  /** Set only by admin/grant paths or after route-level learner gates. */
+  bypassLearnerGates?: boolean;
 }): Promise<
   | { ok: true; certificate: CertificateRowDto; message?: string }
   | { ok: false; message: string }
@@ -365,6 +367,14 @@ export async function requestCourseCertificate(input: {
   const email = input.learnerEmail.trim().toLowerCase();
   const slug = input.courseSlug.trim();
   if (!email || !slug) return { ok: false, message: "Email and course slug are required." };
+
+  let scorePercent = input.scorePercent;
+  if (!input.bypassLearnerGates) {
+    const { assertLearnerMayRequestCertificate } = await import("@/lib/server/certificate-access");
+    const gate = await assertLearnerMayRequestCertificate(email, slug);
+    if (!gate.ok) return gate;
+    if (gate.scorePercent != null) scorePercent = gate.scorePercent;
+  }
 
   const course = await findCourse(slug);
   if (!course) return { ok: false, message: "Course not found." };
@@ -424,7 +434,7 @@ export async function requestCourseCertificate(input: {
         courseRow,
         perms,
         learnerName: input.learnerName,
-        scorePercent: input.scorePercent,
+        scorePercent,
       });
     }
     if (existing.status === "ready" && !input.forceRetry) {
@@ -437,7 +447,7 @@ export async function requestCourseCertificate(input: {
       learnerEmail: email,
       learnerName: input.learnerName,
       courseSlug: slug,
-      scorePercent: input.scorePercent,
+      scorePercent,
     });
     if (!built.ok) return built;
     await prisma.lmsCertificate.update({
@@ -508,7 +518,7 @@ export async function requestCourseCertificate(input: {
       verifyNumber,
       identificationNumber: registration.identificationNumber,
       holderType,
-      scorePercent: input.scorePercent ?? null,
+      scorePercent: scorePercent ?? null,
       templateImage: assets.templateImage,
       badgeImage: assets.badgeImage,
       supplementaryDocs: assets.supplementaryDocs.length > 0 ? assets.supplementaryDocs : undefined,
@@ -527,7 +537,7 @@ export async function requestCourseCertificate(input: {
     perms,
     assets,
     displayName,
-    scorePercent: input.scorePercent,
+    scorePercent,
   });
   if (!dispatched.ok) return dispatched;
   queueCourseLifecycleEmails({
@@ -919,7 +929,11 @@ export async function completeN8nCertificateCallback(input: {
     where: { id },
     data: {
       status: storedPdfUrl ? "ready" : status === "failed" ? "failed" : row.status,
-      certificateNumber: input.certificateNumber?.trim() || row.certificateNumber,
+      // Never overwrite an issued official number from callback payloads (POC-D-14).
+      ...(input.certificateNumber?.trim() &&
+      (row.certificateNumber.startsWith("TEMP-") || !row.certificateNumber.trim())
+        ? { certificateNumber: input.certificateNumber.trim() }
+        : {}),
       pdfUrl: storedPdfUrl,
       visibleToLearner: visible || row.visibleToLearner,
       issuedVia: storedPdfUrl ? "n8n" : row.issuedVia,
@@ -989,13 +1003,13 @@ export async function setCertificateVisibility(
   return { ok: true, certificate: enriched };
 }
 
-/** Admin manually marks certificate ready (upload PDF in Drive, paste URL here). */
+/** Admin updates visibility / status / PDF — never renumbers issued certificates (POC-D-14). */
 export async function adminUpdateCertificateManual(input: {
   certificateId: string;
   pdfUrl?: string;
-  certificateNumber?: string;
-  status?: "ready" | "failed" | "pending";
+  status?: "ready" | "failed" | "pending" | "revoked";
   visibleToLearner?: boolean;
+  updatedByEmail?: string;
 }): Promise<{ ok: true; certificate: CertificateRowDto } | { ok: false; message: string }> {
   const row = await prisma.lmsCertificate.findUnique({ where: { id: input.certificateId } });
   if (!row) return { ok: false, message: "Not found" };
@@ -1013,22 +1027,35 @@ export async function adminUpdateCertificateManual(input: {
     storedPdfUrl = persisted.storedUrl;
   }
 
+  const visibility =
+    status === "revoked"
+      ? false
+      : typeof input.visibleToLearner === "boolean"
+        ? input.visibleToLearner
+        : undefined;
+
   const updated = await prisma.lmsCertificate.update({
     where: { id: input.certificateId },
     data: {
       ...(storedPdfUrl !== undefined ? { pdfUrl: storedPdfUrl } : {}),
-      ...(input.certificateNumber?.trim() &&
-      !input.certificateNumber.trim().startsWith("TEMP-")
-        ? { certificateNumber: input.certificateNumber.trim() }
-        : {}),
       status,
-      ...(typeof input.visibleToLearner === "boolean"
-        ? { visibleToLearner: input.visibleToLearner }
-        : {}),
-      ...(status === "ready" ? { issuedAt: new Date() } : {}),
-      issuedVia: "manual",
+      ...(typeof visibility === "boolean" ? { visibleToLearner: visibility } : {}),
+      ...(status === "ready" && row.status !== "ready" ? { issuedAt: new Date() } : {}),
+      issuedVia: input.pdfUrl?.trim() ? "manual" : row.issuedVia,
     },
   });
+
+  console.info(
+    "[adminUpdateCertificateManual]",
+    JSON.stringify({
+      id: updated.id,
+      status: updated.status,
+      visibleToLearner: updated.visibleToLearner,
+      by: input.updatedByEmail ?? null,
+      at: new Date().toISOString(),
+    }),
+  );
+
   return { ok: true, certificate: await toDto(updated) };
 }
 
@@ -1042,7 +1069,7 @@ export async function adminTriggerCertificateForLearner(input: {
   | { ok: true; certificate: CertificateRowDto; message?: string }
   | { ok: false; message: string }
 > {
-  return requestCourseCertificate({ ...input, forceRetry: true });
+  return requestCourseCertificate({ ...input, forceRetry: true, bypassLearnerGates: true });
 }
 
 /**

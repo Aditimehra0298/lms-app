@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   UserCog,
 } from "lucide-react";
-import { getLearnerEmail } from "@/lib/learner-session-client";
 
 type AccessConfig = {
   panelAccess: {
@@ -121,18 +120,15 @@ export default function AdminRolesPermissionsWorkspace() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const adminHeaders = useCallback((): Record<string, string> => {
-    const email = getLearnerEmail();
-    return email ? { "x-admin-email": email } : {};
+    return {};
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const email = getLearnerEmail();
-      const qs = email ? `?email=${encodeURIComponent(email)}` : "";
       const [configRes, orgRes] = await Promise.all([
-        fetch(`/api/admin/access-config${qs}`, { cache: "no-store", headers: adminHeaders() }),
+        fetch(`/api/admin/access-config`, { cache: "no-store", headers: adminHeaders() }),
         fetch("/api/admin/organizations", { cache: "no-store" }),
       ]);
       const data = (await configRes.json()) as AccessConfig & { ok?: boolean; message?: string };

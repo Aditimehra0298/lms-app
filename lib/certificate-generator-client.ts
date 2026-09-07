@@ -26,10 +26,9 @@ export async function generateCertificateViaApi(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
+      credentials: "include",
       cache: "no-store",
       body: JSON.stringify({
-        email: email.trim().toLowerCase(),
         forceRegenerate: options?.forceRegenerate === true,
       }),
     },
@@ -76,10 +75,9 @@ export async function prepareLearnerCertificate(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
+      credentials: "include",
       cache: "no-store",
       body: JSON.stringify({
-        email: email.trim().toLowerCase(),
         forceRegenerate: options?.forceRegenerate === true,
       }),
     },
@@ -98,10 +96,9 @@ export async function generateCertificateFromTemplate(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
+      credentials: "include",
       cache: "no-store",
       body: JSON.stringify({
-        email: email.trim().toLowerCase(),
         forceRegenerate: options?.forceRegenerate === true,
       }),
     },

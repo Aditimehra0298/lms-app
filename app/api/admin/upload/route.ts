@@ -10,6 +10,11 @@ import {
   protectedMediaServePath,
 } from "@/lib/server/private-media-storage";
 import { streamMultipartFileUpload } from "@/lib/server/stream-multipart-upload";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
+import {
+  readFileHead,
+  validateAdminMediaUpload,
+} from "@/lib/server/upload-content-validation";
 
 export const runtime = "nodejs";
 /** Large learning-tool / video uploads (up to 1 GB). */
@@ -243,6 +248,9 @@ function uploadErrorMessage(err: unknown): string {
 }
 
 export async function POST(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   try {
     const uploaded = await streamMultipartFileUpload(request, {
       destDir: PRIVATE_MEDIA_DIR,
@@ -265,6 +273,7 @@ export async function POST(request: Request) {
     const isDoc = DOC_TYPES.has(type) || looksLikeDocFile(originalName, type) || looksLikeCsvFile(originalName, type);
 
     if (!isImage && !isDoc && !isVideo && !isAudio) {
+      await unlink(uploaded.filePath).catch(() => {});
       return NextResponse.json(
         {
           ok: false,
@@ -281,6 +290,15 @@ export async function POST(request: Request) {
       const mb = Math.round(maxBytes / (1024 * 1024));
       return NextResponse.json({ ok: false, error: `File too large (max ${mb}MB)` }, { status: 400 });
     }
+
+    // Magic-byte / content validation (POC-C-07) — extension alone is not enough.
+    const head = await readFileHead(uploaded.filePath);
+    const contentCheck = validateAdminMediaUpload(head, originalName);
+    if (!contentCheck.ok) {
+      await unlink(uploaded.filePath).catch(() => {});
+      return NextResponse.json({ ok: false, error: contentCheck.message }, { status: 400 });
+    }
+    type = contentCheck.mime || type;
 
     const name = uploaded.storageName;
     const url = protectedMediaServePath(name);

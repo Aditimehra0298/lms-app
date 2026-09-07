@@ -4,6 +4,7 @@ import { emailAppName } from "@/lib/email-brand-config";
 import { SFT_EMAILS } from "@/lib/contact-site-data";
 import { createFormSubmission } from "@/lib/server/form-submissions-store";
 import { sendTransactionalEmail } from "@/lib/mail";
+import { sanitizePlainText } from "@/lib/server/sanitize-user-text";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Invalid JSON" }, { status: 400 });
   }
 
-  const fullName = body.fullName?.trim() ?? "";
+  const fullName = sanitizePlainText(body.fullName, 200);
   const email = body.email?.trim().toLowerCase() ?? "";
-  const mobile = body.mobile?.trim() ?? "";
-  const message = body.message?.trim() ?? "";
+  const mobile = sanitizePlainText(body.mobile, 40);
+  const message = sanitizePlainText(body.message, 5000);
   const captchaToken = body.captchaToken?.trim() ?? "";
   const captchaAnswer = Number(String(body.captchaAnswer ?? "").trim());
 

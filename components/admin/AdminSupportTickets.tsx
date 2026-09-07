@@ -111,9 +111,15 @@ export default function AdminSupportTickets() {
           params.set("q", searchQuery.trim());
         }
       }
-      const res = await fetch(`/api/tickets?${params.toString()}`, { cache: "no-store" });
+      const res = await fetch(`/api/tickets?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
       if (!res.ok) {
-        const fallback = await fetch(`/api/issues?${params.toString()}`, { cache: "no-store" });
+        const fallback = await fetch(`/api/issues?${params.toString()}`, {
+          cache: "no-store",
+          credentials: "include",
+        });
         if (!fallback.ok) throw new Error(`HTTP ${fallback.status}`);
         const data = await fallback.json();
         setIssues(data.issues ?? []);
@@ -157,12 +163,14 @@ export default function AdminSupportTickets() {
       let res = await fetch(`/api/tickets/${encodeURIComponent(token)}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) {
         res = await fetch(`/api/issues/${encodeURIComponent(token)}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ status: newStatus }),
         });
       }

@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { cleanupCourseEnrollments } from "@/lib/server/cleanup-enrollments";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
 /** POST — dedupe enrollments for this course and link rows to lms_user (Primary ID). */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   const { slug } = await params;
   const courseSlug = slug.trim().toLowerCase();
   if (!courseSlug) {

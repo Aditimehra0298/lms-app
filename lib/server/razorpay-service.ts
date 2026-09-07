@@ -40,10 +40,6 @@ export async function createRazorpayOrder(input: {
   currency?: string;
   promoCode?: string;
 }) {
-  if (!isRazorpayConfigured()) {
-    return { ok: false as const, message: "Razorpay is not configured on the server." };
-  }
-
   const items = input.items.filter((item) => item.slug.trim());
   if (items.length === 0) {
     return { ok: false as const, message: "No checkout items provided." };
@@ -78,7 +74,7 @@ export async function createRazorpayOrder(input: {
   const amount = toSmallestCurrencyUnit(totals.total, currency);
   const minAmount = minimumPaymentAmountSmallestUnit(currency);
 
-  /** Fully discounted order — do not call Razorpay (₹0 / $0 not allowed by gateway). */
+  /** Fully discounted / free catalog — no Razorpay call (₹0 / $0 not allowed by gateway). */
   if (amount <= 0) {
     return {
       ok: true as const,
@@ -87,7 +83,7 @@ export async function createRazorpayOrder(input: {
       amount: 0,
       currency,
       receipt: `free_${nanoid(12)}`,
-      keyId: getRazorpayKeyId()!,
+      keyId: getRazorpayKeyId() ?? "",
       totals,
       promoCode: promo.code || undefined,
       promoLabel: promo.label || undefined,
@@ -97,6 +93,10 @@ export async function createRazorpayOrder(input: {
         currency: region.currency,
       },
     };
+  }
+
+  if (!isRazorpayConfigured()) {
+    return { ok: false as const, message: "Razorpay is not configured on the server." };
   }
 
   if (amount < minAmount) {

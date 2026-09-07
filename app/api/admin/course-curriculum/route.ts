@@ -3,6 +3,7 @@ import type { CourseCurriculumModule, ManagedCourse } from "@/lib/content-schema
 import { assertCurriculumModuleCapacity } from "@/lib/curriculum-limits";
 import { syncCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
 import { readAdminContentFromDisk, writeAdminContent } from "@/lib/server/content-store";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 /** Large curricula (many modules + video URLs) need headroom. */
@@ -23,6 +24,9 @@ type Body = {
  * No module-count limit.
  */
 export async function PUT(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   try {
     const body = (await request.json()) as Body;
     const slug = typeof body.slug === "string" ? body.slug.trim() : "";

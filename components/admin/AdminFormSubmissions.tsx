@@ -151,7 +151,6 @@ export default function AdminFormSubmissions() {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            ...(email ? { "x-admin-email": email } : {}),
           },
           body: JSON.stringify({ id, ...body }),
         },

@@ -244,13 +244,15 @@ export default function CheckoutPage() {
     setIsSuccess(true);
   };
 
+  /** Demo-only path (ENABLE_DEMO_CHECKOUT). Free enrollments go through create-order. */
   const completePurchase = async (method: "demo" | "free" = "demo") => {
     const learnerEmail = learnerInfo.email.trim().toLowerCase();
-    if (learnerEmail) {
+    if (method === "demo" && learnerEmail) {
       try {
         await fetch("/api/payments/demo", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             learnerEmail,
             countryCode: region?.countryCode,
@@ -279,24 +281,6 @@ export default function CheckoutPage() {
   };
 
   const payWithRazorpay = async () => {
-    if (isFreeCheckout || total <= 0) {
-      setPayLoading(true);
-      setPayError("");
-      try {
-        await completePurchase("free");
-      } catch (err) {
-        setPayError(err instanceof Error ? err.message : "Could not complete free enrollment.");
-      } finally {
-        setPayLoading(false);
-      }
-      return;
-    }
-
-    if (!razorpayConfig?.configured || !razorpayConfig.keyId) {
-      setPayError("Razorpay is not configured. Add API keys to .env.local and restart the server.");
-      return;
-    }
-
     if (!region) {
       setPayError("Pricing for your country is still loading. Please refresh and try again.");
       return;
@@ -308,12 +292,19 @@ export default function CheckoutPage() {
       return;
     }
 
+    const freeOnly = isFreeCheckout || total <= 0;
+    if (!freeOnly && (!razorpayConfig?.configured || !razorpayConfig.keyId)) {
+      setPayError("Razorpay is not configured. Add API keys to .env.local and restart the server.");
+      return;
+    }
+
     setPayLoading(true);
     setPayError("");
     try {
       const orderRes = await fetch("/api/payments/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           learnerEmail,
           countryCode: region.countryCode,
@@ -341,8 +332,17 @@ export default function CheckoutPage() {
       }
 
       if (orderData.freeCheckout || Number(orderData.amount) <= 0) {
-        await completePurchase("free");
+        await finalizePurchase({
+          orderId: "FREE",
+          paymentId: "—",
+          method: "free",
+          currency: paymentCurrency,
+        });
         return;
+      }
+
+      if (freeOnly) {
+        throw new Error(orderData.message ?? "This order still requires payment.");
       }
 
       if (!orderData.orderId || !orderData.keyId && !razorpayConfig.keyId) {
@@ -610,23 +610,7 @@ export default function CheckoutPage() {
               <button
                 disabled={items.length === 0 || payLoading || !showPrices}
                 onClick={() => {
-                  if (isFreeCheckout || total <= 0) {
-                    void (async () => {
-                      setPayLoading(true);
-                      setPayError("");
-                      try {
-                        await completePurchase("free");
-                      } catch (err) {
-                        setPayError(
-                          err instanceof Error ? err.message : "Could not complete free enrollment.",
-                        );
-                      } finally {
-                        setPayLoading(false);
-                      }
-                    })();
-                    return;
-                  }
-                  if (razorpayReady) {
+                  if (isFreeCheckout || total <= 0 || razorpayReady) {
                     void payWithRazorpay();
                     return;
                   }

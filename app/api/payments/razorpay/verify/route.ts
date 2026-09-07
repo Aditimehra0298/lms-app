@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { normalizeLearnerEmail } from "@/lib/learner-email";
 import { finalizeRazorpayPayment } from "@/lib/server/payment-record-service";
 import { isRazorpayConfigured } from "@/lib/server/razorpay-config";
+import {
+  learnerAuthRequiredResponse,
+  requireLearnerSessionEmail,
+} from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
 
@@ -17,15 +20,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Razorpay is not configured." }, { status: 503 });
   }
 
+  const sessionEmail = requireLearnerSessionEmail(request);
+  if (!sessionEmail) return learnerAuthRequiredResponse();
+
   try {
     const body = (await request.json()) as Body;
-    const learnerEmail = normalizeLearnerEmail(body.learnerEmail?.trim() ?? "");
     const orderId = body.razorpay_order_id?.trim() ?? "";
     const paymentId = body.razorpay_payment_id?.trim() ?? "";
     const signature = body.razorpay_signature?.trim() ?? "";
 
     const result = await finalizeRazorpayPayment({
-      learnerEmail,
+      // Session email only — body.learnerEmail is ignored for authorization.
+      learnerEmail: sessionEmail,
       orderId,
       paymentId,
       signature,
@@ -39,7 +45,7 @@ export async function POST(request: Request) {
       ok: true,
       orderId,
       paymentId,
-      learnerEmail,
+      learnerEmail: sessionEmail,
     });
   } catch (err) {
     console.error("[api/payments/razorpay/verify]", err);

@@ -8,6 +8,9 @@ import {
   roleForEmail,
 } from "@/lib/server/admin-emails";
 import { verifyAdminVerifyToken } from "@/lib/server/admin-verify-token";
+import { attachAdminSession } from "@/lib/server/admin-session";
+import { isAdminSessionHeldElsewhere } from "@/lib/server/admin-active-session";
+import { attachLearnerSession } from "@/lib/server/learner-session";
 import { fetchGoogleUserInfo } from "@/lib/server/google-userinfo";
 import {
   countryUpdateFields,
@@ -216,7 +219,7 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     ok: true,
     dbSaved,
     dbError,
@@ -231,4 +234,20 @@ export async function POST(request: Request) {
     profile,
     googleRecommendationSignals,
   });
+  if (isAdminGoogleStep && isMainAdminEmail(email)) {
+    const held = await isAdminSessionHeldElsewhere(null);
+    if (held.held) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Admin panel is already signed in on another device. Sign out from that device first.",
+          sessionActiveElsewhere: true,
+        },
+        { status: 409 },
+      );
+    }
+    return attachAdminSession(res, email);
+  }
+  return attachLearnerSession(res, email);
 }

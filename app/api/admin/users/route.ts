@@ -290,7 +290,7 @@ function serializeUser(
 }
 
 export async function GET(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   const url = new URL(request.url);
@@ -393,7 +393,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   let body: { email?: string; role?: string; accountType?: string | null };

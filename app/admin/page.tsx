@@ -75,6 +75,7 @@ import type { AdminContent, ManagedCategory } from "@/lib/content-schema";
 import AdminAccessDenied from "@/components/AdminAccessDenied";
 import { defaultAdminContent } from "@/lib/content-schema";
 import { clearLearnerProfileStorage, getLearnerEmail, isLearnerLoggedIn } from "@/lib/learner-session-client";
+import { installAdminCsrfFetch } from "@/lib/admin-csrf-client";
 
 const menuSections = [
   {
@@ -200,7 +201,6 @@ const menuIcons: Record<string, typeof Home> = {
 type AdminAccessState = {
   status: "loading" | "allowed" | "denied";
   message?: string;
-  mainAdminMasked?: string;
 };
 
 const MENU_PANEL_QUERY: Record<string, string> = {
@@ -356,36 +356,25 @@ function AdminPageInner() {
   const authCheckStarted = useRef(false);
 
   useEffect(() => {
+    return installAdminCsrfFetch();
+  }, []);
+
+  useEffect(() => {
     if (authCheckStarted.current) return;
     authCheckStarted.current = true;
 
-    if (!isLearnerLoggedIn()) {
-      router.replace("/account?admin=1");
-      return;
-    }
-    const email = getLearnerEmail();
-    if (!email) {
-      router.replace("/account?admin=1");
-      return;
-    }
-
-    const cached =
-      typeof window !== "undefined"
-        ? window.sessionStorage.getItem("sft_admin_access_email")
-        : null;
-    if (cached === email) {
-      setAccess({ status: "allowed" });
-      return;
-    }
-
     let cancelled = false;
-    fetch(`/api/auth/admin-access?email=${encodeURIComponent(email)}`, { cache: "no-store" })
+    // Server JWT session cookie is the only proof of admin — never trust localStorage alone.
+    fetch("/api/auth/admin-access", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
-      .then((data: { allowed?: boolean; message?: string; mainAdminMasked?: string }) => {
+      .then((data: { allowed?: boolean; message?: string; email?: string }) => {
         if (cancelled) return;
         if (data.allowed) {
+          if (data.email) {
+            window.localStorage.setItem("sft_learner_email", data.email);
+            window.localStorage.setItem("sft_logged_in", "true");
+          }
           window.localStorage.setItem("sft_user_role", "admin");
-          window.sessionStorage.setItem("sft_admin_access_email", email);
           setAccess({ status: "allowed" });
           return;
         }
@@ -394,21 +383,22 @@ function AdminPageInner() {
         setAccess({
           status: "denied",
           message: data.message,
-          mainAdminMasked: data.mainAdminMasked,
         });
+        router.replace("/account?admin=1");
       })
       .catch(() => {
         if (!cancelled) {
           setAccess({
             status: "denied",
-            message: "Could not verify admin permission. Try again or sign in with the main Google account.",
+            message: "Could not verify admin permission. Sign in at Admin login.",
           });
+          router.replace("/account?admin=1");
         }
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
   const toSlug = (value: string) =>
     value
@@ -513,7 +503,6 @@ function AdminPageInner() {
     return (
       <div className="min-h-screen bg-[#0a0a0a]">
         <AdminAccessDenied
-          mainAdminMasked={access.mainAdminMasked}
           userEmail={getLearnerEmail()}
           message={access.message}
         />
@@ -744,13 +733,19 @@ function AdminPageInner() {
             <button
               type="button"
               onClick={() => {
-                try {
-                  clearLearnerProfileStorage();
-                  sessionStorage.removeItem("sft_admin_access_email");
-                } catch {
-                  /* ignore */
-                }
-                window.location.href = "/";
+                void fetch("/api/auth/admin-logout", {
+                  method: "POST",
+                  credentials: "include",
+                }).finally(() => {
+                  try {
+                    clearLearnerProfileStorage();
+                    sessionStorage.removeItem("sft_admin_access_email");
+                    localStorage.removeItem("sft_user_role");
+                  } catch {
+                    /* ignore */
+                  }
+                  window.location.href = "/";
+                });
               }}
               className="mt-3 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-300 hover:bg-red-500/10"
             >

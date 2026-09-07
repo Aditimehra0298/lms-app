@@ -71,10 +71,9 @@ export async function fetchSavedCertificatePdf(
   const res = await fetch(`/api/certificates/${encodeURIComponent(id)}/download`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
+    credentials: "include",
     cache: "no-store",
     body: JSON.stringify({
-      email: normalizedEmail,
       attachment: options?.attachment !== false,
       forceRegenerate: options?.forceRegenerate === true,
     }),
@@ -158,7 +157,7 @@ async function resolveCertificateId(
   courseSlug: string,
   scorePercent?: number | null,
 ): Promise<string | null> {
-  const listRes = await fetch(`/api/certificates?email=${encodeURIComponent(email)}`, {
+  const listRes = await fetch(`/api/certificates`, { credentials: "include", 
     cache: "no-store",
   });
   const list = await readJsonResponse(listRes, {} as {

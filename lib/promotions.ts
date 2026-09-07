@@ -238,10 +238,13 @@ export function computePromotionDiscount(input: {
   const code = input.code.trim().toUpperCase();
   if (!code) return { ok: false, error: "Enter a code." };
 
+  /** Uniform message — do not distinguish missing vs inactive (enumeration oracle). */
+  const invalidCode = "Invalid or inactive code.";
+
   const coupon = input.promotions.coupons.find((c) => c.code === code);
   if (coupon) {
     if (coupon.status !== "active" || couponIsExpired(coupon)) {
-      return { ok: false, error: "This coupon is not active." };
+      return { ok: false, error: invalidCode };
     }
     if (coupon.uses >= coupon.maxUses) return { ok: false, error: "This coupon has reached its use limit." };
     if (coupon.courseScope === "course") {
@@ -270,7 +273,7 @@ export function computePromotionDiscount(input: {
 
   const referral = input.promotions.referrals.find((r) => r.code === code);
   if (referral) {
-    if (referral.status !== "active") return { ok: false, error: "This referral code is not active." };
+    if (referral.status !== "active") return { ok: false, error: invalidCode };
     let discount = discountAmount(
       referral.customerDiscountKind,
       referral.customerDiscountAmount,
@@ -293,5 +296,5 @@ export function computePromotionDiscount(input: {
     };
   }
 
-  return { ok: false, error: "Code not found." };
+  return { ok: false, error: invalidCode };
 }

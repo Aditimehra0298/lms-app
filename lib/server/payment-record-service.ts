@@ -127,12 +127,11 @@ export async function finalizeRazorpayPayment(input: {
   paymentId: string;
   signature: string;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
-  const email = normalizeLearnerEmail(input.learnerEmail);
   const orderId = input.orderId.trim();
   const paymentId = input.paymentId.trim();
   const signature = input.signature.trim();
 
-  if (!email || !orderId || !paymentId || !signature) {
+  if (!orderId || !paymentId || !signature) {
     return { ok: false, message: "Missing payment verification fields." };
   }
 
@@ -144,6 +143,16 @@ export async function finalizeRazorpayPayment(input: {
   const row = await prisma.lmsPayment.findUnique({ where: { razorpayOrderId: orderId } });
   if (!row) {
     return { ok: false, message: "Payment order not found. Start checkout again." };
+  }
+
+  // Enrollment email comes from the pending order — never trust a client-supplied swap.
+  const email = normalizeLearnerEmail(row.learnerEmail);
+  const claimed = normalizeLearnerEmail(input.learnerEmail);
+  if (!email) {
+    return { ok: false, message: "Payment order has no learner email." };
+  }
+  if (claimed && claimed !== email) {
+    return { ok: false, message: "Email does not match this payment order." };
   }
 
   if (row.status === "paid" && row.razorpayPaymentId === paymentId) {

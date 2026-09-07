@@ -25,7 +25,7 @@ export default function ProfilePage() {
     try {
       const synced = await syncLearnerProfileFromServer(email);
       if (synced?.email) {
-        const res = await fetch(`/api/auth/me?email=${encodeURIComponent(email)}`, { cache: "no-store" });
+        const res = await fetch(`/api/auth/me`, { cache: "no-store", credentials: "include" });
         const data = await readJsonResponse(res, {} as { ok?: boolean; profile?: LmsUserProfilePayload });
         if (data.ok && data.profile) setProfile(data.profile);
       }

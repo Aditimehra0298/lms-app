@@ -14,7 +14,7 @@ export function isZoomApiConfigured(): boolean {
 }
 
 export function zoomApiConfigHint(): string {
-  return "Set ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, and ZOOM_HOST_USER_ID in .env.local (Zoom Server-to-Server OAuth app).";
+  return "Zoom Server-to-Server OAuth is not configured on this server. Ask your platform operator to enable Zoom in server environment settings.";
 }
 
 async function getAccessToken(): Promise<string> {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 import { normalizeLearnerEmail } from "@/lib/learner-email";
 
@@ -60,11 +61,14 @@ type Row = {
 
 export async function GET(
 
-  _request: Request,
+  request: Request,
 
   { params }: { params: Promise<{ slug: string }> },
 
 ) {
+
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
 
   const { slug } = await params;
 

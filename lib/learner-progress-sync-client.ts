@@ -40,8 +40,8 @@ export async function pushLearnerCourseProgressToServerNow(
     const res = await fetch("/api/learner/course-progress", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
-        email,
         slug,
         completedModules: readCompletedModules(slug),
         examScores: readModuleExamScores(slug),
@@ -65,8 +65,8 @@ export async function syncLearnerCourseProgressFromServer(
 
   try {
     const res = await fetch(
-      `/api/learner/course-progress?email=${encodeURIComponent(email)}&slug=${encodeURIComponent(slug)}`,
-      { cache: "no-store" },
+      `/api/learner/course-progress?slug=${encodeURIComponent(slug)}`,
+      { cache: "no-store", credentials: "include" },
     );
     const data = await readJsonResponse(res, {} as {
       ok?: boolean;

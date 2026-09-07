@@ -30,7 +30,7 @@ export default function MyCertificatesList() {
   const reloadCertificates = async () => {
     if (!email) return;
     try {
-      const res = await fetch(`/api/certificates?email=${encodeURIComponent(email)}`, {
+      const res = await fetch(`/api/certificates`, { credentials: "include", 
         cache: "no-store",
       });
       const data = await readJsonResponse(res, {} as {

@@ -17,6 +17,7 @@ import { ensureOrganizationProfile } from "@/lib/server/organization-identificat
 import { ensureUserIdentificationNumber } from "@/lib/server/user-identification";
 import { getClientIps } from "@/lib/request-ip";
 import { queueWelcomeEmail } from "@/lib/welcome-email-service";
+import { attachLearnerSession, readLearnerSessionEmail } from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
     body.accountType && ACCOUNT_TYPES.has(body.accountType) ? body.accountType : undefined;
   const action = body.action ?? "login";
 
+  // POC-M-02: never create/update profiles for arbitrary emails without proof of ownership.
   if (action === "register" && !isAdminEmail(email)) {
     const otpOk = await hasRecentEmailVerification(email);
     if (!otpOk) {
@@ -77,6 +79,20 @@ export async function POST(request: Request) {
     if (!policy.ok) {
       return NextResponse.json({ ok: false, message: policy.message, dbSaved: false }, { status: 400 });
     }
+  } else if (action === "login") {
+    const sessionEmail = readLearnerSessionEmail(request);
+    if (!sessionEmail || sessionEmail !== email) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Sign in required before updating your profile record.",
+          dbSaved: false,
+        },
+        { status: 401 },
+      );
+    }
+  } else if (action !== "register") {
+    return NextResponse.json({ ok: false, message: "Invalid action", dbSaved: false }, { status: 400 });
   }
 
   let passwordHash: string | undefined;
@@ -220,18 +236,12 @@ export async function POST(request: Request) {
   }
 
   if (action === "register" && !dbSaved) {
-    const hint =
-      dbError?.includes("passwordHash") || dbError?.includes("Unknown argument")
-        ? "Restart the dev server after running: npm run db:push && npm run db:generate"
-        : dbError;
     return NextResponse.json(
       {
         ok: false,
         dbSaved: false,
-        dbError,
         message:
-          hint ??
-          "Registration could not be saved to the database. Ensure MySQL is running, then run: npm run db:push",
+          "Registration could not be saved to the database. Please try again or contact support.",
         ipv4: ips.ipv4,
         ipv6: ips.ipv6,
         region,
@@ -253,10 +263,9 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     ok: true,
     dbSaved,
-    dbError,
     profile: userProfile,
     ipv4: ips.ipv4,
     ipv6: ips.ipv6,
@@ -264,4 +273,8 @@ export async function POST(request: Request) {
     countrySource: geo.source,
     action,
   });
+  if (dbSaved && !isAdminEmail(email)) {
+    return attachLearnerSession(res, email);
+  }
+  return res;
 }

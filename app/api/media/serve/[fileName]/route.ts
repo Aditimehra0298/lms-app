@@ -5,6 +5,7 @@ import { Readable } from "node:stream";
 import { mediaAccessAllowed } from "@/lib/server/media-access-policy";
 import { verifyMediaAccessToken } from "@/lib/server/media-access-token";
 import { learnerMediaStreamAllowed, parseByteRange } from "@/lib/server/media-request-guard";
+import { readAdminSessionEmail } from "@/lib/server/admin-session";
 import {
   mimeFromFileName,
   resolveMediaFilePath,
@@ -91,9 +92,20 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const requestEmail =
-    requestUrl.searchParams.get("email")?.trim().toLowerCase() ||
-    request.headers.get("x-learner-email")?.trim().toLowerCase();
+  // Admin-scoped media: identity from signed httpOnly admin session only (never ?email= / x-learner-email).
+  let requestEmail: string | undefined;
+  if (payload.scope === "admin") {
+    const sessionEmail = readAdminSessionEmail(request);
+    if (!sessionEmail) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    requestEmail = sessionEmail;
+  } else {
+    requestEmail =
+      requestUrl.searchParams.get("email")?.trim().toLowerCase() ||
+      request.headers.get("x-learner-email")?.trim().toLowerCase() ||
+      undefined;
+  }
   if (payload.email && !requestEmail) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

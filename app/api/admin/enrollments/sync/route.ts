@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { normalizeLearnerEmail } from "@/lib/learner-email";
 import { recordPurchasesForLearner } from "@/lib/server/record-purchase";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,9 @@ type EnrollmentRow = {
  * Body: { enrollments: EnrollmentRow[] }
  */
 export async function POST(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   try {
     const body = (await request.json()) as { enrollments?: EnrollmentRow[] };
     const rows = Array.isArray(body.enrollments) ? body.enrollments : [];

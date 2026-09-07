@@ -1,26 +1,25 @@
 import { NextResponse } from "next/server";
-import { normalizeLearnerEmail } from "@/lib/learner-email";
 import { getPurchasesForLearner } from "@/lib/server/get-learner-purchases";
-import { recordPurchasesForLearner } from "@/lib/server/record-purchase";
+import {
+  learnerAuthRequiredResponse,
+  requireLearnerSessionEmail,
+} from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
 
-type Body = {
-  learnerEmail?: string;
-  courses?: { slug?: string; title?: string }[];
-};
-
+/**
+ * GET /api/purchases — list enrollments for the signed-in learner only.
+ */
 export async function GET(request: Request) {
-  const email = normalizeLearnerEmail(
-    new URL(request.url).searchParams.get("email")?.trim() ?? "",
-  );
-  if (!email) {
-    return NextResponse.json({ ok: false, message: "email query required" }, { status: 400 });
-  }
+  const email = requireLearnerSessionEmail(request);
+  if (!email) return learnerAuthRequiredResponse();
 
   try {
     const courses = await getPurchasesForLearner(email);
-    return NextResponse.json({ ok: true, courses });
+    return NextResponse.json(
+      { ok: true, courses },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
     console.error("[api/purchases GET]", err);
     return NextResponse.json(
@@ -30,34 +29,18 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
-  try {
-    const body = (await request.json()) as Body;
-    const learnerEmail = body.learnerEmail?.trim() ?? "";
-    const courses = Array.isArray(body.courses)
-      ? body.courses
-          .map((c) => ({
-            slug: String(c.slug ?? "").trim(),
-            title: String(c.title ?? "").trim(),
-          }))
-          .filter((c) => c.slug)
-      : [];
-
-    const result = await recordPurchasesForLearner({ learnerEmail, courses });
-    if (!result.ok) {
-      return NextResponse.json({ ok: false, message: result.message }, { status: 400 });
-    }
-
-    return NextResponse.json({
-      ok: true,
-      recorded: result.recorded,
-      skipped: result.skipped,
-    });
-  } catch (err) {
-    console.error("[api/purchases]", err);
-    return NextResponse.json(
-      { ok: false, message: "Could not save enrollment to the database." },
-      { status: 503 },
-    );
-  }
+/**
+ * POST /api/purchases — DISABLED for client enrollment (POC-C-06).
+ * Paid access is granted only by verified Razorpay payment / admin grant APIs.
+ * Client-supplied learnerEmail, pricePaid, status, or course lists are never trusted here.
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      ok: false,
+      message:
+        "Direct enrollment is not allowed. Complete checkout/payment, or ask an administrator to grant access.",
+    },
+    { status: 403, headers: { "Cache-Control": "no-store" } },
+  );
 }

@@ -9,6 +9,7 @@ import {
   reconcileEnrollmentIdentity,
 } from "@/lib/server/enrollment-lookup";
 import { recordPurchasesForLearner } from "@/lib/server/record-purchase";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   const { slug } = await params;
   const courseSlug = slug.trim().toLowerCase();
   if (!courseSlug) {

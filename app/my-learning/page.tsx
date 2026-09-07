@@ -448,7 +448,7 @@ export default function MyLearningPage() {
     syncFromServer();
 
     if (getLearnerEmail()) {
-      void fetch(`/api/certificates?email=${encodeURIComponent(getLearnerEmail()!)}`, { cache: "no-store" })
+      void fetch(`/api/certificates`, { cache: "no-store", credentials: "include" })
         .then(async (res) =>
           readJsonResponse(res, {} as { ok?: boolean; certificates?: CertificateRowDto[] }),
         )

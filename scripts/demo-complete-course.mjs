@@ -20,7 +20,7 @@ const courseSlugs = (process.argv[2] || DEFAULT_SLUGS.join(","))
   .map((s) => s.trim())
   .filter(Boolean);
 
-const learnerEmail = (process.argv[3] || process.env.MAIN_ADMIN_EMAIL || "social.sftrainings@gmail.com")
+const learnerEmail = (process.argv[3] || process.env.MAIN_ADMIN_EMAIL || "learner@example.com")
   .trim()
   .toLowerCase();
 

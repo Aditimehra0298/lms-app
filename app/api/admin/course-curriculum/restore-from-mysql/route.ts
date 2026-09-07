@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  * Body: { slug: string, dryRun?: boolean }
  */
 export async function POST(request: Request) {
-  const denied = assertMainAdmin(request);
+  const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
   try {

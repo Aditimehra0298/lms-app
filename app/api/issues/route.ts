@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listSupportTickets } from "@/lib/server/support-ticket-service";
+import {
+  canAccessTicket,
+  resolveTicketAuth,
+  ticketAuthRequiredResponse,
+} from "@/lib/server/ticket-api-auth";
 
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/issues
- * Fetch all support tickets, with optional filters:
- *   ?token=SFT-TECH-1023   — find by exact token
- *   ?status=open            — filter by status (open | in_progress | resolved | closed)
- *   ?q=video                — fuzzy search on issueText
+ * GET /api/issues — admin: all; learner: own tickets only.
  */
 export async function GET(req: NextRequest) {
+  const auth = resolveTicketAuth(req);
+  if (!auth) return ticketAuthRequiredResponse();
+
   try {
     const { searchParams } = req.nextUrl;
     const tickets = await listSupportTickets({
@@ -19,8 +23,12 @@ export async function GET(req: NextRequest) {
       q: searchParams.get("q")?.trim() || undefined,
     });
 
-    // Keep legacy shape for AdminSupportTickets while exposing new fields.
-    const issues = tickets.map((t) => ({
+    const visible =
+      auth.role === "admin"
+        ? tickets
+        : tickets.filter((t) => canAccessTicket(auth, t.userEmail));
+
+    const issues = visible.map((t) => ({
       id: t.id,
       issueToken: t.issueToken,
       userId: t.userId,
@@ -40,7 +48,10 @@ export async function GET(req: NextRequest) {
       updatedAt: t.updatedAt,
     }));
 
-    return NextResponse.json({ issues, tickets });
+    return NextResponse.json(
+      { issues, tickets: visible },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err: unknown) {
     console.error("[GET /api/issues]", err);
     return NextResponse.json({ error: "Failed to fetch issues." }, { status: 500 });

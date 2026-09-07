@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  canAccessTicket,
+  resolveTicketAuth,
+  ticketAuthRequiredResponse,
+  ticketForbiddenResponse,
+} from "@/lib/server/ticket-api-auth";
 
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/issues/[token]
- * Fetch a single ticket by its token, e.g. SFT-TECH-1023
+ * GET /api/issues/[token] — owner or admin only.
  */
 export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  req: NextRequest,
+  { params }: { params: Promise<{ token: string }> },
 ) {
+  const auth = resolveTicketAuth(req);
+  if (!auth) return ticketAuthRequiredResponse();
+
   try {
     const { token } = await params;
     const issue = await prisma.lmsIssue.findUnique({
@@ -19,22 +27,30 @@ export async function GET(
     if (!issue) {
       return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
     }
-    return NextResponse.json({ issue });
-  } catch (err: any) {
+    if (!canAccessTicket(auth, issue.userEmail)) {
+      return ticketForbiddenResponse();
+    }
+    return NextResponse.json(
+      { issue },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (err) {
     console.error("[GET /api/issues/[token]]", err);
     return NextResponse.json({ error: "Failed to fetch ticket." }, { status: 500 });
   }
 }
 
 /**
- * PATCH /api/issues/[token]
- * Update the status of a support ticket.
- * Body: { status: "open" | "in_progress" | "closed" }
+ * PATCH /api/issues/[token] — admin only (status changes).
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  { params }: { params: Promise<{ token: string }> },
 ) {
+  const auth = resolveTicketAuth(req);
+  if (!auth) return ticketAuthRequiredResponse();
+  if (auth.role !== "admin") return ticketForbiddenResponse();
+
   try {
     const { token } = await params;
     const body = await req.json();
@@ -44,7 +60,7 @@ export async function PATCH(
     if (!allowed.includes(status)) {
       return NextResponse.json(
         { error: `Invalid status. Allowed: ${allowed.join(", ")}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,10 +69,13 @@ export async function PATCH(
       data: { issueStatus: status },
     });
 
-    return NextResponse.json({ issue: updated });
-  } catch (err: any) {
-    // P2025 = record not found
-    if (err?.code === "P2025") {
+    return NextResponse.json(
+      { issue: updated },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (err: unknown) {
+    const code = typeof err === "object" && err && "code" in err ? (err as { code?: string }).code : undefined;
+    if (code === "P2025") {
       return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
     }
     console.error("[PATCH /api/issues/[token]]", err);

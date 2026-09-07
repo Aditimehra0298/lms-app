@@ -106,6 +106,7 @@ export async function verifyRazorpayPaymentOnServer(input: {
   const res = await fetch("/api/payments/razorpay/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(input),
   });
   const data = (await res.json()) as { ok?: boolean; message?: string };

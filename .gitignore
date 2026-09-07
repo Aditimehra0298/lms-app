@@ -52,6 +52,7 @@ env
 # Private LMS uploads (videos/images) — served only via /api/media/serve + signed token
 /storage/private/
 /data/uploads/
+/data/admin-active-session.json
 
 # media over GitHub's 100MB single-file limit (keep locally; use CDN/LFS if needed in repo)
 /public/1773913728What is Phishing__1080p_caption.mp4

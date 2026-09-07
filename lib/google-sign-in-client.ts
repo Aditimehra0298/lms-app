@@ -78,7 +78,7 @@ export function requestGoogleAccessToken(
   onError: (message: string) => void,
   options?: {
     prompt?: "" | "none" | "consent" | "select_account";
-    /** e.g. social.sftrainings@gmail.com — opens that Google account when possible */
+    /** Optional Google account email hint (login_hint) — never hardcode a real admin address here. */
     loginHint?: string;
   },
 ): void {

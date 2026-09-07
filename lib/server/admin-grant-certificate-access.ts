@@ -39,6 +39,7 @@ export async function grantLearnerCertificateDownloadAccess(input: {
       learnerEmail,
       courseSlug,
       forceRetry: true,
+      bypassLearnerGates: true,
     });
     if (!apiResult.ok) {
       return { ok: false, message: apiResult.message };

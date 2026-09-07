@@ -10,6 +10,7 @@ import {
   isZoomApiConfigured,
   zoomApiConfigHint,
 } from "@/lib/server/zoom-client";
+import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,9 @@ function mergeRecordingsIntoProgram(
 }
 
 export async function POST(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
   if (!isZoomApiConfigured()) {
     return NextResponse.json({ ok: false, error: zoomApiConfigHint() }, { status: 503 });
   }

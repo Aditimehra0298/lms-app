@@ -19,7 +19,10 @@ export default function MyCertificateViewPage() {
 
   useEffect(() => {
     if (!id) return;
-    void fetch(`/api/certificates/${encodeURIComponent(id)}`, { cache: "no-store" })
+    void fetch(`/api/certificates/${encodeURIComponent(id)}`, {
+      cache: "no-store",
+      credentials: "include",
+    })
       .then(async (r) =>
         readJsonResponse(r, {} as {
           ok?: boolean;

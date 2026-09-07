@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Award, Loader2, Sparkles } from "lucide-react";
-import { getLearnerEmail } from "@/lib/learner-session-client";
 import type { AdminCertificateCourseOption } from "@/components/admin/AdminCourseCertificateApprovals";
 
 type Props = {
@@ -30,12 +29,10 @@ export default function AdminCertificateIssuePanel({ courses, onIssued }: Props)
     setNotice(null);
     setError(null);
     try {
-      const adminEmail = getLearnerEmail();
       const res = await fetch("/api/admin/certificates/trigger", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(adminEmail ? { "x-admin-email": adminEmail } : {}),
         },
         body: JSON.stringify({
           learnerEmail: email.trim(),
@@ -56,7 +53,6 @@ export default function AdminCertificateIssuePanel({ courses, onIssued }: Props)
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            ...(adminEmail ? { "x-admin-email": adminEmail } : {}),
           },
           body: JSON.stringify({ visibleToLearner: true, allowDownload: true }),
         });
@@ -65,7 +61,6 @@ export default function AdminCertificateIssuePanel({ courses, onIssued }: Props)
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            ...(adminEmail ? { "x-admin-email": adminEmail } : {}),
           },
           body: JSON.stringify({ visibleToLearner: false, allowDownload: false }),
         });

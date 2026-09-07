@@ -92,7 +92,6 @@ export default function AdminSettingsWorkspace({ onNavigate }: Props) {
     const email = getLearnerEmail();
     return {
       "Content-Type": "application/json",
-      ...(email ? { "x-admin-email": email } : {}),
     };
   }, []);
 
@@ -257,21 +256,27 @@ export default function AdminSettingsWorkspace({ onNavigate }: Props) {
   };
 
   const logout = () => {
-    try {
-      clearLearnerProfileStorage();
-      sessionStorage.removeItem("sft_admin_access_email");
-    } catch {
-      /* ignore */
-    }
-    window.location.href = "/";
+    void fetch("/api/auth/admin-logout", {
+      method: "POST",
+      credentials: "include",
+    }).finally(() => {
+      try {
+        clearLearnerProfileStorage();
+        sessionStorage.removeItem("sft_admin_access_email");
+        localStorage.removeItem("sft_user_role");
+      } catch {
+        /* ignore */
+      }
+      window.location.href = "/";
+    });
   };
 
   const score = data?.security.score ?? 0;
   const scoreTone =
     score >= 80 ? "text-emerald-300" : score >= 60 ? "text-amber-300" : "text-rose-300";
   const policy = checkPasswordPolicy(newPassword);
-  const needsOtp =
-    settings?.requireEmailVerificationForSensitive !== false;
+  // Password + security changes always require email OTP (POC-D-13).
+  const needsOtp = true;
 
   return (
     <div className="space-y-5">
@@ -421,7 +426,8 @@ export default function AdminSettingsWorkspace({ onNavigate }: Props) {
             <h2 className="text-sm font-semibold text-white">Email verification</h2>
           </div>
           <p className="mb-3 text-xs text-gray-400">
-            Sensitive changes (password & security toggles) need a code sent to your admin email.
+            Changing the admin password or security toggles always requires a verification code
+            sent to your admin email.
           </p>
           <div className="flex flex-wrap items-end gap-3">
             <label className="block min-w-[12rem] flex-1 text-xs text-gray-400">
@@ -469,7 +475,7 @@ export default function AdminSettingsWorkspace({ onNavigate }: Props) {
               set: setRequireGoogleVerification,
               title: "Require Google verification",
               desc: googleConfigured
-                ? "After password, confirm with the main admin Google account."
+                ? "After password, confirm with Google using the configured main admin account."
                 : "Google is not connected yet — turn this on after Google is set up.",
             },
             {

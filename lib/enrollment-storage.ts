@@ -49,5 +49,6 @@ export function appendEnrollmentsFromCheckout(items: CheckoutItem[]): void {
   }));
   window.localStorage.setItem(ENROLLMENTS_STORAGE_KEY, JSON.stringify([...added, ...kept]));
   window.dispatchEvent(new Event(ENROLLMENTS_UPDATED_EVENT));
-  void import("@/lib/enrollment-sync-client").then((m) => m.syncEnrollmentsToServer(email));
+  // Local enrollments do not create server purchases (POC-C-06). Server is source of truth after payment.
+  void import("@/lib/enrollment-sync-client").then((m) => m.syncEnrollmentsFromServer(email));
 }
