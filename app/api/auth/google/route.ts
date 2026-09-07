@@ -13,6 +13,10 @@ import { isAdminSessionHeldElsewhere } from "@/lib/server/admin-active-session";
 import { attachLearnerSession } from "@/lib/server/learner-session";
 import { fetchGoogleUserInfo } from "@/lib/server/google-userinfo";
 import {
+  ACCOUNT_BLOCKED_MESSAGE,
+  isUserAccountBlocked,
+} from "@/lib/server/user-account-status";
+import {
   countryUpdateFields,
   pricingRegionForAuthResponse,
 } from "@/lib/server/auth-country-persist";
@@ -75,6 +79,10 @@ export async function POST(request: Request) {
   const email = googleUser.email.trim().toLowerCase();
   const adminVerifyToken = body.adminVerifyToken?.trim();
   const isAdminProfile = body.accountType === "self";
+
+  if (!adminVerifyToken && (await isUserAccountBlocked(email))) {
+    return NextResponse.json({ ok: false, message: ACCOUNT_BLOCKED_MESSAGE }, { status: 403 });
+  }
 
   if (isAdminProfile && !adminVerifyToken) {
     return NextResponse.json(

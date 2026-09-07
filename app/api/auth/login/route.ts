@@ -13,6 +13,10 @@ import {
   getRateLimitStatus,
   hitRateLimit,
 } from "@/lib/server/otp-rate-limit";
+import {
+  ACCOUNT_BLOCKED_MESSAGE,
+  isUserAccountBlocked,
+} from "@/lib/server/user-account-status";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +63,10 @@ export async function POST(request: Request) {
 
   if (isMainAdminEmail(email)) {
     return jsonError("Use the Admin profile to sign in as administrator.", 403);
+  }
+
+  if (await isUserAccountBlocked(email)) {
+    return jsonError(ACCOUNT_BLOCKED_MESSAGE, 403);
   }
 
   const failKey = `login:fail:${email}`;

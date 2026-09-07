@@ -30,6 +30,8 @@ model LmsUser {
   passwordHash    String?   @db.VarChar(255)
   lastLoginAt     DateTime?
   emailVerifiedAt DateTime?
+  /// When set, the account cannot sign in (admin block from Users panel).
+  blockedAt       DateTime?
   createdAt       DateTime  @default(now())
   /// Permanent learner ID — first user 101, then 102, 103…
   identificationNumber Int? @unique

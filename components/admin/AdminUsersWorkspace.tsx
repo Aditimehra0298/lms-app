@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Award,
+  Ban,
   BookOpen,
   ChevronDown,
   ChevronUp,
@@ -12,6 +13,8 @@ import {
   RefreshCw,
   Search,
   Shield,
+  Trash2,
+  Unlock,
   User,
   Users,
 } from "lucide-react";
@@ -19,6 +22,7 @@ import type { AdminUserListRow, AdminUserListStats } from "@/lib/admin-user-type
 
 type RoleFilter = "all" | "learner" | "admin";
 type AccountFilter = "all" | "individual" | "organisation" | "self" | "unset";
+type GrantableOffering = { slug: string; title: string; kindLabel?: string };
 
 const USER_COLUMNS = [
   "Reg ID",
@@ -68,12 +72,31 @@ export default function AdminUsersWorkspace() {
   const [busyEmail, setBusyEmail] = useState<string | null>(null);
   const [roleDraft, setRoleDraft] = useState<Record<string, string>>({});
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [grantSlugByEmail, setGrantSlugByEmail] = useState<Record<string, string>>({});
+  const [offerings, setOfferings] = useState<GrantableOffering[]>([]);
 
   const adminHeaders = useCallback((): Record<string, string> => {
     return {
       "Content-Type": "application/json",
     };
   }, []);
+
+  const loadOfferings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/payments?offerings=1", {
+        cache: "no-store",
+        headers: adminHeaders(),
+      });
+      const data = (await res.json()) as { ok?: boolean; offerings?: GrantableOffering[] };
+      if (res.ok && data.ok) setOfferings(data.offerings ?? []);
+    } catch {
+      /* ignore — grant dropdown stays empty */
+    }
+  }, [adminHeaders]);
+
+  useEffect(() => {
+    void loadOfferings();
+  }, [loadOfferings]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -173,6 +196,89 @@ export default function AdminUsersWorkspace() {
     }
   };
 
+  const setBlocked = async (row: AdminUserListRow, blocked: boolean) => {
+    if (row.isMainAdmin) return;
+    setBusyEmail(row.email);
+    setSaveNotice(null);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: adminHeaders(),
+        body: JSON.stringify({ email: row.email, blocked }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) throw new Error(data.message ?? "Update failed");
+      setSaveNotice(blocked ? `Blocked ${row.email}` : `Unblocked ${row.email}`);
+      await load();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
+  const removeUser = async (row: AdminUserListRow) => {
+    if (row.isMainAdmin) return;
+    const ok = window.confirm(
+      `Remove ${row.email} from the Users list?\n\nThey will no longer appear here or be able to sign in with this profile. Course purchase history by email is kept.`,
+    );
+    if (!ok) return;
+    setBusyEmail(row.email);
+    setSaveNotice(null);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "DELETE",
+        headers: adminHeaders(),
+        body: JSON.stringify({ email: row.email }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) throw new Error(data.message ?? "Could not remove user");
+      setSaveNotice(data.message ?? `Removed ${row.email}`);
+      setExpandedEmail(null);
+      await load();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not remove user");
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
+  const grantAccess = async (row: AdminUserListRow) => {
+    const slug = (grantSlugByEmail[row.email] ?? "").trim();
+    if (!slug) {
+      setLoadError("Choose a course before granting access.");
+      return;
+    }
+    const title = offerings.find((o) => o.slug === slug)?.title ?? slug;
+    setBusyEmail(row.email);
+    setSaveNotice(null);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/admin/payments", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          action: "grant-access",
+          learnerEmail: row.email,
+          courseSlug: slug,
+          courseTitle: title,
+          adminNote: "Granted from Admin → Users",
+        }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) throw new Error(data.message ?? "Grant failed");
+      setSaveNotice(data.message ?? `Granted ${title} to ${row.email}`);
+      setGrantSlugByEmail((d) => ({ ...d, [row.email]: "" }));
+      await load();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Grant failed");
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0c1428] via-[#0a101c] to-[#070b14]">
@@ -186,8 +292,8 @@ export default function AdminUsersWorkspace() {
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-300/90">MySQL registry</p>
                 <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">Users</h1>
                 <p className="mt-2 max-w-2xl text-xs leading-relaxed text-gray-400">
-                  Full learner registry from <span className="font-mono text-gray-500">lms_user</span> — registration
-                  IDs, contact details, course progress, enrollments, and certificates.
+                  Full learner registry from <span className="font-mono text-gray-500">lms_user</span> — block or remove
+                  accounts, grant course access, and review progress / certificates.
                 </p>
               </div>
             </div>
@@ -368,6 +474,11 @@ export default function AdminUsersWorkspace() {
                         </td>
                         <td className="max-w-[120px] px-3 py-2.5">
                           <p className="truncate font-medium text-white">{cellMuted(row.name)}</p>
+                          {row.isBlocked ? (
+                            <span className="mt-0.5 inline-flex items-center gap-0.5 rounded bg-rose-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-rose-200">
+                              <Ban className="h-3 w-3" /> Blocked
+                            </span>
+                          ) : null}
                         </td>
                         <td className="max-w-[180px] px-3 py-2.5">
                           <p className="truncate font-mono text-[10px] text-gray-400">{row.email}</p>
@@ -511,6 +622,73 @@ export default function AdminUsersWorkspace() {
                                   )}
                                   Send password reset email
                                 </button>
+
+                                <div className="mt-4 space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                    Account actions
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {row.isBlocked ? (
+                                      <button
+                                        type="button"
+                                        disabled={row.isMainAdmin || busyEmail === row.email}
+                                        onClick={() => void setBlocked(row, false)}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/20 disabled:opacity-50"
+                                      >
+                                        <Unlock className="h-3 w-3" /> Unblock
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        disabled={row.isMainAdmin || busyEmail === row.email}
+                                        onClick={() => void setBlocked(row, true)}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-rose-100 hover:bg-rose-500/20 disabled:opacity-50"
+                                      >
+                                        <Ban className="h-3 w-3" /> Block login
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      disabled={row.isMainAdmin || busyEmail === row.email}
+                                      onClick={() => void removeUser(row)}
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-[11px] font-semibold text-gray-200 hover:bg-white/10 disabled:opacity-50"
+                                    >
+                                      <Trash2 className="h-3 w-3" /> Remove from users
+                                    </button>
+                                  </div>
+                                  <div className="pt-1">
+                                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                      Grant course access
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      <select
+                                        value={grantSlugByEmail[row.email] ?? ""}
+                                        onChange={(e) =>
+                                          setGrantSlugByEmail((d) => ({
+                                            ...d,
+                                            [row.email]: e.target.value,
+                                          }))
+                                        }
+                                        className="min-w-[200px] flex-1 rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-[11px] text-white outline-none"
+                                      >
+                                        <option value="">Select course…</option>
+                                        {offerings.map((o) => (
+                                          <option key={o.slug} value={o.slug}>
+                                            {o.title}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <button
+                                        type="button"
+                                        disabled={busyEmail === row.email || !(grantSlugByEmail[row.email] ?? "").trim()}
+                                        onClick={() => void grantAccess(row)}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-sky-100 hover:bg-sky-500/20 disabled:opacity-50"
+                                      >
+                                        <BookOpen className="h-3 w-3" /> Grant access
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                               <div>
                                 {row.organization ? (

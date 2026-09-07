@@ -59,6 +59,9 @@ export type AdminUserListRow = {
   registrationMonthYear: string | null;
   emailVerifiedAt: string | null;
   lastLoginAt: string | null;
+  /** ISO timestamp when admin blocked the account; null if active. */
+  blockedAt: string | null;
+  isBlocked: boolean;
   createdAt: string;
   purchaseCount: number;
   certificateCount: number;

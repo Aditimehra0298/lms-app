@@ -41,6 +41,7 @@ const userSelect = {
   registrationMonthYear: true,
   emailVerifiedAt: true,
   lastLoginAt: true,
+  blockedAt: true,
   createdAt: true,
   _count: { select: { purchases: true, certificates: true } },
   purchases: {
@@ -91,6 +92,7 @@ type UserRow = {
   registrationMonthYear: string | null;
   emailVerifiedAt: Date | null;
   lastLoginAt: Date | null;
+  blockedAt: Date | null;
   createdAt: Date;
   _count: { purchases: number; certificates: number };
   purchases: { courseSlug: string; title: string; createdAt: Date }[];
@@ -264,11 +266,13 @@ function serializeUser(
     registrationMonthYear: user.registrationMonthYear,
     emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
     lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+    blockedAt: user.blockedAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
     purchaseCount: user._count.purchases,
     certificateCount: user._count.certificates,
     isMainAdmin,
     panelAccess: isMainAdmin ? "full" : "none",
+    isBlocked: Boolean(user.blockedAt),
     organization: user.organization
       ? {
           identificationNumber: user.organization.identificationNumber,
@@ -396,7 +400,13 @@ export async function PATCH(request: Request) {
   const denied = await assertMainAdmin(request);
   if (denied) return denied;
 
-  let body: { email?: string; role?: string; accountType?: string | null };
+  let body: {
+    email?: string;
+    role?: string;
+    accountType?: string | null;
+    /** true = block login; false = unblock */
+    blocked?: boolean;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -411,7 +421,7 @@ export async function PATCH(request: Request) {
   const mainAdminEmail = getMainAdminEmail();
   const isTargetMain = isMainAdminEmail(email);
 
-  const data: { role?: string; accountType?: string | null } = {};
+  const data: { role?: string; accountType?: string | null; blockedAt?: Date | null } = {};
 
   if (body.role !== undefined) {
     const nextRole = body.role.trim().toLowerCase();
@@ -433,6 +443,16 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: false, message: "Invalid account type" }, { status: 400 });
     }
     data.accountType = raw;
+  }
+
+  if (body.blocked !== undefined) {
+    if (isTargetMain && body.blocked) {
+      return NextResponse.json(
+        { ok: false, message: "Cannot block the main administrator account." },
+        { status: 400 },
+      );
+    }
+    data.blockedAt = body.blocked ? new Date() : null;
   }
 
   if (!Object.keys(data).length) {
@@ -477,6 +497,55 @@ export async function PATCH(request: Request) {
     );
   } catch (err) {
     console.error("[admin/users PATCH]", err);
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("blockedAt") || msg.includes("Unknown argument")) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Database needs update. On the server run: npx prisma db push && npm run db:generate",
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ ok: false, message: "Update failed" }, { status: 500 });
+  }
+}
+
+/** Remove a learner profile from the Users registry (purchases/certs kept by email). */
+export async function DELETE(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+
+  let body: { email?: string };
+  try {
+    body = (await request.json()) as { email?: string };
+  } catch {
+    return NextResponse.json({ ok: false, message: "Invalid JSON" }, { status: 400 });
+  }
+
+  const email = body.email?.trim().toLowerCase();
+  if (!email) {
+    return NextResponse.json({ ok: false, message: "email required" }, { status: 400 });
+  }
+  if (isMainAdminEmail(email)) {
+    return NextResponse.json(
+      { ok: false, message: "Cannot remove the main administrator account." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const existing = await prisma.lmsUser.findUnique({ where: { email }, select: { id: true } });
+    if (!existing) {
+      return NextResponse.json({ ok: false, message: "User not found" }, { status: 404 });
+    }
+    await prisma.lmsUser.delete({ where: { email } });
+    return NextResponse.json(
+      { ok: true, message: `Removed ${email} from users. Course/purchase history by email was kept.` },
+      { headers: noStore },
+    );
+  } catch (err) {
+    console.error("[admin/users DELETE]", err);
+    return NextResponse.json({ ok: false, message: "Could not remove user." }, { status: 500 });
   }
 }
