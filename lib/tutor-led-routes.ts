@@ -1,19 +1,27 @@
 import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
 import type { CourseLearningFormat } from "@/lib/content-schema";
+import { ISO_22000_PROGRAM_SLUGS } from "@/lib/iso-22000-tutor-led-seed";
 import { hasPublishedWorkshopProgram, workshopLandingHref } from "@/lib/workshop-program";
 
-/** Primary demo / cyber tutor-led program slug (public template). */
+/**
+ * Legacy seed slug (cyber demo). Prefer the catalog index for generic CTAs.
+ * Kept only for checkout/learner helpers that still need a non-empty slug fallback.
+ */
 export const DEFAULT_TUTOR_LED_SLUG = "advanced-cyber-security-professional";
 
-const publishedTutorLedSlugs = new Set(
-  defaultTutorLedPrograms.filter((p) => p.published).map((p) => p.slug),
-);
+/** Public catalog landing — Admin → Tutor-Led Landing + live programs from Tutor Led. */
+export const TUTOR_LED_CATALOG_HREF = "/tutor-led";
+
+const publishedTutorLedSlugs = new Set([
+  ...defaultTutorLedPrograms.filter((p) => p.published).map((p) => p.slug),
+  ...Object.values(ISO_22000_PROGRAM_SLUGS),
+]);
 
 export function tutorLedTemplatePath(slug: string) {
   return `/tutor-led/${encodeURIComponent(slug)}`;
 }
 
-/** Whether a published tutor-led marketing page exists for this slug. */
+/** Whether a known published tutor-led marketing page exists for this slug (static seeds). */
 export function hasPublishedTutorLedProgram(slug: string): boolean {
   const key = slug?.trim();
   return Boolean(key && publishedTutorLedSlugs.has(key));
@@ -27,12 +35,11 @@ export function resolveTutorLedSlug(slug?: string | null): string {
 }
 
 /**
- * Link to the tutor-led marketing page (exact slug).
- * Use only when {@link hasPublishedTutorLedProgram} is true, or for generic CTAs with no slug.
+ * Link to a tutor-led marketing page, or the catalog when no slug is given.
  */
 export function liveTutorCourseHref(slug?: string | null): string {
   const key = slug?.trim();
-  if (!key) return tutorLedTemplatePath(DEFAULT_TUTOR_LED_SLUG);
+  if (!key) return TUTOR_LED_CATALOG_HREF;
   return tutorLedTemplatePath(key);
 }
 

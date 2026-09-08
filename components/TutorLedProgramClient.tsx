@@ -106,7 +106,7 @@ export default function TutorLedProgramClient({
         ]
       : [
           { label: crumbs[0] ?? "Home", href: "/" },
-          { label: crumbs[1] ?? "Live Trainings", href: "/courses" },
+          { label: crumbs[1] ?? "Tutor Led", href: "/tutor-led" },
           { label: crumbs[2] ?? program.title, href: `/tutor-led/${program.slug}` },
         ];
 

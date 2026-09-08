@@ -258,7 +258,11 @@ export async function PUT(request: Request) {
   } catch (err) {
     console.error("[admin/content PUT]", err);
     return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : "Save failed" },
+      {
+        ok: false,
+        error: err instanceof Error ? err.message : "Save failed",
+        message: err instanceof Error ? err.message : "Save failed",
+      },
       { status: 500 },
     );
   }

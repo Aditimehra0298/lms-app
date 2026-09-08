@@ -21,6 +21,7 @@ import { type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { ensureIso22000TutorLedPrograms } from "@/lib/iso-22000-tutor-led-seed";
 import { isWorkshopProgram, workshopLandingHref } from "@/lib/workshop-program";
 import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
+import { adminApiErrorMessage, adminMutationHeaders } from "@/lib/admin-csrf-client";
 
 type BatchFilter = "all" | "tutor-led" | "workshop" | "upcoming";
 
@@ -157,14 +158,18 @@ export default function AdminBatchesWorkspace() {
       );
       const put = await fetch("/api/admin/content", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: adminMutationHeaders(),
+        credentials: "include",
         body: JSON.stringify({ tutorLedPrograms: nextPrograms }),
       });
-      if (!put.ok) throw new Error("save");
+      if (!put.ok) {
+        const errBody = await put.json().catch(() => ({}));
+        throw new Error(adminApiErrorMessage(errBody, `Save failed (${put.status})`));
+      }
       setContent({ ...content, tutorLedPrograms: nextPrograms });
       setSaveNotice(`Saved batch + Zoom for “${p.title || p.slug}”. Learners see the Zoom link on their dashboard.`);
-    } catch {
-      setLoadError("Could not save batch.");
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Could not save batch.");
     } finally {
       setSavingSlug(null);
     }
@@ -183,10 +188,14 @@ export default function AdminBatchesWorkspace() {
       }
       const put = await fetch("/api/admin/content", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: adminMutationHeaders(),
+        credentials: "include",
         body: JSON.stringify({ tutorLedPrograms: next }),
       });
-      if (!put.ok) throw new Error("seed");
+      if (!put.ok) {
+        const errBody = await put.json().catch(() => ({}));
+        throw new Error(adminApiErrorMessage(errBody, `Save failed (${put.status})`));
+      }
       setContent({ ...content, tutorLedPrograms: next });
       const nextDrafts: Record<string, BatchDraft> = { ...drafts };
       for (const p of next) {
@@ -205,8 +214,8 @@ export default function AdminBatchesWorkspace() {
       setSaveNotice(
         `Added ${added} ISO 22000 program(s). Paste a different Zoom link on each, then open Students to manage the batch roster and certificates.`,
       );
-    } catch {
-      setLoadError("Could not create ISO programs.");
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Could not create ISO programs.");
     } finally {
       setSeeding(false);
     }

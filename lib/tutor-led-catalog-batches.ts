@@ -87,3 +87,72 @@ export function resolveCatalogEnrollSlug(
 
   return null;
 }
+
+const THEME_ROTATION: Array<TutorLedCatalogProgramCard["theme"]> = [
+  "emerald",
+  "sky",
+  "violet",
+  "gold",
+];
+
+/**
+ * Catalog marketing cards + live Admin → Tutor Led programs.
+ * Overlays price/title from published programs; if Landing has no cards, builds from programs.
+ */
+export function mergeCatalogProgramCards(
+  cards: TutorLedCatalogProgramCard[],
+  programs: TutorLedProgramStored[],
+): Array<TutorLedCatalogProgramCard & { resolvedSlug: string | null }> {
+  const live = programs.filter(
+    (p) => p.published && p.programKind !== "workshop",
+  );
+
+  if (!cards.length && live.length > 0) {
+    return live.map((p, i) => {
+      const duration =
+        p.batchDetails?.find((d) => /duration/i.test(d.label))?.value ||
+        p.schedule ||
+        "Live Zoom";
+      return {
+        id: p.slug,
+        title: p.title,
+        tagline: p.subtitle || p.badge || "Live tutor-led training",
+        bullets: (p.highlights ?? []).slice(0, 4).filter(Boolean).length
+          ? (p.highlights ?? []).slice(0, 4).filter(Boolean)
+          : (p.features ?? []).slice(0, 4).map((f) => f.title).filter(Boolean),
+        durationLabel: duration,
+        modeLabel: "Live on Zoom",
+        certificateLabel: p.badge?.trim() || "Certificate of completion",
+        price: typeof p.price === "number" ? p.price : 0,
+        theme: THEME_ROTATION[i % THEME_ROTATION.length],
+        popular: i === 0,
+        icon: "Video",
+        thumbnail: p.heroSrc?.trim() || "",
+        enrollSlug: p.slug,
+        matchPattern: "",
+        resolvedSlug: p.slug,
+      };
+    });
+  }
+
+  return cards.map((card) => {
+    const slug = resolveCatalogEnrollSlug(card, live);
+    const program = slug ? live.find((p) => p.slug === slug) : undefined;
+    if (!program) {
+      return { ...card, resolvedSlug: slug };
+    }
+    const duration =
+      program.batchDetails?.find((d) => /duration/i.test(d.label))?.value ||
+      card.durationLabel;
+    return {
+      ...card,
+      title: program.title?.trim() || card.title,
+      tagline: program.subtitle?.trim() || card.tagline,
+      price: typeof program.price === "number" ? program.price : card.price,
+      thumbnail: card.thumbnail?.trim() || program.heroSrc?.trim() || "",
+      durationLabel: duration,
+      enrollSlug: program.slug,
+      resolvedSlug: program.slug,
+    };
+  });
+}

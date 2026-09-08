@@ -9,13 +9,14 @@ import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
 import {
   defaultTutorLedCatalogPageConfig,
   type TutorLedCatalogPageConfig,
-  type TutorLedCatalogProgramCard,
   type TutorLedCatalogTheme,
 } from "@/lib/content-schema";
 import {
   buildLiveCatalogBatchRows,
+  mergeCatalogProgramCards,
   resolveCatalogEnrollSlug,
 } from "@/lib/tutor-led-catalog-batches";
+import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import { resolveLucideIcon } from "@/lib/lucide-icon-resolve";
 import {
   CheckCircle2,
@@ -82,13 +83,14 @@ export default function TutorLedCatalogLanding({
 
   const liveBatches = buildLiveCatalogBatchRows(programs);
   const useLiveBatches = liveBatches.length > 0;
+  const programCards = mergeCatalogProgramCards(page.programs, programs);
 
   const enrollBySlug = (slug: string) => {
     registerTutorLedFromTemplate(router, slug);
   };
 
-  const enrollCard = (card: TutorLedCatalogProgramCard) => {
-    const slug = resolveCatalogEnrollSlug(card, programs);
+  const enrollCard = (card: (typeof programCards)[number]) => {
+    const slug = card.resolvedSlug || resolveCatalogEnrollSlug(card, programs);
     if (slug) {
       enrollBySlug(slug);
       return;
@@ -216,10 +218,13 @@ export default function TutorLedCatalogLanding({
           </div>
 
           <div className="mt-6 grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-            {page.programs.map((card) => {
+            {programCards.map((card) => {
               const theme = THEME_STYLES[card.theme] ?? THEME_STYLES.gold;
               const Icon = resolveLucideIcon(card.icon);
               const thumb = card.thumbnail?.trim();
+              const detailHref = card.resolvedSlug
+                ? liveTutorCourseHref(card.resolvedSlug)
+                : null;
               return (
                 <article
                   key={card.id}
@@ -281,6 +286,14 @@ export default function TutorLedCatalogLanding({
                     Enroll Now
                     <ChevronRight className="h-4 w-4" aria-hidden />
                   </button>
+                  {detailHref ? (
+                    <Link
+                      href={detailHref}
+                      className="mt-2 inline-flex w-full items-center justify-center text-[11px] font-semibold text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
+                    >
+                      View program details
+                    </Link>
+                  ) : null}
                 </article>
               );
             })}

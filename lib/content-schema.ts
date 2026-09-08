@@ -467,7 +467,7 @@ export const defaultCoursesPageConfig: CoursesPageConfig = {
   ],
   recentUpdates: [
     { title: "ESG Fundamentals - New Cohort Open", subtitle: "Related Course", href: "/courses/esg-reporting-fundamentals", image: "/p3.png" },
-    { title: "Tutor-Led Cyber Security Live Training Slots Open", subtitle: "Live Training", href: "/tutor-led/advanced-cyber-security-professional", image: "/p2.png" },
+    { title: "Tutor-Led Live Training — New Batches Open", subtitle: "Live Training", href: "/tutor-led", image: "/p2.png" },
     { title: "HVAC Live Workshop Added with Practical Case Study", subtitle: "Live Workshop", href: "/my-learning?tab=live&type=workshop", image: "/p8.png" },
   ],
   upcomingItems: [

@@ -52,6 +52,7 @@ import {
 } from "@/lib/zoom-meeting";
 import { syncDurationBatchDetail, getDurationSource } from "@/lib/tutor-led-training-schedule";
 import { isWorkshopProgram, workshopLandingHref } from "@/lib/workshop-program";
+import { adminApiErrorMessage, adminMutationHeaders } from "@/lib/admin-csrf-client";
 
 const LEARNING_TOOL_KINDS: TutorLedToolKind[] = ["pad-notes", "ppt", "webbook"];
 
@@ -254,15 +255,25 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
   const load = useCallback(async (): Promise<AdminContent | null> => {
     setLoadError(null);
     try {
-      const res = await fetch("/api/admin/content", { cache: "no-store" });
-      if (!res.ok) throw new Error("load");
+      const res = await fetch("/api/admin/content", { cache: "no-store", credentials: "include" });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(
+          adminApiErrorMessage(errBody, `Could not load admin content (${res.status}).`),
+        );
+      }
       const data = (await res.json()) as AdminContent;
       setContent(data);
       return data;
-    } catch {
-      setLoadError("Could not load admin content. Using defaults until save succeeds.");
-      setContent(defaultAdminContent);
-      return defaultAdminContent;
+    } catch (e) {
+      setLoadError(
+        e instanceof Error
+          ? e.message
+          : "Could not load admin content. Refresh /admin and try again.",
+      );
+      // Keep whatever is already on screen — never replace a good list with empty defaults.
+      setContent((prev) => prev ?? defaultAdminContent);
+      return null;
     }
   }, []);
 
@@ -300,7 +311,8 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
     try {
       const res = await fetch("/api/admin/zoom/create-meeting", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: adminMutationHeaders(),
+        credentials: "include",
         body: JSON.stringify({
           slug: draft.slug,
           topic: draft.title || draft.slug,
@@ -310,10 +322,11 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
       const data = (await res.json()) as {
         ok?: boolean;
         error?: string;
+        message?: string;
         meeting?: { joinUrl: string; id: string; password: string; uuid: string };
       };
       if (!res.ok || !data.ok || !data.meeting) {
-        throw new Error(data.error ?? "Could not create Zoom meeting");
+        throw new Error(adminApiErrorMessage(data, "Could not create Zoom meeting"));
       }
       const m = data.meeting;
       setDraft((prev) =>
@@ -348,7 +361,8 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
     try {
       const res = await fetch("/api/admin/zoom/sync-recordings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: adminMutationHeaders(),
+        credentials: "include",
         body: JSON.stringify({
           slug: draft.slug,
           meetingId: draft.zoomMeetingId,
@@ -359,10 +373,13 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
       const data = (await res.json()) as {
         ok?: boolean;
         error?: string;
+        message?: string;
         count?: number;
         recordings?: TutorLedProgramStored["zoomRecordings"];
       };
-      if (!res.ok || !data.ok) throw new Error(data.error ?? "Could not sync recordings");
+      if (!res.ok || !data.ok) {
+        throw new Error(adminApiErrorMessage(data, "Could not sync recordings"));
+      }
       const saved = await load();
       refreshDraftFromSaved(draft.slug, saved);
       setZoomApiMessage(
@@ -387,19 +404,30 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
     try {
       const put = await fetch("/api/admin/content", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: adminMutationHeaders(),
+        credentials: "include",
         // Always send the array (including []) so deleting the last program works.
         body: JSON.stringify({ tutorLedPrograms: next }),
       });
       if (!put.ok) {
-        const errBody = (await put.json().catch(() => ({}))) as { error?: string };
-        throw new Error(errBody.error ?? "Save failed");
+        const errBody = await put.json().catch(() => ({}));
+        throw new Error(
+          adminApiErrorMessage(errBody, `Save failed (${put.status}). Refresh /admin and try again.`),
+        );
       }
       setContent({ ...content, tutorLedPrograms: next });
-      await load();
+      const refreshed = await load();
+      // Prefer disk truth after save; if reload failed, keep optimistic `next`.
+      if (refreshed && Array.isArray(refreshed.tutorLedPrograms)) {
+        setContent(refreshed);
+      }
       if (opts?.keepEditor && opts.editorSlug) {
-        const refreshed = next.find((p) => p.slug === opts.editorSlug);
-        if (refreshed) setDraft(cloneProgram(refreshed));
+        const list =
+          refreshed && Array.isArray(refreshed.tutorLedPrograms)
+            ? refreshed.tutorLedPrograms
+            : next;
+        const row = list.find((p) => p.slug === opts.editorSlug);
+        if (row) setDraft(cloneProgram(row));
       } else if (!opts?.keepEditor) {
         setDraft(null);
         setIsCreating(false);
@@ -653,20 +681,11 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                     return;
                   }
                   void (async () => {
-                    setSaving(true);
-                    try {
-                      const put = await fetch("/api/admin/content", {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ tutorLedPrograms: next }),
-                      });
-                      if (!put.ok) throw new Error("seed");
-                      setContent({ ...content, tutorLedPrograms: next });
-                      setZoomApiMessage(`Added ${added} ISO 22000 programs. Set a different Zoom link on each.`);
-                    } catch {
-                      setLoadError("Could not add ISO programs.");
-                    } finally {
-                      setSaving(false);
+                    const ok = await persistPrograms(next);
+                    if (ok) {
+                      setZoomApiMessage(
+                        `Added ${added} ISO 22000 programs. Set a different Zoom link on each under Zoom & live.`,
+                      );
                     }
                   })();
                 }}
@@ -790,8 +809,13 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                         </Link>
                         <button
                           type="button"
-                          onClick={() => void deleteProgram(p.slug)}
-                          className="rounded px-2 py-0.5 text-[10px] text-red-300/90 hover:bg-red-500/10"
+                          disabled={saving}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void deleteProgram(p.slug);
+                          }}
+                          className="rounded px-2 py-0.5 text-[10px] text-red-300/90 hover:bg-red-500/10 disabled:opacity-50"
                         >
                           Delete
                         </button>
