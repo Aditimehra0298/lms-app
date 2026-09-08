@@ -110,23 +110,23 @@ export function AdminTutorLedMediaPanel({
   return (
     <div className="space-y-4">
       <p className="text-[11px] text-gray-400">
-        Change every course image here — URL or upload. Save program when done.
+        Per-course landing images (same idea as Self-paced cover/hero). Save the program when done.
       </p>
       <div className="grid gap-3 lg:grid-cols-2">
         <ImageField
-          title="Marketing page hero"
-          description="Before payment — /tutor-led/your-slug"
+          title="Landing page hero + catalog thumbnail"
+          description="Public /tutor-led/your-slug hero and the card image on /tutor-led list"
           url={draft.heroSrc ?? ""}
           alt={draft.heroAlt ?? ""}
           onUrlChange={(url) => setDraft({ ...draft, heroSrc: url })}
           onAltChange={(alt) => setDraft({ ...draft, heroAlt: alt })}
           onUpload={onUploadHero}
           uploading={uploadingHero}
-          uploadLabel="Upload marketing hero"
+          uploadLabel="Upload landing / catalog image"
         />
         <ImageField
           title="Learner hero background"
-          description="Gold shield glow behind the enrolled hero card (top-right)"
+          description="Gold shield glow behind the enrolled hero card (My Learning)"
           url={draft.learnerHeroBgSrc ?? ""}
           alt={draft.learnerHeroBgAlt ?? ""}
           onUrlChange={(url) => setDraft({ ...draft, learnerHeroBgSrc: url })}
@@ -146,7 +146,7 @@ export function AdminTutorLedMediaPanel({
           onUpload={onUploadLearnerHero}
           uploading={uploadingLearnerHero}
           uploadLabel="Upload thumbnail"
-          placeholder="Empty = use marketing hero"
+          placeholder="Empty = use landing hero"
         />
         <ImageField
           title="Trainer photo"

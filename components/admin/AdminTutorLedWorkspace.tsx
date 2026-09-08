@@ -83,10 +83,10 @@ const EDITOR_TABS: { id: EditorTab; label: string; icon: typeof BookOpen }[] = [
   { id: "basics", label: "Basics", icon: BookOpen },
   { id: "zoom", label: "Zoom & live", icon: Video },
   { id: "pricing", label: "Pricing", icon: IndianRupee },
-  { id: "media", label: "Images", icon: ImageIcon },
+  { id: "media", label: "Landing images", icon: ImageIcon },
   { id: "trainer", label: "Trainer", icon: User },
   { id: "curriculum", label: "Curriculum & days", icon: CalendarDays },
-  { id: "marketing", label: "Page content", icon: FileText },
+  { id: "marketing", label: "Landing content", icon: FileText },
   { id: "downloads", label: "Downloads", icon: Upload },
   { id: "learner", label: "Learner dashboard", icon: LayoutDashboard },
   { id: "students", label: "Students & certs", icon: Users },
@@ -703,12 +703,12 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
               {isWorkshopAdmin ? "Live workshops" : "Live Zoom programs"}
             </p>
             <h1 className="mt-1 text-xl font-semibold text-white md:text-2xl">
-              {isWorkshopAdmin ? "Workshop admin" : "Live Zoom programs (unlimited)"}
+              {isWorkshopAdmin ? "Workshop admin" : "Tutor-led courses"}
             </h1>
             <p className="mt-1 max-w-2xl text-xs text-gray-400">
               {isWorkshopAdmin
                 ? "One-day sessions — same landing style as tutor-led. Set next batch date for learner calendar reminders after registration."
-                : "Add as many live Zoom programs as you need (ISO levels, cyber, ESG, etc.). Delete old rows anytime. Each Publish’d program gets its own /tutor-led/slug page."}
+                : "Same model as Self-paced: each program has its own public landing at /tutor-led/your-slug. Add many courses, upload hero images, edit page content, Publish."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
@@ -909,12 +909,15 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
             <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-[#0d1528]/60 px-6 py-16 text-center">
               <BookOpen className="mb-3 h-10 w-10 text-violet-400/50" aria-hidden />
               <p className="text-sm font-medium text-white">
-                {isWorkshopAdmin ? "Select a workshop to edit" : "Select a program to edit"}
+                {isWorkshopAdmin ? "Select a workshop to edit" : "Select a live course to edit its landing"}
               </p>
               <p className="mt-1 max-w-sm text-xs text-gray-500">
-                Or click{" "}
-                <strong className="text-gray-400">{isWorkshopAdmin ? "New workshop" : "New program"}</strong> to add a{" "}
-                {isWorkshopAdmin ? "one-day session" : "live course"}.
+                Like Self-paced: each course has Basics, Landing images, Landing content, Zoom, Pricing, and more.
+                Click{" "}
+                <strong className="text-gray-400">
+                  {isWorkshopAdmin ? "New workshop" : "New live program"}
+                </strong>{" "}
+                to add another.
               </p>
             </div>
           ) : (

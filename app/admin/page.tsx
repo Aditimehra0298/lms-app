@@ -789,7 +789,7 @@ function AdminPageInner() {
                       : showLessonsWorkspace
                         ? "Search courses for lessons…"
                         : showTutorLedHub
-                          ? "Search tutor-led landing or programs…"
+                          ? "Search tutor-led courses…"
                           : showWorkshopsWorkspace
                             ? "Search workshops…"
                             : showBatchesWorkspace
@@ -1096,11 +1096,7 @@ function AdminPageInner() {
 
           {showBatchesWorkspace && <AdminBatchesWorkspace />}
 
-          {showTutorLedHub && (
-            <AdminTutorLedHub
-              initialTab={panelQuery === "tutor-led-programs" ? "programs" : "landing"}
-            />
-          )}
+          {showTutorLedHub && <AdminTutorLedHub />}
 
           {showWorkshopsWorkspace && <AdminWorkshopsWorkspace />}
 
@@ -1531,8 +1527,8 @@ function AdminPageInner() {
                 <span className="text-white">&quot;{activeMenu}&quot;</span> does not have an editor here yet.
               </p>
               <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-amber-100/85">
-                To edit the public{" "}
-                <strong className="text-white">/tutor-led</strong> ISO catalog and live Zoom programs, open{" "}
+                To manage live tutor-led courses (each with its own{" "}
+                <strong className="text-white">/tutor-led/slug</strong> landing — like self-paced), open{" "}
                 <button
                   type="button"
                   onClick={() => selectMenu("Tutor Led")}
