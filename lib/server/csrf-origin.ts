@@ -46,6 +46,18 @@ export function allowedRequestOrigins(request: Request): Set<string> {
     }
   }
 
+  // Extra allow-list for reverse proxies / Cloudflare when Host is internal.
+  const extra = process.env.ADMIN_ALLOWED_ORIGINS?.trim() || process.env.ALLOWED_ORIGINS?.trim() || "";
+  for (const part of extra.split(",")) {
+    const raw = part.trim();
+    if (!raw) continue;
+    try {
+      set.add(new URL(raw).origin);
+    } catch {
+      /* ignore */
+    }
+  }
+
   for (const origin of [...set]) {
     addWwwVariants(set, origin);
   }

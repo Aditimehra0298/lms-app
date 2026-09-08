@@ -34,7 +34,6 @@ import { getCertificateUploadStatus } from "@/lib/certificate-admin-status";
 import type { AdminContent } from "@/lib/content-schema";
 import { defaultAdminContent } from "@/lib/content-schema";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
-import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
 import { ensureIso22000TutorLedPrograms } from "@/lib/iso-22000-tutor-led-seed";
 import { TUTOR_LED_ICON_NAMES } from "@/lib/tutor-led-program-map";
 import {
@@ -135,32 +134,72 @@ function slugify(s: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function newProgramFromTemplate(): TutorLedProgramStored {
-  const base = cloneProgram(defaultTutorLedPrograms[0]);
-  const id = `new-live-${Date.now()}`;
+function blankTutorLedTemplate(): TutorLedProgramStored {
+  const id = `live-${Date.now()}`;
   return {
-    ...base,
     slug: id,
-    title: "New live program",
     programKind: "tutor-led",
     published: false,
-    learningMaterials: [],
+    title: "New live program",
+    subtitle: "Live Zoom training with expert trainers.",
+    breadcrumb: ["Home", "Tutor Led", "New live program"],
+    badge: "TUTOR LED TRAINING",
+    price: 9999,
+    originalPrice: 14999,
+    discount: "",
+    batchLabel: "Upcoming Live Batch",
+    seatsFilling: true,
+    seatsLeft: 20,
+    trainer: {
+      name: "",
+      role: "",
+      experience: "",
+      bio: "",
+      certifications: [],
+      workedWith: [],
+      avatar: "",
+    },
+    nextBatchDate: "",
+    schedule: "",
+    language: "English",
+    countdown: { days: 0, hours: 0, mins: 0, secs: 0 },
+    batchDetails: [
+      { icon: "Clock", label: "Duration", value: "5 Days" },
+      { icon: "Users", label: "Batch size", value: "Limited seats" },
+      { icon: "Video", label: "Mode", value: "Live on Zoom" },
+    ],
+    features: [],
+    highlights: [],
+    curriculum: [
+      {
+        week: 1,
+        label: "Day 1",
+        topic: "Foundations",
+        keyLearning: "Core concepts",
+        sessionType: "Live Zoom",
+      },
+    ],
+    whyChoose: [],
+    faqs: [],
+    heroSrc: "",
+    heroAlt: "",
     liveJoinUrl: "",
     zoomMeetingId: "",
     zoomPasscode: "",
+    learningMaterials: [],
     curriculumMode: "auto",
     zoomLinkMode: "manual",
+    durationSource: "manual",
   };
 }
 
-function newWorkshopFromTemplate(): TutorLedProgramStored {
-  const base = newProgramFromTemplate();
-  const id = `new-workshop-${Date.now()}`;
-  const batchDetails = [...(base.batchDetails ?? [])];
-  const durationIdx = batchDetails.findIndex((d) => d.label === "Duration");
-  if (durationIdx >= 0) batchDetails[durationIdx] = { ...batchDetails[durationIdx], value: "1 Day" };
-  else batchDetails.push({ icon: "Clock", label: "Duration", value: "1 Day" });
+function newProgramFromTemplate(): TutorLedProgramStored {
+  return blankTutorLedTemplate();
+}
 
+function newWorkshopFromTemplate(): TutorLedProgramStored {
+  const base = blankTutorLedTemplate();
+  const id = `workshop-${Date.now()}`;
   return {
     ...base,
     programKind: "workshop",
@@ -169,8 +208,12 @@ function newWorkshopFromTemplate(): TutorLedProgramStored {
     badge: "LIVE WORKSHOP",
     batchLabel: "One-day live workshop",
     breadcrumb: ["Home", "Workshops", "Live Workshop"],
-    curriculum: (base.curriculum ?? []).slice(0, 1),
-    batchDetails,
+    curriculum: base.curriculum.slice(0, 1),
+    batchDetails: [
+      { icon: "Clock", label: "Duration", value: "1 Day" },
+      { icon: "Users", label: "Batch size", value: "Limited seats" },
+      { icon: "Video", label: "Mode", value: "Live on Zoom" },
+    ],
     durationSource: "manual",
   };
 }
@@ -593,6 +636,29 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
     }
   };
 
+  /** Wipe every program in this workspace (tutor-led OR workshops), then add fresh rows with New / ISO seed. */
+  const deleteAllScopedPrograms = async () => {
+    if (!content) return;
+    const label = isWorkshopAdmin ? "workshops" : "tutor-led live programs";
+    if (
+      !window.confirm(
+        `Delete ALL ${scopedPrograms.length} ${label}? You can add as many new ones as you need afterward.`,
+      )
+    ) {
+      return;
+    }
+    const keepOtherKind = (content.tutorLedPrograms ?? []).filter((p) =>
+      isWorkshopAdmin ? !isWorkshopProgram(p) : isWorkshopProgram(p),
+    );
+    const ok = await persistPrograms(keepOtherKind);
+    if (ok) {
+      setDraft(null);
+      setIsCreating(false);
+      setOriginalSlug(null);
+      setZoomApiMessage(`Cleared all ${label}. Use New program / Add 4 ISO to create as many as you need.`);
+    }
+  };
+
   if (!content && !loadError) {
     return (
       <div className="flex items-center justify-center rounded-xl border border-white/10 bg-[#0b1224] px-4 py-16 text-sm text-gray-400">
@@ -637,12 +703,12 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
               {isWorkshopAdmin ? "Live workshops" : "Live Zoom programs"}
             </p>
             <h1 className="mt-1 text-xl font-semibold text-white md:text-2xl">
-              {isWorkshopAdmin ? "Workshop admin" : "ISO / Zoom program rows"}
+              {isWorkshopAdmin ? "Workshop admin" : "Live Zoom programs (unlimited)"}
             </h1>
             <p className="mt-1 max-w-2xl text-xs text-gray-400">
               {isWorkshopAdmin
                 ? "One-day sessions — same landing style as tutor-led. Set next batch date for learner calendar reminders after registration."
-                : "Add the 4 ISO Zoom programs, set Join links, Publish each one, then edit curriculum / students / certificates. Landing copy is on the Landing page tab."}
+                : "Add as many live Zoom programs as you need (ISO levels, cyber, ESG, etc.). Delete old rows anytime. Each Publish’d program gets its own /tutor-led/slug page."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
@@ -667,7 +733,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
               onClick={openCreate}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#6f55ff] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#7d63ff]"
             >
-              <Plus className="h-4 w-4" /> {isWorkshopAdmin ? "New workshop" : "New program"}
+              <Plus className="h-4 w-4" /> {isWorkshopAdmin ? "New workshop" : "New live program"}
             </button>
             {!isWorkshopAdmin ? (
               <button
@@ -692,6 +758,16 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                 className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-500/20"
               >
                 <Award className="h-3.5 w-3.5" /> Add 4 ISO Zoom programs
+              </button>
+            ) : null}
+            {scopedPrograms.length > 0 ? (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void deleteAllScopedPrograms()}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-500/35 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-100 hover:bg-rose-500/20 disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete all {isWorkshopAdmin ? "workshops" : "live programs"}
               </button>
             ) : null}
             <div className="relative mt-3">

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { allowedRequestOrigins } from "@/lib/server/csrf-origin";
 
 const ADMIN_SESSION_COOKIE = "sft_admin_session";
 const ADMIN_CSRF_COOKIE = "sft_admin_csrf";
@@ -110,36 +111,16 @@ async function verifyAdminSessionToken(token: string | null | undefined): Promis
 }
 
 function allowedOrigins(request: NextRequest): Set<string> {
-  const set = new Set<string>();
-  set.add(request.nextUrl.origin);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (appUrl) {
-    try {
-      set.add(new URL(appUrl).origin);
-    } catch {
-      /* ignore */
-    }
-  }
-  for (const origin of [...set]) {
-    try {
-      const u = new URL(origin);
-      if (u.hostname.startsWith("www.")) {
-        set.add(`${u.protocol}//${u.hostname.slice(4)}`);
-      } else if (u.hostname.includes(".")) {
-        set.add(`${u.protocol}//www.${u.hostname}`);
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  return set;
+  // Include x-forwarded-host / www variants — request.nextUrl is often
+  // http://127.0.0.1:3000 behind nginx while the browser Origin is https://sftlms.com.
+  return allowedRequestOrigins(request);
 }
 
 function isSameOrigin(request: NextRequest): boolean {
   const allowed = allowedOrigins(request);
-  const origin = request.headers.get("origin");
+  const origin = request.headers.get("origin")?.trim();
   if (origin) return allowed.has(origin);
-  const referer = request.headers.get("referer");
+  const referer = request.headers.get("referer")?.trim();
   if (referer) {
     try {
       return allowed.has(new URL(referer).origin);
@@ -205,7 +186,9 @@ export async function middleware(request: NextRequest) {
         {
           ok: false,
           message:
-            "CSRF check failed. Open /admin in this site, refresh, and retry. Cross-site admin calls are blocked.",
+            "CSRF check failed. Open https://sftlms.com/admin (same site as the API), hard-refresh, sign in again if needed, then retry.",
+          error:
+            "CSRF check failed. Open https://sftlms.com/admin (same site as the API), hard-refresh, sign in again if needed, then retry.",
         },
         { status: 403 },
       );
