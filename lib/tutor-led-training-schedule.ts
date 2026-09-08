@@ -51,12 +51,26 @@ export function syncDurationBatchDetail(program: TutorLedProgramStored): TutorLe
   return { ...program, batchDetails };
 }
 
-/** Completed live sessions from Zoom cloud recordings (capped at curriculum length). */
+/** Completed live sessions — prefer schedule days elapsed, fall back to Zoom recordings. */
 export function computeCompletedLiveSessions(
   zoomRecordingCount: number,
   totalSessions: number,
+  batchStart?: Date | null,
 ): number {
-  return Math.min(Math.max(0, zoomRecordingCount), Math.max(1, totalSessions));
+  const total = Math.max(1, totalSessions);
+  const fromRecordings = Math.min(Math.max(0, zoomRecordingCount), total);
+  if (!batchStart) return fromRecordings;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(batchStart);
+  start.setHours(0, 0, 0, 0);
+  if (today < start) return fromRecordings;
+
+  const diffDays = Math.floor((today.getTime() - start.getTime()) / 86_400_000);
+  /** Full days finished after the batch started (day 0 still in progress → 0 completed). */
+  const fromSchedule = Math.min(total, Math.max(0, diffDays));
+  return Math.max(fromRecordings, fromSchedule);
 }
 
 export type JourneyStep = {

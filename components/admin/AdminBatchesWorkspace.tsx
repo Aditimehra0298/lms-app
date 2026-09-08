@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  Award,
   CalendarDays,
+  ChevronDown,
   ChevronRight,
   ExternalLink,
   Loader2,
@@ -12,10 +14,13 @@ import {
   Save,
   Search,
   Users,
+  Video,
 } from "lucide-react";
 import type { AdminContent } from "@/lib/content-schema";
 import { type TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { ensureIso22000TutorLedPrograms } from "@/lib/iso-22000-tutor-led-seed";
 import { isWorkshopProgram, workshopLandingHref } from "@/lib/workshop-program";
+import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
 
 type BatchFilter = "all" | "tutor-led" | "workshop" | "upcoming";
 
@@ -23,6 +28,9 @@ type BatchDraft = {
   nextBatchDate: string;
   batchLabel: string;
   schedule: string;
+  liveJoinUrl: string;
+  zoomMeetingId: string;
+  zoomPasscode: string;
 };
 
 function programLandingPath(p: TutorLedProgramStored): string {
@@ -41,6 +49,8 @@ export default function AdminBatchesWorkspace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [listFilter, setListFilter] = useState<BatchFilter>("all");
   const [drafts, setDrafts] = useState<Record<string, BatchDraft>>({});
+  const [expandedStudents, setExpandedStudents] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
 
   const programs = useMemo(() => {
     if (!content) return [];
@@ -62,6 +72,9 @@ export default function AdminBatchesWorkspace() {
           nextBatchDate: p.nextBatchDate ?? "",
           batchLabel: p.batchLabel ?? "",
           schedule: p.schedule ?? "",
+          liveJoinUrl: p.liveJoinUrl ?? "",
+          zoomMeetingId: p.zoomMeetingId ?? "",
+          zoomPasscode: p.zoomPasscode ?? "",
         };
       }
       setDrafts(nextDrafts);
@@ -96,12 +109,29 @@ export default function AdminBatchesWorkspace() {
     () => programs.filter((p) => (p.nextBatchDate ?? "").trim().length > 0).length,
     [programs],
   );
+  const withZoomCount = useMemo(
+    () => programs.filter((p) => (p.liveJoinUrl ?? "").trim().length > 0).length,
+    [programs],
+  );
 
   const patchDraft = (slug: string, patch: Partial<BatchDraft>) => {
     setDrafts((prev) => ({
       ...prev,
       [slug]: { ...prev[slug], ...patch },
     }));
+  };
+
+  const isDirty = (p: TutorLedProgramStored) => {
+    const d = drafts[p.slug];
+    if (!d) return false;
+    return (
+      d.nextBatchDate !== (p.nextBatchDate ?? "") ||
+      d.batchLabel !== (p.batchLabel ?? "") ||
+      d.schedule !== (p.schedule ?? "") ||
+      d.liveJoinUrl !== (p.liveJoinUrl ?? "") ||
+      d.zoomMeetingId !== (p.zoomMeetingId ?? "") ||
+      d.zoomPasscode !== (p.zoomPasscode ?? "")
+    );
   };
 
   const saveBatch = async (p: TutorLedProgramStored) => {
@@ -118,7 +148,10 @@ export default function AdminBatchesWorkspace() {
               ...row,
               nextBatchDate: draft.nextBatchDate.trim(),
               batchLabel: draft.batchLabel.trim() || row.batchLabel,
-              schedule: draft.schedule.trim() || row.schedule,
+              schedule: draft.schedule.trim(),
+              liveJoinUrl: draft.liveJoinUrl.trim(),
+              zoomMeetingId: draft.zoomMeetingId.trim(),
+              zoomPasscode: draft.zoomPasscode.trim(),
             }
           : row,
       );
@@ -128,35 +161,59 @@ export default function AdminBatchesWorkspace() {
         body: JSON.stringify({ tutorLedPrograms: nextPrograms }),
       });
       if (!put.ok) throw new Error("save");
-      setSaveNotice(`Saved batch schedule for “${p.title || p.slug}”.`);
-      await load();
+      setContent({ ...content, tutorLedPrograms: nextPrograms });
+      setSaveNotice(`Saved batch + Zoom for “${p.title || p.slug}”. Learners see the Zoom link on their dashboard.`);
     } catch {
-      setLoadError("Save failed. Try again.");
+      setLoadError("Could not save batch.");
     } finally {
       setSavingSlug(null);
     }
   };
 
-  const isDirty = (p: TutorLedProgramStored) => {
-    const d = drafts[p.slug];
-    if (!d) return false;
-    return (
-      d.nextBatchDate !== (p.nextBatchDate ?? "") ||
-      d.batchLabel !== (p.batchLabel ?? "") ||
-      d.schedule !== (p.schedule ?? "")
-    );
+  const seedIsoPrograms = async () => {
+    if (!content) return;
+    setSeeding(true);
+    setLoadError(null);
+    setSaveNotice(null);
+    try {
+      const { programs: next, added } = ensureIso22000TutorLedPrograms(content.tutorLedPrograms);
+      if (added === 0) {
+        setSaveNotice("All 4 ISO 22000 programs already exist. Set a Zoom link on each batch below.");
+        return;
+      }
+      const put = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tutorLedPrograms: next }),
+      });
+      if (!put.ok) throw new Error("seed");
+      setContent({ ...content, tutorLedPrograms: next });
+      const nextDrafts: Record<string, BatchDraft> = { ...drafts };
+      for (const p of next) {
+        if (!nextDrafts[p.slug]) {
+          nextDrafts[p.slug] = {
+            nextBatchDate: p.nextBatchDate ?? "",
+            batchLabel: p.batchLabel ?? "",
+            schedule: p.schedule ?? "",
+            liveJoinUrl: p.liveJoinUrl ?? "",
+            zoomMeetingId: p.zoomMeetingId ?? "",
+            zoomPasscode: p.zoomPasscode ?? "",
+          };
+        }
+      }
+      setDrafts(nextDrafts);
+      setSaveNotice(
+        `Added ${added} ISO 22000 program(s). Paste a different Zoom link on each, then open Students to manage the batch roster and certificates.`,
+      );
+    } catch {
+      setLoadError("Could not create ISO programs.");
+    } finally {
+      setSeeding(false);
+    }
   };
 
-  if (!content && !loadError) {
-    return (
-      <div className="flex items-center justify-center rounded-xl border border-white/10 bg-[#0b1224] px-4 py-16 text-sm text-gray-400">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin text-amber-400" /> Loading batch schedules…
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0c1428] via-[#0a101c] to-[#070b14]">
         <div className="border-b border-white/[0.06] bg-amber-500/[0.07] px-4 py-5 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -166,12 +223,16 @@ export default function AdminBatchesWorkspace() {
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-300/90">
-                  Live programs
+                  Live Zoom batches
                 </p>
-                <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">Batch schedule</h1>
+                <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">Batches · Students · Certificates</h1>
                 <p className="mt-2 max-w-2xl text-xs leading-relaxed text-gray-400">
-                  Set <strong className="text-gray-300">next batch date</strong> and schedule copy for tutor-led
-                  programs and workshops. Learners get calendar reminders after registration when a date is set.
+                  Each tutor-led category (Basic, Implementation, Internal Auditor, Lead Auditor) is its own
+                  program with its own <strong className="text-gray-300">Zoom link</strong>,{" "}
+                  <strong className="text-gray-300">batch</strong>,{" "}
+                  <strong className="text-gray-300">student roster</strong>, and{" "}
+                  <strong className="text-gray-300">certificate</strong>. Learners see Zoom on My Learning after
+                  enroll.
                 </p>
               </div>
             </div>
@@ -182,9 +243,21 @@ export default function AdminBatchesWorkspace() {
               <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-emerald-200">
                 {publishedCount} live
               </span>
-              <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-amber-200">
-                {withDateCount} with date
+              <span className="rounded-full border border-sky-500/25 bg-sky-500/10 px-2.5 py-1 text-sky-200">
+                {withZoomCount} Zoom
               </span>
+              <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-amber-200">
+                {withDateCount} dated
+              </span>
+              <button
+                type="button"
+                onClick={() => void seedIsoPrograms()}
+                disabled={seeding}
+                className="inline-flex items-center gap-1 rounded-lg bg-[#FFB800] px-2.5 py-1 font-semibold text-black hover:bg-[#e5a600] disabled:opacity-50"
+              >
+                {seeding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Award className="h-3 w-3" />}
+                Add 4 ISO programs
+              </button>
               <button
                 type="button"
                 onClick={() => void load()}
@@ -246,7 +319,8 @@ export default function AdminBatchesWorkspace() {
           <CalendarDays className="mx-auto mb-3 h-10 w-10 text-amber-400/40" aria-hidden />
           <p className="text-sm font-medium text-white">No programs match this filter</p>
           <p className="mt-1 text-xs text-gray-500">
-            Create tutor-led programs or workshops first, then set their batch dates here.
+            Click <strong className="text-gray-300">Add 4 ISO programs</strong> to create Basic / Implementation /
+            Internal Auditor / Lead Auditor with separate Zoom slots.
           </p>
         </div>
       ) : (
@@ -255,6 +329,8 @@ export default function AdminBatchesWorkspace() {
             const draft = drafts[p.slug];
             const dirty = isDirty(p);
             const workshop = isWorkshopProgram(p);
+            const studentsOpen = expandedStudents === p.slug;
+            const hasZoom = Boolean(draft?.liveJoinUrl?.trim() || p.liveJoinUrl?.trim());
             return (
               <li
                 key={p.slug}
@@ -283,6 +359,14 @@ export default function AdminBatchesWorkspace() {
                         )}
                         {workshop ? "Workshop" : "Tutor-led"}
                       </span>
+                      <span
+                        className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-semibold ${
+                          hasZoom ? "bg-sky-500/15 text-sky-200" : "bg-rose-500/10 text-rose-300"
+                        }`}
+                      >
+                        <Video className="h-3 w-3" aria-hidden />
+                        {hasZoom ? "Zoom set" : "Zoom missing"}
+                      </span>
                     </div>
                     <p className="mt-0.5 font-mono text-[10px] text-gray-500">{p.slug}</p>
                   </div>
@@ -305,38 +389,85 @@ export default function AdminBatchesWorkspace() {
                 </div>
 
                 {draft ? (
-                  <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Next batch date</span>
-                      <input
-                        value={draft.nextBatchDate}
-                        onChange={(e) => patchDraft(p.slug, { nextBatchDate: e.target.value })}
-                        placeholder="e.g. 15 Jul 2026"
-                        className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-amber-500/40"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] text-gray-500">Batch label</span>
-                      <input
-                        value={draft.batchLabel}
-                        onChange={(e) => patchDraft(p.slug, { batchLabel: e.target.value })}
-                        placeholder="e.g. July 2026 batch"
-                        className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-amber-500/40"
-                      />
-                    </label>
-                    <label className="block md:col-span-1">
-                      <span className="text-[11px] text-gray-500">Schedule line</span>
-                      <input
-                        value={draft.schedule}
-                        onChange={(e) => patchDraft(p.slug, { schedule: e.target.value })}
-                        placeholder="e.g. Mon–Fri · 7–9 PM IST"
-                        className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-amber-500/40"
-                      />
-                    </label>
+                  <div className="mt-4 space-y-3">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <label className="block">
+                        <span className="text-[11px] text-gray-500">Next batch date</span>
+                        <input
+                          value={draft.nextBatchDate}
+                          onChange={(e) => patchDraft(p.slug, { nextBatchDate: e.target.value })}
+                          placeholder="e.g. 15 Jul 2026"
+                          className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-amber-500/40"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-[11px] text-gray-500">Batch label</span>
+                        <input
+                          value={draft.batchLabel}
+                          onChange={(e) => patchDraft(p.slug, { batchLabel: e.target.value })}
+                          placeholder="e.g. July 2026 batch"
+                          className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-amber-500/40"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-[11px] text-gray-500">Schedule line</span>
+                        <input
+                          value={draft.schedule}
+                          onChange={(e) => patchDraft(p.slug, { schedule: e.target.value })}
+                          placeholder="e.g. Mon–Fri · 7–9 PM IST"
+                          className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-amber-500/40"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 p-3">
+                      <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-sky-200">
+                        <Video className="h-3.5 w-3.5" aria-hidden />
+                        Zoom for this batch (shows on learner dashboard)
+                      </p>
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <label className="block md:col-span-2">
+                          <span className="text-[11px] text-gray-500">Zoom join URL</span>
+                          <input
+                            value={draft.liveJoinUrl}
+                            onChange={(e) => patchDraft(p.slug, { liveJoinUrl: e.target.value })}
+                            placeholder="https://zoom.us/j/…"
+                            className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none focus:border-sky-500/40"
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-[11px] text-gray-500">Meeting ID</span>
+                          <input
+                            value={draft.zoomMeetingId}
+                            onChange={(e) => patchDraft(p.slug, { zoomMeetingId: e.target.value })}
+                            placeholder="Optional"
+                            className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none focus:border-sky-500/40"
+                          />
+                        </label>
+                        <label className="block md:col-span-3">
+                          <span className="text-[11px] text-gray-500">Passcode (optional)</span>
+                          <input
+                            value={draft.zoomPasscode}
+                            onChange={(e) => patchDraft(p.slug, { zoomPasscode: e.target.value })}
+                            placeholder="Shown to enrolled learners"
+                            className="mt-1 w-full max-w-xs rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none focus:border-sky-500/40"
+                          />
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 ) : null}
 
-                <div className="mt-3 flex justify-end">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedStudents(studentsOpen ? null : p.slug)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/30 px-3 py-1.5 text-[11px] font-semibold text-gray-200 hover:bg-white/5"
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    {studentsOpen ? "Hide students" : "Students & certificates"}
+                    <ChevronDown className={`h-3.5 w-3.5 transition ${studentsOpen ? "rotate-180" : ""}`} />
+                  </button>
                   <button
                     type="button"
                     disabled={!dirty || savingSlug === p.slug}
@@ -348,9 +479,22 @@ export default function AdminBatchesWorkspace() {
                     ) : (
                       <Save className="h-3.5 w-3.5" />
                     )}
-                    Save batch
+                    Save batch + Zoom
                   </button>
                 </div>
+
+                {studentsOpen ? (
+                  <div className="mt-4">
+                    <AdminCourseStudentsPanel
+                      embedded
+                      courseTitle={p.title || p.slug}
+                      workspaceCourseSlug={p.slug}
+                      canEdit
+                      onGoCourseInfo={() => undefined}
+                      batchContext={`Batch: ${draft?.batchLabel || p.batchLabel || "—"} · Date: ${draft?.nextBatchDate || p.nextBatchDate || "TBA"} · Certificates are issued for this program slug (${p.slug}). Use Manual pass to generate/unlock the certificate for a student in this batch.`}
+                    />
+                  </div>
+                ) : null}
               </li>
             );
           })}

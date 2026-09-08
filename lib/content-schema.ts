@@ -509,6 +509,421 @@ export const defaultCoursesPageConfig: CoursesPageConfig = {
   defaultVisibleCourses: 5,
 };
 
+/* ─── Tutor-led catalog landing (`/tutor-led`) ─── */
+
+export type TutorLedCatalogTheme = "emerald" | "sky" | "violet" | "gold";
+
+export type TutorLedCatalogHeroChip = {
+  icon: string;
+  label: string;
+};
+
+export type TutorLedCatalogHero = {
+  eyebrow: string;
+  heading: string;
+  headingHighlight: string;
+  subtitle: string;
+  ctaText: string;
+  ctaHref: string;
+  chips: TutorLedCatalogHeroChip[];
+  asideQuote: string;
+  certCardTitle: string;
+  certCardSubtitle: string;
+  certCardQuote: string;
+  certCardAttribution: string;
+  backgroundImage: string;
+  backgroundAlt: string;
+};
+
+export type TutorLedCatalogProgramCard = {
+  id: string;
+  title: string;
+  tagline: string;
+  bullets: string[];
+  price: number;
+  popular?: boolean;
+  theme: TutorLedCatalogTheme;
+  /** Lucide export name, e. g. ShieldCheck */
+  icon: string;
+  /** Optional card thumbnail (shown above title when set). */
+  thumbnail: string;
+  /** Prefer linking enroll to this published tutor-led slug when set. */
+  enrollSlug: string;
+  /** Fallback title/slug match when enrollSlug is empty (e.g. basic|foundation). */
+  matchPattern: string;
+  durationLabel: string;
+  modeLabel: string;
+  certificateLabel: string;
+};
+
+export type TutorLedCatalogWhyItem = {
+  icon: string;
+  title: string;
+  desc: string;
+};
+
+export type TutorLedCatalogAudienceItem = {
+  icon: string;
+  label: string;
+};
+
+export type TutorLedCatalogBatchRow = {
+  date: string;
+  time: string;
+  programId: string;
+  programLabel: string;
+  seats: number;
+};
+
+export type TutorLedCatalogPageConfig = {
+  /** Optional OG / share thumbnail for the catalog page. */
+  pageThumbnail: string;
+  hero: TutorLedCatalogHero;
+  programsSection: {
+    title: string;
+    subtitle: string;
+  };
+  programs: TutorLedCatalogProgramCard[];
+  why: {
+    eyebrow: string;
+    titleLine1: string;
+    titleLine2: string;
+    items: TutorLedCatalogWhyItem[];
+  };
+  audience: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    items: TutorLedCatalogAudienceItem[];
+    investTitle: string;
+    investBody: string;
+    investImage: string;
+    investImageAlt: string;
+  };
+  batches: {
+    eyebrow: string;
+    viewAllLabel: string;
+    viewAllHref: string;
+    rows: TutorLedCatalogBatchRow[];
+  };
+  trainer: {
+    eyebrow: string;
+    viewAllLabel: string;
+    viewAllHref: string;
+    name: string;
+    role: string;
+    experience: string;
+    bio: string;
+    photo: string;
+    photoAlt: string;
+  };
+  faqsSection: {
+    eyebrow: string;
+    viewAllLabel: string;
+    viewAllHref: string;
+  };
+  faqs: { q: string; a: string }[];
+  cta: {
+    heading: string;
+    description: string;
+    buttonText: string;
+    buttonHref: string;
+  };
+};
+
+export const defaultTutorLedCatalogPageConfig: TutorLedCatalogPageConfig = {
+  pageThumbnail: "/tutor-led-iso-hero.png",
+  hero: {
+    eyebrow: "Food Safety · Global Careers · Brighter Future",
+    heading: "ISO 22000:2018",
+    headingHighlight: "Training Programs",
+    subtitle:
+      "Build your expertise in Food Safety Management Systems with industry-led training programs designed for real-world application, live coaching, and globally recognized certification.",
+    ctaText: "Explore Training Programs",
+    ctaHref: "#programs",
+    chips: [
+      { icon: "Video", label: "Live Interactive Sessions" },
+      { icon: "Mic2", label: "Expert Industry Trainers" },
+      { icon: "ClipboardCheck", label: "Real-World Case Studies" },
+      { icon: "Award", label: "Globally Recognized Certification" },
+    ],
+    asideQuote: "Better Food, Safer People, Sustainable Tomorrow.",
+    certCardTitle: "Get Certified",
+    certCardSubtitle: "Build Your Career. Make an Impact.",
+    certCardQuote: "“Food safety is everyone’s business.”",
+    certCardAttribution: "— A Safer World Starts with You",
+    backgroundImage: "/tutor-led-iso-hero.png",
+    backgroundAlt: "Food safety professional inspecting produce with a tablet",
+  },
+  programsSection: {
+    title: "Choose Your ISO 22000:2018 Training Level",
+    subtitle:
+      "Four specialized live online programs — from fundamentals to leading audit teams. Same standard, different goals, a brighter tomorrow.",
+  },
+  programs: [
+    {
+      id: "basic",
+      title: "Basic (Foundation)",
+      tagline: "Learn Food Safety Fundamentals",
+      bullets: [
+        "Understand key concepts of ISO 22000:2018",
+        "Industry overview & food safety principles",
+        "Core FSMS requirements explained simply",
+        "Certificate of completion included",
+      ],
+      price: 9999,
+      theme: "emerald",
+      icon: "ShieldCheck",
+      thumbnail: "",
+      enrollSlug: "iso-22000-basic",
+      matchPattern: "basic|foundation",
+      durationLabel: "Duration: 5 Days",
+      modeLabel: "Mode: Live Online",
+      certificateLabel: "Certificate Included",
+    },
+    {
+      id: "implementation",
+      title: "Implementation",
+      tagline: "Implement Food Safety Systems",
+      bullets: [
+        "Implementation methodology step-by-step",
+        "Documentation & procedure writing",
+        "Risk assessment & hazard control",
+        "Practical implementation workshops",
+      ],
+      price: 14999,
+      theme: "sky",
+      icon: "FileText",
+      thumbnail: "",
+      enrollSlug: "iso-22000-implementation",
+      matchPattern: "implementation",
+      durationLabel: "Duration: 5 Days",
+      modeLabel: "Mode: Live Online",
+      certificateLabel: "Certificate Included",
+    },
+    {
+      id: "internal-auditor",
+      title: "Internal Auditor",
+      tagline: "Conduct Internal Audits",
+      bullets: [
+        "Audit planning & checklist preparation",
+        "Non-conformity identification & reporting",
+        "Interview & evidence techniques",
+        "Practical internal audit exercises",
+      ],
+      price: 19999,
+      theme: "violet",
+      icon: "Search",
+      thumbnail: "",
+      enrollSlug: "iso-22000-internal-auditor",
+      matchPattern: "internal\\s*auditor",
+      durationLabel: "Duration: 5 Days",
+      modeLabel: "Mode: Live Online",
+      certificateLabel: "Certificate Included",
+    },
+    {
+      id: "lead-auditor",
+      title: "Lead Auditor",
+      tagline: "Lead Audit Teams",
+      bullets: [
+        "Lead audit teams with confidence",
+        "Advanced audit techniques & reporting",
+        "Regulatory & certification perspectives",
+        "Lead Auditor certification pathway",
+      ],
+      price: 29999,
+      popular: true,
+      theme: "gold",
+      icon: "Trophy",
+      thumbnail: "",
+      enrollSlug: "iso-22000-lead-auditor",
+      matchPattern: "lead\\s*auditor|iso-22000-lead",
+      durationLabel: "Duration: 5 Days",
+      modeLabel: "Mode: Live Online",
+      certificateLabel: "Certificate Included",
+    },
+  ],
+  why: {
+    eyebrow: "Why Train With Us",
+    titleLine1: "More Than Just Training",
+    titleLine2: "A Brighter, Safer Future",
+    items: [
+      {
+        icon: "Video",
+        title: "Live Instructor-Led Sessions",
+        desc: "Interact, ask questions and learn in real-time.",
+      },
+      {
+        icon: "Mic2",
+        title: "Expert Trainers",
+        desc: "Learn from industry professionals.",
+      },
+      {
+        icon: "ClipboardCheck",
+        title: "Practical Case Studies",
+        desc: "Real-world scenarios and exercises.",
+      },
+      {
+        icon: "Award",
+        title: "Globally Recognized Certificate",
+        desc: "Boost your career globally.",
+      },
+      {
+        icon: "Headphones",
+        title: "Post-Training Support",
+        desc: "Continued guidance even after course completion.",
+      },
+    ],
+  },
+  audience: {
+    eyebrow: "Who Should Attend",
+    title: "Designed for a Wide Range of Professionals",
+    subtitle: "Our ISO 22000:2018 training programs are ideal for:",
+    items: [
+      { icon: "Building2", label: "Food Industry Professionals" },
+      { icon: "ShieldCheck", label: "Quality & Food Safety Managers" },
+      { icon: "ClipboardCheck", label: "Internal Auditors" },
+      { icon: "Briefcase", label: "Consultants" },
+      { icon: "GraduationCap", label: "Students & Fresh Graduates" },
+      { icon: "Users", label: "Regulatory Professionals" },
+      { icon: "BookOpen", label: "Anyone Interested in Food Safety" },
+    ],
+    investTitle: "Invest in Knowledge.\nInvest in a Safer Tomorrow.",
+    investBody:
+      "Be part of a global movement towards safer food, healthier communities and a sustainable future.",
+    investImage: "/tutor-led-invest-knowledge.png",
+    investImageAlt: "Seedling growing from the Earth",
+  },
+  batches: {
+    eyebrow: "Upcoming Batches",
+    viewAllLabel: "View All Batches →",
+    viewAllHref: "#programs",
+    rows: [
+      {
+        date: "11 Sept 2026",
+        time: "10:00 AM – 5:00 PM",
+        programId: "lead-auditor",
+        programLabel: "Lead Auditor",
+        seats: 13,
+      },
+      {
+        date: "25 Sept 2026",
+        time: "10:00 AM – 5:00 PM",
+        programId: "internal-auditor",
+        programLabel: "Internal Auditor",
+        seats: 18,
+      },
+      {
+        date: "12 Oct 2026",
+        time: "10:00 AM – 5:00 PM",
+        programId: "implementation",
+        programLabel: "Implementation",
+        seats: 22,
+      },
+      {
+        date: "28 Oct 2026",
+        time: "10:00 AM – 5:00 PM",
+        programId: "basic",
+        programLabel: "Basic",
+        seats: 25,
+      },
+    ],
+  },
+  trainer: {
+    eyebrow: "Meet Our Expert Trainer",
+    viewAllLabel: "View All Trainers →",
+    viewAllHref: "/about",
+    name: "Mr. Rajesh Kumar",
+    role: "Food Safety Expert",
+    experience: "15+ Years Experience",
+    bio: "Seasoned food safety professional with 15+ years of experience in ISO 22000 implementation, HACCP, FSSC frameworks, and audit leadership. Rajesh has trained quality teams and auditors across manufacturing and food service to build audit-ready systems.",
+    photo: "/tutor-led-rajesh-kumar.png",
+    photoAlt: "Mr. Rajesh Kumar",
+  },
+  faqsSection: {
+    eyebrow: "Frequently Asked Questions",
+    viewAllLabel: "View All FAQs →",
+    viewAllHref: "#programs",
+  },
+  faqs: [
+    {
+      q: "What is ISO 22000:2018?",
+      a: "ISO 22000:2018 is the international standard for Food Safety Management Systems (FSMS). It helps organizations identify, control, and manage food safety hazards across the food chain.",
+    },
+    {
+      q: "Are the sessions live or recorded?",
+      a: "All sessions are live and interactive on Zoom. Recordings are shared afterward so you can revise at your own pace.",
+    },
+    {
+      q: "Will I get a certificate?",
+      a: "Yes. On successful completion you receive a verifiable Certificate of Attainment from Sustainable Futuristic Trainings.",
+    },
+    {
+      q: "Who should join these programs?",
+      a: "Food industry professionals, quality managers, auditors, consultants, students, and anyone building a career in food safety.",
+    },
+    {
+      q: "What is the duration of each program?",
+      a: "Each ISO 22000:2018 level is delivered as a 5-day live online program (timings shown in Upcoming Batches).",
+    },
+    {
+      q: "Can my company enroll a team?",
+      a: "Yes. Contact us for corporate cohorts and group pricing — we run dedicated batches for organizations.",
+    },
+  ],
+  cta: {
+    heading: "Take the Next Step in Your Food Safety Career",
+    description:
+      "Choose your training program today and be part of a safer, more sustainable food future.",
+    buttonText: "View All Training Programs",
+    buttonHref: "#programs",
+  },
+};
+
+export function mergeTutorLedCatalogPageConfig(
+  raw?: Partial<TutorLedCatalogPageConfig> | null,
+): TutorLedCatalogPageConfig {
+  const d = defaultTutorLedCatalogPageConfig;
+  if (!raw || typeof raw !== "object") return structuredClone(d);
+  const programs = Array.isArray(raw.programs) ? raw.programs : d.programs;
+  const enrollById: Record<string, string> = {
+    basic: "iso-22000-basic",
+    implementation: "iso-22000-implementation",
+    "internal-auditor": "iso-22000-internal-auditor",
+    "lead-auditor": "iso-22000-lead-auditor",
+  };
+  return {
+    ...d,
+    ...raw,
+    pageThumbnail: typeof raw.pageThumbnail === "string" ? raw.pageThumbnail : d.pageThumbnail,
+    hero: { ...d.hero, ...(raw.hero ?? {}), chips: Array.isArray(raw.hero?.chips) ? raw.hero!.chips : d.hero.chips },
+    programsSection: { ...d.programsSection, ...(raw.programsSection ?? {}) },
+    programs: programs.map((p) => ({
+      ...p,
+      enrollSlug: p.enrollSlug?.trim() || enrollById[p.id] || "",
+    })),
+    why: {
+      ...d.why,
+      ...(raw.why ?? {}),
+      items: Array.isArray(raw.why?.items) ? raw.why!.items : d.why.items,
+    },
+    audience: {
+      ...d.audience,
+      ...(raw.audience ?? {}),
+      items: Array.isArray(raw.audience?.items) ? raw.audience!.items : d.audience.items,
+    },
+    batches: {
+      ...d.batches,
+      ...(raw.batches ?? {}),
+      rows: Array.isArray(raw.batches?.rows) ? raw.batches!.rows : d.batches.rows,
+    },
+    trainer: { ...d.trainer, ...(raw.trainer ?? {}) },
+    faqsSection: { ...d.faqsSection, ...(raw.faqsSection ?? {}) },
+    faqs: Array.isArray(raw.faqs) ? raw.faqs : d.faqs,
+    cta: { ...d.cta, ...(raw.cta ?? {}) },
+  };
+}
+
 /* ─── Home Page Config Types ─── */
 
 export type HomePageHero = {
@@ -1023,6 +1438,8 @@ export type AdminContent = {
   coursesPage?: CoursesPageConfig;
   homePage?: HomePageConfig;
   aboutPage?: AboutPageConfig;
+  /** Public `/tutor-led` ISO catalog landing — Admin → Tutor-Led Landing. */
+  tutorLedCatalogPage?: TutorLedCatalogPageConfig;
 };
 
 export const defaultAdminContent: AdminContent = {
@@ -1241,4 +1658,5 @@ export const defaultAdminContent: AdminContent = {
   ],
   tutorLedPrograms: [],
   categoryPages: {},
+  tutorLedCatalogPage: defaultTutorLedCatalogPageConfig,
 };

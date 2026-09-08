@@ -47,6 +47,7 @@ import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import { curriculumModulesForLearner } from "@/lib/curriculum-learner-filter";
 import type { CourseCurriculumModule as SchemaCurriculumModule } from "@/lib/content-schema";
 import { getLearnerEmail } from "@/lib/learner-session-client";
+import { syncEnrollmentsFromServer } from "@/lib/enrollment-sync-client";
 import { requestCourseCertificateClient } from "@/lib/request-course-certificate-client";
 import { notifyCourseCompletionClient } from "@/lib/notify-course-completion-client";
 import { syncLearnerCourseProgressFromServer } from "@/lib/learner-progress-sync-client";
@@ -94,6 +95,7 @@ import type { AdminContent } from "@/lib/content-schema";
 import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
 import { resolveCertificateAssetsForSlug } from "@/lib/global-certificate-assets";
 import {
+  formatPreviewWatchProgress,
   healModuleWatchRecord,
   maxWatchableSecondsForModule,
   moduleCurriculumRows,
@@ -253,6 +255,12 @@ export default function CourseLearningPlayerPage() {
     const hash = typeof window !== "undefined" ? window.location.hash : "";
     router.replace(`/my-learning/course/${encodeURIComponent(slug)}${hash}`);
   }, [paramSlug, slug, router]);
+
+  useEffect(() => {
+    const email = getLearnerEmail()?.trim();
+    if (!email) return;
+    void syncEnrollmentsFromServer(email);
+  }, [slug]);
 
   useEffect(() => {
     setCertRequested(window.localStorage.getItem(`sft_cert_requested_${slug}`) === "1");
@@ -1765,6 +1773,25 @@ export default function CourseLearningPlayerPage() {
                               }
                               const examPassed = Boolean(moduleExamScores[String(idx + 1)]?.passed);
                               const examPercent = moduleExamScores[String(idx + 1)]?.percent;
+                              const preview = modulePreviewProgress(
+                                module as PreviewGateModule,
+                                watchedSecondsByModule[idx + 1] ?? 0,
+                              );
+                              if (!preview.unlocked) {
+                                return (
+                                  <div
+                                    key={entryKey}
+                                    className="flex w-full items-center gap-2 rounded-md border border-amber-300/30 bg-amber-500/10 px-2 py-1.5 text-left text-[11px] text-amber-100"
+                                    title={`Watch ${formatPreviewWatchProgress(preview.watched, preview.required)} to unlock`}
+                                  >
+                                    <Lock size={11} className="shrink-0 text-amber-300" />
+                                    <span className="min-w-0 flex-1 truncate font-medium">{examLabel}</span>
+                                    <span className="inline-flex shrink-0 items-center gap-1 rounded border border-amber-200/35 bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-50">
+                                      Watch video · {formatPreviewWatchProgress(preview.watched, preview.required)}
+                                    </span>
+                                  </div>
+                                );
+                              }
                               return (
                                 <Link
                                   key={entryKey}
@@ -1921,7 +1948,7 @@ export default function CourseLearningPlayerPage() {
                   Complete remaining lessons in this module.
                 </div>
                 <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
-                  Complete the module lessons to unlock the assessment.
+                  Watch the module video (preview time) to unlock the exam.
                 </div>
                 <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
                   Pass module exam at {DEFAULT_MODULE_EXAM_PASS_PERCENT}% or above.

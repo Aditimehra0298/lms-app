@@ -12,6 +12,8 @@ import {
 
 type Props = {
   programSlug?: string;
+  /** When provided, skip re-fetching materials from the API. */
+  materials?: TutorLedLearningMaterial[];
   /** Compact layout for My Learning live hub sidebar */
   compact?: boolean;
   /** `neutral` matches My Learning cards; default keeps gold marketing styling */
@@ -42,13 +44,19 @@ function resolveMaterials(
 
 export function TutorLedLearningToolsPanel({
   programSlug,
+  materials: materialsProp,
   compact = false,
   tone = "gold",
 }: Props) {
-  const [materials, setMaterials] = useState<TutorLedLearningMaterial[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [materials, setMaterials] = useState<TutorLedLearningMaterial[]>(materialsProp ?? []);
+  const [hydrated, setHydrated] = useState(Boolean(materialsProp));
 
   useEffect(() => {
+    if (materialsProp) {
+      setMaterials(materialsProp);
+      setHydrated(true);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -65,7 +73,7 @@ export function TutorLedLearningToolsPanel({
     return () => {
       cancelled = true;
     };
-  }, [programSlug]);
+  }, [programSlug, materialsProp]);
 
   const byKind = useMemo(() => groupLearningMaterialsByKind(materials), [materials]);
   const neutral = tone === "neutral";

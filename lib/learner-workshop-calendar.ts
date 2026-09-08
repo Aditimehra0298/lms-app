@@ -1,16 +1,23 @@
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
-import { parseFlexibleDate } from "@/lib/my-learning-dashboard-events";
+import {
+  extractScheduleTime,
+  parseFlexibleDate,
+  startOfDay,
+} from "@/lib/my-learning-dashboard-events";
 import {
   addLearnerCalendarReminder,
   readLearnerCalendarReminders,
   toDateKey,
 } from "@/lib/learner-calendar-reminders";
-import { isWorkshopProgram } from "@/lib/workshop-program";
+import { getProgramTrainingDays, isWorkshopProgram } from "@/lib/workshop-program";
 import type { ShopCartItem } from "@/lib/shop-cart";
 import { tutorLedProgramBySlug } from "@/lib/shop-cart";
 
-/** After checkout — add a one-day workshop reminder on the learner calendar. */
-export function syncWorkshopCalendarReminders(
+/**
+ * After checkout — add Zoom live session days onto the learner calendar
+ * (workshops = 1 day; tutor-led = training day 1…N from nextBatchDate).
+ */
+export function syncLiveTrainingCalendarReminders(
   items: ShopCartItem[],
   programs: TutorLedProgramStored[],
 ): void {
@@ -19,18 +26,40 @@ export function syncWorkshopCalendarReminders(
 
   for (const item of items) {
     const program = tutorLedProgramBySlug(programs, item.slug);
-    if (!program || !isWorkshopProgram(program)) continue;
+    if (!program) continue;
 
-    const date = parseFlexibleDate(program.nextBatchDate ?? "");
-    if (!date) continue;
+    const batchDate = parseFlexibleDate(program.nextBatchDate ?? "");
+    if (!batchDate) continue;
 
-    const title = `Workshop: ${program.title}`;
-    const note = program.schedule?.trim() || "Live on Zoom — one day";
-    const dateKey = toDateKey(date);
-    const dup = existing.some((r) => r.date === dateKey && r.title === title);
-    if (dup) continue;
+    const workshop = isWorkshopProgram(program);
+    const days = workshop ? 1 : getProgramTrainingDays(program);
+    const scheduleNote =
+      extractScheduleTime(program.schedule || "") ||
+      program.schedule?.trim() ||
+      "Live on Zoom";
 
-    addLearnerCalendarReminder({ date, title, note });
-    existing.push({ id: "", date: dateKey, title, note, createdAt: "" });
+    for (let i = 0; i < days; i++) {
+      const date = startOfDay(new Date(batchDate));
+      date.setDate(batchDate.getDate() + i);
+      const title = workshop
+        ? `Workshop: ${program.title}`
+        : `Day ${i + 1} — ${program.title}`;
+      const note = workshop
+        ? `${scheduleNote} · one-day Zoom workshop`
+        : `${scheduleNote} · Zoom live training`;
+      const dateKey = toDateKey(date);
+      const dup = existing.some((r) => r.date === dateKey && r.title === title);
+      if (dup) continue;
+      addLearnerCalendarReminder({ date, title, note });
+      existing.push({ id: "", date: dateKey, title, note, createdAt: "" });
+    }
   }
+}
+
+/** @deprecated Prefer {@link syncLiveTrainingCalendarReminders} (covers workshops + tutor-led). */
+export function syncWorkshopCalendarReminders(
+  items: ShopCartItem[],
+  programs: TutorLedProgramStored[],
+): void {
+  syncLiveTrainingCalendarReminders(items, programs);
 }

@@ -21,18 +21,21 @@ import {
   CalendarDays,
   LayoutDashboard,
   Award,
+  Users,
 } from "lucide-react";
 import { AdminModeToggle } from "@/components/admin/AdminModeToggle";
 import { AdminProgramCertificateAssetsEditor } from "@/components/admin/AdminProgramCertificateAssetsEditor";
 import { AdminTutorLedCurriculumEditor } from "@/components/admin/AdminTutorLedCurriculumEditor";
 import { AdminTutorLedLearnerDashboardEditor } from "@/components/admin/AdminTutorLedLearnerDashboardEditor";
 import { AdminTutorLedMediaPanel } from "@/components/admin/AdminTutorLedMediaPanel";
+import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
 import { patchProgramCertificateConfig, sanitizeCertificateConfig } from "@/lib/course-certificate-config";
 import { getCertificateUploadStatus } from "@/lib/certificate-admin-status";
 import type { AdminContent } from "@/lib/content-schema";
 import { defaultAdminContent } from "@/lib/content-schema";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
+import { ensureIso22000TutorLedPrograms } from "@/lib/iso-22000-tutor-led-seed";
 import { TUTOR_LED_ICON_NAMES } from "@/lib/tutor-led-program-map";
 import {
   newLearningMaterialId,
@@ -71,6 +74,7 @@ type EditorTab =
   | "marketing"
   | "downloads"
   | "learner"
+  | "students"
   | "certificate"
   | "faqs";
 type ListFilter = "all" | "published" | "draft";
@@ -85,6 +89,7 @@ const EDITOR_TABS: { id: EditorTab; label: string; icon: typeof BookOpen }[] = [
   { id: "marketing", label: "Page content", icon: FileText },
   { id: "downloads", label: "Downloads", icon: Upload },
   { id: "learner", label: "Learner dashboard", icon: LayoutDashboard },
+  { id: "students", label: "Students & certs", icon: Users },
   { id: "certificate", label: "Certificate", icon: Award },
   { id: "faqs", label: "FAQs", icon: HelpCircle },
 ];
@@ -636,6 +641,40 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
             >
               <Plus className="h-4 w-4" /> {isWorkshopAdmin ? "New workshop" : "New program"}
             </button>
+            {!isWorkshopAdmin ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!content) return;
+                  const { programs: next, added } = ensureIso22000TutorLedPrograms(content.tutorLedPrograms);
+                  if (added === 0) {
+                    setLoadError(null);
+                    setZoomApiMessage("All 4 ISO programs already exist — open each and set Zoom under Zoom & live.");
+                    return;
+                  }
+                  void (async () => {
+                    setSaving(true);
+                    try {
+                      const put = await fetch("/api/admin/content", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ tutorLedPrograms: next }),
+                      });
+                      if (!put.ok) throw new Error("seed");
+                      setContent({ ...content, tutorLedPrograms: next });
+                      setZoomApiMessage(`Added ${added} ISO 22000 programs. Set a different Zoom link on each.`);
+                    } catch {
+                      setLoadError("Could not add ISO programs.");
+                    } finally {
+                      setSaving(false);
+                    }
+                  })();
+                }}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-500/20"
+              >
+                <Award className="h-3.5 w-3.5" /> Add 4 ISO Zoom programs
+              </button>
+            ) : null}
             <div className="relative mt-3">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
               <input
@@ -1759,6 +1798,22 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                 draft={draft}
                 setDraft={setDraft}
                 fieldClass={tlField}
+              />
+            </div>
+            <div className={activeTab === "students" ? "space-y-4" : "hidden"}>
+              <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100/90">
+                Students enrolled in this program/batch. Certificates are generated for this slug (
+                <code className="text-amber-200">{draft.slug}</code>
+                ). Set Zoom under <strong className="text-white">Zoom &amp; live</strong> — it appears on each
+                learner&apos;s dashboard after purchase.
+              </p>
+              <AdminCourseStudentsPanel
+                embedded
+                courseTitle={draft.title || draft.slug}
+                workspaceCourseSlug={draft.slug}
+                canEdit
+                onGoCourseInfo={() => setActiveTab("basics")}
+                batchContext={`Batch: ${draft.batchLabel || "—"} · Next date: ${draft.nextBatchDate || "TBA"} · Use Manual pass to issue the certificate for this batch.`}
               />
             </div>
             <div className={activeTab === "certificate" ? "space-y-4" : "hidden"}>

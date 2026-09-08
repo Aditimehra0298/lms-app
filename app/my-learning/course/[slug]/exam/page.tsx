@@ -36,6 +36,7 @@ import { getLearnerModuleAccess } from "@/lib/learner-module-access";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import { notifyCourseCompletionClient } from "@/lib/notify-course-completion-client";
 import {
+  formatPreviewWatchProgress,
   healModuleWatchRecord,
   modulePreviewProgress,
   PREVIEW_WATCH_UPDATED_EVENT,
@@ -300,10 +301,16 @@ function CourseExamPageInner() {
   }, [slug, moduleNumber, isFinalExam, courseMeta?.slug]);
 
   const previewGate = useMemo(() => {
-    // Coursera-style: module exams are available without forcing full video watch first.
-    // Certificate still requires every exam to be passed.
-    return { requiredSec: 0, watchedSec: 0, unlocked: true };
-  }, []);
+    if (isFinalExam) return { requiredSec: 0, watchedSec: 0, unlocked: true };
+    const mod = courseMeta?.curriculum?.[moduleIdx];
+    const watchedSec = watchedSecondsByModule[moduleNumber] ?? 0;
+    const progress = modulePreviewProgress(mod, watchedSec);
+    return {
+      requiredSec: progress.required,
+      watchedSec: progress.watched,
+      unlocked: progress.unlocked,
+    };
+  }, [courseMeta, isFinalExam, moduleIdx, moduleNumber, watchedSecondsByModule]);
 
   useEffect(() => {
     if (!examRuntime) return;
@@ -546,10 +553,11 @@ function CourseExamPageInner() {
             <p className="inline-flex items-center gap-2 text-amber-200">
               <Lock size={18} /> Assessment locked
             </p>
-            <h1 className="mt-3 text-2xl font-bold">Complete the module lessons first</h1>
+            <h1 className="mt-3 text-2xl font-bold">Watch the module video first</h1>
             <p className="mt-2 text-sm text-amber-100/90">
-              Module {moduleNumber} assessment unlocks after you finish the lessons in this module. Return to the
-              course and continue watching.
+              Module {moduleNumber} exam unlocks after you watch the required preview time
+              ({formatPreviewWatchProgress(previewGate.watchedSec, previewGate.requiredSec)}).
+              Return to the course and continue watching the video.
             </p>
             <Link
               href={`/my-learning/course/${slug}`}

@@ -83,7 +83,7 @@ export default function AdminNotificationsBell({ onNavigate }: Props) {
       });
       if (res.status === 401 || res.status === 403) {
         // Exclusive session ended or not admin — stop polling and leave /admin.
-        window.location.replace("/account?admin=1&reason=session");
+        window.location.replace("/account?admin=1");
         return;
       }
       const json = (await res.json()) as {

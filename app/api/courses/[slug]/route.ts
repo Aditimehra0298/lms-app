@@ -10,6 +10,7 @@ import {
   computeProgramProgress,
   getCurriculumSessionCount,
 } from "@/lib/tutor-led-training-schedule";
+import { parseFlexibleDate } from "@/lib/my-learning-dashboard-events";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
     const completedDays = computeCompletedLiveSessions(
       tutorLed.zoomRecordings?.length ?? 0,
       trainingDays,
+      parseFlexibleDate(tutorLed.nextBatchDate ?? ""),
     );
     const { examUnlocked } = computeProgramProgress(trainingDays, completedDays);
     return NextResponse.json({

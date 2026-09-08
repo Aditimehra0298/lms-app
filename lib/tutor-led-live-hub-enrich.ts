@@ -7,6 +7,7 @@ import {
   resolveTrainingDuration,
 } from "@/lib/tutor-led-training-schedule";
 import { getProgramTrainingDays, isWorkshopProgram } from "@/lib/workshop-program";
+import { parseFlexibleDate } from "@/lib/my-learning-dashboard-events";
 
 export type TutorLedExploreCard = {
   slug: string;
@@ -66,7 +67,11 @@ export function enrichTutorLedLiveHubRow(
   const program = programs.find((p) => p.slug === slug.trim());
   const trainingDays = program ? getProgramTrainingDays(program) : 4;
   const completedDays = program
-    ? computeCompletedLiveSessions(program.zoomRecordings?.length ?? 0, trainingDays)
+    ? computeCompletedLiveSessions(
+        program.zoomRecordings?.length ?? 0,
+        trainingDays,
+        parseFlexibleDate(program.nextBatchDate ?? ""),
+      )
     : 0;
   const { progressPercent, examUnlocked } = computeProgramProgress(trainingDays, completedDays);
   const { status } = deriveCourseProgress(completedDays, trainingDays);

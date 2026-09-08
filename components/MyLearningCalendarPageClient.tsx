@@ -11,6 +11,10 @@ import {
 } from "@/lib/my-learning-assignments";
 import { readPurchasedCoursesFromStorage } from "@/lib/learner-course-progress";
 import { readJsonResponse } from "@/lib/safe-json";
+import { getLearnerEmail } from "@/lib/learner-session-client";
+import { syncEnrollmentsFromServer } from "@/lib/enrollment-sync-client";
+import { syncLiveTrainingCalendarReminders } from "@/lib/learner-workshop-calendar";
+import type { ShopCartItem } from "@/lib/shop-cart";
 
 const toCourseSlug = (value: string) =>
   value
@@ -52,9 +56,38 @@ export function MyLearningCalendarPageClient() {
   useEffect(() => {
     const load = () => setPurchased(readPurchasedCoursesFromStorage());
     load();
+    const email = getLearnerEmail()?.trim();
+    if (email) {
+      void syncEnrollmentsFromServer(email).then((result) => {
+        if (result.ok) load();
+      });
+    }
     window.addEventListener("sft_purchased_courses_updated", load);
-    return () => window.removeEventListener("sft_purchased_courses_updated", load);
+    window.addEventListener("sft_purchases_updated", load);
+    return () => {
+      window.removeEventListener("sft_purchased_courses_updated", load);
+      window.removeEventListener("sft_purchases_updated", load);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!purchased.length || !programs.length) return;
+    const liveItems: ShopCartItem[] = purchased
+      .filter(
+        (c) =>
+          (c.deliveryKind === "tutor-led" || c.deliveryKind === "workshop") && c.slug?.trim(),
+      )
+      .map((c) => ({
+        slug: c.slug!.trim(),
+        title: c.title,
+        price: "0",
+        qty: 1,
+        deliveryKind: c.deliveryKind === "workshop" ? "workshop" : "tutor-led",
+      }));
+    if (liveItems.length) {
+      syncLiveTrainingCalendarReminders(liveItems, programs);
+    }
+  }, [purchased, programs]);
 
   useEffect(() => {
     let cancelled = false;

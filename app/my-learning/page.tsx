@@ -417,6 +417,10 @@ export default function MyLearningPage() {
       router.replace(MY_LEARNING_DASHBOARD_HREF);
       return;
     }
+    if (tab === "calendar") {
+      router.replace("/my-learning/calendar");
+      return;
+    }
     setActiveTab(tab ?? "dashboard");
     const progressFilter = searchParams.get("filter");
     if (progressFilter === "completed") setCourseFilter("completed");
@@ -627,7 +631,10 @@ export default function MyLearningPage() {
   );
 
   const selfPacedCoursesForDashboard = useMemo(
-    () => coursesForLearning.filter((c) => c.deliveryKind !== "tutor-led"),
+    () =>
+      coursesForLearning.filter(
+        (c) => c.deliveryKind !== "tutor-led" && c.deliveryKind !== "workshop",
+      ),
     [coursesForLearning],
   );
 

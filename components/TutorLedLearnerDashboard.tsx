@@ -11,6 +11,7 @@ import {
   computeProgramProgress,
   getCurriculumSessionCount,
 } from "@/lib/tutor-led-training-schedule";
+import { parseFlexibleDate } from "@/lib/my-learning-dashboard-events";
 import { TutorLedLearnerHubSections } from "@/components/TutorLedLearnerHubSections";
 import { TutorLedLearnerSidebar } from "@/components/TutorLedLearnerSidebar";
 import { tlPage } from "@/lib/tutor-led-learner-theme";
@@ -43,7 +44,11 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
   }, [program.zoomRecordings, program.heroSrc, program.learnerHeroSrc, program.nextBatchDate]);
 
   const totalSessions = getCurriculumSessionCount(program);
-  const completedSessions = computeCompletedLiveSessions(sessionRecordings.length, totalSessions);
+  const completedSessions = computeCompletedLiveSessions(
+    sessionRecordings.length,
+    totalSessions,
+    parseFlexibleDate(program.nextBatchDate ?? ""),
+  );
   const nextSessionIndex = Math.min(completedSessions, Math.max(0, weeks.length - 1));
   const nextSessionTitle = weeks[nextSessionIndex]?.topic ?? weeks[0]?.topic ?? "Live session";
 

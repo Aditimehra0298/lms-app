@@ -180,7 +180,7 @@ export const DEFAULT_TUTOR_LED_LEARNER_SECTION: ResolvedTutorLedLearnerSection =
   achievementsTitle: "Achievements",
   learningJourneyTitle: "Learning Journey",
   courseProgressTitle: "Course Progress",
-  showLiveNowBadge: true,
+  showLiveNowBadge: false,
   examQuestions: 50,
   examMinutes: 60,
   examPassingScore: 70,

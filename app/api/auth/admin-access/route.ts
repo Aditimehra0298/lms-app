@@ -7,6 +7,7 @@ import {
   adminXsrfCookieHeader,
   readAdminSessionClaimsActive,
 } from "@/lib/server/admin-session";
+import { touchActiveAdminSession } from "@/lib/server/admin-active-session";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export async function GET(request: Request) {
       { headers: { "Cache-Control": "no-store" } },
     );
     // Drop stale admin cookies so this browser stops hammering /api/admin/*.
+    // Do NOT clear the exclusive lock here — only logout / takeover / stale timeout may.
     const {
       clearAdminSessionCookieHeader,
       clearAdminCsrfCookieHeader,
@@ -48,6 +50,11 @@ export async function GET(request: Request) {
     res.headers.append("Set-Cookie", clearAdminCsrfCookieHeader());
     res.headers.append("Set-Cookie", clearAdminXsrfCookieHeader());
     return res;
+  }
+
+  // Keep exclusive lock alive while this admin tab is open.
+  if (claims?.sid) {
+    void touchActiveAdminSession(claims.sid);
   }
 
   const res = NextResponse.json(

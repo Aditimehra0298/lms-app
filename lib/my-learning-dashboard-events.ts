@@ -154,14 +154,7 @@ export function buildTutorLedCalendarEvents(
         }
       }
     } else {
-      events.push({
-        id: `${workshop ? "workshop" : "live"}-${row.slug}-tba`,
-        date: startOfDay(new Date()),
-        title: workshop ? `Workshop — ${row.title}` : row.title,
-        subtitle: program?.nextBatchDate || "Date to be announced",
-        href: `/my-learning/course/${encodeURIComponent(row.slug)}`,
-        kind: workshop ? "workshop" : "live",
-      });
+      // No parseable batch date — skip inventing a "today" session on the calendar.
     }
 
     if (!workshop && row.examUnlocked) {

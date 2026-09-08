@@ -19,10 +19,10 @@ export function hasPublishedTutorLedProgram(slug: string): boolean {
   return Boolean(key && publishedTutorLedSlugs.has(key));
 }
 
-/** For checkout / enroll — fall back to default program when slug is unknown. */
+/** For checkout / enroll — keep the real program slug (admin-created programs included). */
 export function resolveTutorLedSlug(slug?: string | null): string {
   const trimmed = slug?.trim();
-  if (trimmed && publishedTutorLedSlugs.has(trimmed)) return trimmed;
+  if (trimmed) return trimmed;
   return DEFAULT_TUTOR_LED_SLUG;
 }
 
@@ -78,6 +78,10 @@ export function courseBrowseHref(
 
   if (learningFormat === "self-paced") {
     return `/courses/${encodeURIComponent(key)}`;
+  }
+
+  if (learningFormat === "live") {
+    return liveTutorCourseHref(key);
   }
 
   if (hasPublishedWorkshopProgram(key)) {

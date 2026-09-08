@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { TutorLedCurriculumExplorer } from "@/components/TutorLedCurriculumExplorer";
 import { CoursePlayerFeedbackSection } from "@/components/CoursePlayerFeedbackSection";
+import { TutorLedLearningToolsPanel } from "@/components/TutorLedLearningToolsPanel";
 import { TUTOR_LED_CLASSROOM_IMAGE_SRC } from "@/lib/tutor-led-marketing-assets";
 import {
   tlCard,
@@ -104,25 +105,12 @@ export function TutorLedLearnerHubSections({
     return { ...tile, ...style };
   });
 
-  const recordingCards =
-    sessionRecordings.length > 0
-      ? sessionRecordings
-      : [
-          {
-            title: "Session 1: Introduction",
-            duration: "2:14:00",
-            thumb,
-            playUrl: "",
-            dateLabel: program.nextBatchDate,
-          },
-          {
-            title: "Session 2: Core concepts",
-            duration: "1:58:00",
-            thumb,
-            playUrl: "",
-            dateLabel: "Coming soon",
-          },
-        ];
+  const materials = program.learningMaterials ?? [];
+  const materialsByKind = {
+    pdf: materials.filter((m) => m.kind === "pad-notes"),
+    slides: materials.filter((m) => m.kind === "ppt"),
+    workbook: materials.filter((m) => m.kind === "webbook"),
+  };
 
   return (
     <div className="mt-4 space-y-4 pb-24">
@@ -148,10 +136,29 @@ export function TutorLedLearnerHubSections({
                   Join now
                 </a>
               ) : (
-                <button type="button" disabled className="mt-4 w-full rounded-lg bg-zinc-800 py-2.5 text-sm font-bold text-zinc-500">
-                  Join now
-                </button>
+                <div className="mt-4 rounded-lg border border-dashed border-amber-500/30 bg-amber-500/10 px-3 py-3 text-center">
+                  <p className="text-xs font-semibold text-amber-100">Zoom link not set yet</p>
+                  <p className="mt-1 text-[10px] text-zinc-400">
+                    Your trainer will publish the join link for this batch in Admin → Tutor Led / Batches.
+                  </p>
+                </div>
               )}
+              {(program.zoomMeetingId?.trim() || program.zoomPasscode?.trim()) && zoomJoinUrl ? (
+                <dl className="mt-3 space-y-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-[11px]">
+                  {program.zoomMeetingId?.trim() ? (
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-zinc-500">Meeting ID</dt>
+                      <dd className="font-mono font-semibold text-sky-200">{program.zoomMeetingId}</dd>
+                    </div>
+                  ) : null}
+                  {program.zoomPasscode?.trim() ? (
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-zinc-500">Passcode</dt>
+                      <dd className="font-mono font-semibold text-sky-200">{program.zoomPasscode}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              ) : null}
               <div className="mt-4 grid grid-cols-2 gap-2">
                 {[
                   { icon: Link2, label: "Meeting link", action: () => zoomJoinUrl && void copyText(zoomJoinUrl).then(() => setCopied(true)) },
@@ -239,48 +246,60 @@ export function TutorLedLearnerHubSections({
         <article id="session-recordings" className={`${tlCard} scroll-mt-24`}>
           <div className="mb-4 flex items-center justify-between gap-2">
             <h2 className="text-lg font-bold">{section.recordingsTitle}</h2>
-            <Link href="#session-recordings" className="text-xs font-semibold text-[#FFC107] hover:underline">
-              View all recordings
-            </Link>
+            {sessionRecordings.length > 0 ? (
+              <Link href="#session-recordings" className="text-xs font-semibold text-[#FFC107] hover:underline">
+                View all recordings
+              </Link>
+            ) : null}
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {recordingCards.map((rec, i) => {
-              const locked = !rec.playUrl?.trim();
-              return (
-                <div
-                  key={rec.title + String(i)}
-                  className={`w-[200px] shrink-0 overflow-hidden rounded-xl border bg-black/25 ${
-                    locked ? "border-white/10 opacity-70" : "border-white/10"
-                  }`}
-                >
-                  <div className="relative aspect-video bg-black">
-                    <Image src={rec.thumb} alt="" fill className="object-cover opacity-80" unoptimized sizes="200px" />
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+          {sessionRecordings.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-white/15 bg-black/20 px-4 py-8 text-center">
+              <Video className="mx-auto h-8 w-8 text-zinc-600" aria-hidden />
+              <p className="mt-3 text-sm font-semibold text-zinc-300">No recordings yet</p>
+              <p className="mt-1 text-xs text-zinc-500">
+                Cloud recordings appear here after your Zoom sessions are synced by the trainer.
+              </p>
+            </div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {sessionRecordings.map((rec, i) => {
+                const locked = !rec.playUrl?.trim();
+                return (
+                  <div
+                    key={rec.title + String(i)}
+                    className={`w-[200px] shrink-0 overflow-hidden rounded-xl border bg-black/25 ${
+                      locked ? "border-white/10 opacity-70" : "border-white/10"
+                    }`}
+                  >
+                    <div className="relative aspect-video bg-black">
+                      <Image src={rec.thumb} alt="" fill className="object-cover opacity-80" unoptimized sizes="200px" />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+                        {locked ? (
+                          <Lock className="h-8 w-8 text-zinc-500" aria-hidden />
+                        ) : (
+                          <Play className="h-8 w-8 fill-white/90 text-white/90" aria-hidden />
+                        )}
+                      </span>
+                    </div>
+                    <div className="p-3">
+                      <p className="line-clamp-2 text-xs font-semibold text-white">{rec.title}</p>
+                      <p className="mt-1 text-[10px] text-zinc-500">
+                        {rec.dateLabel ?? program.nextBatchDate}
+                        {rec.duration ? ` · ${rec.duration}` : ""}
+                      </p>
                       {locked ? (
-                        <Lock className="h-8 w-8 text-zinc-500" aria-hidden />
+                        <span className="mt-2 inline-block text-[10px] font-semibold text-zinc-500">Coming soon</span>
                       ) : (
-                        <Play className="h-8 w-8 fill-white/90 text-white/90" aria-hidden />
+                        <a href={rec.playUrl} target="_blank" rel="noopener noreferrer" className={`${tlGoldOutline} mt-2 w-full text-xs py-2`}>
+                          Watch now
+                        </a>
                       )}
-                    </span>
+                    </div>
                   </div>
-                  <div className="p-3">
-                    <p className="line-clamp-2 text-xs font-semibold text-white">{rec.title}</p>
-                    <p className="mt-1 text-[10px] text-zinc-500">
-                      {rec.dateLabel ?? program.nextBatchDate}
-                      {rec.duration ? ` · ${rec.duration}` : ""}
-                    </p>
-                    {locked ? (
-                      <span className="mt-2 inline-block text-[10px] font-semibold text-zinc-500">Coming soon</span>
-                    ) : (
-                      <a href={rec.playUrl} target="_blank" rel="noopener noreferrer" className={`${tlGoldOutline} mt-2 w-full text-xs py-2`}>
-                        Watch now
-                      </a>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </article>
 
         <article className={tlCard}>
@@ -324,17 +343,46 @@ export function TutorLedLearnerHubSections({
       <article id="learning-materials" className={`${tlCard} scroll-mt-24`}>
         <h2 className="text-lg font-bold">{section.resourcesTitle}</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {resourceTiles.map((tile) => (
-            <Link
-              key={tile.label}
-              href="#learning-materials"
-              className={`flex flex-col items-center rounded-xl border p-4 text-center transition hover:brightness-110 ${tile.bg} ${tile.border}`}
-            >
-              <tile.icon className={`h-8 w-8 ${tile.iconColor}`} aria-hidden />
-              <p className="mt-2 text-xs font-bold text-white">{tile.label}</p>
-              <p className="mt-0.5 text-[10px] opacity-80">{tile.count}</p>
-            </Link>
-          ))}
+          {resourceTiles.map((tile) => {
+            const kindFiles =
+              tile.type === "pdf"
+                ? materialsByKind.pdf
+                : tile.type === "slides"
+                  ? materialsByKind.slides
+                  : tile.type === "workbook"
+                    ? materialsByKind.workbook
+                    : [];
+            const firstUrl = kindFiles.find((m) => m.downloadUrl?.trim())?.downloadUrl?.trim();
+            const countLabel =
+              kindFiles.length > 0 ? `${kindFiles.length} file${kindFiles.length === 1 ? "" : "s"}` : tile.count;
+            const className = `flex flex-col items-center rounded-xl border p-4 text-center transition hover:brightness-110 ${tile.bg} ${tile.border}`;
+            if (firstUrl) {
+              return (
+                <a
+                  key={tile.label}
+                  href={firstUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className={className}
+                >
+                  <tile.icon className={`h-8 w-8 ${tile.iconColor}`} aria-hidden />
+                  <p className="mt-2 text-xs font-bold text-white">{tile.label}</p>
+                  <p className="mt-0.5 text-[10px] opacity-80">{countLabel}</p>
+                </a>
+              );
+            }
+            return (
+              <div key={tile.label} className={`${className} opacity-80`}>
+                <tile.icon className={`h-8 w-8 ${tile.iconColor}`} aria-hidden />
+                <p className="mt-2 text-xs font-bold text-white">{tile.label}</p>
+                <p className="mt-0.5 text-[10px] opacity-80">{countLabel}</p>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-4">
+          <TutorLedLearningToolsPanel programSlug={program.slug} materials={materials} tone="neutral" />
         </div>
       </article>
 

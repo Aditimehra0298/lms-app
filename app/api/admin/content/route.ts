@@ -210,6 +210,7 @@ export async function PUT(request: Request) {
       coursesPage: body.coursesPage ?? existing.coursesPage,
       homePage: body.homePage ?? existing.homePage,
       aboutPage: body.aboutPage ?? existing.aboutPage,
+      tutorLedCatalogPage: body.tutorLedCatalogPage ?? existing.tutorLedCatalogPage,
       tutorLedPrograms: nextTutorLedPrograms,
       globalCertificateAssets:
         body.globalCertificateAssets !== undefined

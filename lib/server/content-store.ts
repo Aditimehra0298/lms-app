@@ -12,6 +12,7 @@ import {
   defaultAboutPageConfig,
   defaultCoursesPageConfig,
   defaultHomePageConfig,
+  mergeTutorLedCatalogPageConfig,
   type AboutPageTeamLevel,
 } from "@/lib/content-schema";
 import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
@@ -158,6 +159,7 @@ async function readAdminContentFromDisk(): Promise<AdminContent> {
       aboutPage: parsed.aboutPage
         ? migrateAboutPage({ ...defaultAboutPageConfig, ...parsed.aboutPage })
         : defaultAboutPageConfig,
+      tutorLedCatalogPage: mergeTutorLedCatalogPageConfig(parsed.tutorLedCatalogPage),
       // Empty array is valid (admin deleted every program) — do not resurrect defaults.
       tutorLedPrograms: Array.isArray(parsed.tutorLedPrograms)
         ? migrateTutorLedPrograms(parsed.tutorLedPrograms)

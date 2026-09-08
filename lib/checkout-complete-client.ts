@@ -10,7 +10,7 @@ import {
   fetchTutorLedProgramsClient,
   tutorLedProgramBySlug,
 } from "@/lib/shop-cart";
-import { syncWorkshopCalendarReminders } from "@/lib/learner-workshop-calendar";
+import { syncLiveTrainingCalendarReminders } from "@/lib/learner-workshop-calendar";
 import type { ManagedCourse } from "@/lib/content-schema";
 import {
   countCurriculumModules,
@@ -92,7 +92,7 @@ export async function completeCheckoutPurchase(
     window.dispatchEvent(new Event("sft_purchases_updated"));
     window.dispatchEvent(new Event("sft_cart_updated"));
     window.dispatchEvent(new Event("sft_purchased_courses_updated"));
-    syncWorkshopCalendarReminders(normalizedItems, tutorPrograms);
+    syncLiveTrainingCalendarReminders(normalizedItems, tutorPrograms);
   } catch {
     /* keep UI flow */
   }

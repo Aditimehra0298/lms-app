@@ -10,6 +10,10 @@ type Props = {
   workspaceCourseSlug: string | null;
   canEdit: boolean;
   onGoCourseInfo: () => void;
+  /** Skip the course-tab chrome (for Tutor Led / Batches embeds). */
+  embedded?: boolean;
+  /** Optional batch context shown above the roster. */
+  batchContext?: string;
 };
 
 type MysqlStudentRow = {
@@ -36,6 +40,8 @@ export default function AdminCourseStudentsPanel({
   workspaceCourseSlug,
   canEdit,
   onGoCourseInfo,
+  embedded = false,
+  batchContext,
 }: Props) {
   const [dbRows, setDbRows] = useState<MysqlStudentRow[]>([]);
   const [loadingDb, setLoadingDb] = useState(false);
@@ -185,14 +191,13 @@ export default function AdminCourseStudentsPanel({
     );
   }
 
-  return (
-    <AdminCourseTabShell
-      courseTitle={courseTitle}
-      tabTitle="Enrolled students"
-      description="All enrollments are stored in MySQL when learners checkout or sign in. Course slug must match the Course tab. Use Sync or Add learner for older enrollments."
-      icon={<Users className="h-6 w-6 text-violet-300" aria-hidden />}
-    >
+  const body = (
       <div className="min-w-0 space-y-4">
+      {batchContext ? (
+        <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100/90">
+          {batchContext}
+        </p>
+      ) : null}
       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-[#0d1528] px-4 py-3">
         <span className="text-sm text-gray-300">Total enrolled</span>
         <span className="text-2xl font-bold tabular-nums text-white">{displayRows.length}</span>
@@ -475,6 +480,27 @@ export default function AdminCourseStudentsPanel({
         </div>
       </div>
       </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-[#0a101c] p-3 sm:p-4">
+        <p className="mb-3 text-xs font-semibold text-white">
+          Students · {courseTitle}
+        </p>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <AdminCourseTabShell
+      courseTitle={courseTitle}
+      tabTitle="Enrolled students"
+      description="All enrollments are stored in MySQL when learners checkout or sign in. Certificates are issued for this program/batch slug. Use Sync or Add learner for older enrollments."
+      icon={<Users className="h-6 w-6 text-violet-300" aria-hidden />}
+    >
+      {body}
     </AdminCourseTabShell>
   );
 }
