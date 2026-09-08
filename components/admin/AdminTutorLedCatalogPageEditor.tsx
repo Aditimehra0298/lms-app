@@ -241,7 +241,7 @@ export default function AdminTutorLedCatalogPageEditor() {
           onChange={(url) => patch({ pageThumbnail: url })}
           uploading={uploadingKey === "pageThumb"}
           onUploadFile={(file) => upload("pageThumb", file, (url) => patch({ pageThumbnail: url }))}
-          hint="Used as the page thumbnail image (also a good default hero)."
+          hint="OG / share image. Also used as hero fallback when hero background is empty — shows full-bleed on /tutor-led."
         />
       </Section>
 
@@ -516,7 +516,7 @@ export default function AdminTutorLedCatalogPageEditor() {
               onChange={(url) => updateProgram(i, { thumbnail: url })}
               uploading={uploadingKey === `prog-${i}`}
               onUploadFile={(file) => upload(`prog-${i}`, file, (url) => updateProgram(i, { thumbnail: url }))}
-              hint="Optional image shown on the program card. Leave blank to keep the icon only."
+              hint="Shown large on /tutor-led program cards (16:10). Upload a clear photo or graphic — leave blank for a themed icon panel."
             />
           </div>
         ))}

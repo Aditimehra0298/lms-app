@@ -149,6 +149,7 @@ export function mergeCatalogProgramCards(
       title: program.title?.trim() || card.title,
       tagline: program.subtitle?.trim() || card.tagline,
       price: typeof program.price === "number" ? program.price : card.price,
+      // Admin card thumbnail wins; only fall back to program hero when card has none.
       thumbnail: card.thumbnail?.trim() || program.heroSrc?.trim() || "",
       durationLabel: duration,
       enrollSlug: program.slug,
