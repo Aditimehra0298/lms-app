@@ -634,15 +634,15 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
               ) : (
                 <Radio className="h-3.5 w-3.5" aria-hidden />
               )}
-              {isWorkshopAdmin ? "Live workshops" : "Tutor-led programs"}
+              {isWorkshopAdmin ? "Live workshops" : "Live Zoom programs"}
             </p>
             <h1 className="mt-1 text-xl font-semibold text-white md:text-2xl">
-              {isWorkshopAdmin ? "Workshop admin" : "Live course admin"}
+              {isWorkshopAdmin ? "Workshop admin" : "ISO / Zoom program rows"}
             </h1>
             <p className="mt-1 max-w-2xl text-xs text-gray-400">
               {isWorkshopAdmin
                 ? "One-day sessions — same landing style as tutor-led. Set next batch date for learner calendar reminders after registration."
-                : "Pick a program on the left, edit in tabs on the right — marketing page, Zoom, pricing, and downloads."}
+                : "Add the 4 ISO Zoom programs, set Join links, Publish each one, then edit curriculum / students / certificates. Landing copy is on the Landing page tab."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">

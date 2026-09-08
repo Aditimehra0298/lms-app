@@ -204,7 +204,8 @@ export default function AdminTutorLedCatalogPageEditor() {
             Edit every section on{" "}
             <code className="rounded bg-white/5 px-1 text-[11px] text-amber-200">/tutor-led</code> —
             hero, program cards (with thumbnails), why/attend blocks, batches, trainer, FAQs, and CTA.
-            Individual program Zoom pages stay under Course Management → Tutor Led.
+            Use the <strong className="text-white">Live Zoom programs</strong> tab for Join links and enroll
+            slugs.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

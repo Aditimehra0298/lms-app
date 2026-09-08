@@ -45,8 +45,7 @@ import AdminCertificatesWorkspace from "@/components/admin/AdminCertificatesWork
 import AdminCoursesPageEditor from "@/components/admin/AdminCoursesPageEditor";
 import AdminHomePageEditor from "@/components/admin/AdminHomePageEditor";
 import AdminAboutPageEditor from "@/components/admin/AdminAboutPageEditor";
-import AdminTutorLedCatalogPageEditor from "@/components/admin/AdminTutorLedCatalogPageEditor";
-import AdminTutorLedWorkspace from "@/components/admin/AdminTutorLedWorkspace";
+import AdminTutorLedHub from "@/components/admin/AdminTutorLedHub";
 import AdminWorkshopsWorkspace from "@/components/admin/AdminWorkshopsWorkspace";
 import AdminLessonsWorkspace from "@/components/admin/AdminLessonsWorkspace";
 import AdminBatchesWorkspace from "@/components/admin/AdminBatchesWorkspace";
@@ -89,7 +88,6 @@ const menuSections = [
       "Home Page",
       "About Page",
       "Courses Page",
-      "Tutor-Led Landing",
       "Website Form Data",
       "Image Upload Guide",
       "FAQ Page",
@@ -177,7 +175,6 @@ const menuIcons: Record<string, typeof Home> = {
   "Home Page": LayoutGrid,
   "About Page": FileText,
   "Courses Page": BookOpen,
-  "Tutor-Led Landing": Video,
   Categories: Layers,
   "Self-paced courses": BookOpen,
   "Course Q&A": MessageSquare,
@@ -212,7 +209,6 @@ const MENU_PANEL_QUERY: Record<string, string> = {
   "Course Q&A": "course-qa",
   Batches: "batches",
   "Tutor Led": "tutor-led",
-  "Tutor-Led Landing": "tutor-led-landing",
   Workshops: "workshops",
   Users: "users",
   Certificates: "certificates",
@@ -346,6 +342,11 @@ function AdminPageInner() {
 
   useEffect(() => {
     if (!panelQuery) return;
+    // Legacy bookmark: Tutor-Led Landing → unified Tutor Led hub
+    if (panelQuery === "tutor-led-landing" || panelQuery === "tutor-led-programs") {
+      setActiveMenu("Tutor Led");
+      return;
+    }
     const menu = PANEL_MENU_QUERY[panelQuery];
     if (menu) setActiveMenu(menu);
   }, [panelQuery]);
@@ -534,8 +535,7 @@ function AdminPageInner() {
   const showCoursesPageEditor = activeMenu === "Courses Page";
   const showHomePageEditor = activeMenu === "Home Page";
   const showAboutPageEditor = activeMenu === "About Page";
-  const showTutorLedCatalogEditor = activeMenu === "Tutor-Led Landing";
-  const showTutorLedWorkspace = activeMenu === "Tutor Led";
+  const showTutorLedHub = activeMenu === "Tutor Led";
   const showWorkshopsWorkspace = activeMenu === "Workshops";
   const showSupportTickets = activeMenu === "Support Tickets";
   const showFormSubmissions = activeMenu === "Website Form Data";
@@ -562,8 +562,7 @@ function AdminPageInner() {
     showCoursesPageEditor ||
     showHomePageEditor ||
     showAboutPageEditor ||
-    showTutorLedCatalogEditor ||
-    showTutorLedWorkspace ||
+    showTutorLedHub ||
     showWorkshopsWorkspace ||
     showSupportTickets ||
     showFormSubmissions ||
@@ -789,8 +788,8 @@ function AdminPageInner() {
                       ? "Search for courses, modules, users…"
                       : showLessonsWorkspace
                         ? "Search courses for lessons…"
-                        : showTutorLedWorkspace
-                          ? "Search tutor-led programs…"
+                        : showTutorLedHub
+                          ? "Search tutor-led landing or programs…"
                           : showWorkshopsWorkspace
                             ? "Search workshops…"
                             : showBatchesWorkspace
@@ -1014,10 +1013,10 @@ function AdminPageInner() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => selectMenu("Tutor-Led Landing")}
+                  onClick={() => selectMenu("Tutor Led")}
                   className="rounded-md border border-white/10 px-2 py-1 hover:bg-white/10"
                 >
-                  Tutor-Led Landing
+                  Tutor Led
                 </button>
                 <button type="button" className="rounded-md border border-white/10 px-2 py-1 opacity-60" disabled>
                   Contact Page
@@ -1097,7 +1096,11 @@ function AdminPageInner() {
 
           {showBatchesWorkspace && <AdminBatchesWorkspace />}
 
-          {showTutorLedWorkspace && <AdminTutorLedWorkspace />}
+          {showTutorLedHub && (
+            <AdminTutorLedHub
+              initialTab={panelQuery === "tutor-led-programs" ? "programs" : "landing"}
+            />
+          )}
 
           {showWorkshopsWorkspace && <AdminWorkshopsWorkspace />}
 
@@ -1106,8 +1109,6 @@ function AdminPageInner() {
           {showHomePageEditor && <AdminHomePageEditor />}
 
           {showAboutPageEditor && <AdminAboutPageEditor />}
-
-          {showTutorLedCatalogEditor && <AdminTutorLedCatalogPageEditor />}
 
           {showSupportTickets && <AdminSupportTickets />}
 
@@ -1531,18 +1532,7 @@ function AdminPageInner() {
               </p>
               <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-amber-100/85">
                 To edit the public{" "}
-                <strong className="text-white">/tutor-led</strong> catalog landing (hero, program cards, images,
-                batches, FAQs), open{" "}
-                <button
-                  type="button"
-                  onClick={() => selectMenu("Tutor-Led Landing")}
-                  className="font-semibold text-violet-200 underline decoration-violet-400/60 underline-offset-2 hover:text-white"
-                >
-                  Website Management → Tutor-Led Landing
-                </button>
-                . To manage <strong className="text-white">live tutor-led programs</strong> (Zoom links, curriculum,
-                enrolled learner dashboard on{" "}
-                <strong className="text-white">/tutor-led/your-slug</strong>), open{" "}
+                <strong className="text-white">/tutor-led</strong> ISO catalog and live Zoom programs, open{" "}
                 <button
                   type="button"
                   onClick={() => selectMenu("Tutor Led")}
@@ -1563,17 +1553,10 @@ function AdminPageInner() {
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
                   type="button"
-                  onClick={() => selectMenu("Tutor-Led Landing")}
+                  onClick={() => selectMenu("Tutor Led")}
                   className="rounded-lg bg-[#f5b942] px-4 py-2 text-xs font-semibold text-black hover:bg-[#e5a82e]"
                 >
-                  Edit /tutor-led landing
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectMenu("Tutor Led")}
-                  className="rounded-lg bg-[#6f55ff] px-4 py-2 text-xs font-semibold text-white hover:bg-[#7d63ff]"
-                >
-                  Open tutor-led programs
+                  Open Tutor Led admin
                 </button>
                 <button
                   type="button"
