@@ -87,7 +87,8 @@ import {
   enrichPurchasedCourse,
   findCatalogCourse,
   mergeCertificatesIntoPurchasedCourses,
-  readCompletedModules,
+  trustedCompletedModules,
+  clearUnverifiedFullCompletion,
   readPurchasedCoursesFromStorage,
   syncPurchasedCourseProgress,
   type PurchasedCourseRow,
@@ -375,9 +376,6 @@ export default function MyLearningPage() {
         if (!cancelled) {
           const next: AdminContent = {
             ...defaultAdminContent,
-            managedCourses: [],
-            tutorLedPrograms: [],
-            learningCourses: [],
             ...data,
             managedCourses: Array.isArray(data.managedCourses) ? data.managedCourses : [],
             tutorLedPrograms: Array.isArray(data.tutorLedPrograms) ? data.tutorLedPrograms : [],
@@ -549,7 +547,8 @@ export default function MyLearningPage() {
       if (!slug) continue;
       const catalog = findCatalogCourse(row, effectiveCatalog);
       const modules = catalog ? countLearnerCurriculumModules(catalog.curriculum) : row.modules;
-      syncPurchasedCourseProgress(slug, readCompletedModules(slug).length, modules || row.modules);
+      clearUnverifiedFullCompletion(slug, catalog?.curriculum);
+      syncPurchasedCourseProgress(slug, trustedCompletedModules(slug, catalog?.curriculum).length, modules || row.modules);
     }
   }, [effectiveCatalog, progressTick]);
 
@@ -591,9 +590,7 @@ export default function MyLearningPage() {
   );
   const totalEnrolledCourses = coursesForLearning.length;
   const totalCompletedCourses = coursesForLearning.filter(
-    (course) =>
-      course.status.toLowerCase() === "completed" ||
-      (Number.isFinite(course.modules) && course.modules > 0 && course.completed >= course.modules),
+    (course) => course.status.toLowerCase() === "completed",
   ).length;
   const totalNotStartedCourses = coursesForLearning.filter((course) =>
     course.status.toLowerCase().includes("not started"),
@@ -1381,7 +1378,9 @@ export default function MyLearningPage() {
                   // Real per-module completion (not “first N modules”), so progress stays accurate
                   // when learners open modules out of order.
                   const doneSet = new Set(
-                    course.slug ? readCompletedModules(course.slug) : [],
+                    course.slug
+                      ? trustedCompletedModules(course.slug, catalogCourse?.curriculum)
+                      : [],
                   );
                   const doneCount = Array.from({ length: safeModules }).filter((_, idx) =>
                     doneSet.has(idx + 1),

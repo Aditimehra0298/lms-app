@@ -3,6 +3,7 @@ import { assertMainAdmin, adminEmailFromRequest } from "@/lib/server/admin-api-a
 import {
   getPaymentGatewaySnapshot,
   grantCourseAccessWithoutPayment,
+  revokeAllCourseAccessForLearner,
   listAdminPayments,
   markPaymentFailed,
   refundAdminPayment,
@@ -132,6 +133,29 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { ok: true, paymentId: result.paymentId, message: result.message },
+      { headers: noStore },
+    );
+  }
+
+  if (body.action === "revoke-all-access") {
+    const result = await revokeAllCourseAccessForLearner({
+      learnerEmail: body.learnerEmail ?? "",
+      revokedByEmail: adminEmail,
+      adminNote: body.adminNote,
+    });
+
+    if (!result.ok) {
+      return NextResponse.json({ ok: false, message: result.message }, { status: 400 });
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        message: result.message,
+        revokedPurchases: result.revokedPurchases,
+        revokedCertificates: result.revokedCertificates,
+        progressCleared: result.progressCleared,
+      },
       { headers: noStore },
     );
   }

@@ -13,7 +13,10 @@ import type { StoredLearnerCourseProgress } from "@/lib/server/learner-course-pr
 const pushTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 /** Push local progress to the server (debounced). */
-export function pushLearnerCourseProgressToServer(courseSlug: string): void {
+export function pushLearnerCourseProgressToServer(
+  courseSlug: string,
+  opts?: { replaceCompletedModules?: boolean },
+): void {
   if (typeof window === "undefined") return;
   const slug = canonicalCourseSlug(courseSlug);
   if (!slug) return;
@@ -23,13 +26,14 @@ export function pushLearnerCourseProgressToServer(courseSlug: string): void {
     slug,
     setTimeout(() => {
       pushTimers.delete(slug);
-      void pushLearnerCourseProgressToServerNow(slug);
+      void pushLearnerCourseProgressToServerNow(slug, opts);
     }, 400),
   );
 }
 
 export async function pushLearnerCourseProgressToServerNow(
   courseSlug: string,
+  opts?: { replaceCompletedModules?: boolean },
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
   const email = getLearnerEmail()?.trim();
@@ -45,6 +49,7 @@ export async function pushLearnerCourseProgressToServerNow(
         slug,
         completedModules: readCompletedModules(slug),
         examScores: readModuleExamScores(slug),
+        replaceCompletedModules: opts?.replaceCompletedModules === true,
       }),
     });
     const result = await readApiResult(res, {} as { ok?: boolean });
@@ -78,8 +83,7 @@ export async function syncLearnerCourseProgressFromServer(
       progress?: StoredLearnerCourseProgress | null;
     });
     if (!res.ok || !data.ok || !data.progress) {
-      // Still push local progress so the server learns about this learner.
-      pushLearnerCourseProgressToServer(slug);
+      // Do not upload this browser's leftover progress onto a learner who has none yet.
       return null;
     }
 

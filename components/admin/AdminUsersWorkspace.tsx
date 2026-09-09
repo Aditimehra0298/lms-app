@@ -279,6 +279,35 @@ export default function AdminUsersWorkspace() {
     }
   };
 
+  const revokeAllCourses = async (row: AdminUserListRow) => {
+    const ok = window.confirm(
+      `Remove ALL course access for ${row.name?.trim() || row.email} (ID ${row.identificationNumber ?? "—"})?\n\nThis unenrolls them from My Learning and hides certificates. It does not delete the account and does not grant any course.`,
+    );
+    if (!ok) return;
+    setBusyEmail(row.email);
+    setSaveNotice(null);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/admin/payments", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          action: "revoke-all-access",
+          learnerEmail: row.email,
+          adminNote: "Revoked all courses from Admin → Users",
+        }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) throw new Error(data.message ?? "Could not remove courses");
+      setSaveNotice(data.message ?? `Removed all courses for ${row.email}`);
+      await load();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not remove courses");
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0c1428] via-[#0a101c] to-[#070b14]">
@@ -685,6 +714,14 @@ export default function AdminUsersWorkspace() {
                                         className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-sky-100 hover:bg-sky-500/20 disabled:opacity-50"
                                       >
                                         <BookOpen className="h-3 w-3" /> Grant access
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={busyEmail === row.email}
+                                        onClick={() => void revokeAllCourses(row)}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-rose-100 hover:bg-rose-500/20 disabled:opacity-50"
+                                      >
+                                        Remove all courses
                                       </button>
                                     </div>
                                   </div>

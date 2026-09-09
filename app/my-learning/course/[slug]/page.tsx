@@ -80,9 +80,10 @@ import {
 } from "@/lib/learner-video-resume";
 import {
   COURSE_PROGRESS_UPDATED_EVENT,
-  markModuleCompleted,
+  clearUnverifiedFullCompletion,
   normalizeCompletedModulesForCurriculum,
   readCompletedModules,
+  trustedCompletedModules,
 } from "@/lib/learner-course-progress";
 import { openTutorLedProgram } from "@/lib/push-checkout-or-login";
 import {
@@ -413,7 +414,8 @@ export default function CourseLearningPlayerPage() {
   useEffect(() => {
     refreshExamGrades();
     void syncLearnerCourseProgressFromServer(slug).then(() => {
-      setCompletedModules(readCompletedModules(slug));
+      clearUnverifiedFullCompletion(slug, curriculum);
+      setCompletedModules(trustedCompletedModules(slug, curriculum));
       refreshExamGrades();
     });
     const onUpdate = (e: Event) => {
@@ -752,31 +754,6 @@ export default function CourseLearningPlayerPage() {
     setModuleLockNotice(null);
     return true;
   };
-
-  // Modules without an exam auto-complete when opened (Coursera-style free navigation).
-  // Modules with an exam complete when the exam is passed.
-  useEffect(() => {
-    if (!curriculum.length || !slug) return;
-    const mod = curriculum[selectedModuleIdx];
-    if (!mod) return;
-    const moduleNumber = selectedModuleIdx + 1;
-    if (completedModules.includes(moduleNumber)) return;
-    if (getFirstExamRowInModule(mod)) return;
-    markModuleCompleted(slug, moduleNumber, curriculum.length, {
-      courseTitle: apiCourseTitle || courseTitle,
-      moduleTitle: mod.title?.trim() || `Module ${moduleNumber}`,
-      badgeImageUrl: certAssets.badge || undefined,
-    });
-    setCompletedModules(readCompletedModules(slug));
-  }, [
-    curriculum,
-    selectedModuleIdx,
-    slug,
-    completedModules,
-    apiCourseTitle,
-    courseTitle,
-    certAssets.badge,
-  ]);
 
   const goToLessonNavIdx = (navIdx: number) => {
     const target = navigableLessons[navIdx];

@@ -6,9 +6,12 @@ import type {
 import { canonicalCourseSlug, isAliasCourseSlug } from "@/lib/course-slug-aliases";
 import { countLearnerCurriculumModules } from "@/lib/curriculum-learner-filter";
 import { isGenericCoursePlaceholder, resolveCourseListThumbnail } from "@/lib/course-thumbnail";
+import { readModuleWatchedSeconds } from "@/lib/learner-preview-gate";
 import {
   computeCombinedExamGrade,
+  examModuleNumbers,
   learnerCredentialsEligible,
+  readModuleExamScores,
 } from "@/lib/learner-exam-scores";
 
 export type PurchasedCourseRow = {
@@ -26,10 +29,21 @@ export type PurchasedCourseRow = {
 
 export const COURSE_PROGRESS_UPDATED_EVENT = "sft-course-progress-updated";
 
+function completedModulesStorageKey(slug: string): string {
+  const s = slug.trim();
+  let email = "";
+  try {
+    email = (window.localStorage.getItem("sft_learner_email") || "").trim().toLowerCase();
+  } catch {
+    email = "";
+  }
+  return email ? `sft_completed_modules_${email}_${s}` : `sft_completed_modules_${s}`;
+}
+
 export function readCompletedModules(slug: string): number[] {
   if (typeof window === "undefined" || !slug.trim()) return [];
   try {
-    const raw = window.localStorage.getItem(`sft_completed_modules_${slug.trim()}`);
+    const raw = window.localStorage.getItem(completedModulesStorageKey(slug));
     const parsed = raw ? (JSON.parse(raw) as number[]) : [];
     return Array.isArray(parsed)
       ? parsed.filter((n) => Number.isFinite(n) && n > 0)
@@ -82,7 +96,7 @@ export function enrichPurchasedCourse(
   catalog: ManagedCourse | undefined,
 ): PurchasedCourseRow {
   const slug = canonicalCourseSlug(row.slug ?? catalog?.slug ?? "");
-  const completedFromStorage = slug ? readCompletedModules(slug).length : 0;
+  const completedFromStorage = slug ? trustedCompletedModules(slug, catalog?.curriculum).length : 0;
   const modulesFromCatalog = catalog ? countLearnerCurriculumModules(catalog.curriculum) : 0;
   const modules = modulesFromCatalog > 0 ? modulesFromCatalog : Math.max(0, row.modules || 0);
   const duration = catalog?.duration?.trim() || row.duration?.trim() || "—";
@@ -99,7 +113,7 @@ export function enrichPurchasedCourse(
   let { status, action } = deriveCourseProgress(completed, modules);
 
   if (slug && catalog?.curriculum?.length && (action === "View Certificate" || status === "Completed")) {
-    const completedModules = readCompletedModules(slug);
+    const completedModules = trustedCompletedModules(slug, catalog.curriculum);
     const { allExamsPassed } = computeCombinedExamGrade(slug, catalog.curriculum);
     const { eligible } = learnerCredentialsEligible(catalog.curriculum, completedModules, allExamsPassed);
     if (!eligible) {
@@ -128,23 +142,63 @@ export function notifyCourseProgressUpdated(courseSlug: string) {
   );
 }
 
+/** True when every module is marked done but the learner never sat a required exam. */
+export function isUnverifiedFullCompletion(
+  slug: string,
+  curriculum?: CourseCurriculumModule[] | null,
+): boolean {
+  if (typeof window === "undefined" || !slug.trim() || !curriculum?.length) return false;
+  const completed = readCompletedModules(slug);
+  const total = countLearnerCurriculumModules(curriculum);
+  if (total < 1 || completed.length < total) return false;
+  const examNums = examModuleNumbers(curriculum);
+  const hasExamAttempt = Object.keys(readModuleExamScores(slug)).length > 0;
+  if (hasExamAttempt) return false;
+  if (examNums.length > 0) return true;
+  const watched = readModuleWatchedSeconds(slug);
+  return !Object.values(watched).some((sec) => Number(sec) > 0);
+}
+
+/** Completed modules that belong to this learner — ignore copied 100% with no exam attempts. */
+export function trustedCompletedModules(
+  slug: string,
+  curriculum?: CourseCurriculumModule[] | null,
+): number[] {
+  if (isUnverifiedFullCompletion(slug, curriculum)) return [];
+  return readCompletedModules(slug);
+}
+
+/** Clear fake 100% progress and save that to the server. */
+export function clearUnverifiedFullCompletion(
+  slug: string,
+  curriculum?: CourseCurriculumModule[] | null,
+): boolean {
+  if (!isUnverifiedFullCompletion(slug, curriculum)) return false;
+  writeCompletedModules(slug, [], countLearnerCurriculumModules(curriculum), {
+    replaceServer: true,
+  });
+  return true;
+}
+
 export function writeCompletedModules(
   slug: string,
   moduleNumbers: number[],
   totalModules?: number,
-  opts?: { skipServerPush?: boolean },
+  opts?: { skipServerPush?: boolean; replaceServer?: boolean },
 ) {
   if (typeof window === "undefined" || !slug.trim()) return;
   const clean = Array.from(
     new Set(moduleNumbers.filter((n) => Number.isFinite(n) && n > 0)),
   ).sort((a, b) => a - b);
   try {
-    window.localStorage.setItem(`sft_completed_modules_${slug.trim()}`, JSON.stringify(clean));
+    window.localStorage.setItem(completedModulesStorageKey(slug), JSON.stringify(clean));
     syncPurchasedCourseProgress(slug, clean.length, totalModules);
     notifyCourseProgressUpdated(slug);
     if (!opts?.skipServerPush) {
       void import("@/lib/learner-progress-sync-client").then((m) => {
-        m.pushLearnerCourseProgressToServer(slug);
+        m.pushLearnerCourseProgressToServer(slug, {
+          replaceCompletedModules: opts?.replaceServer === true,
+        });
       });
     }
   } catch {
@@ -268,9 +322,9 @@ export function mergeServerEnrollmentsIntoStorage(
     const canonical = canonicalCourseSlug(aliasSlug);
     if (canonical === aliasSlug) continue;
     try {
-      const completed = window.localStorage.getItem(`sft_completed_modules_${aliasSlug}`);
-      if (completed && !window.localStorage.getItem(`sft_completed_modules_${canonical}`)) {
-        window.localStorage.setItem(`sft_completed_modules_${canonical}`, completed);
+      const completed = window.localStorage.getItem(completedModulesStorageKey(aliasSlug));
+      if (completed && !window.localStorage.getItem(completedModulesStorageKey(canonical))) {
+        window.localStorage.setItem(completedModulesStorageKey(canonical), completed);
         changed += 1;
       }
       const scores = window.localStorage.getItem(`sft_module_exam_scores_${aliasSlug}`);
@@ -314,19 +368,12 @@ export function mergeServerEnrollmentsIntoStorage(
   return changed;
 }
 
-/** Mark all modules complete in localStorage when a certificate exists in DB. */
+/** Do not auto-complete modules just because a certificate row exists. */
 export function ensureCompletedModulesForCertificate(
-  courseSlug: string,
-  moduleCount: number,
+  _courseSlug: string,
+  _moduleCount: number,
 ): void {
-  if (typeof window === "undefined" || !courseSlug.trim() || moduleCount < 1) return;
-  const slug = courseSlug.trim();
-  const existing = readCompletedModules(slug);
-  const all = Array.from({ length: moduleCount }, (_, i) => i + 1);
-  const hasAll = all.every((n) => existing.includes(n));
-  if (!hasAll) {
-    writeCompletedModules(slug, all, moduleCount);
-  }
+  return;
 }
 
 /** Merge server certificates into purchased courses so progress/dashboard shows completed work. */

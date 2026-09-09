@@ -94,6 +94,8 @@ type PutBody = {
   examScores?: Record<string, StoredModuleExamScore>;
   learnerName?: string;
   courseName?: string;
+  /** When true, completedModules replaces stored progress (used to undo copied 100%). */
+  replaceCompletedModules?: boolean;
 };
 
 /**
@@ -170,13 +172,14 @@ export async function PUT(request: Request) {
     const email = sessionEmail;
     const existing = await getLearnerCourseProgressFromStore(email, slug);
     const incomingModules = Array.isArray(body.completedModules) ? body.completedModules : [];
-    const mergedModules = Array.from(
-      new Set(
-        [...(existing?.completedModules ?? []), ...incomingModules]
-          .map((n) => Math.round(Number(n)))
-          .filter((n) => Number.isFinite(n) && n > 0 && n <= MAX_MODULE_INDEX),
-      ),
-    ).sort((a, b) => a - b);
+    const sanitizedIncoming = incomingModules
+      .map((n) => Math.round(Number(n)))
+      .filter((n) => Number.isFinite(n) && n > 0 && n <= MAX_MODULE_INDEX);
+    const mergedModules = body.replaceCompletedModules
+      ? Array.from(new Set(sanitizedIncoming)).sort((a, b) => a - b)
+      : Array.from(
+          new Set([...(existing?.completedModules ?? []), ...sanitizedIncoming]),
+        ).sort((a, b) => a - b);
 
     const examScores = sanitizeExamScores(
       body.examScores as Record<string, unknown> | undefined,

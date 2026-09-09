@@ -3,7 +3,7 @@ import type { AdminPaymentRow, PaymentLineItem } from "@/lib/payment-types";
 import { prisma } from "@/lib/prisma";
 import { recordPurchasesForLearner } from "@/lib/server/record-purchase";
 import { resolveGrantableOfferingTitle } from "@/lib/server/admin-grantable-offerings";
-import { grantLearnerCertificateDownloadAccess } from "@/lib/server/admin-grant-certificate-access";
+import { clearAllLearnerCourseProgressFromStore } from "@/lib/server/learner-course-progress-store";
 import {
   createRazorpayRefund,
   fetchRazorpayOrder,
@@ -279,24 +279,100 @@ export async function grantCourseAccessWithoutPayment(input: {
   });
   if (!enrolled.ok) return { ok: false, message: enrolled.message };
 
-  const cert = await grantLearnerCertificateDownloadAccess({
-    learnerEmail: email,
-    courseSlug: slug,
-  });
-
-  let message =
-    enrolled.recorded > 0 ? "Course access granted." : "Learner already had access — grant recorded.";
-  if (cert.ok && cert.granted) {
-    message = `${message} ${cert.message}`;
-  } else if (!cert.ok) {
-    message = `${message} Certificate could not be issued: ${cert.message}`;
-  }
+  const message =
+    enrolled.recorded > 0
+      ? "Course access granted. The learner starts at 0% — the course is not marked complete."
+      : "Learner already had access — grant recorded. Progress was not changed.";
 
   return {
     ok: true,
     paymentId: row.id,
     message,
-    certificateGranted: cert.ok && cert.granted,
+  };
+}
+
+/** Unenroll a learner from every course. Does not grant access and does not delete the account. */
+export async function revokeAllCourseAccessForLearner(input: {
+  learnerEmail: string;
+  revokedByEmail: string;
+  adminNote?: string;
+}): Promise<
+  | {
+      ok: true;
+      message: string;
+      revokedPurchases: number;
+      revokedCertificates: number;
+      progressCleared: number;
+    }
+  | { ok: false; message: string }
+> {
+  const email = normalizeLearnerEmail(input.learnerEmail);
+  const revokedBy = normalizeLearnerEmail(input.revokedByEmail);
+  if (!email) return { ok: false, message: "Learner email is required." };
+  if (!revokedBy) return { ok: false, message: "Admin email is required." };
+
+  const user = await prisma.lmsUser.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  const purchaseWhere = user?.id
+    ? { OR: [{ learnerEmail: email }, { userId: user.id }] }
+    : { learnerEmail: email };
+
+  const deletedPurchases = await prisma.lmsPurchase.deleteMany({ where: purchaseWhere });
+
+  const certWhere = user?.id
+    ? { OR: [{ learnerEmail: email }, { userId: user.id }] }
+    : { learnerEmail: email };
+
+  const revokedCertificates = await prisma.lmsCertificate.updateMany({
+    where: certWhere,
+    data: { status: "revoked", visibleToLearner: false },
+  });
+
+  const note =
+    input.adminNote?.trim() ||
+    `${new Date().toISOString()} All course access revoked by ${revokedBy}`;
+
+  const grantPayments = await prisma.lmsPayment.findMany({
+    where: {
+      learnerEmail: email,
+      status: { in: ["paid", "demo", "waived"] },
+    },
+    select: { id: true, status: true, method: true, adminNote: true },
+  });
+
+  for (const row of grantPayments) {
+    const isComplimentary = row.method === "admin_grant" || row.method === "demo" || row.status === "waived";
+    await prisma.lmsPayment.update({
+      where: { id: row.id },
+      data: {
+        ...(isComplimentary ? { status: "refunded" } : {}),
+        adminNote: appendAdminNote(row.adminNote, note),
+      },
+    });
+  }
+
+  const progressCleared = await clearAllLearnerCourseProgressFromStore(email);
+
+  const revokedPurchases = deletedPurchases.count;
+  if (revokedPurchases === 0 && revokedCertificates.count === 0 && progressCleared === 0) {
+    return {
+      ok: true,
+      revokedPurchases: 0,
+      revokedCertificates: 0,
+      progressCleared: 0,
+      message: "No course enrollments, certificates, or progress found for this learner.",
+    };
+  }
+
+  return {
+    ok: true,
+    revokedPurchases,
+    revokedCertificates: revokedCertificates.count,
+    progressCleared,
+    message: `Removed ${revokedPurchases} course enrollment(s); revoked ${revokedCertificates.count} certificate(s); cleared ${progressCleared} progress record(s). Account kept.`,
   };
 }
 

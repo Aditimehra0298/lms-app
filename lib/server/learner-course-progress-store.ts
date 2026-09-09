@@ -106,3 +106,17 @@ export async function upsertLearnerCourseProgressInStore(input: {
   await writeStore(store);
   return row;
 }
+
+/** Remove all stored course progress for one learner (unenroll / revoke-all). */
+export async function clearAllLearnerCourseProgressFromStore(
+  learnerEmail: string,
+): Promise<number> {
+  const email = normalizeLearnerEmail(learnerEmail);
+  if (!email) return 0;
+  const store = await readStore();
+  const count = Object.keys(store.learners[email] ?? {}).length;
+  if (count === 0) return 0;
+  delete store.learners[email];
+  await writeStore(store);
+  return count;
+}
