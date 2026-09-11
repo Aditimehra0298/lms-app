@@ -2,7 +2,9 @@ import type { CourseLearningFormat } from "@/lib/content-schema";
 import {
   courseBrowseHref,
   hasPublishedTutorLedProgram,
+  isIso22000TutorLedSlug,
   liveTutorCourseHref,
+  TUTOR_LED_ISO_22000_CATALOG_HREF,
 } from "@/lib/tutor-led-routes";
 
 /** Client catalog: pass tutor-led slugs from `/api/tutor-led/programs`. */
@@ -11,6 +13,7 @@ export function catalogCourseLandingHref(
   tutorLedSlugs: ReadonlySet<string>,
   learningFormat?: CourseLearningFormat | null,
 ): string {
+  if (isIso22000TutorLedSlug(slug)) return TUTOR_LED_ISO_22000_CATALOG_HREF;
   return courseBrowseHref(slug, learningFormat);
 }
 

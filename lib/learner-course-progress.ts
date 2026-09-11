@@ -291,21 +291,38 @@ export function readPurchasedCoursesFromStorage(): PurchasedCourseRow[] {
   }
 }
 
-/** Merge MySQL enrollments into browser storage so My Learning shows server-side purchases. */
+/**
+ * Sync MySQL enrollments into browser storage.
+ * Server list is authoritative: local-only leftover courses are pruned so a single
+ * admin grant cannot look like “all courses” from stale localStorage.
+ */
 export function mergeServerEnrollmentsIntoStorage(
   serverCourses: Array<{ slug: string; title: string }>,
   tutorLedSlugs?: Set<string>,
+  opts?: { replace?: boolean },
 ): number {
-  if (typeof window === "undefined" || serverCourses.length === 0) return 0;
+  if (typeof window === "undefined") return 0;
+  const replace = opts?.replace !== false;
 
   const existing = readPurchasedCoursesFromStorage();
   const bySlug = new Map<string, PurchasedCourseRow>();
   let changed = 0;
 
+  const serverBySlug = new Map<string, { slug: string; title: string }>();
+  for (const course of serverCourses) {
+    const slug = canonicalCourseSlug(course.slug);
+    if (!slug) continue;
+    serverBySlug.set(slug, { slug, title: course.title.trim() || slug });
+  }
+
   for (const row of existing) {
     const rawSlug = (row.slug ?? "").trim().toLowerCase();
     if (!rawSlug) continue;
     const slug = canonicalCourseSlug(rawSlug);
+    if (replace && !serverBySlug.has(slug)) {
+      changed += 1;
+      continue;
+    }
     const prev = bySlug.get(slug);
     if (!prev) {
       bySlug.set(slug, { ...row, slug });
@@ -337,14 +354,21 @@ export function mergeServerEnrollmentsIntoStorage(
     }
   }
 
-  for (const course of serverCourses) {
-    const slug = canonicalCourseSlug(course.slug);
-    if (!slug || bySlug.has(slug)) continue;
+  for (const course of serverBySlug.values()) {
+    const slug = course.slug;
+    if (bySlug.has(slug)) {
+      const prev = bySlug.get(slug)!;
+      if (course.title && course.title !== slug && (!prev.title || prev.title === slug)) {
+        bySlug.set(slug, { ...prev, title: course.title });
+        changed += 1;
+      }
+      continue;
+    }
 
     const isTutorLed = tutorLedSlugs?.has(slug) ?? false;
     bySlug.set(slug, {
       slug,
-      title: course.title.trim() || slug,
+      title: course.title || slug,
       modules: 0,
       duration: "—",
       completed: 0,
@@ -356,7 +380,7 @@ export function mergeServerEnrollmentsIntoStorage(
     changed += 1;
   }
 
-  if (changed === 0) return 0;
+  if (changed === 0 && bySlug.size === existing.length) return 0;
 
   try {
     window.localStorage.setItem("sft_purchased_courses", JSON.stringify([...bySlug.values()]));
@@ -376,7 +400,7 @@ export function ensureCompletedModulesForCertificate(
   return;
 }
 
-/** Merge server certificates into purchased courses so progress/dashboard shows completed work. */
+/** Enrich enrolled courses with certificate status. Does not invent enrollments from certs alone. */
 export function mergeCertificatesIntoPurchasedCourses(
   rows: PurchasedCourseRow[],
   certificates: Array<{
@@ -397,44 +421,37 @@ export function mergeCertificatesIntoPurchasedCourses(
     const slug = cert.courseSlug?.trim();
     if (!slug) continue;
     if (cert.status !== "ready" && cert.status !== "pending") continue;
+    // Only attach to courses the learner is actually enrolled in.
+    if (!bySlug.has(slug)) continue;
 
     const catalogCourse = findCatalogCourse({ slug, title: cert.courseTitle }, catalog);
+    const existing = bySlug.get(slug)!;
     const modules = catalogCourse
       ? countLearnerCurriculumModules(catalogCourse.curriculum)
-      : bySlug.get(slug)?.modules || 0;
+      : existing.modules || 0;
     const safeModules = Math.max(1, modules);
 
     ensureCompletedModulesForCertificate(slug, safeModules);
 
     const enriched = enrichPurchasedCourse(
       {
+        ...existing,
         slug,
-        title: cert.courseTitle,
+        title: cert.courseTitle || existing.title,
         modules: safeModules,
-        duration: catalogCourse?.duration?.trim() || bySlug.get(slug)?.duration || "—",
-        completed: safeModules,
+        duration: catalogCourse?.duration?.trim() || existing.duration || "—",
+        completed: Math.max(existing.completed ?? 0, safeModules),
         status: "Completed",
         action: "View Certificate",
         tone: "emerald",
-        deliveryKind: "managed",
         image: catalogCourse
-          ? resolveCourseListThumbnail(catalogCourse) || ""
-          : bySlug.get(slug)?.image || "",
+          ? resolveCourseListThumbnail(catalogCourse) || existing.image || ""
+          : existing.image || "",
       },
       catalogCourse,
     );
     bySlug.set(slug, enriched);
   }
 
-  const merged = Array.from(bySlug.values());
-  if (typeof window !== "undefined" && merged.length > rows.length) {
-    try {
-      window.localStorage.setItem("sft_purchased_courses", JSON.stringify(merged));
-      window.dispatchEvent(new Event("sft_purchases_updated"));
-    } catch {
-      /* ignore */
-    }
-  }
-
-  return merged;
+  return Array.from(bySlug.values());
 }

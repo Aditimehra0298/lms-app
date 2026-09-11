@@ -12,6 +12,12 @@ export const DEFAULT_TUTOR_LED_SLUG = "advanced-cyber-security-professional";
 /** Public catalog landing — Admin → Tutor-Led Landing + live programs from Tutor Led. */
 export const TUTOR_LED_CATALOG_HREF = "/tutor-led";
 
+/** Designed ISO 22000 food tutor-led catalog (opens from Food category thumbnails). */
+export const TUTOR_LED_ISO_22000_CATALOG_HREF = "/tutor-led/iso-22000";
+
+/** Single catalog card slug — not a per-level program. */
+export const ISO_22000_CATALOG_SLUG = "iso-22000";
+
 const publishedTutorLedSlugs = new Set([
   ...defaultTutorLedPrograms.filter((p) => p.published).map((p) => p.slug),
   ...Object.values(ISO_22000_PROGRAM_SLUGS),
@@ -41,6 +47,19 @@ export function liveTutorCourseHref(slug?: string | null): string {
   const key = slug?.trim();
   if (!key) return TUTOR_LED_CATALOG_HREF;
   return tutorLedTemplatePath(key);
+}
+
+const iso22000Slugs = new Set<string>(Object.values(ISO_22000_PROGRAM_SLUGS));
+
+export function isIso22000TutorLedSlug(slug?: string | null): boolean {
+  const key = slug?.trim() ?? "";
+  return key === ISO_22000_CATALOG_SLUG || iso22000Slugs.has(key);
+}
+
+/** Description / catalog click — ISO 22000 levels open the designed food landing. */
+export function tutorLedDescriptionHref(slug?: string | null): string {
+  if (isIso22000TutorLedSlug(slug)) return TUTOR_LED_ISO_22000_CATALOG_HREF;
+  return liveTutorCourseHref(slug);
 }
 
 /** Enrolled learner hub: live join, recordings, and cohort materials. */

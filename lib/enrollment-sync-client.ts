@@ -75,8 +75,6 @@ export async function syncEnrollmentsFromServer(
       }))
       .filter((c) => c.slug);
 
-    if (serverCourses.length === 0) return { ok: true, added: 0 };
-
     let tutorLedSlugs = new Set<string>();
     try {
       const tlRes = await fetch("/api/tutor-led/programs", { cache: "no-store" });
@@ -93,7 +91,25 @@ export async function syncEnrollmentsFromServer(
     }
 
     const { mergeServerEnrollmentsIntoStorage } = await import("@/lib/learner-course-progress");
-    const added = mergeServerEnrollmentsIntoStorage(serverCourses, tutorLedSlugs);
+    // Always replace from MySQL — do not keep leftover browser enrollments.
+    const added = mergeServerEnrollmentsIntoStorage(serverCourses, tutorLedSlugs, { replace: true });
+
+    try {
+      const { ENROLLMENTS_STORAGE_KEY, ENROLLMENTS_UPDATED_EVENT, readEnrollments } = await import(
+        "@/lib/enrollment-storage"
+      );
+      const serverSlugSet = new Set(serverCourses.map((c) => c.slug));
+      const kept = readEnrollments().filter((row) => {
+        const rowEmail = normalizeLearnerEmail(row.learnerEmail ?? "");
+        if (rowEmail && rowEmail !== email) return true;
+        return serverSlugSet.has(String(row.courseSlug ?? "").trim().toLowerCase());
+      });
+      window.localStorage.setItem(ENROLLMENTS_STORAGE_KEY, JSON.stringify(kept));
+      window.dispatchEvent(new Event(ENROLLMENTS_UPDATED_EVENT));
+    } catch {
+      /* optional legacy key */
+    }
+
     return { ok: true, added };
   } catch {
     return { ok: false, message: "Network error loading enrollments" };

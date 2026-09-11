@@ -1,21 +1,9 @@
 import { NextResponse } from "next/server";
 import { emailAppName } from "@/lib/email-brand-config";
-import { SFT_EMAILS } from "@/lib/contact-site-data";
 import { createFormSubmission } from "@/lib/server/form-submissions-store";
-import { sendTransactionalEmail } from "@/lib/mail";
+import { notifyAdminActivity } from "@/lib/server/admin-activity-email";
 
 export const dynamic = "force-dynamic";
-
-const SUPPORT_EMAIL = process.env.CONTACT_INBOX?.trim() || SFT_EMAILS.info;
-const BDM_EMAIL = process.env.CONTACT_BDM_INBOX?.trim() || SFT_EMAILS.bdm;
-
-function escapeHtml(s: string) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 export async function POST(request: Request) {
   let body: {
@@ -49,29 +37,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Please add a short note about the call." }, { status: 400 });
   }
 
-  const appName = emailAppName();
-  const mailSubject = `[Book a Call] ${fullName}`;
-  const text = [
-    `New Book a Call request via ${appName}`,
-    "",
-    `Name: ${fullName}`,
-    `Email: ${email}`,
-    `Mobile: ${mobile}`,
-    "",
-    message,
-  ].join("\n");
-
-  const html = `
-    <div style="font-family:system-ui,sans-serif;line-height:1.6;color:#111">
-      <h2 style="margin:0 0 12px">Book a Call request</h2>
-      <p><strong>Name:</strong> ${escapeHtml(fullName)}</p>
-      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-      <p><strong>Mobile:</strong> ${escapeHtml(mobile)}</p>
-      <hr style="border:none;border-top:1px solid #ddd;margin:16px 0" />
-      <p style="white-space:pre-wrap">${escapeHtml(message)}</p>
-    </div>
-  `;
-
   try {
     await createFormSubmission({
       formType: "book-a-call",
@@ -82,11 +47,16 @@ export async function POST(request: Request) {
       pagePath: "/book-a-call",
     });
 
-    await sendTransactionalEmail({
-      to: [SUPPORT_EMAIL, BDM_EMAIL].filter(Boolean),
-      subject: mailSubject,
-      text,
-      html,
+    await notifyAdminActivity({
+      kind: "book-a-call",
+      subject: `[Book a Call] ${fullName}`,
+      title: `New Book a Call request via ${emailAppName()}`,
+      detail: message,
+      lines: {
+        Name: fullName,
+        Email: email,
+        Mobile: mobile,
+      },
     });
 
     return NextResponse.json({ ok: true });

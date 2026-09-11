@@ -46,6 +46,7 @@ import AdminCoursesPageEditor from "@/components/admin/AdminCoursesPageEditor";
 import AdminHomePageEditor from "@/components/admin/AdminHomePageEditor";
 import AdminAboutPageEditor from "@/components/admin/AdminAboutPageEditor";
 import AdminTutorLedHub from "@/components/admin/AdminTutorLedHub";
+import AdminTutorLedCatalogLandingsWorkspace from "@/components/admin/AdminTutorLedCatalogLandingsWorkspace";
 import AdminWorkshopsWorkspace from "@/components/admin/AdminWorkshopsWorkspace";
 import AdminLessonsWorkspace from "@/components/admin/AdminLessonsWorkspace";
 import AdminBatchesWorkspace from "@/components/admin/AdminBatchesWorkspace";
@@ -92,6 +93,7 @@ const menuSections = [
       "Image Upload Guide",
       "FAQ Page",
       "Testimonials",
+      "Tutor-Led Landing",
     ],
   },
   {
@@ -189,6 +191,7 @@ const menuIcons: Record<string, typeof Home> = {
   "Support Tickets": TicketCheck,
   "FAQ Page": HelpCircle,
   Testimonials: Star,
+  "Tutor-Led Landing": Video,
   Orders: ShoppingCart,
   Payments: CreditCard,
   Invoices: FileText,
@@ -209,6 +212,7 @@ const MENU_PANEL_QUERY: Record<string, string> = {
   "Course Q&A": "course-qa",
   Batches: "batches",
   "Tutor Led": "tutor-led",
+  "Tutor-Led Landing": "tutor-led-landing",
   Workshops: "workshops",
   Users: "users",
   Certificates: "certificates",
@@ -342,9 +346,12 @@ function AdminPageInner() {
 
   useEffect(() => {
     if (!panelQuery) return;
-    // Legacy bookmark: Tutor-Led Landing → unified Tutor Led hub
-    if (panelQuery === "tutor-led-landing" || panelQuery === "tutor-led-programs") {
+    if (panelQuery === "tutor-led-programs") {
       setActiveMenu("Tutor Led");
+      return;
+    }
+    if (panelQuery === "tutor-led-landing") {
+      setActiveMenu("Tutor-Led Landing");
       return;
     }
     const menu = PANEL_MENU_QUERY[panelQuery];
@@ -536,6 +543,7 @@ function AdminPageInner() {
   const showHomePageEditor = activeMenu === "Home Page";
   const showAboutPageEditor = activeMenu === "About Page";
   const showTutorLedHub = activeMenu === "Tutor Led";
+  const showTutorLedLandingEditor = activeMenu === "Tutor-Led Landing";
   const showWorkshopsWorkspace = activeMenu === "Workshops";
   const showSupportTickets = activeMenu === "Support Tickets";
   const showFormSubmissions = activeMenu === "Website Form Data";
@@ -563,6 +571,7 @@ function AdminPageInner() {
     showHomePageEditor ||
     showAboutPageEditor ||
     showTutorLedHub ||
+    showTutorLedLandingEditor ||
     showWorkshopsWorkspace ||
     showSupportTickets ||
     showFormSubmissions ||
@@ -1097,6 +1106,8 @@ function AdminPageInner() {
           {showBatchesWorkspace && <AdminBatchesWorkspace />}
 
           {showTutorLedHub && <AdminTutorLedHub />}
+
+          {showTutorLedLandingEditor && <AdminTutorLedCatalogLandingsWorkspace />}
 
           {showWorkshopsWorkspace && <AdminWorkshopsWorkspace />}
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createFormSubmission } from "@/lib/server/form-submissions-store";
+import { queueAdminActivityEmail } from "@/lib/server/admin-activity-email";
 import { sanitizeOptionalPlainText, sanitizePlainText } from "@/lib/server/sanitize-user-text";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +55,22 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("[enrollment-inquiry]", err);
   }
+
+  queueAdminActivityEmail({
+    kind: "enrollment-inquiry",
+    subject: `[Enrollment] ${courseTitle || courseSlug || "Inquiry"} — ${name}`,
+    title: "New enrollment inquiry",
+    detail: organization
+      ? `${name} asked about enrollment. Organization: ${organization}`
+      : `${name} asked about enrollment.`,
+    lines: {
+      Name: name,
+      Email: email,
+      Phone: phone,
+      Course: courseTitle || courseSlug || undefined,
+      Organization: organization || undefined,
+    },
+  });
 
   return NextResponse.json({ ok: true });
 }

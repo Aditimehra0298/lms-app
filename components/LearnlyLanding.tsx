@@ -8,7 +8,7 @@ import { defaultHomePageConfig, type HomePageConfig, type ManagedCategory, type 
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
-import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import { isIso22000TutorLedSlug, liveTutorCourseHref, TUTOR_LED_ISO_22000_CATALOG_HREF } from "@/lib/tutor-led-routes";
 import { CoursePrice } from "@/components/CoursePrice";
 import CourseCardActions from "@/components/CourseCardActions";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
@@ -699,6 +699,20 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
     [tutorLedPrograms],
   );
 
+  const tutorLedBrowseCards = useMemo(() => {
+    const iso = publishedTutorLedPrograms.filter((p) => isIso22000TutorLedSlug(p.slug));
+    if (!iso.length) return publishedTutorLedPrograms;
+    return [
+      {
+        ...iso[0],
+        slug: "iso-22000",
+        title: "ISO 22000:2018 Training Programs",
+        heroSrc: iso[0].heroSrc || "/tutor-led-iso-hero.png",
+      },
+      ...publishedTutorLedPrograms.filter((p) => !isIso22000TutorLedSlug(p.slug)),
+    ];
+  }, [publishedTutorLedPrograms]);
+
   const tutorLedSlugSet = useMemo(
     () => new Set(publishedTutorLedPrograms.map((p) => p.slug)),
     [publishedTutorLedPrograms],
@@ -1175,14 +1189,21 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                 Filter courses by category and access structured modules, tutor-led sessions, and
                 examinations — all in one modern learning platform.
               </p>
-              {isTutorLedBrowsePath && publishedTutorLedPrograms.length > 0 ? (
+              {isTutorLedBrowsePath && tutorLedBrowseCards.length > 0 ? (
                 <div className="mt-8 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {publishedTutorLedPrograms.map((program) => (
+                  {tutorLedBrowseCards.map((program) => (
                     <article
                       key={program.slug}
                       className="lh-course-card flex h-full flex-col overflow-hidden rounded-2xl border border-violet-500/35 bg-linear-to-b from-[#1a1030] via-[#120c06] to-[#07070a]"
                     >
-                      <Link href={liveTutorCourseHref(program.slug)} className="block">
+                      <Link
+                        href={
+                          isIso22000TutorLedSlug(program.slug)
+                            ? TUTOR_LED_ISO_22000_CATALOG_HREF
+                            : liveTutorCourseHref(program.slug)
+                        }
+                        className="block"
+                      >
                         <div className="relative aspect-[16/10] bg-black/40">
                           <Image
                             src={program.heroSrc || "/h1.png"}
@@ -1206,7 +1227,11 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                           {program.title}
                         </h5>
                         <CourseCardActions
-                          descriptionHref={liveTutorCourseHref(program.slug)}
+                          descriptionHref={
+                            isIso22000TutorLedSlug(program.slug)
+                              ? TUTOR_LED_ISO_22000_CATALOG_HREF
+                              : liveTutorCourseHref(program.slug)
+                          }
                           priceInr={program.price}
                           className="px-0"
                         />

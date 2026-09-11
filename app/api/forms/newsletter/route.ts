@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createFormSubmission } from "@/lib/server/form-submissions-store";
 import { sendNewsletterViaN8n } from "@/lib/server/n8n-newsletter-service";
+import { queueAdminActivityEmail } from "@/lib/server/admin-activity-email";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,14 @@ export async function POST(request: Request) {
     if (!n8n.ok) {
       console.warn(`[api/forms/newsletter] saved ${email}; n8n: ${n8n.message ?? "failed"}`);
     }
+
+    queueAdminActivityEmail({
+      kind: "other",
+      subject: `[Newsletter] ${email}`,
+      title: "New newsletter subscription",
+      detail: `${email} subscribed to the newsletter.`,
+      lines: { Email: email, Page: pagePath },
+    });
 
     return NextResponse.json({
       ok: true,

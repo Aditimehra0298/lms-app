@@ -6,12 +6,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> LMS deploy from $(pwd)"
 echo "==> Branch: $(git rev-parse --abbrev-ref HEAD)"
 echo "==> Commit: $(git rev-parse --short HEAD)"
 
 if [[ ! -f .env.local ]]; then
-  echo "ERROR: .env.local missing. Aborting so production secrets are not lost."
+  echo "Missing .env.local in $ROOT"
   exit 1
 fi
 

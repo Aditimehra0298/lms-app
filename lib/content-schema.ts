@@ -640,7 +640,7 @@ export const defaultTutorLedCatalogPageConfig: TutorLedCatalogPageConfig = {
     subtitle:
       "Build your expertise in Food Safety Management Systems with industry-led training programs designed for real-world application, live coaching, and globally recognized certification.",
     ctaText: "Explore Training Programs",
-    ctaHref: "#programs",
+    ctaHref: "#food-tutor-led-programs",
     chips: [
       { icon: "Video", label: "Live Interactive Sessions" },
       { icon: "Mic2", label: "Expert Industry Trainers" },
@@ -674,7 +674,7 @@ export const defaultTutorLedCatalogPageConfig: TutorLedCatalogPageConfig = {
       price: 9999,
       theme: "emerald",
       icon: "ShieldCheck",
-      thumbnail: "",
+      thumbnail: "/tutor-led-iso-hero.png",
       enrollSlug: "iso-22000-basic",
       matchPattern: "basic|foundation",
       durationLabel: "Duration: 5 Days",
@@ -694,7 +694,7 @@ export const defaultTutorLedCatalogPageConfig: TutorLedCatalogPageConfig = {
       price: 14999,
       theme: "sky",
       icon: "FileText",
-      thumbnail: "",
+      thumbnail: "/tutor-led-iso-hero.png",
       enrollSlug: "iso-22000-implementation",
       matchPattern: "implementation",
       durationLabel: "Duration: 5 Days",
@@ -714,7 +714,7 @@ export const defaultTutorLedCatalogPageConfig: TutorLedCatalogPageConfig = {
       price: 19999,
       theme: "violet",
       icon: "Search",
-      thumbnail: "",
+      thumbnail: "/tutor-led-iso-hero.png",
       enrollSlug: "iso-22000-internal-auditor",
       matchPattern: "internal\\s*auditor",
       durationLabel: "Duration: 5 Days",
@@ -735,7 +735,7 @@ export const defaultTutorLedCatalogPageConfig: TutorLedCatalogPageConfig = {
       popular: true,
       theme: "gold",
       icon: "Trophy",
-      thumbnail: "",
+      thumbnail: "/tutor-led-iso-hero.png",
       enrollSlug: "iso-22000-lead-auditor",
       matchPattern: "lead\\s*auditor|iso-22000-lead",
       durationLabel: "Duration: 5 Days",
@@ -797,7 +797,7 @@ export const defaultTutorLedCatalogPageConfig: TutorLedCatalogPageConfig = {
   batches: {
     eyebrow: "Upcoming Batches",
     viewAllLabel: "View All Batches →",
-    viewAllHref: "#programs",
+    viewAllHref: "#food-tutor-led-programs",
     rows: [
       {
         date: "11 Sept 2026",
@@ -843,7 +843,7 @@ export const defaultTutorLedCatalogPageConfig: TutorLedCatalogPageConfig = {
   faqsSection: {
     eyebrow: "Frequently Asked Questions",
     viewAllLabel: "View All FAQs →",
-    viewAllHref: "#programs",
+    viewAllHref: "#food-tutor-led-programs",
   },
   faqs: [
     {
@@ -876,7 +876,7 @@ export const defaultTutorLedCatalogPageConfig: TutorLedCatalogPageConfig = {
     description:
       "Choose your training program today and be part of a safer, more sustainable food future.",
     buttonText: "View All Training Programs",
-    buttonHref: "#programs",
+    buttonHref: "#food-tutor-led-programs",
   },
 };
 
@@ -898,10 +898,18 @@ export function mergeTutorLedCatalogPageConfig(
     pageThumbnail: typeof raw.pageThumbnail === "string" ? raw.pageThumbnail : d.pageThumbnail,
     hero: { ...d.hero, ...(raw.hero ?? {}), chips: Array.isArray(raw.hero?.chips) ? raw.hero!.chips : d.hero.chips },
     programsSection: { ...d.programsSection, ...(raw.programsSection ?? {}) },
-    programs: programs.map((p) => ({
-      ...p,
-      enrollSlug: p.enrollSlug?.trim() || enrollById[p.id] || "",
-    })),
+    programs: programs.map((p, i) => {
+      const def = d.programs.find((row) => row.id === p.id) ?? d.programs[i];
+      return {
+        ...def,
+        ...p,
+        enrollSlug: p.enrollSlug?.trim() || enrollById[p.id] || def?.enrollSlug || "",
+        thumbnail:
+          (typeof p.thumbnail === "string" && p.thumbnail.trim()) ||
+          def?.thumbnail ||
+          d.pageThumbnail,
+      };
+    }),
     why: {
       ...d.why,
       ...(raw.why ?? {}),
@@ -921,6 +929,27 @@ export function mergeTutorLedCatalogPageConfig(
     faqsSection: { ...d.faqsSection, ...(raw.faqsSection ?? {}) },
     faqs: Array.isArray(raw.faqs) ? raw.faqs : d.faqs,
     cta: { ...d.cta, ...(raw.cta ?? {}) },
+  };
+}
+
+/** One designed public catalog landing (ISO 22000-style) — many of these can exist. */
+export type TutorLedCatalogLandingStored = {
+  slug: string;
+  /** Explore category this thumbnail appears under (e.g. food-safety). */
+  category: string;
+  published: boolean;
+  /** Title on the category thumbnail card. */
+  cardTitle: string;
+  page: TutorLedCatalogPageConfig;
+};
+
+export function defaultIso22000CatalogLanding(): TutorLedCatalogLandingStored {
+  return {
+    slug: "iso-22000",
+    category: "food-safety",
+    published: true,
+    cardTitle: "ISO 22000:2018 Training Programs",
+    page: structuredClone(defaultTutorLedCatalogPageConfig),
   };
 }
 
@@ -1440,6 +1469,8 @@ export type AdminContent = {
   aboutPage?: AboutPageConfig;
   /** Public `/tutor-led` ISO catalog landing — Admin → Tutor-Led Landing. */
   tutorLedCatalogPage?: TutorLedCatalogPageConfig;
+  /** Designed tutor-led catalog landings (one thumbnail each on the category page). */
+  tutorLedCatalogPages?: TutorLedCatalogLandingStored[];
 };
 
 export const defaultAdminContent: AdminContent = {
@@ -1659,4 +1690,5 @@ export const defaultAdminContent: AdminContent = {
   tutorLedPrograms: [],
   categoryPages: {},
   tutorLedCatalogPage: defaultTutorLedCatalogPageConfig,
+  tutorLedCatalogPages: [defaultIso22000CatalogLanding()],
 };

@@ -28,7 +28,14 @@ import { getManagedCourses } from "@/lib/server/course-catalog";
 import { getPublishedTutorLedPrograms, getPublishedWorkshopPrograms } from "@/lib/server/tutor-led-catalog";
 import { isWorkshopProgram, mapProgramToWorkshopCard } from "@/lib/workshop-program";
 import { readAdminContent } from "@/lib/server/content-store";
-import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import { tutorLedDescriptionHref } from "@/lib/tutor-led-routes";
+import { tutorLedProgramMatchesCategory } from "@/lib/tutor-led-program-category";
+import {
+  catalogHrefForProgramSlug,
+  enrollSlugsCoveredByCatalogs,
+  mergeTutorLedCatalogPages,
+  publishedCatalogsForCategory,
+} from "@/lib/tutor-led-catalog-landings";
 
 export const dynamic = "force-dynamic";
 
@@ -215,11 +222,20 @@ export default async function CourseCategoryPage({
   const isTutorLedCourse = (course: CourseCard) =>
     course.learningFormat === "live" || tutorLedSlugs.has(course.slug);
   const selfPacedCourses = courses.filter((course) => !isTutorLedCourse(course));
-  const tutorLedCourses: CourseCard[] = [
+  const catalogLandings = mergeTutorLedCatalogPages(
+    adminContent.tutorLedCatalogPages,
+    adminContent.tutorLedCatalogPage,
+  );
+  const coveredByCatalog = enrollSlugsCoveredByCatalogs(catalogLandings);
+  const categoryCatalogs = publishedCatalogsForCategory(catalogLandings, categoryKey);
+
+  const tutorLedCoursesRaw: CourseCard[] = [
     ...courses.filter(isTutorLedCourse),
     ...tutorLedPrograms
       .filter((program) => !isWorkshopProgram(program))
+      .filter((program) => tutorLedProgramMatchesCategory(program, categoryKey))
       .filter((program) => !courses.some((course) => course.slug === program.slug))
+      .filter((program) => !coveredByCatalog.has(program.slug))
       .map((program) => ({
         slug: program.slug,
         title: program.title,
@@ -233,6 +249,25 @@ export default async function CourseCategoryPage({
         image: program.heroSrc,
         learningFormat: "live" as const,
       })),
+  ];
+  const tutorLedCourses: CourseCard[] = [
+    ...categoryCatalogs.map((catalog) => ({
+      slug: catalog.slug,
+      title: catalog.cardTitle,
+      level: "Live",
+      duration: "Live online",
+      rating: "4.7",
+      price:
+        catalog.page.programs[0]?.price != null
+          ? `₹${catalog.page.programs[0].price.toLocaleString("en-IN")}`
+          : "",
+      image:
+        catalog.page.pageThumbnail ||
+        catalog.page.hero.backgroundImage ||
+        "/tutor-led-iso-hero.png",
+      learningFormat: "live" as const,
+    })),
+    ...tutorLedCoursesRaw,
   ];
   const tutorLedCountLabel =
     tutorLedCourses.length === 1 ? "1 Program" : `${tutorLedCourses.length} Programs`;
@@ -463,7 +498,10 @@ export default async function CourseCategoryPage({
                 className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f0f] transition hover:border-amber-500/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
               >
                 <Link
-                  href={liveTutorCourseHref(course.slug)}
+                  href={
+                    catalogHrefForProgramSlug(course.slug, catalogLandings) ||
+                    tutorLedDescriptionHref(course.slug)
+                  }
                   className="relative block aspect-[16/10] overflow-hidden bg-black/40"
                 >
                   {(() => {
@@ -485,7 +523,12 @@ export default async function CourseCategoryPage({
                   </span>
                 </Link>
                 <div className="flex flex-1 flex-col p-4">
-                  <Link href={liveTutorCourseHref(course.slug)}>
+                  <Link
+                    href={
+                      catalogHrefForProgramSlug(course.slug, catalogLandings) ||
+                      tutorLedDescriptionHref(course.slug)
+                    }
+                  >
                     <h3 className="line-clamp-2 text-base font-bold leading-snug text-white transition hover:text-amber-200">
                       {course.title}
                     </h3>
@@ -499,7 +542,10 @@ export default async function CourseCategoryPage({
                   </p>
                   <CourseResolvedCardActions
                     course={course}
-                    descriptionHref={liveTutorCourseHref(course.slug)}
+                    descriptionHref={
+                      catalogHrefForProgramSlug(course.slug, catalogLandings) ||
+                      tutorLedDescriptionHref(course.slug)
+                    }
                   />
                 </div>
               </article>

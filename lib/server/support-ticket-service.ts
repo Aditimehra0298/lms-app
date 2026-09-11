@@ -6,6 +6,7 @@ import {
   type TicketPriority,
 } from "@/lib/server/chat-sentiment";
 import { pushAdminNotification } from "@/lib/server/admin-system-notifications";
+import { queueAdminActivityEmail } from "@/lib/server/admin-activity-email";
 
 export type TicketCategory =
   | "TECH"
@@ -152,6 +153,21 @@ export async function createSupportTicket(input: CreateTicketInput): Promise<Sup
     source: "chat",
     panelHint: "Support Tickets",
   }).catch(() => undefined);
+
+  queueAdminActivityEmail({
+    kind: "support-ticket",
+    subject: `[Ticket ${issueToken}] ${priority} — ${subject.slice(0, 80)}`,
+    title: `New ${priority} priority support ticket`,
+    detail: description.slice(0, 500),
+    lines: {
+      Token: issueToken,
+      Priority: priority,
+      Category: category || undefined,
+      Email: input.userEmail?.trim().toLowerCase() || undefined,
+      Name: input.userName?.trim() || undefined,
+      Subject: subject.slice(0, 200),
+    },
+  });
 
   return mapIssueToTicket(row);
 }

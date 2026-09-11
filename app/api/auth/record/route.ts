@@ -17,6 +17,7 @@ import { ensureOrganizationProfile } from "@/lib/server/organization-identificat
 import { ensureUserIdentificationNumber } from "@/lib/server/user-identification";
 import { getClientIps } from "@/lib/request-ip";
 import { queueWelcomeEmail } from "@/lib/welcome-email-service";
+import { queueAdminActivityEmail } from "@/lib/server/admin-activity-email";
 import { attachLearnerSession, readLearnerSessionEmail } from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
@@ -260,6 +261,18 @@ export async function POST(request: Request) {
       learnerName: userProfile?.name ?? userFields.name,
       method: "email",
       accountType: userProfile?.accountType ?? accountType ?? null,
+    });
+    queueAdminActivityEmail({
+      kind: "registration",
+      subject: `[Registration] ${email}`,
+      title: "New learner registration",
+      detail: `${userProfile?.name ?? userFields.name ?? email} created an account with email/password.`,
+      lines: {
+        Email: email,
+        Name: userProfile?.name ?? userFields.name,
+        Method: "email",
+        Account: userProfile?.accountType ?? accountType ?? "individual",
+      },
     });
   }
 

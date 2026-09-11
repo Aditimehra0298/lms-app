@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { AdminContent, type ManagedCourse } from "@/lib/content-schema";
+import { revalidatePath } from "next/cache";
+import { AdminContent, type ManagedCourse, mergeTutorLedCatalogPageConfig } from "@/lib/content-schema";
+import { mergeTutorLedCatalogPages, tutorLedCatalogPublicHref } from "@/lib/tutor-led-catalog-landings";
 import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
 import {
   hydrateManagedCoursesFromMysql,
@@ -186,6 +188,13 @@ export async function PUT(request: Request) {
         ? body.tutorLedPrograms
         : existing.tutorLedPrograms;
 
+    const nextCatalogPages = Object.prototype.hasOwnProperty.call(body, "tutorLedCatalogPages")
+      ? mergeTutorLedCatalogPages(body.tutorLedCatalogPages, body.tutorLedCatalogPage ?? existing.tutorLedCatalogPage)
+      : Object.prototype.hasOwnProperty.call(body, "tutorLedCatalogPage")
+        ? mergeTutorLedCatalogPages(existing.tutorLedCatalogPages, body.tutorLedCatalogPage)
+        : existing.tutorLedCatalogPages ?? mergeTutorLedCatalogPages(undefined, existing.tutorLedCatalogPage);
+    const isoCatalogPage = nextCatalogPages.find((p) => p.slug === "iso-22000")?.page;
+
     const nextContent: AdminContent = {
       dashboard: body.dashboard
         ? {
@@ -210,7 +219,12 @@ export async function PUT(request: Request) {
       coursesPage: body.coursesPage ?? existing.coursesPage,
       homePage: body.homePage ?? existing.homePage,
       aboutPage: body.aboutPage ?? existing.aboutPage,
-      tutorLedCatalogPage: body.tutorLedCatalogPage ?? existing.tutorLedCatalogPage,
+      tutorLedCatalogPages: nextCatalogPages,
+      tutorLedCatalogPage:
+        isoCatalogPage ??
+        (Object.prototype.hasOwnProperty.call(body, "tutorLedCatalogPage")
+          ? mergeTutorLedCatalogPageConfig(body.tutorLedCatalogPage)
+          : existing.tutorLedCatalogPage),
       tutorLedPrograms: nextTutorLedPrograms,
       globalCertificateAssets:
         body.globalCertificateAssets !== undefined
@@ -226,6 +240,19 @@ export async function PUT(request: Request) {
     };
 
     await writeAdminContent(nextContent);
+
+    if (
+      Object.prototype.hasOwnProperty.call(body, "tutorLedCatalogPage") ||
+      Object.prototype.hasOwnProperty.call(body, "tutorLedCatalogPages")
+    ) {
+      revalidatePath("/tutor-led/iso-22000");
+      revalidatePath("/tutor-led/catalog");
+      revalidatePath("/courses/category/food-safety");
+      for (const catalog of nextCatalogPages) {
+        revalidatePath(tutorLedCatalogPublicHref(catalog.slug));
+        revalidatePath(`/courses/category/${catalog.category}`);
+      }
+    }
 
     const prevSlugs = new Set((existing.managedCourses ?? []).map((c) => c.slug.trim()).filter(Boolean));
     const nextSlugs = new Set((nextContent.managedCourses ?? []).map((c) => c.slug.trim()).filter(Boolean));

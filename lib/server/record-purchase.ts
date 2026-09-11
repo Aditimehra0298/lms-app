@@ -6,6 +6,7 @@ import {
   reconcileEnrollmentIdentity,
 } from "@/lib/server/enrollment-lookup";
 import { queuePurchaseConfirmationEmails } from "@/lib/server/n8n-purchase-confirmation-service";
+import { queueAdminActivityEmail } from "@/lib/server/admin-activity-email";
 
 export type PurchaseCourseInput = { slug: string; title: string };
 
@@ -96,6 +97,22 @@ export async function recordPurchasesForLearner(input: {
       learnerEmail: email,
       learnerName: user?.name,
       courses: newlyRecorded,
+    });
+  }
+
+  if (newlyRecorded.length > 0) {
+    const courseList = newlyRecorded.map((c) => c.title || c.slug).join(", ");
+    queueAdminActivityEmail({
+      kind: "purchase",
+      subject: `[Purchase] ${email} — ${newlyRecorded.length} course(s)`,
+      title: "New course purchase / enrollment",
+      detail: `${user?.name ?? email} enrolled in: ${courseList}`,
+      lines: {
+        Email: email,
+        Name: user?.name,
+        Courses: courseList,
+        Count: newlyRecorded.length,
+      },
     });
   }
 

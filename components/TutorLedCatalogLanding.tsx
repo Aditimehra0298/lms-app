@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
-import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import { liveTutorCourseHref, TUTOR_LED_ISO_22000_CATALOG_HREF, isIso22000TutorLedSlug } from "@/lib/tutor-led-routes";
 import { ChevronRight, Radio, Video } from "lucide-react";
 
 type Props = {
@@ -22,7 +22,22 @@ function formatInr(amount: number): string {
 /** Public catalog of live programs — mirrors /courses list; each card opens its own landing. */
 export default function TutorLedCatalogLanding({ programs = [] }: Props) {
   const router = useRouter();
-  const live = programs.filter((p) => p.published && p.programKind !== "workshop");
+  const published = programs.filter((p) => p.published && p.programKind !== "workshop");
+  const iso = published.filter((p) => isIso22000TutorLedSlug(p.slug));
+  const live = iso.length
+    ? [
+        {
+          ...iso[0],
+          slug: "iso-22000",
+          title: "ISO 22000:2018 Training Programs",
+          subtitle: "Four live levels — Foundation through Lead Auditor. Open the catalog to choose your program.",
+          heroSrc: iso[0].heroSrc || "/tutor-led-iso-hero.png",
+          badge: "TUTOR LED",
+          price: Math.min(...iso.map((p) => p.price)),
+        },
+        ...published.filter((p) => !isIso22000TutorLedSlug(p.slug)),
+      ]
+    : published;
 
   const enroll = (slug: string) => {
     registerTutorLedFromTemplate(router, slug);
@@ -67,7 +82,9 @@ export default function TutorLedCatalogLanding({ programs = [] }: Props) {
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {live.map((p) => {
               const thumb = p.heroSrc?.trim() || "";
-              const href = liveTutorCourseHref(p.slug);
+              const href = isIso22000TutorLedSlug(p.slug)
+                ? TUTOR_LED_ISO_22000_CATALOG_HREF
+                : liveTutorCourseHref(p.slug);
               return (
                 <article
                   key={p.slug}
@@ -115,14 +132,24 @@ export default function TutorLedCatalogLanding({ programs = [] }: Props) {
                     ) : null}
 
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                      <button
-                        type="button"
-                        onClick={() => enroll(p.slug)}
-                        className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-[#6f55ff] px-3 py-2.5 text-xs font-bold text-white hover:bg-[#7d63ff]"
-                      >
-                        Enroll now
-                        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-                      </button>
+                      {isIso22000TutorLedSlug(p.slug) ? (
+                        <Link
+                          href={TUTOR_LED_ISO_22000_CATALOG_HREF}
+                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-[#6f55ff] px-3 py-2.5 text-xs font-bold text-white hover:bg-[#7d63ff]"
+                        >
+                          View programs
+                          <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => enroll(p.slug)}
+                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-[#6f55ff] px-3 py-2.5 text-xs font-bold text-white hover:bg-[#7d63ff]"
+                        >
+                          Enroll now
+                          <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+                        </button>
+                      )}
                       <Link
                         href={href}
                         className="inline-flex flex-1 items-center justify-center rounded-lg border border-white/15 px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-white/5"

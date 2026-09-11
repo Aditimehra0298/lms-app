@@ -3,6 +3,7 @@ import path from "node:path";
 import { cache } from "react";
 import { sanitizeCertificateConfig } from "@/lib/course-certificate-config";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { tutorLedProgramCategory } from "@/lib/tutor-led-program-category";
 import {
   AdminContent,
   defaultAdminContent,
@@ -15,6 +16,7 @@ import {
   mergeTutorLedCatalogPageConfig,
   type AboutPageTeamLevel,
 } from "@/lib/content-schema";
+import { mergeTutorLedCatalogPages } from "@/lib/tutor-led-catalog-landings";
 import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
 import { defaultPromotions, sanitizePromotions } from "@/lib/promotions";
 
@@ -116,6 +118,7 @@ function migrateTutorLedPrograms(programs: TutorLedProgramStored[]): TutorLedPro
   return programs.map((p) => ({
     ...p,
     certificateConfig: sanitizeCertificateConfig(p.certificateConfig),
+    category: tutorLedProgramCategory(p) || p.category,
   }));
 }
 
@@ -160,6 +163,10 @@ async function readAdminContentFromDisk(): Promise<AdminContent> {
         ? migrateAboutPage({ ...defaultAboutPageConfig, ...parsed.aboutPage })
         : defaultAboutPageConfig,
       tutorLedCatalogPage: mergeTutorLedCatalogPageConfig(parsed.tutorLedCatalogPage),
+      tutorLedCatalogPages: mergeTutorLedCatalogPages(
+        parsed.tutorLedCatalogPages,
+        parsed.tutorLedCatalogPage,
+      ),
       // Empty array is valid (admin deleted every program) — do not resurrect defaults.
       tutorLedPrograms: Array.isArray(parsed.tutorLedPrograms)
         ? migrateTutorLedPrograms(parsed.tutorLedPrograms)

@@ -104,6 +104,11 @@ function pickNewer(
   return a.createdAt >= b.createdAt ? a : b;
 }
 
+function isMissingAdminSessionTable(err: unknown): boolean {
+  const e = err as { code?: string; message?: string };
+  return e.code === "P2021" || /lms_admin_active_session[\s\S]*does not exist/i.test(e.message ?? "");
+}
+
 export function readActiveAdminSessionSync(): ActiveAdminSession | null {
   try {
     const raw = readFileSync(storePath, "utf8");
@@ -134,7 +139,9 @@ async function readFromDb(): Promise<ActiveAdminSession | null> {
     }
     return session;
   } catch (err) {
-    console.error("[admin-active-session] db read failed", err);
+    if (!isMissingAdminSessionTable(err)) {
+      console.error("[admin-active-session] db read failed", err);
+    }
     return null;
   }
 }
@@ -160,7 +167,9 @@ async function writeToDb(session: ActiveAdminSession): Promise<boolean> {
     });
     return true;
   } catch (err) {
-    console.error("[admin-active-session] db write failed", err);
+    if (!isMissingAdminSessionTable(err)) {
+      console.error("[admin-active-session] db write failed", err);
+    }
     return false;
   }
 }

@@ -143,6 +143,10 @@ export function clearLearnerProfileStorage(): void {
   }
   window.localStorage.removeItem("sft_logged_in");
   window.localStorage.removeItem("sft_learner_email");
+  // Purchases must not survive logout — another account on the same browser
+  // would otherwise inherit leftover "owned" courses.
+  window.localStorage.removeItem("sft_purchased_courses");
+  window.localStorage.removeItem("sft_course_enrollments");
   // Never keep PII in cookies — wipe legacy email/role cookies.
   document.cookie = "sft_learner_email=; path=/; max-age=0; SameSite=Lax";
   document.cookie = "sft_user_role=; path=/; max-age=0; SameSite=Lax";

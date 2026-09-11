@@ -80,6 +80,8 @@ export type TutorLedProgramStored = {
   learnerSection?: TutorLedLearnerSection;
   /** `curriculum` (default) = duration & journey follow module count; `manual` = batchDetails Duration row. */
   durationSource?: "curriculum" | "manual";
+  /** Catalog category slug (e.g. food-safety) so the program appears on that category page. */
+  category?: string;
   /** Same certificate / badge / transcript uploads as self-paced courses (Admin → Certificate tab). */
   certificateConfig?: ManagedCourseCertificateConfig;
 };

@@ -140,6 +140,7 @@ function blankTutorLedTemplate(): TutorLedProgramStored {
     slug: id,
     programKind: "tutor-led",
     published: false,
+    category: "food-safety",
     title: "New live program",
     subtitle: "Live Zoom training with expert trainers.",
     breadcrumb: ["Home", "Tutor Led", "New live program"],
@@ -708,7 +709,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
             <p className="mt-1 max-w-2xl text-xs text-gray-400">
               {isWorkshopAdmin
                 ? "One-day sessions — same landing style as tutor-led. Set next batch date for learner calendar reminders after registration."
-                : "Same model as Self-paced: each program has its own public landing at /tutor-led/your-slug. Add many courses, upload hero images, edit page content, Publish."}
+                : "Each program has its own /tutor-led/slug page. Designed multi-level landings (one thumbnail each) are under Catalog landings."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
@@ -1108,6 +1109,21 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
                 />
+              </label>
+              <label className="block md:col-span-2">
+                <span className="text-[11px] text-gray-500">Category (Explore page)</span>
+                <select
+                  value={draft.category ?? ""}
+                  onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
+                >
+                  <option value="">Unlisted on category pages</option>
+                  {(content?.categories ?? []).map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {c.title}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="block md:col-span-2">
                 <span className="text-[11px] text-gray-500">Subtitle</span>

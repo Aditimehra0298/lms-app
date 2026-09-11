@@ -30,6 +30,7 @@ import { registrationPeriodFromDate } from "@/lib/registration-ids";
 import { getClientIps } from "@/lib/request-ip";
 import { ensureUserIdentificationNumber } from "@/lib/server/user-identification";
 import { queueWelcomeEmail } from "@/lib/welcome-email-service";
+import { queueAdminActivityEmail } from "@/lib/server/admin-activity-email";
 import { deriveGoogleAccountRecommendationSignals } from "@/lib/google-account-recommendation-signals";
 
 export const dynamic = "force-dynamic";
@@ -229,6 +230,18 @@ export async function POST(request: Request) {
       learnerName: profile?.name ?? name,
       method: "google",
       accountType: profile?.accountType ?? accountType,
+    });
+    queueAdminActivityEmail({
+      kind: "registration",
+      subject: `[Registration] ${email}`,
+      title: "New learner registration (Google)",
+      detail: `${profile?.name ?? name ?? email} created an account with Google Sign-In.`,
+      lines: {
+        Email: email,
+        Name: profile?.name ?? name,
+        Method: "google",
+        Account: profile?.accountType ?? accountType ?? "individual",
+      },
     });
   }
 
