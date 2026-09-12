@@ -32,6 +32,7 @@ import {
   Users,
   Video,
   Award,
+  LayoutDashboard,
   Wrench,
 } from "lucide-react";
 import AdminCourseLivePreview from "@/components/admin/AdminCourseLivePreview";
@@ -63,6 +64,7 @@ import AdminCourseCertificatePanel from "@/components/admin/AdminCourseCertifica
 import AdminImageUrlUpload from "@/components/admin/AdminImageUrlUpload";
 import AdminCoursePublishPanel from "@/components/admin/AdminCoursePublishPanel";
 import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
+import AdminSelfPacedLearnerDashboard from "@/components/admin/AdminSelfPacedLearnerDashboard";
 import AdminCourseSubscriptionPanel from "@/components/admin/AdminCourseSubscriptionPanel";
 import AdminCourseLearningToolsPanel from "@/components/admin/AdminCourseLearningToolsPanel";
 import AdminBulkFoodCoursesImport from "@/components/admin/AdminBulkFoodCoursesImport";
@@ -100,6 +102,7 @@ const PRIMARY_WORKSPACE_TABS = [
   "Learning Tools",
   "Pricing",
   "Students",
+  "Learner dashboard",
   "Certificate",
   "Publish",
 ] as const;
@@ -1383,7 +1386,8 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
   }, [editingSlug, selectedSlug, isCreating, draft.slug, draft.title]);
   const canEditCurriculum = !!selectedSlug && !isCreating && !!selectedCourse;
   const canEditPricing = isCreating || !!selectedCourse;
-  const hidePreviewForWorkspaceTab = workspaceTab === "Students";
+  const hidePreviewForWorkspaceTab =
+    workspaceTab === "Students" || workspaceTab === "Learner dashboard";
   const visiblePrimaryTabs = isLessonsMode
     ? (["Catalog", "Content"] as const satisfies readonly CourseWorkspaceTab[])
     : PRIMARY_WORKSPACE_TABS;
@@ -1483,6 +1487,11 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                     <Rocket className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     {tab}
                   </span>
+                ) : tab === "Learner dashboard" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <LayoutDashboard className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    LMS
+                  </span>
                 ) : tab === "Certificate" ? (
                   <span className="inline-flex items-center gap-1.5">
                     <Award className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -1555,13 +1564,23 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                     : ""}
                 </span>
                 {!isLessonsMode ? (
-                  <button
-                    type="button"
-                    onClick={openCreate}
-                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-violet-900/40 transition hover:from-violet-500 hover:to-indigo-500"
-                  >
-                    <Plus className="h-4 w-4" /> New course
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setWorkspaceTab("Learner dashboard")}
+                      className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/10 px-4 py-2.5 text-xs font-bold text-violet-100 hover:bg-violet-500/20"
+                    >
+                      <LayoutDashboard className="h-4 w-4" aria-hidden />
+                      LMS dashboard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openCreate}
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-violet-900/40 transition hover:from-violet-500 hover:to-indigo-500"
+                    >
+                      <Plus className="h-4 w-4" /> New course
+                    </button>
+                  </>
                 ) : null}
               </div>
             </div>
@@ -2894,6 +2913,16 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
           saving={savingCatalog}
           onSave={() => void saveCatalogDraft()}
           onGoCourseInfo={() => setWorkspaceTab("Course")}
+        />
+      ) : null}
+
+      {workspaceTab === "Learner dashboard" ? (
+        <AdminSelfPacedLearnerDashboard
+          title={draft.title?.trim() || selectedCourse?.title?.trim() || ""}
+          slug={previewSlug}
+          modules={modules}
+          learning={draft.learningSection}
+          onPickCourse={() => setWorkspaceTab("Catalog")}
         />
       ) : null}
 

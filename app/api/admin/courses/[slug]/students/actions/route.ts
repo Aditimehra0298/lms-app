@@ -80,9 +80,11 @@ export async function POST(
         where: { slug: courseSlug },
         select: { title: true },
       });
+      const content = await readAdminContent();
+      const programTitle = content.tutorLedPrograms?.find((p) => p.slug === courseSlug)?.title;
       const result = await recordPurchasesForLearner({
         learnerEmail,
-        courses: [{ slug: courseSlug, title: course?.title ?? courseSlug }],
+        courses: [{ slug: courseSlug, title: course?.title || programTitle || courseSlug }],
       });
       if (!result.ok) {
         return NextResponse.json({ ok: false, message: result.message }, { status: 400 });

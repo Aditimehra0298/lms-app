@@ -49,6 +49,9 @@ export type TutorLedHeroCourse = {
   price: number;
   originalPrice: number;
   discount: string;
+  /** When set, show this country price (from Admin → Pricing) instead of a fixed INR number. */
+  priceLabel?: string;
+  oldPriceLabel?: string;
   batchDetails: { icon: LucideIcon; label: string; value: string }[];
   seatsLeft: number;
   features: { icon: LucideIcon; title: string; desc: string }[];
@@ -293,10 +296,13 @@ export default function TutorLedCourseHero({
                 .filter((f) => !HERO_FEATURE_STRIP_SKIP.has(f.title))
                 .map((f) => f.title)
                 .slice(0, 4)}
-              priceInr={course.price}
-              oldPriceInr={course.originalPrice}
+              priceInr={course.priceLabel ? undefined : course.price}
+              oldPriceInr={course.priceLabel ? undefined : course.originalPrice}
+              priceLabel={course.priceLabel}
+              oldPriceLabel={course.oldPriceLabel}
+              exactPriceLabels={Boolean(course.priceLabel)}
               discountBadge={discountLabel}
-              fixedInrOnly
+              fixedInrOnly={!course.priceLabel}
             />
 
             <ul className="mt-4 space-y-2 border-t border-white/10 pt-4">

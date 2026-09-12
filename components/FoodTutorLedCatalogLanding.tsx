@@ -210,7 +210,8 @@ export default function FoodTutorLedCatalogLanding({ page }: Props) {
                   <span className="rounded-md border border-white/10 px-2 py-1">{program.modeLabel}</span>
                   <span className="rounded-md border border-white/10 px-2 py-1">{program.certificateLabel}</span>
                 </div>
-                <p className={`mt-5 text-2xl font-extrabold ${theme.price}`}>{inr(program.price)}</p>
+                <p className="mt-4 text-[11px] font-medium text-amber-200/90">Own Zoom class &amp; batch</p>
+                <p className={`mt-2 text-2xl font-extrabold ${theme.price}`}>{inr(program.price)}</p>
                 <p className="text-[11px] text-zinc-500">(Incl. of taxes)</p>
                 <EnrollButton
                   slug={slug}

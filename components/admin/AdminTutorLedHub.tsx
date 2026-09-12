@@ -20,8 +20,8 @@ export default function AdminTutorLedHub() {
         value={view}
         onChange={(id) => setView(id as "programs" | "catalog")}
         options={[
+          { id: "catalog", label: "Course steps" },
           { id: "programs", label: "Live programs" },
-          { id: "catalog", label: "Catalog landings" },
         ]}
       />
       {view === "catalog" ? <AdminTutorLedCatalogLandingsWorkspace /> : <AdminTutorLedWorkspace />}

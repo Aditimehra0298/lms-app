@@ -7,7 +7,7 @@ import {
   isAdminSessionSidActiveSync,
   writeActiveAdminSession,
 } from "@/lib/server/admin-active-session";
-import { sharedAuthCookieDomain } from "@/lib/server/auth-cookie-domain";
+import { cookieScopeFromRequest, type CookieRequestScope } from "@/lib/server/cookie-request-scope";
 import { isSameSiteOrigin } from "@/lib/server/csrf-origin";
 
 /**
@@ -178,12 +178,13 @@ export function verifyAdminSessionToken(token: string | undefined | null): strin
   return verifyAdminSessionClaims(token)?.email ?? null;
 }
 
-function cookieSecure(): boolean {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
-  return appUrl.startsWith("https://") || process.env.NODE_ENV === "production";
-}
-
-function cookieBase(name: string, value: string, maxAge: number, httpOnly: boolean): string {
+function cookieBase(
+  name: string,
+  value: string,
+  maxAge: number,
+  httpOnly: boolean,
+  scope: CookieRequestScope,
+): string {
   const parts = [
     `${name}=${value}`,
     "Path=/",
@@ -191,34 +192,33 @@ function cookieBase(name: string, value: string, maxAge: number, httpOnly: boole
     `Max-Age=${maxAge}`,
   ];
   if (httpOnly) parts.splice(2, 0, "HttpOnly");
-  const domain = sharedAuthCookieDomain();
-  if (domain) parts.push(`Domain=${domain}`);
-  if (cookieSecure()) parts.push("Secure");
+  if (scope.domain) parts.push(`Domain=${scope.domain}`);
+  if (scope.secure) parts.push("Secure");
   return parts.join("; ");
 }
 
-export function adminSessionCookieHeader(token: string): string {
-  return cookieBase(ADMIN_SESSION_COOKIE, token, DEFAULT_TTL_SECONDS, true);
+export function adminSessionCookieHeader(token: string, request?: Request): string {
+  return cookieBase(ADMIN_SESSION_COOKIE, token, DEFAULT_TTL_SECONDS, true, cookieScopeFromRequest(request));
 }
 
-export function adminCsrfCookieHeader(csrf: string): string {
-  return cookieBase(ADMIN_CSRF_COOKIE, csrf, DEFAULT_TTL_SECONDS, false);
+export function adminCsrfCookieHeader(csrf: string, request?: Request): string {
+  return cookieBase(ADMIN_CSRF_COOKIE, csrf, DEFAULT_TTL_SECONDS, false, cookieScopeFromRequest(request));
 }
 
-export function adminXsrfCookieHeader(xsrf: string): string {
-  return cookieBase(ADMIN_XSRF_COOKIE, xsrf, DEFAULT_TTL_SECONDS, false);
+export function adminXsrfCookieHeader(xsrf: string, request?: Request): string {
+  return cookieBase(ADMIN_XSRF_COOKIE, xsrf, DEFAULT_TTL_SECONDS, false, cookieScopeFromRequest(request));
 }
 
-export function clearAdminSessionCookieHeader(): string {
-  return cookieBase(ADMIN_SESSION_COOKIE, "", 0, true);
+export function clearAdminSessionCookieHeader(request?: Request): string {
+  return cookieBase(ADMIN_SESSION_COOKIE, "", 0, true, cookieScopeFromRequest(request));
 }
 
-export function clearAdminCsrfCookieHeader(): string {
-  return cookieBase(ADMIN_CSRF_COOKIE, "", 0, false);
+export function clearAdminCsrfCookieHeader(request?: Request): string {
+  return cookieBase(ADMIN_CSRF_COOKIE, "", 0, false, cookieScopeFromRequest(request));
 }
 
-export function clearAdminXsrfCookieHeader(): string {
-  return cookieBase(ADMIN_XSRF_COOKIE, "", 0, false);
+export function clearAdminXsrfCookieHeader(request?: Request): string {
+  return cookieBase(ADMIN_XSRF_COOKIE, "", 0, false, cookieScopeFromRequest(request));
 }
 
 export function readAdminSessionCookie(request: Request): string | null {
@@ -316,6 +316,7 @@ export function assertAdminCsrf(request: Request, claims: AdminSessionClaims): s
 export async function attachAdminSession(
   response: NextResponse,
   email: string,
+  request?: Request,
 ): Promise<NextResponse> {
   const { token, csrf, xsrf, exp, sid } = createAdminSessionToken(email);
   await writeActiveAdminSession({
@@ -324,9 +325,9 @@ export async function attachAdminSession(
     createdAt: Math.floor(Date.now() / 1000),
     exp,
   });
-  response.headers.append("Set-Cookie", adminSessionCookieHeader(token));
-  response.headers.append("Set-Cookie", adminCsrfCookieHeader(csrf));
-  response.headers.append("Set-Cookie", adminXsrfCookieHeader(xsrf));
+  response.headers.append("Set-Cookie", adminSessionCookieHeader(token, request));
+  response.headers.append("Set-Cookie", adminCsrfCookieHeader(csrf, request));
+  response.headers.append("Set-Cookie", adminXsrfCookieHeader(xsrf, request));
   response.headers.set("X-Admin-CSRF", csrf);
   response.headers.set("X-Admin-XSRF", xsrf);
   return response;
@@ -342,8 +343,8 @@ export async function clearAdminSession(
   } else {
     await clearActiveAdminSession();
   }
-  response.headers.append("Set-Cookie", clearAdminSessionCookieHeader());
-  response.headers.append("Set-Cookie", clearAdminCsrfCookieHeader());
-  response.headers.append("Set-Cookie", clearAdminXsrfCookieHeader());
+  response.headers.append("Set-Cookie", clearAdminSessionCookieHeader(request));
+  response.headers.append("Set-Cookie", clearAdminCsrfCookieHeader(request));
+  response.headers.append("Set-Cookie", clearAdminXsrfCookieHeader(request));
   return response;
 }

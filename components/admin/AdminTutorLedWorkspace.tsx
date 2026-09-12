@@ -22,6 +22,7 @@ import {
   LayoutDashboard,
   Award,
   Users,
+  ClipboardList,
 } from "lucide-react";
 import { AdminModeToggle } from "@/components/admin/AdminModeToggle";
 import { AdminProgramCertificateAssetsEditor } from "@/components/admin/AdminProgramCertificateAssetsEditor";
@@ -29,6 +30,8 @@ import { AdminTutorLedCurriculumEditor } from "@/components/admin/AdminTutorLedC
 import { AdminTutorLedLearnerDashboardEditor } from "@/components/admin/AdminTutorLedLearnerDashboardEditor";
 import { AdminTutorLedMediaPanel } from "@/components/admin/AdminTutorLedMediaPanel";
 import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
+import { AdminTutorLedFinalAssessmentPanel } from "@/components/admin/AdminTutorLedFinalAssessmentPanel";
+import { AdminTutorLedPricingPanel } from "@/components/admin/AdminTutorLedPricingPanel";
 import { patchProgramCertificateConfig, sanitizeCertificateConfig } from "@/lib/course-certificate-config";
 import { getCertificateUploadStatus } from "@/lib/certificate-admin-status";
 import type { AdminContent } from "@/lib/content-schema";
@@ -68,6 +71,7 @@ type EditorTab =
   | "basics"
   | "zoom"
   | "pricing"
+  | "assessment"
   | "media"
   | "trainer"
   | "curriculum"
@@ -81,26 +85,22 @@ type ListFilter = "all" | "published" | "draft";
 
 const EDITOR_TABS: { id: EditorTab; label: string; icon: typeof BookOpen }[] = [
   { id: "basics", label: "Basics", icon: BookOpen },
-  { id: "zoom", label: "Zoom & live", icon: Video },
   { id: "pricing", label: "Pricing", icon: IndianRupee },
+  { id: "assessment", label: "Final assessment", icon: ClipboardList },
+  { id: "students", label: "Students", icon: Users },
+  { id: "zoom", label: "Zoom & live", icon: Video },
+  { id: "curriculum", label: "Curriculum & days", icon: CalendarDays },
+  { id: "certificate", label: "Certificate", icon: Award },
   { id: "media", label: "Landing images", icon: ImageIcon },
   { id: "trainer", label: "Trainer", icon: User },
-  { id: "curriculum", label: "Curriculum & days", icon: CalendarDays },
   { id: "marketing", label: "Landing content", icon: FileText },
   { id: "downloads", label: "Downloads", icon: Upload },
   { id: "learner", label: "Learner dashboard", icon: LayoutDashboard },
-  { id: "students", label: "Students & certs", icon: Users },
-  { id: "certificate", label: "Certificate", icon: Award },
   { id: "faqs", label: "FAQs", icon: HelpCircle },
 ];
 
 function materialCount(p: TutorLedProgramStored) {
   return (p.learningMaterials ?? []).filter((m) => m.downloadUrl?.trim()).length;
-}
-
-function discountLabel(sale: number, list: number): string {
-  if (list <= 0 || sale >= list) return "";
-  return `${Math.round((1 - sale / list) * 100)}% OFF`;
 }
 
 function programLandingPath(slug: string, isWorkshop: boolean): string {
@@ -530,18 +530,6 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
     }
   };
 
-  const patchPrices = (patch: Partial<Pick<TutorLedProgramStored, "price" | "originalPrice" | "priceAfterPayment">>) => {
-    if (!draft) return;
-    const price = patch.price ?? draft.price;
-    const originalPrice = patch.originalPrice ?? draft.originalPrice;
-    const next: TutorLedProgramStored = {
-      ...draft,
-      ...patch,
-      discount: discountLabel(price, originalPrice) || draft.discount,
-    };
-    setDraft(next);
-  };
-
   const saveDraft = async () => {
     if (!draft || !content) return;
     const slug = slugify(draft.slug || draft.title);
@@ -913,7 +901,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                 {isWorkshopAdmin ? "Select a workshop to edit" : "Select a live course to edit its landing"}
               </p>
               <p className="mt-1 max-w-sm text-xs text-gray-500">
-                Like Self-paced: each course has Basics, Landing images, Landing content, Zoom, Pricing, and more.
+                Like self-paced: set country prices, the final assessment, and student enrollment on each program.
                 Click{" "}
                 <strong className="text-gray-400">
                   {isWorkshopAdmin ? "New workshop" : "New live program"}
@@ -1272,66 +1260,10 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
             </div>
             </div>
             <div className={activeTab === "pricing" ? "space-y-4" : "hidden"}>
-            <h3 className="text-xs font-semibold text-violet-200">Pricing — before payment (checkout page)</h3>
-            <p className="text-[10px] text-gray-600">
-              Shown on <span className="text-gray-400">/tutor-led/your-slug</span> with strikethrough list price.
-            </p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="block">
-                <span className="text-[11px] text-gray-500">Sale price (₹)</span>
-                <input
-                  type="number"
-                  value={draft.price}
-                  onChange={(e) => patchPrices({ price: Number(e.target.value) || 0 })}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[11px] text-gray-500">List price (₹, strikethrough)</span>
-                <input
-                  type="number"
-                  value={draft.originalPrice}
-                  onChange={(e) => patchPrices({ originalPrice: Number(e.target.value) || 0 })}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                />
-              </label>
-              <label className="block md:col-span-2">
-                <span className="text-[11px] text-gray-500">Discount badge</span>
-                <input
-                  value={draft.discount}
-                  onChange={(e) => setDraft({ ...draft, discount: e.target.value })}
-                  placeholder={discountLabel(draft.price, draft.originalPrice) || "31% OFF"}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-                />
-              </label>
-              <div className="md:col-span-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-100/90">
-                Preview:{" "}
-                <strong className="text-white">₹{draft.price.toLocaleString("en-IN")}</strong>{" "}
-                <span className="text-gray-500 line-through">₹{draft.originalPrice.toLocaleString("en-IN")}</span>{" "}
-                {draft.discount ? (
-                  <span className="text-amber-200">{draft.discount}</span>
-                ) : null}
-              </div>
+              <AdminTutorLedPricingPanel draft={draft} setDraft={setDraft} />
             </div>
-
-            <h3 className="border-t border-white/10 pt-3 text-xs font-semibold text-violet-200">
-              Pricing — after payment (My Learning)
-            </h3>
-            <p className="text-[10px] text-gray-600">Shown on the enrolled learner dashboard (no strikethrough).</p>
-            <label className="block md:col-span-2">
-              <span className="text-[11px] text-gray-500">Enrolled price (₹)</span>
-              <input
-                type="number"
-                value={draft.priceAfterPayment ?? draft.price}
-                onChange={(e) =>
-                  setDraft({ ...draft, priceAfterPayment: Number(e.target.value) || 0 })
-                }
-                className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
-              />
-              <p className="mt-1 text-[10px] text-gray-600">
-                Preview: Enrolled · ₹{(draft.priceAfterPayment ?? draft.price).toLocaleString("en-IN")}
-              </p>
-            </label>
+            <div className={activeTab === "assessment" ? "space-y-4" : "hidden"}>
+              <AdminTutorLedFinalAssessmentPanel draft={draft} setDraft={setDraft} />
             </div>
             <div className={activeTab === "zoom" ? "space-y-4" : "hidden"} id="zoom-editor-panel">
             <h3 className="text-xs font-semibold text-sky-300">Zoom — live meeting link</h3>
@@ -1920,19 +1852,12 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
               />
             </div>
             <div className={activeTab === "students" ? "space-y-4" : "hidden"}>
-              <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100/90">
-                Students enrolled in this program/batch. Certificates are generated for this slug (
-                <code className="text-amber-200">{draft.slug}</code>
-                ). Set Zoom under <strong className="text-white">Zoom &amp; live</strong> — it appears on each
-                learner&apos;s dashboard after purchase.
-              </p>
               <AdminCourseStudentsPanel
-                embedded
                 courseTitle={draft.title || draft.slug}
                 workspaceCourseSlug={draft.slug}
                 canEdit
                 onGoCourseInfo={() => setActiveTab("basics")}
-                batchContext={`Batch: ${draft.batchLabel || "—"} · Next date: ${draft.nextBatchDate || "TBA"} · Use Manual pass to issue the certificate for this batch.`}
+                batchContext={`${isWorkshopAdmin ? "Workshop" : "Tutor-led"} · ${draft.slug} · ${draft.nextBatchDate || "set next batch date"} · ${draft.seatsLeft} seats left. Add a learner here the same way as a self-paced course — they appear in My Learning for this program.`}
               />
             </div>
             <div className={activeTab === "certificate" ? "space-y-4" : "hidden"}>

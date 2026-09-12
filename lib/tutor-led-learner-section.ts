@@ -65,6 +65,8 @@ export type TutorLedLearnerSection = {
   examQuestions?: number;
   examMinutes?: number;
   examPassingScore?: number;
+  /** When false, the final assessment has no timer. Defaults to timed. */
+  examTimed?: boolean;
   /** CSV exam file for the final assessment (Admin upload URL). */
   examUploadUrl?: string;
   reviewRating?: number;
@@ -184,6 +186,8 @@ export const DEFAULT_TUTOR_LED_LEARNER_SECTION: ResolvedTutorLedLearnerSection =
   examQuestions: 50,
   examMinutes: 60,
   examPassingScore: 70,
+  examTimed: true,
+  examUploadUrl: "",
   reviewRating: 4.9,
   reviewCount: 125,
   forumPosts: DEFAULT_FORUM,

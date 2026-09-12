@@ -2325,10 +2325,10 @@
       "certificateConfig": {
         "enabled": true,
         "provider": "n8n",
-        "badgeImage": "/badges/cybersecurity-certified.png",
+        "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false,
-        "showInLearnerDashboard": true
+        "badgeImage": "/badges/cybersecurity-certified.png"
       },
       "trainerWorkedWith": [],
       "trainerCertifications": []
@@ -5425,11 +5425,12 @@
         "showInLearnerDashboard": true,
         "autoVisibleWhenReady": true,
         "requireAdminApproval": false,
-        "title": "Certificate of Attainment",
-        "n8nCertificateTemplateName": "Cybersecurity, Ethical Hacking & Penetration Testing Professional Course"
+        "n8nCertificateTemplateName": "Cybersecurity, Ethical Hacking & Penetration Testing Professional Course",
+        "title": "Certificate of Attainment"
       }
     }
   ],
+  "deletedCourseSlugs": [],
   "categories": [
     {
       "slug": "food-safety",
@@ -6136,6 +6137,568 @@
       "buttonText": "Explore Courses"
     }
   },
+  "tutorLedCatalogPages": [
+    {
+      "slug": "iso-22000",
+      "category": "food-safety",
+      "published": true,
+      "cardTitle": "ISO 22000:2018 Training Programs",
+      "page": {
+        "pageThumbnail": "/tutor-led-iso-hero.png",
+        "hero": {
+          "eyebrow": "Food Safety · Global Careers · Brighter Future",
+          "heading": "ISO 22000:2018",
+          "headingHighlight": "Training Programs",
+          "subtitle": "Build your expertise in Food Safety Management Systems with industry-led training programs designed for real-world application, live coaching, and globally recognized certification.",
+          "ctaText": "Explore Training Programs",
+          "ctaHref": "#food-tutor-led-programs",
+          "chips": [
+            {
+              "icon": "Video",
+              "label": "Live Interactive Sessions"
+            },
+            {
+              "icon": "Mic2",
+              "label": "Expert Industry Trainers"
+            },
+            {
+              "icon": "ClipboardCheck",
+              "label": "Real-World Case Studies"
+            },
+            {
+              "icon": "Award",
+              "label": "Globally Recognized Certification"
+            }
+          ],
+          "asideQuote": "Better Food, Safer People, Sustainable Tomorrow.",
+          "certCardTitle": "Get Certified",
+          "certCardSubtitle": "Build Your Career. Make an Impact.",
+          "certCardQuote": "“Food safety is everyone’s business.”",
+          "certCardAttribution": "— A Safer World Starts with You",
+          "backgroundImage": "/tutor-led-iso-hero.png",
+          "backgroundAlt": "Food safety professional inspecting produce with a tablet"
+        },
+        "programsSection": {
+          "title": "Choose Your ISO 22000:2018 Training Level",
+          "subtitle": "Four specialized live online programs — from fundamentals to leading audit teams. Same standard, different goals, a brighter tomorrow."
+        },
+        "programs": [
+          {
+            "id": "basic",
+            "title": "Basic (Foundation)",
+            "tagline": "Learn Food Safety Fundamentals",
+            "bullets": [
+              "Understand key concepts of ISO 22000:2018",
+              "Industry overview & food safety principles",
+              "Core FSMS requirements explained simply",
+              "Certificate of completion included"
+            ],
+            "price": 9999,
+            "theme": "emerald",
+            "icon": "ShieldCheck",
+            "thumbnail": "/tutor-led-iso-hero.png",
+            "enrollSlug": "iso-22000-basic",
+            "matchPattern": "basic|foundation",
+            "durationLabel": "Duration: 5 Days",
+            "modeLabel": "Mode: Live Online",
+            "certificateLabel": "Certificate Included"
+          },
+          {
+            "id": "implementation",
+            "title": "Implementation",
+            "tagline": "Implement Food Safety Systems",
+            "bullets": [
+              "Implementation methodology step-by-step",
+              "Documentation & procedure writing",
+              "Risk assessment & hazard control",
+              "Practical implementation workshops"
+            ],
+            "price": 14999,
+            "theme": "sky",
+            "icon": "FileText",
+            "thumbnail": "/tutor-led-iso-hero.png",
+            "enrollSlug": "iso-22000-implementation",
+            "matchPattern": "implementation",
+            "durationLabel": "Duration: 5 Days",
+            "modeLabel": "Mode: Live Online",
+            "certificateLabel": "Certificate Included"
+          },
+          {
+            "id": "internal-auditor",
+            "title": "Internal Auditor",
+            "tagline": "Conduct Internal Audits",
+            "bullets": [
+              "Audit planning & checklist preparation",
+              "Non-conformity identification & reporting",
+              "Interview & evidence techniques",
+              "Practical internal audit exercises"
+            ],
+            "price": 19999,
+            "theme": "violet",
+            "icon": "Search",
+            "thumbnail": "/tutor-led-iso-hero.png",
+            "enrollSlug": "iso-22000-internal-auditor",
+            "matchPattern": "internal\\s*auditor",
+            "durationLabel": "Duration: 5 Days",
+            "modeLabel": "Mode: Live Online",
+            "certificateLabel": "Certificate Included"
+          },
+          {
+            "id": "lead-auditor",
+            "title": "Lead Auditor",
+            "tagline": "Lead Audit Teams",
+            "bullets": [
+              "Lead audit teams with confidence",
+              "Advanced audit techniques & reporting",
+              "Regulatory & certification perspectives",
+              "Lead Auditor certification pathway"
+            ],
+            "price": 29999,
+            "popular": true,
+            "theme": "gold",
+            "icon": "Trophy",
+            "thumbnail": "/tutor-led-iso-hero.png",
+            "enrollSlug": "iso-22000-lead-auditor",
+            "matchPattern": "lead\\s*auditor|iso-22000-lead",
+            "durationLabel": "Duration: 5 Days",
+            "modeLabel": "Mode: Live Online",
+            "certificateLabel": "Certificate Included"
+          }
+        ],
+        "why": {
+          "eyebrow": "Why Train With Us",
+          "titleLine1": "More Than Just Training",
+          "titleLine2": "A Brighter, Safer Future",
+          "items": [
+            {
+              "icon": "Video",
+              "title": "Live Instructor-Led Sessions",
+              "desc": "Interact, ask questions and learn in real-time."
+            },
+            {
+              "icon": "Mic2",
+              "title": "Expert Trainers",
+              "desc": "Learn from industry professionals."
+            },
+            {
+              "icon": "ClipboardCheck",
+              "title": "Practical Case Studies",
+              "desc": "Real-world scenarios and exercises."
+            },
+            {
+              "icon": "Award",
+              "title": "Globally Recognized Certificate",
+              "desc": "Boost your career globally."
+            },
+            {
+              "icon": "Headphones",
+              "title": "Post-Training Support",
+              "desc": "Continued guidance even after course completion."
+            }
+          ]
+        },
+        "audience": {
+          "eyebrow": "Who Should Attend",
+          "title": "Designed for a Wide Range of Professionals",
+          "subtitle": "Our ISO 22000:2018 training programs are ideal for:",
+          "items": [
+            {
+              "icon": "Building2",
+              "label": "Food Industry Professionals"
+            },
+            {
+              "icon": "ShieldCheck",
+              "label": "Quality & Food Safety Managers"
+            },
+            {
+              "icon": "ClipboardCheck",
+              "label": "Internal Auditors"
+            },
+            {
+              "icon": "Briefcase",
+              "label": "Consultants"
+            },
+            {
+              "icon": "GraduationCap",
+              "label": "Students & Fresh Graduates"
+            },
+            {
+              "icon": "Users",
+              "label": "Regulatory Professionals"
+            },
+            {
+              "icon": "BookOpen",
+              "label": "Anyone Interested in Food Safety"
+            }
+          ],
+          "investTitle": "Invest in Knowledge.\nInvest in a Safer Tomorrow.",
+          "investBody": "Be part of a global movement towards safer food, healthier communities and a sustainable future.",
+          "investImage": "/tutor-led-invest-knowledge.png",
+          "investImageAlt": "Seedling growing from the Earth"
+        },
+        "batches": {
+          "eyebrow": "Upcoming Batches",
+          "viewAllLabel": "View All Batches →",
+          "viewAllHref": "#food-tutor-led-programs",
+          "rows": [
+            {
+              "date": "11 Sept 2026",
+              "time": "10:00 AM – 5:00 PM",
+              "programId": "lead-auditor",
+              "programLabel": "Lead Auditor",
+              "seats": 13
+            },
+            {
+              "date": "25 Sept 2026",
+              "time": "10:00 AM – 5:00 PM",
+              "programId": "internal-auditor",
+              "programLabel": "Internal Auditor",
+              "seats": 18
+            },
+            {
+              "date": "12 Oct 2026",
+              "time": "10:00 AM – 5:00 PM",
+              "programId": "implementation",
+              "programLabel": "Implementation",
+              "seats": 22
+            },
+            {
+              "date": "28 Oct 2026",
+              "time": "10:00 AM – 5:00 PM",
+              "programId": "basic",
+              "programLabel": "Basic",
+              "seats": 25
+            }
+          ]
+        },
+        "trainer": {
+          "eyebrow": "Meet Our Expert Trainer",
+          "viewAllLabel": "View All Trainers →",
+          "viewAllHref": "/about",
+          "name": "Mr. Rajesh Kumar",
+          "role": "Food Safety Expert",
+          "experience": "15+ Years Experience",
+          "bio": "Seasoned food safety professional with 15+ years of experience in ISO 22000 implementation, HACCP, FSSC frameworks, and audit leadership. Rajesh has trained quality teams and auditors across manufacturing and food service to build audit-ready systems.",
+          "photo": "/tutor-led-rajesh-kumar.png",
+          "photoAlt": "Mr. Rajesh Kumar"
+        },
+        "faqsSection": {
+          "eyebrow": "Frequently Asked Questions",
+          "viewAllLabel": "View All FAQs →",
+          "viewAllHref": "#food-tutor-led-programs"
+        },
+        "faqs": [
+          {
+            "q": "What is ISO 22000:2018?",
+            "a": "ISO 22000:2018 is the international standard for Food Safety Management Systems (FSMS). It helps organizations identify, control, and manage food safety hazards across the food chain."
+          },
+          {
+            "q": "Are the sessions live or recorded?",
+            "a": "All sessions are live and interactive on Zoom. Recordings are shared afterward so you can revise at your own pace."
+          },
+          {
+            "q": "Will I get a certificate?",
+            "a": "Yes. On successful completion you receive a verifiable Certificate of Attainment from Sustainable Futuristic Trainings."
+          },
+          {
+            "q": "Who should join these programs?",
+            "a": "Food industry professionals, quality managers, auditors, consultants, students, and anyone building a career in food safety."
+          },
+          {
+            "q": "What is the duration of each program?",
+            "a": "Each ISO 22000:2018 level is delivered as a 5-day live online program (timings shown in Upcoming Batches)."
+          },
+          {
+            "q": "Can my company enroll a team?",
+            "a": "Yes. Contact us for corporate cohorts and group pricing — we run dedicated batches for organizations."
+          }
+        ],
+        "cta": {
+          "heading": "Take the Next Step in Your Food Safety Career",
+          "description": "Choose your training program today and be part of a safer, more sustainable food future.",
+          "buttonText": "View All Training Programs",
+          "buttonHref": "#food-tutor-led-programs"
+        }
+      }
+    }
+  ],
+  "tutorLedCatalogPage": {
+    "pageThumbnail": "/tutor-led-iso-hero.png",
+    "hero": {
+      "eyebrow": "Food Safety · Global Careers · Brighter Future",
+      "heading": "ISO 22000:2018",
+      "headingHighlight": "Training Programs",
+      "subtitle": "Build your expertise in Food Safety Management Systems with industry-led training programs designed for real-world application, live coaching, and globally recognized certification.",
+      "ctaText": "Explore Training Programs",
+      "ctaHref": "#food-tutor-led-programs",
+      "chips": [
+        {
+          "icon": "Video",
+          "label": "Live Interactive Sessions"
+        },
+        {
+          "icon": "Mic2",
+          "label": "Expert Industry Trainers"
+        },
+        {
+          "icon": "ClipboardCheck",
+          "label": "Real-World Case Studies"
+        },
+        {
+          "icon": "Award",
+          "label": "Globally Recognized Certification"
+        }
+      ],
+      "asideQuote": "Better Food, Safer People, Sustainable Tomorrow.",
+      "certCardTitle": "Get Certified",
+      "certCardSubtitle": "Build Your Career. Make an Impact.",
+      "certCardQuote": "“Food safety is everyone’s business.”",
+      "certCardAttribution": "— A Safer World Starts with You",
+      "backgroundImage": "/tutor-led-iso-hero.png",
+      "backgroundAlt": "Food safety professional inspecting produce with a tablet"
+    },
+    "programsSection": {
+      "title": "Choose Your ISO 22000:2018 Training Level",
+      "subtitle": "Four specialized live online programs — from fundamentals to leading audit teams. Same standard, different goals, a brighter tomorrow."
+    },
+    "programs": [
+      {
+        "id": "basic",
+        "title": "Basic (Foundation)",
+        "tagline": "Learn Food Safety Fundamentals",
+        "bullets": [
+          "Understand key concepts of ISO 22000:2018",
+          "Industry overview & food safety principles",
+          "Core FSMS requirements explained simply",
+          "Certificate of completion included"
+        ],
+        "price": 9999,
+        "theme": "emerald",
+        "icon": "ShieldCheck",
+        "thumbnail": "/tutor-led-iso-hero.png",
+        "enrollSlug": "iso-22000-basic",
+        "matchPattern": "basic|foundation",
+        "durationLabel": "Duration: 5 Days",
+        "modeLabel": "Mode: Live Online",
+        "certificateLabel": "Certificate Included"
+      },
+      {
+        "id": "implementation",
+        "title": "Implementation",
+        "tagline": "Implement Food Safety Systems",
+        "bullets": [
+          "Implementation methodology step-by-step",
+          "Documentation & procedure writing",
+          "Risk assessment & hazard control",
+          "Practical implementation workshops"
+        ],
+        "price": 14999,
+        "theme": "sky",
+        "icon": "FileText",
+        "thumbnail": "/tutor-led-iso-hero.png",
+        "enrollSlug": "iso-22000-implementation",
+        "matchPattern": "implementation",
+        "durationLabel": "Duration: 5 Days",
+        "modeLabel": "Mode: Live Online",
+        "certificateLabel": "Certificate Included"
+      },
+      {
+        "id": "internal-auditor",
+        "title": "Internal Auditor",
+        "tagline": "Conduct Internal Audits",
+        "bullets": [
+          "Audit planning & checklist preparation",
+          "Non-conformity identification & reporting",
+          "Interview & evidence techniques",
+          "Practical internal audit exercises"
+        ],
+        "price": 19999,
+        "theme": "violet",
+        "icon": "Search",
+        "thumbnail": "/tutor-led-iso-hero.png",
+        "enrollSlug": "iso-22000-internal-auditor",
+        "matchPattern": "internal\\s*auditor",
+        "durationLabel": "Duration: 5 Days",
+        "modeLabel": "Mode: Live Online",
+        "certificateLabel": "Certificate Included"
+      },
+      {
+        "id": "lead-auditor",
+        "title": "Lead Auditor",
+        "tagline": "Lead Audit Teams",
+        "bullets": [
+          "Lead audit teams with confidence",
+          "Advanced audit techniques & reporting",
+          "Regulatory & certification perspectives",
+          "Lead Auditor certification pathway"
+        ],
+        "price": 29999,
+        "popular": true,
+        "theme": "gold",
+        "icon": "Trophy",
+        "thumbnail": "/tutor-led-iso-hero.png",
+        "enrollSlug": "iso-22000-lead-auditor",
+        "matchPattern": "lead\\s*auditor|iso-22000-lead",
+        "durationLabel": "Duration: 5 Days",
+        "modeLabel": "Mode: Live Online",
+        "certificateLabel": "Certificate Included"
+      }
+    ],
+    "why": {
+      "eyebrow": "Why Train With Us",
+      "titleLine1": "More Than Just Training",
+      "titleLine2": "A Brighter, Safer Future",
+      "items": [
+        {
+          "icon": "Video",
+          "title": "Live Instructor-Led Sessions",
+          "desc": "Interact, ask questions and learn in real-time."
+        },
+        {
+          "icon": "Mic2",
+          "title": "Expert Trainers",
+          "desc": "Learn from industry professionals."
+        },
+        {
+          "icon": "ClipboardCheck",
+          "title": "Practical Case Studies",
+          "desc": "Real-world scenarios and exercises."
+        },
+        {
+          "icon": "Award",
+          "title": "Globally Recognized Certificate",
+          "desc": "Boost your career globally."
+        },
+        {
+          "icon": "Headphones",
+          "title": "Post-Training Support",
+          "desc": "Continued guidance even after course completion."
+        }
+      ]
+    },
+    "audience": {
+      "eyebrow": "Who Should Attend",
+      "title": "Designed for a Wide Range of Professionals",
+      "subtitle": "Our ISO 22000:2018 training programs are ideal for:",
+      "items": [
+        {
+          "icon": "Building2",
+          "label": "Food Industry Professionals"
+        },
+        {
+          "icon": "ShieldCheck",
+          "label": "Quality & Food Safety Managers"
+        },
+        {
+          "icon": "ClipboardCheck",
+          "label": "Internal Auditors"
+        },
+        {
+          "icon": "Briefcase",
+          "label": "Consultants"
+        },
+        {
+          "icon": "GraduationCap",
+          "label": "Students & Fresh Graduates"
+        },
+        {
+          "icon": "Users",
+          "label": "Regulatory Professionals"
+        },
+        {
+          "icon": "BookOpen",
+          "label": "Anyone Interested in Food Safety"
+        }
+      ],
+      "investTitle": "Invest in Knowledge.\nInvest in a Safer Tomorrow.",
+      "investBody": "Be part of a global movement towards safer food, healthier communities and a sustainable future.",
+      "investImage": "/tutor-led-invest-knowledge.png",
+      "investImageAlt": "Seedling growing from the Earth"
+    },
+    "batches": {
+      "eyebrow": "Upcoming Batches",
+      "viewAllLabel": "View All Batches →",
+      "viewAllHref": "#food-tutor-led-programs",
+      "rows": [
+        {
+          "date": "11 Sept 2026",
+          "time": "10:00 AM – 5:00 PM",
+          "programId": "lead-auditor",
+          "programLabel": "Lead Auditor",
+          "seats": 13
+        },
+        {
+          "date": "25 Sept 2026",
+          "time": "10:00 AM – 5:00 PM",
+          "programId": "internal-auditor",
+          "programLabel": "Internal Auditor",
+          "seats": 18
+        },
+        {
+          "date": "12 Oct 2026",
+          "time": "10:00 AM – 5:00 PM",
+          "programId": "implementation",
+          "programLabel": "Implementation",
+          "seats": 22
+        },
+        {
+          "date": "28 Oct 2026",
+          "time": "10:00 AM – 5:00 PM",
+          "programId": "basic",
+          "programLabel": "Basic",
+          "seats": 25
+        }
+      ]
+    },
+    "trainer": {
+      "eyebrow": "Meet Our Expert Trainer",
+      "viewAllLabel": "View All Trainers →",
+      "viewAllHref": "/about",
+      "name": "Mr. Rajesh Kumar",
+      "role": "Food Safety Expert",
+      "experience": "15+ Years Experience",
+      "bio": "Seasoned food safety professional with 15+ years of experience in ISO 22000 implementation, HACCP, FSSC frameworks, and audit leadership. Rajesh has trained quality teams and auditors across manufacturing and food service to build audit-ready systems.",
+      "photo": "/tutor-led-rajesh-kumar.png",
+      "photoAlt": "Mr. Rajesh Kumar"
+    },
+    "faqsSection": {
+      "eyebrow": "Frequently Asked Questions",
+      "viewAllLabel": "View All FAQs →",
+      "viewAllHref": "#food-tutor-led-programs"
+    },
+    "faqs": [
+      {
+        "q": "What is ISO 22000:2018?",
+        "a": "ISO 22000:2018 is the international standard for Food Safety Management Systems (FSMS). It helps organizations identify, control, and manage food safety hazards across the food chain."
+      },
+      {
+        "q": "Are the sessions live or recorded?",
+        "a": "All sessions are live and interactive on Zoom. Recordings are shared afterward so you can revise at your own pace."
+      },
+      {
+        "q": "Will I get a certificate?",
+        "a": "Yes. On successful completion you receive a verifiable Certificate of Attainment from Sustainable Futuristic Trainings."
+      },
+      {
+        "q": "Who should join these programs?",
+        "a": "Food industry professionals, quality managers, auditors, consultants, students, and anyone building a career in food safety."
+      },
+      {
+        "q": "What is the duration of each program?",
+        "a": "Each ISO 22000:2018 level is delivered as a 5-day live online program (timings shown in Upcoming Batches)."
+      },
+      {
+        "q": "Can my company enroll a team?",
+        "a": "Yes. Contact us for corporate cohorts and group pricing — we run dedicated batches for organizations."
+      }
+    ],
+    "cta": {
+      "heading": "Take the Next Step in Your Food Safety Career",
+      "description": "Choose your training program today and be part of a safer, more sustainable food future.",
+      "buttonText": "View All Training Programs",
+      "buttonHref": "#food-tutor-led-programs"
+    }
+  },
   "tutorLedPrograms": [
     {
       "slug": "advanced-cyber-security-professional",
@@ -6352,7 +6915,576 @@
       "learnerHeroSrc": "/h2.png",
       "learnerHeroAlt": "Your live cohort dashboard",
       "priceAfterPayment": 12999,
-      "learningMaterials": []
+      "learningMaterials": [],
+      "category": "cyber-security"
+    },
+    {
+      "slug": "iso-22000-basic",
+      "programKind": "tutor-led",
+      "published": true,
+      "category": "food-safety",
+      "title": "ISO 22000:2018 Basic (Foundation)",
+      "subtitle": "Learn Food Safety Fundamentals",
+      "breadcrumb": [
+        "Home",
+        "Food Safety",
+        "Tutor Led",
+        "ISO 22000:2018 Basic (Foundation)"
+      ],
+      "badge": "BASIC",
+      "price": 9999,
+      "originalPrice": 14999,
+      "priceAfterPayment": 9999,
+      "discount": "33% OFF",
+      "batchLabel": "Basic Foundation Batch",
+      "seatsFilling": true,
+      "seatsLeft": 25,
+      "trainer": {
+        "name": "Mr. Rajesh Kumar",
+        "role": "Food Safety Expert",
+        "experience": "15+ Years Experience",
+        "bio": "Seasoned food safety professional with 15+ years of experience in ISO 22000 implementation, HACCP, FSSC frameworks, and audit leadership.",
+        "certifications": [
+          "ISO 22000 Lead Auditor",
+          "HACCP",
+          "FSSC 22000"
+        ],
+        "workedWith": [
+          "Food manufacturing",
+          "QSR / food service",
+          "Export units"
+        ]
+      },
+      "nextBatchDate": "",
+      "schedule": "Mon–Fri (10:00 AM – 5:00 PM IST)",
+      "language": "English",
+      "countdown": {
+        "days": 0,
+        "hours": 0,
+        "mins": 0,
+        "secs": 0
+      },
+      "batchDetails": [
+        {
+          "icon": "Clock",
+          "label": "Duration",
+          "value": "5 Days"
+        },
+        {
+          "icon": "Monitor",
+          "label": "Mode",
+          "value": "Live on Zoom"
+        },
+        {
+          "icon": "GraduationCap",
+          "label": "Certificate",
+          "value": "Included"
+        }
+      ],
+      "features": [
+        {
+          "icon": "Video",
+          "title": "Live Zoom classes",
+          "desc": "Interact with trainers in real time"
+        },
+        {
+          "icon": "Award",
+          "title": "Certificate",
+          "desc": "Verifiable certificate on completion"
+        }
+      ],
+      "highlights": [
+        "Dedicated Zoom classroom for this program level",
+        "Certificate issued for this program batch"
+      ],
+      "curriculum": [
+        {
+          "week": 1,
+          "label": "Day 1",
+          "topic": "ISO 22000:2018 Basic (Foundation) — Foundations",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 2,
+          "label": "Day 2",
+          "topic": "ISO 22000:2018 Basic (Foundation) — Requirements",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 3,
+          "label": "Day 3",
+          "topic": "ISO 22000:2018 Basic (Foundation) — Practice",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 4,
+          "label": "Day 4",
+          "topic": "ISO 22000:2018 Basic (Foundation) — Application",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 5,
+          "label": "Day 5",
+          "topic": "ISO 22000:2018 Basic (Foundation) — Assessment & wrap-up",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        }
+      ],
+      "whyChoose": [
+        {
+          "icon": "Video",
+          "title": "Live instructor-led",
+          "desc": "Ask questions in real time on Zoom"
+        },
+        {
+          "icon": "Award",
+          "title": "Recognized certificate",
+          "desc": "Issued after batch completion"
+        }
+      ],
+      "faqs": [
+        {
+          "q": "Will I get a Zoom link?",
+          "a": "Yes. After enrollment, your Zoom join link appears on My Learning."
+        }
+      ],
+      "liveJoinUrl": "",
+      "zoomMeetingId": "",
+      "zoomPasscode": "",
+      "zoomLinkMode": "manual",
+      "heroSrc": "/tutor-led-iso-hero.png",
+      "heroAlt": "ISO 22000:2018 Basic (Foundation)",
+      "learnerHeroSrc": "/tutor-led-iso-hero.png"
+    },
+    {
+      "slug": "iso-22000-implementation",
+      "programKind": "tutor-led",
+      "published": true,
+      "category": "food-safety",
+      "title": "ISO 22000:2018 Implementation",
+      "subtitle": "Implement Food Safety Systems",
+      "breadcrumb": [
+        "Home",
+        "Food Safety",
+        "Tutor Led",
+        "ISO 22000:2018 Implementation"
+      ],
+      "badge": "IMPLEMENTATION",
+      "price": 14999,
+      "originalPrice": 21999,
+      "priceAfterPayment": 14999,
+      "discount": "32% OFF",
+      "batchLabel": "Implementation Batch",
+      "seatsFilling": true,
+      "seatsLeft": 25,
+      "trainer": {
+        "name": "Mr. Rajesh Kumar",
+        "role": "Food Safety Expert",
+        "experience": "15+ Years Experience",
+        "bio": "Seasoned food safety professional with 15+ years of experience in ISO 22000 implementation, HACCP, FSSC frameworks, and audit leadership.",
+        "certifications": [
+          "ISO 22000 Lead Auditor",
+          "HACCP",
+          "FSSC 22000"
+        ],
+        "workedWith": [
+          "Food manufacturing",
+          "QSR / food service",
+          "Export units"
+        ]
+      },
+      "nextBatchDate": "",
+      "schedule": "Mon–Fri (10:00 AM – 5:00 PM IST)",
+      "language": "English",
+      "countdown": {
+        "days": 0,
+        "hours": 0,
+        "mins": 0,
+        "secs": 0
+      },
+      "batchDetails": [
+        {
+          "icon": "Clock",
+          "label": "Duration",
+          "value": "5 Days"
+        },
+        {
+          "icon": "Monitor",
+          "label": "Mode",
+          "value": "Live on Zoom"
+        },
+        {
+          "icon": "GraduationCap",
+          "label": "Certificate",
+          "value": "Included"
+        }
+      ],
+      "features": [
+        {
+          "icon": "Video",
+          "title": "Live Zoom classes",
+          "desc": "Interact with trainers in real time"
+        },
+        {
+          "icon": "Award",
+          "title": "Certificate",
+          "desc": "Verifiable certificate on completion"
+        }
+      ],
+      "highlights": [
+        "Dedicated Zoom classroom for this program level",
+        "Certificate issued for this program batch"
+      ],
+      "curriculum": [
+        {
+          "week": 1,
+          "label": "Day 1",
+          "topic": "ISO 22000:2018 Implementation — Foundations",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 2,
+          "label": "Day 2",
+          "topic": "ISO 22000:2018 Implementation — Requirements",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 3,
+          "label": "Day 3",
+          "topic": "ISO 22000:2018 Implementation — Practice",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 4,
+          "label": "Day 4",
+          "topic": "ISO 22000:2018 Implementation — Application",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 5,
+          "label": "Day 5",
+          "topic": "ISO 22000:2018 Implementation — Assessment & wrap-up",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        }
+      ],
+      "whyChoose": [
+        {
+          "icon": "Video",
+          "title": "Live instructor-led",
+          "desc": "Ask questions in real time on Zoom"
+        },
+        {
+          "icon": "Award",
+          "title": "Recognized certificate",
+          "desc": "Issued after batch completion"
+        }
+      ],
+      "faqs": [
+        {
+          "q": "Will I get a Zoom link?",
+          "a": "Yes. After enrollment, your Zoom join link appears on My Learning."
+        }
+      ],
+      "liveJoinUrl": "",
+      "zoomMeetingId": "",
+      "zoomPasscode": "",
+      "zoomLinkMode": "manual",
+      "heroSrc": "/tutor-led-iso-hero.png",
+      "heroAlt": "ISO 22000:2018 Implementation",
+      "learnerHeroSrc": "/tutor-led-iso-hero.png"
+    },
+    {
+      "slug": "iso-22000-internal-auditor",
+      "programKind": "tutor-led",
+      "published": true,
+      "category": "food-safety",
+      "title": "ISO 22000:2018 Internal Auditor",
+      "subtitle": "Conduct Internal Audits",
+      "breadcrumb": [
+        "Home",
+        "Food Safety",
+        "Tutor Led",
+        "ISO 22000:2018 Internal Auditor"
+      ],
+      "badge": "INTERNAL AUDITOR",
+      "price": 19999,
+      "originalPrice": 27999,
+      "priceAfterPayment": 19999,
+      "discount": "29% OFF",
+      "batchLabel": "Internal Auditor Batch",
+      "seatsFilling": true,
+      "seatsLeft": 25,
+      "trainer": {
+        "name": "Mr. Rajesh Kumar",
+        "role": "Food Safety Expert",
+        "experience": "15+ Years Experience",
+        "bio": "Seasoned food safety professional with 15+ years of experience in ISO 22000 implementation, HACCP, FSSC frameworks, and audit leadership.",
+        "certifications": [
+          "ISO 22000 Lead Auditor",
+          "HACCP",
+          "FSSC 22000"
+        ],
+        "workedWith": [
+          "Food manufacturing",
+          "QSR / food service",
+          "Export units"
+        ]
+      },
+      "nextBatchDate": "",
+      "schedule": "Mon–Fri (10:00 AM – 5:00 PM IST)",
+      "language": "English",
+      "countdown": {
+        "days": 0,
+        "hours": 0,
+        "mins": 0,
+        "secs": 0
+      },
+      "batchDetails": [
+        {
+          "icon": "Clock",
+          "label": "Duration",
+          "value": "5 Days"
+        },
+        {
+          "icon": "Monitor",
+          "label": "Mode",
+          "value": "Live on Zoom"
+        },
+        {
+          "icon": "GraduationCap",
+          "label": "Certificate",
+          "value": "Included"
+        }
+      ],
+      "features": [
+        {
+          "icon": "Video",
+          "title": "Live Zoom classes",
+          "desc": "Interact with trainers in real time"
+        },
+        {
+          "icon": "Award",
+          "title": "Certificate",
+          "desc": "Verifiable certificate on completion"
+        }
+      ],
+      "highlights": [
+        "Dedicated Zoom classroom for this program level",
+        "Certificate issued for this program batch"
+      ],
+      "curriculum": [
+        {
+          "week": 1,
+          "label": "Day 1",
+          "topic": "ISO 22000:2018 Internal Auditor — Foundations",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 2,
+          "label": "Day 2",
+          "topic": "ISO 22000:2018 Internal Auditor — Requirements",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 3,
+          "label": "Day 3",
+          "topic": "ISO 22000:2018 Internal Auditor — Practice",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 4,
+          "label": "Day 4",
+          "topic": "ISO 22000:2018 Internal Auditor — Application",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 5,
+          "label": "Day 5",
+          "topic": "ISO 22000:2018 Internal Auditor — Assessment & wrap-up",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        }
+      ],
+      "whyChoose": [
+        {
+          "icon": "Video",
+          "title": "Live instructor-led",
+          "desc": "Ask questions in real time on Zoom"
+        },
+        {
+          "icon": "Award",
+          "title": "Recognized certificate",
+          "desc": "Issued after batch completion"
+        }
+      ],
+      "faqs": [
+        {
+          "q": "Will I get a Zoom link?",
+          "a": "Yes. After enrollment, your Zoom join link appears on My Learning."
+        }
+      ],
+      "liveJoinUrl": "",
+      "zoomMeetingId": "",
+      "zoomPasscode": "",
+      "zoomLinkMode": "manual",
+      "heroSrc": "/tutor-led-iso-hero.png",
+      "heroAlt": "ISO 22000:2018 Internal Auditor",
+      "learnerHeroSrc": "/tutor-led-iso-hero.png"
+    },
+    {
+      "slug": "iso-22000-lead-auditor",
+      "programKind": "tutor-led",
+      "published": true,
+      "category": "food-safety",
+      "title": "ISO 22000:2018 Lead Auditor",
+      "subtitle": "Lead Audit Teams",
+      "breadcrumb": [
+        "Home",
+        "Food Safety",
+        "Tutor Led",
+        "ISO 22000:2018 Lead Auditor"
+      ],
+      "badge": "LEAD AUDITOR",
+      "price": 29999,
+      "originalPrice": 39999,
+      "priceAfterPayment": 29999,
+      "discount": "25% OFF",
+      "batchLabel": "Lead Auditor Batch",
+      "seatsFilling": true,
+      "seatsLeft": 25,
+      "trainer": {
+        "name": "Mr. Rajesh Kumar",
+        "role": "Food Safety Expert",
+        "experience": "15+ Years Experience",
+        "bio": "Seasoned food safety professional with 15+ years of experience in ISO 22000 implementation, HACCP, FSSC frameworks, and audit leadership.",
+        "certifications": [
+          "ISO 22000 Lead Auditor",
+          "HACCP",
+          "FSSC 22000"
+        ],
+        "workedWith": [
+          "Food manufacturing",
+          "QSR / food service",
+          "Export units"
+        ]
+      },
+      "nextBatchDate": "",
+      "schedule": "Mon–Fri (10:00 AM – 5:00 PM IST)",
+      "language": "English",
+      "countdown": {
+        "days": 0,
+        "hours": 0,
+        "mins": 0,
+        "secs": 0
+      },
+      "batchDetails": [
+        {
+          "icon": "Clock",
+          "label": "Duration",
+          "value": "5 Days"
+        },
+        {
+          "icon": "Monitor",
+          "label": "Mode",
+          "value": "Live on Zoom"
+        },
+        {
+          "icon": "GraduationCap",
+          "label": "Certificate",
+          "value": "Included"
+        }
+      ],
+      "features": [
+        {
+          "icon": "Video",
+          "title": "Live Zoom classes",
+          "desc": "Interact with trainers in real time"
+        },
+        {
+          "icon": "Award",
+          "title": "Certificate",
+          "desc": "Verifiable certificate on completion"
+        }
+      ],
+      "highlights": [
+        "Dedicated Zoom classroom for this program level",
+        "Certificate issued for this program batch"
+      ],
+      "curriculum": [
+        {
+          "week": 1,
+          "label": "Day 1",
+          "topic": "ISO 22000:2018 Lead Auditor — Foundations",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 2,
+          "label": "Day 2",
+          "topic": "ISO 22000:2018 Lead Auditor — Requirements",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 3,
+          "label": "Day 3",
+          "topic": "ISO 22000:2018 Lead Auditor — Practice",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 4,
+          "label": "Day 4",
+          "topic": "ISO 22000:2018 Lead Auditor — Application",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        },
+        {
+          "week": 5,
+          "label": "Day 5",
+          "topic": "ISO 22000:2018 Lead Auditor — Assessment & wrap-up",
+          "keyLearning": "Live Zoom training for this ISO 22000:2018 level",
+          "sessionType": "Live Zoom"
+        }
+      ],
+      "whyChoose": [
+        {
+          "icon": "Video",
+          "title": "Live instructor-led",
+          "desc": "Ask questions in real time on Zoom"
+        },
+        {
+          "icon": "Award",
+          "title": "Recognized certificate",
+          "desc": "Issued after batch completion"
+        }
+      ],
+      "faqs": [
+        {
+          "q": "Will I get a Zoom link?",
+          "a": "Yes. After enrollment, your Zoom join link appears on My Learning."
+        }
+      ],
+      "liveJoinUrl": "",
+      "zoomMeetingId": "",
+      "zoomPasscode": "",
+      "zoomLinkMode": "manual",
+      "heroSrc": "/tutor-led-iso-hero.png",
+      "heroAlt": "ISO 22000:2018 Lead Auditor",
+      "learnerHeroSrc": "/tutor-led-iso-hero.png"
     }
   ],
   "globalCertificateAssets": {
@@ -6428,6 +7560,86 @@
           "Dedicated account support"
         ],
         "published": true
+      }
+    ]
+  },
+  "promotions": {
+    "coupons": [
+      {
+        "id": "coupon-welcome10",
+        "code": "WELCOME10",
+        "discountKind": "percent",
+        "amount": 10,
+        "courseScope": "all",
+        "courseSlug": "",
+        "uses": 120,
+        "maxUses": 500,
+        "validFrom": "2026-08-01",
+        "validTo": "2026-08-31",
+        "status": "active",
+        "allowBelowBase": false
+      },
+      {
+        "id": "coupon-sf20",
+        "code": "SF20",
+        "discountKind": "percent",
+        "amount": 20,
+        "courseScope": "course",
+        "courseSlug": "",
+        "uses": 45,
+        "maxUses": 200,
+        "validFrom": "2026-08-10",
+        "validTo": "2026-10-10",
+        "status": "active",
+        "allowBelowBase": false
+      },
+      {
+        "id": "coupon-fs50",
+        "code": "FS50",
+        "discountKind": "fixed",
+        "amount": 50,
+        "currency": "INR",
+        "courseScope": "all",
+        "courseSlug": "",
+        "uses": 80,
+        "maxUses": 300,
+        "validFrom": "2026-08-01",
+        "validTo": "2026-09-15",
+        "status": "active",
+        "allowBelowBase": false
+      }
+    ],
+    "referrals": [
+      {
+        "id": "ref-parth10",
+        "code": "PARTH10",
+        "customerDiscountKind": "percent",
+        "customerDiscountAmount": 10,
+        "rewardKind": "percent",
+        "rewardAmount": 5,
+        "uses": 32,
+        "status": "active"
+      },
+      {
+        "id": "ref-sfref20",
+        "code": "SFREF20",
+        "customerDiscountKind": "percent",
+        "customerDiscountAmount": 20,
+        "rewardKind": "fixed",
+        "rewardAmount": 200,
+        "rewardCurrency": "INR",
+        "uses": 18,
+        "status": "active"
+      },
+      {
+        "id": "ref-affiliate15",
+        "code": "AFFILIATE15",
+        "customerDiscountKind": "percent",
+        "customerDiscountAmount": 15,
+        "rewardKind": "percent",
+        "rewardAmount": 7,
+        "uses": 10,
+        "status": "active"
       }
     ]
   }

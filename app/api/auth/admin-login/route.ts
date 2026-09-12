@@ -199,7 +199,7 @@ export async function POST(request: Request) {
       accountType: "self",
       profile,
     });
-    return attachAdminSession(res, email);
+    return attachAdminSession(res, email, request);
   }
 
   const verifyToken = createAdminVerifyToken(email);

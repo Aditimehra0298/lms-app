@@ -1,4 +1,5 @@
 import type { ManagedCourseCertificateConfig } from "@/lib/certificate-program-config";
+import type { CourseRegionalPriceRow, OrganizationSeatBandPriceRow } from "@/lib/content-schema";
 import type { TutorLedLearningMaterial } from "@/lib/tutor-led-learning-tools";
 import type { TutorLedLearnerSection } from "@/lib/tutor-led-learner-section";
 import type { ZoomSessionRecording } from "@/lib/zoom-session-types";
@@ -22,6 +23,16 @@ export type TutorLedProgramStored = {
   originalPrice: number;
   /** Optional enrolled-dashboard price; defaults to `price` when omitted. */
   priceAfterPayment?: number;
+  /** Sale price string from Admin → Pricing (same as self-paced, e.g. "₹12,999" or "$49"). */
+  priceLabel?: string;
+  /** Rack / list price string from Admin → Pricing. */
+  oldPriceLabel?: string;
+  /** Internal floor — coupons should not go below this. */
+  basePrice?: string;
+  /** Country sale + list prices. Same rows as self-paced Pricing. */
+  regionalPrices?: CourseRegionalPriceRow[];
+  /** Organisation seat bands. Same rows as self-paced Pricing. */
+  organizationSeatPricing?: OrganizationSeatBandPriceRow[];
   discount: string;
   batchLabel: string;
   seatsFilling: boolean;

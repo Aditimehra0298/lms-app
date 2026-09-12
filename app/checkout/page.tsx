@@ -15,6 +15,7 @@ import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 import { resolveCourseImageSrc } from "@/lib/course-thumbnail";
 import type { ManagedCourse } from "@/lib/content-schema";
 import { completeCheckoutPurchase } from "@/lib/checkout-complete-client";
+import { tutorLedPricingCourse } from "@/lib/tutor-led-pricing";
 import { openRazorpayCheckout, verifyRazorpayPaymentOnServer } from "@/lib/razorpay-client";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import { readLearnerProfileFromStorage } from "@/lib/auth-profile";
@@ -49,6 +50,7 @@ export default function CheckoutPage() {
   const [promoLabel, setPromoLabel] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [catalog, setCatalog] = useState<ManagedCourse[]>([]);
+  const [tutorPricing, setTutorPricing] = useState<ManagedCourse[]>([]);
   const [buyNowSlug, setBuyNowSlug] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [razorpayConfig, setRazorpayConfig] = useState<RazorpayPublicConfig | null>(null);
@@ -57,8 +59,14 @@ export default function CheckoutPage() {
   const [paymentReceipt, setPaymentReceipt] = useState<PaymentReceipt | null>(null);
   const [learnerInfo, setLearnerInfo] = useState({ name: "Learner", email: "", phone: "" });
 
+  const pricedCatalog = useMemo(() => {
+    if (tutorPricing.length === 0) return catalog;
+    const slugs = new Set(tutorPricing.map((c) => c.slug));
+    return [...catalog.filter((c) => !slugs.has(c.slug)), ...tutorPricing];
+  }, [catalog, tutorPricing]);
+
   const displayItemPrice = (item: ShopCartItem): string => {
-    const course = catalog.find((c) => c.slug === item.slug);
+    const course = pricedCatalog.find((c) => c.slug === item.slug);
     if (course) {
       const resolved = resolveCoursePrices(course, region);
       if (resolved.price?.trim()) return resolved.price;
@@ -138,12 +146,14 @@ export default function CheckoutPage() {
       if (buyNowSlug) {
         const tutorHit = tutorLedProgramBySlug(tutorPrograms, buyNowSlug);
         if (tutorHit) {
+          const pricing = tutorLedPricingCourse(tutorHit);
+          setTutorPricing((prev) => [...prev.filter((c) => c.slug !== pricing.slug), pricing]);
           setItems([
             applyTutorLedShopMeta(
               {
                 slug: tutorHit.slug,
                 title: tutorHit.title,
-                price: `₹${tutorHit.price.toLocaleString("en-IN")}`,
+                price: pricing.price,
                 image: tutorHit.heroSrc,
                 qty: 1,
               },
@@ -181,6 +191,7 @@ export default function CheckoutPage() {
         }
       }
 
+      setTutorPricing(tutorPrograms.map((program) => tutorLedPricingCourse(program)));
       setItems((prev) => prev.map((row) => applyTutorLedShopMeta(row, tutorPrograms)));
     };
 
@@ -202,20 +213,20 @@ export default function CheckoutPage() {
       : "/my-learning?tab=learning";
 
   const payRegion = useMemo(() => {
-    const course = catalog.find((c) => c.slug === items[0]?.slug);
+    const course = pricedCatalog.find((c) => c.slug === items[0]?.slug);
     if (course) {
       return displayRegionForResolvedPrice(resolveCoursePrices(course, region), region);
     }
     return region;
-  }, [items, catalog, region]);
+  }, [items, pricedCatalog, region]);
   const totals = useMemo(() => {
-    if (region) return computeRegionalCheckoutTotals(items, catalog, region, promoDiscount);
+    if (region) return computeRegionalCheckoutTotals(items, pricedCatalog, region, promoDiscount);
     return computeCheckoutTotals(items, promoDiscount);
-  }, [items, catalog, region, promoDiscount]);
+  }, [items, pricedCatalog, region, promoDiscount]);
   const baseTotals = useMemo(() => {
-    if (region) return computeRegionalCheckoutTotals(items, catalog, region, 0);
+    if (region) return computeRegionalCheckoutTotals(items, pricedCatalog, region, 0);
     return computeCheckoutTotals(items, 0);
-  }, [items, catalog, region]);
+  }, [items, pricedCatalog, region]);
   const { subtotal, discount, gst, total } = totals;
   const paymentCurrency = payRegion?.currency ?? region?.currency ?? "USD";
   const isFreeCheckout = ready && showPrices && total <= 0;

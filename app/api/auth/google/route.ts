@@ -278,7 +278,7 @@ export async function POST(request: Request) {
       }
       await clearActiveAdminSession();
     }
-    return attachAdminSession(res, email);
+    return attachAdminSession(res, email, request);
   }
   return attachLearnerSession(res, email);
 }

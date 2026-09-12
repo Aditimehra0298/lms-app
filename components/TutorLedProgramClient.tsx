@@ -14,6 +14,9 @@ import TutorLedCourseHero from "@/components/TutorLedCourseHero";
 import TutorLedLearnerDashboard from "@/components/TutorLedLearnerDashboard";
 import TutorLedPostHeroSections from "@/components/TutorLedPostHeroSections";
 import CourseLandingVisit from "@/components/CourseLandingVisit";
+import { resolveCoursePrices } from "@/lib/course-regional-pricing";
+import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { tutorLedPricingCourse } from "@/lib/tutor-led-pricing";
 
 type Props = {
   program: TutorLedProgramStored;
@@ -68,6 +71,11 @@ export default function TutorLedProgramClient({
   /** Marketing landing on `/tutor-led/[slug]`; learner dashboard only from My Learning when enrolled. */
   const showLearnerDashboard = enrolledLearning;
 
+  const { region } = useLearnerPricing();
+  const hasCountryPrices = (program.regionalPrices?.length ?? 0) > 0;
+  const resolvedPrice = hasCountryPrices
+    ? resolveCoursePrices(tutorLedPricingCourse(program), region)
+    : null;
   const crumbs = program.breadcrumb;
   const heroCourse = {
     title: course.title,
@@ -87,6 +95,8 @@ export default function TutorLedProgramClient({
     price: course.price,
     originalPrice: course.originalPrice,
     discount: course.discount,
+    priceLabel: resolvedPrice?.price,
+    oldPriceLabel: resolvedPrice?.oldPrice,
     batchDetails: course.batchDetails,
     seatsLeft: course.seatsLeft,
     features: course.features,

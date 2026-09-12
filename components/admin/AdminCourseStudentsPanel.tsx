@@ -157,12 +157,14 @@ export default function AdminCourseStudentsPanel({
       const data = (await res.json()) as { ok?: boolean; message?: string };
       if (!data.ok) {
         setActionMsg(data.message ?? "Action failed");
-      } else {
-        setActionMsg(data.message ?? "Action completed");
-        await loadStudents();
+        return false;
       }
+      setActionMsg(data.message ?? "Action completed");
+      await loadStudents();
+      return true;
     } catch {
       setActionMsg("Action failed");
+      return false;
     } finally {
       setRowBusyKey(null);
     }
@@ -208,7 +210,11 @@ export default function AdminCourseStudentsPanel({
           MySQL unavailable — start the database and run migrations. {dbError}
         </p>
       ) : null}
-      {actionMsg ? <p className="text-xs text-emerald-300">{actionMsg}</p> : null}
+      {actionMsg ? (
+        <p className={`text-xs ${/fail|could not|unavailable|required/i.test(actionMsg) ? "text-rose-300" : "text-emerald-300"}`}>
+          {actionMsg}
+        </p>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -235,50 +241,56 @@ export default function AdminCourseStudentsPanel({
           Refresh from MySQL
         </button>
       </div>
-      <div className="flex flex-wrap items-end gap-2 rounded-xl border border-violet-400/25 bg-violet-500/10 px-4 py-3">
-        <label className="min-w-[220px] flex-1 text-xs text-violet-100">
+      <form
+        className="flex flex-col gap-2 rounded-xl border border-violet-400/25 bg-violet-500/10 px-4 py-3 sm:flex-row sm:items-end"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const email = manualEmail.trim();
+          if (!email || !workspaceCourseSlug) return;
+          void runAction(
+            {
+              learnerEmail: email,
+              learnerName: email.split("@")[0] || null,
+              registrationId: null,
+              phone: null,
+              occupation: null,
+              userRole: "learner",
+              userType: null,
+              enrollmentModel: "individual",
+              companyName: null,
+              paymentPath: "direct-payment",
+              enrolledAt: new Date().toISOString(),
+              completed: false,
+              certificateStatus: "none",
+              certificateMode: "auto",
+              certificateVisible: false,
+              amountPaidLabel: "—",
+            },
+            "bypass-access",
+          ).then((ok) => {
+            if (ok) setManualEmail("");
+          });
+        }}
+      >
+        <label className="min-w-0 flex-1 text-xs text-violet-100">
           Add learner to this course
           <input
             type="email"
+            required
             value={manualEmail}
             onChange={(e) => setManualEmail(e.target.value)}
-            placeholder="aditimehera0298@gmail.com"
+            placeholder="name@email.com"
             className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-violet-400/50"
           />
         </label>
         <button
-          type="button"
+          type="submit"
           disabled={!manualEmail.trim() || rowBusyKey === "manual-enroll"}
-          onClick={() => {
-            const email = manualEmail.trim();
-            if (!email || !workspaceCourseSlug) return;
-            void runAction(
-              {
-                learnerEmail: email,
-                learnerName: email.split("@")[0] || null,
-                registrationId: null,
-                phone: null,
-                occupation: null,
-                userRole: "learner",
-                userType: null,
-                enrollmentModel: "individual",
-                companyName: null,
-                paymentPath: "direct-payment",
-                enrolledAt: new Date().toISOString(),
-                completed: false,
-                certificateStatus: "none",
-                certificateMode: "auto",
-                certificateVisible: false,
-                amountPaidLabel: "—",
-              },
-              "bypass-access",
-            ).then(() => setManualEmail(""));
-          }}
-          className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-50"
+          className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-50"
         >
-          Add to roster
+          {rowBusyKey === "manual-enroll" ? "Adding…" : "Add to roster"}
         </button>
-      </div>
+      </form>
       <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3">
         <p className="text-sm font-semibold text-cyan-100">Student table columns (auto-filled)</p>
         <p className="mt-1 text-xs text-cyan-200/85">
@@ -287,7 +299,13 @@ export default function AdminCourseStudentsPanel({
         </p>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-[#0d1528]">
+      {displayRows.length === 0 ? (
+        <p className="rounded-xl border border-white/10 bg-[#0d1528] px-4 py-4 text-sm leading-relaxed text-gray-400">
+          No learners yet for <span className="font-mono text-gray-200">{workspaceCourseSlug}</span>. Type the email
+          and click <strong className="text-white">Add to roster</strong>.
+        </p>
+      ) : null}
+      <div className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#0d1528]">
         <div className="flex items-center justify-between border-b border-white/10 bg-black/20 px-3 py-2">
           <p className="text-[11px] text-gray-400">Student roster table</p>
           <p className="text-[11px] font-medium text-cyan-300">Scroll table ↔</p>
@@ -342,11 +360,12 @@ export default function AdminCourseStudentsPanel({
             <tbody className="divide-y divide-white/5">
               {displayRows.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-8 text-sm text-gray-500" colSpan={18}>
-                    No learners in MySQL for{" "}
-                    <span className="font-mono text-gray-400">{workspaceCourseSlug}</span> yet. After checkout or
-                    sign-in they appear here automatically; use Add learner or Save all browser enrollments for
-                    older data.
+                  <td className="px-4 py-6 text-sm text-gray-500" colSpan={18}>
+                    <p className="max-w-xl whitespace-normal text-sm leading-relaxed text-gray-400">
+                      No learners yet for{" "}
+                      <span className="font-mono text-gray-300">{workspaceCourseSlug}</span>. Enter an email above
+                      and click Add to roster. After checkout they also appear here automatically.
+                    </p>
                   </td>
                 </tr>
               ) : (
