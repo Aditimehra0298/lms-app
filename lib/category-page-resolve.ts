@@ -70,6 +70,7 @@ export function getCategoryEditorTemplate(categorySlug: string): CategoryPageEdi
   return {
     heroImage: getDefaultHeroImageForCategory(categorySlug),
     heroSubtitle: "",
+    heroLearners: "",
     hiddenCourseSlugs: [],
     instructors: [],
     levelFilters: defaultLevelFilters(),
@@ -93,6 +94,7 @@ export function mergeCategoryPageConfig(
         ? String(saved.heroImage).trim()
         : template.heroImage,
     heroSubtitle: saved.heroSubtitle !== undefined ? saved.heroSubtitle : template.heroSubtitle,
+    heroLearners: saved.heroLearners !== undefined ? String(saved.heroLearners) : template.heroLearners,
     hiddenCourseSlugs: Array.isArray(saved.hiddenCourseSlugs)
       ? saved.hiddenCourseSlugs
       : template.hiddenCourseSlugs,

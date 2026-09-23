@@ -9,6 +9,8 @@ import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { isIso22000TutorLedSlug, liveTutorCourseHref, TUTOR_LED_ISO_22000_CATALOG_HREF } from "@/lib/tutor-led-routes";
+import { tutorLedProgramMatchesCategory } from "@/lib/tutor-led-program-category";
+import { CourseDeliveryBadge } from "@/components/CourseDeliveryBadge";
 import { CoursePrice } from "@/components/CoursePrice";
 import CourseCardActions from "@/components/CourseCardActions";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
@@ -463,6 +465,18 @@ const CATEGORY_ICON_FALLBACK = [
   Clock,
 ] as const;
 
+function courseMatchesCategory(
+  course: Pick<ManagedCourse, "category">,
+  categorySlug: string,
+  categoryTitle: string,
+) {
+  const raw = (course.category || "").trim();
+  if (!raw) return false;
+  const want = canonicalCategorySlug(categorySlug);
+  if (canonicalCategorySlug(raw) === want) return true;
+  return raw.toLowerCase() === categoryTitle.trim().toLowerCase();
+}
+
 function iconForCategoryTitle(title: string) {
   const hit = fallbackCategoryCards.find((c) => c.title === title);
   if (hit) return hit.icon;
@@ -727,10 +741,57 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
     if (isTutorLedBrowsePath) return [];
     let list = catalogCourses.filter((c) => !c.learningFormat || c.learningFormat === "self-paced");
     if (!activeCategorySlug) return list;
-    return list.filter(
-      (c) => canonicalCategorySlug(c.category) === canonicalCategorySlug(activeCategorySlug),
+    return list.filter((c) =>
+      courseMatchesCategory(c, activeCategorySlug, activeCategory),
     );
-  }, [catalogCourses, activeCategorySlug, learningPath, isTutorLedBrowsePath]);
+  }, [catalogCourses, activeCategorySlug, activeCategory, learningPath, isTutorLedBrowsePath]);
+
+  const popularCategoryCourses = useMemo(() => {
+    if (!activeCategorySlug) return [];
+    return catalogCourses.filter(
+      (c) =>
+        (!c.learningFormat || c.learningFormat === "self-paced") &&
+        courseMatchesCategory(c, activeCategorySlug, activeCategory),
+    );
+  }, [catalogCourses, activeCategorySlug, activeCategory]);
+
+  const popularTutorLedCourses = useMemo(() => {
+    if (!activeCategorySlug) return [];
+    return tutorLedBrowseCards.filter((program) => {
+      if (program.slug === "iso-22000") {
+        return canonicalCategorySlug(activeCategorySlug) === "food-safety";
+      }
+      return tutorLedProgramMatchesCategory(program, activeCategorySlug);
+    });
+  }, [tutorLedBrowseCards, activeCategorySlug]);
+
+  const popularFilteredCourses = useMemo(
+    () => [...popularTutorLedCourses, ...popularCategoryCourses],
+    [popularTutorLedCourses, popularCategoryCourses],
+  );
+
+  const displayedPopularCourses = useMemo(
+    () => (showAllCourses ? popularCategoryCourses : popularCategoryCourses.slice(0, 8)),
+    [popularCategoryCourses, showAllCourses],
+  );
+
+  const categoryDeliveryBadges = useMemo(() => {
+    const map = new Map<string, { selfPaced: boolean; tutorLed: boolean }>();
+    for (const cat of catalogForPills) {
+      const slug = canonicalCategorySlug(cat.slug);
+      const selfPaced = catalogCourses.some(
+        (c) =>
+          (!c.learningFormat || c.learningFormat === "self-paced") &&
+          courseMatchesCategory(c, slug, cat.title),
+      );
+      const tutorLed = tutorLedBrowseCards.some((program) => {
+        if (program.slug === "iso-22000") return slug === "food-safety";
+        return tutorLedProgramMatchesCategory(program, slug);
+      });
+      map.set(cat.slug, { selfPaced, tutorLed });
+    }
+    return map;
+  }, [catalogForPills, catalogCourses, tutorLedBrowseCards]);
 
   const displayedCourses = useMemo(
     () => (showAllCourses ? filteredCoursesForPath : filteredCoursesForPath.slice(0, 8)),
@@ -1103,7 +1164,10 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           <div className="mt-8 flex flex-wrap justify-center gap-2 md:gap-3">
             <button
               type="button"
-              onClick={() => setActiveCategory("All")}
+              onClick={() => {
+                setActiveCategory("All");
+                setShowAllCourses(false);
+              }}
               className={`lh-filter-pill rounded-full px-4 py-2 text-sm font-bold transition-all md:px-5 ${
                 activeCategory === "All"
                   ? `${goldGradient} text-black`
@@ -1116,7 +1180,10 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               <button
                 key={cat.slug}
                 type="button"
-                onClick={() => setActiveCategory(cat.title)}
+                onClick={() => {
+                  setActiveCategory(cat.title);
+                  setShowAllCourses(false);
+                }}
                 className={`lh-filter-pill rounded-full px-4 py-2 text-sm font-bold transition-all md:px-5 ${
                   activeCategory === cat.title
                     ? `${goldGradient} text-black`
@@ -1128,7 +1195,110 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             ))}
           </div>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {filteredCatalog.length === 0 ? (
+            {activeCategory !== "All" ? (
+              popularFilteredCourses.length === 0 ? (
+                <p className="col-span-full text-center text-sm text-gray-400">
+                  No published {activeCategory} courses yet. Choose &quot;All&quot; or another category.
+                </p>
+              ) : (
+                <>
+                  {popularTutorLedCourses.map((program) => (
+                    <article
+                      key={`tutor-${program.slug}`}
+                      className="lh-course-card flex h-full flex-col overflow-hidden rounded-2xl border border-violet-500/35 bg-linear-to-b from-[#1a1030] via-[#120c06] to-[#07070a]"
+                    >
+                      <Link
+                        href={
+                          isIso22000TutorLedSlug(program.slug)
+                            ? TUTOR_LED_ISO_22000_CATALOG_HREF
+                            : liveTutorCourseHref(program.slug)
+                        }
+                        className="block"
+                      >
+                        <div className="relative aspect-[16/10] bg-black/40">
+                          <Image
+                            src={program.heroSrc || "/h1.png"}
+                            alt={program.title}
+                            width={1200}
+                            height={750}
+                            unoptimized
+                            className="h-full w-full object-cover"
+                          />
+                          <CourseDeliveryBadge kind="tutor-led" className="absolute left-3 top-3" />
+                        </div>
+                      </Link>
+                      <div className="flex flex-1 flex-col p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">
+                          Live on Zoom
+                        </p>
+                        <h5 className="mt-1 line-clamp-2 text-base font-bold leading-snug text-white">
+                          {program.title}
+                        </h5>
+                        <CourseCardActions
+                          descriptionHref={
+                            isIso22000TutorLedSlug(program.slug)
+                              ? TUTOR_LED_ISO_22000_CATALOG_HREF
+                              : liveTutorCourseHref(program.slug)
+                          }
+                          priceInr={program.price}
+                          className="px-0"
+                        />
+                      </div>
+                    </article>
+                  ))}
+                  {displayedPopularCourses.map((course) => (
+                    <article
+                      key={course.slug}
+                      className="lh-course-card flex h-full flex-col overflow-hidden rounded-2xl border border-amber-500/35 bg-linear-to-b from-[#1b1305] via-[#120c06] to-[#07070a] transition-all hover:border-amber-300/80 hover:shadow-[0_0_28px_rgba(249,177,77,0.24)]"
+                    >
+                      <Link
+                        href={catalogCourseLandingHref(course.slug, tutorLedSlugSet, course.learningFormat)}
+                        className="block"
+                      >
+                        <div className="relative aspect-[16/10] bg-black/40">
+                          {(() => {
+                            const categoryFallback = categoryCatalogFallbackImage(course.category || "");
+                            const thumb =
+                              resolveCourseListThumbnail(course) ||
+                              resolveCourseImageSrc(course.image) ||
+                              categoryFallback;
+                            return (
+                              <CatalogMediaImage
+                                storedSrc={thumb}
+                                extraFallback={categoryFallback}
+                                courseSlug={course.slug}
+                                alt={course.title}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 768px) 100vw, 25vw"
+                              />
+                            );
+                          })()}
+                          <CourseDeliveryBadge kind="self-paced" className="absolute left-3 top-3" />
+                        </div>
+                      </Link>
+                      <div className="flex flex-1 flex-col p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-200/80">
+                          {course.level} · {course.duration}
+                        </p>
+                        <h5 className="mt-1 line-clamp-2 text-base font-bold leading-snug text-white">
+                          {course.title}
+                        </h5>
+                        <div className="mt-2 flex items-center gap-1 text-xs text-amber-200/90">
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 lh-section-emoji" size={14} />
+                          {course.rating}
+                        </div>
+                        <CourseResolvedCardActions
+                          course={course}
+                          descriptionHref={catalogCourseLandingHref(course.slug, tutorLedSlugSet, course.learningFormat)}
+                          className="px-0"
+                        />
+                      </div>
+                    </article>
+                  ))}
+                </>
+              )
+            ) : filteredCatalog.length === 0 ? (
               <p className="col-span-full text-center text-sm text-gray-400">
                 No categories match this filter. Choose &quot;All&quot; to see every category.
               </p>
@@ -1140,8 +1310,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                   cat.image?.trim() ||
                   liveExploreProgramImages[index % liveExploreProgramImages.length];
                 return (
-                  <div
+                  <Link
                     key={cat.slug}
+                    href={`/courses/category/${cat.slug}`}
                     className="lh-category-card flex flex-col rounded-2xl border border-amber-500/35 bg-linear-to-b from-[#1b1305] via-[#120c06] to-[#07070a] p-5 transition-all hover:border-amber-300/80 hover:shadow-[0_0_32px_rgba(249,177,77,0.3)]"
                   >
                     <div className="lh-icon-chip mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400">
@@ -1152,6 +1323,14 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                       <p className="mt-1 text-xs font-medium text-amber-200/80">{cat.subtitle}</p>
                     ) : null}
                     <p className="mt-2 flex-1 text-sm leading-relaxed text-gray-400">{desc}</p>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {categoryDeliveryBadges.get(cat.slug)?.selfPaced ? (
+                        <CourseDeliveryBadge kind="self-paced" />
+                      ) : null}
+                      {categoryDeliveryBadges.get(cat.slug)?.tutorLed ? (
+                        <CourseDeliveryBadge kind="tutor-led" />
+                      ) : null}
+                    </div>
                     <div className="mt-4 overflow-hidden rounded-xl border border-amber-500/35 bg-black/30 p-1">
                       <Image
                         src={cardImage}
@@ -1162,19 +1341,32 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                         className="h-auto w-full object-contain"
                       />
                     </div>
-                    <Link
-                      href={`/courses/category/${cat.slug}`}
-                      className={`mt-6 inline-flex items-center gap-1 text-sm font-bold ${goldText} hover:underline`}
-                    >
+                    <span className={`mt-6 inline-flex items-center gap-1 text-sm font-bold ${goldText}`}>
                       View courses <ChevronRight size={16} />
-                    </Link>
-                  </div>
+                    </span>
+                  </Link>
                 );
               })
             )}
           </div>
+          {activeCategory !== "All" && popularCategoryCourses.length > 8 ? (
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowAllCourses((prev) => !prev)}
+                className={`rounded-full px-6 py-2.5 text-sm font-bold transition-all hover:brightness-110 ${
+                  showAllCourses
+                    ? "border border-amber-500/50 text-amber-100 hover:bg-amber-500/10"
+                    : `${goldGradient} text-black`
+                }`}
+              >
+                {showAllCourses ? "Show Less" : "View All"}
+              </button>
+            </div>
+          ) : null}
 
-          {(learningPath === "self-paced" ||
+          {activeCategory === "All" &&
+          (learningPath === "self-paced" ||
             learningPath === "interactive" ||
             learningPath === "onsite" ||
             learningPath === "live") && (
@@ -1213,15 +1405,16 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                             unoptimized
                             className="h-full w-full object-cover"
                           />
+                          <CourseDeliveryBadge kind="tutor-led" className="absolute left-3 top-3" />
                         </div>
                       </Link>
                       <div className="flex flex-1 flex-col p-4">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">
                           {learningPath === "onsite"
-                            ? "Tutor-led · Onsite"
+                            ? "Onsite"
                             : learningPath === "live"
                               ? "Live workshop"
-                              : "Tutor-led · Live on Zoom"}
+                              : "Live on Zoom"}
                         </p>
                         <h5 className="mt-1 line-clamp-2 text-base font-bold leading-snug text-white">
                           {program.title}
@@ -1278,11 +1471,12 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                                 />
                               );
                             })()}
+                            <CourseDeliveryBadge kind="self-paced" className="absolute left-3 top-3" />
                           </div>
                         </Link>
                         <div className="flex flex-1 flex-col p-4">
                           <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-200/80">
-                            Self-paced · {course.level} · {course.duration}
+                            {course.level} · {course.duration}
                           </p>
                           <h5 className="mt-1 line-clamp-2 text-base font-bold leading-snug text-white">
                             {course.title}

@@ -402,6 +402,20 @@ export default function CategoryPageEditorModal({
               className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-violet-500/40"
               placeholder="Paragraph under the hero title..."
             />
+            <label className="mt-4 block">
+              <span className="text-xs font-semibold text-gray-300">Learners shown in hero</span>
+              <p className="mt-1 text-[11px] text-gray-500">
+                Example: 12480. Leave empty to use course learner totals, or a thousands figure if those are 0.
+              </p>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={draft.heroLearners ?? ""}
+                onChange={(e) => setDraft((p) => (p ? { ...p, heroLearners: e.target.value } : p))}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-violet-500/40"
+                placeholder="e.g. 12480"
+              />
+            </label>
           </section>
 
           <section>

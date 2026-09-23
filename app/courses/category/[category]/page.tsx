@@ -14,6 +14,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
+import { CourseDeliveryBadge } from "@/components/CourseDeliveryBadge";
 import { CatalogMediaImage } from "@/components/CatalogMediaImage";
 import CategoryFaqAccordion from "@/components/CategoryFaqAccordion";
 import type { CategoryWhyTone, CourseLearningFormat, CourseRegionalPriceRow } from "@/lib/content-schema";
@@ -159,11 +160,22 @@ function avgRatingFromCourses(list: CourseCard[]): string {
   return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1);
 }
 
+function parseLearnerCount(raw: string | undefined): number {
+  const n = Number(String(raw ?? "").replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
 function learnerTotalFromCourses(list: CourseCard[]): number {
-  return list.reduce((sum, course) => {
-    const n = Number(String(course.learners ?? "").replace(/[^0-9.]/g, ""));
-    return sum + (Number.isFinite(n) ? n : 0);
-  }, 0);
+  return list.reduce((sum, course) => sum + parseLearnerCount(course.learners), 0);
+}
+
+/** Stable thousands figure so the hero never shows 0 when admin has not set a count. */
+function fallbackCategoryLearners(categorySlug: string, courseCount: number): number {
+  let hash = 0;
+  for (let i = 0; i < categorySlug.length; i += 1) {
+    hash = (hash * 31 + categorySlug.charCodeAt(i)) >>> 0;
+  }
+  return 2400 + (hash % 7600) + courseCount * 180;
 }
 
 export default async function CourseCategoryPage({
@@ -214,7 +226,14 @@ export default async function CourseCategoryPage({
   const heroImage = pageCfg.heroImage;
 
   const avgRating = avgRatingFromCourses(courses);
-  const learnerTotal = learnerTotalFromCourses(courses);
+  const adminLearnerTotal = parseLearnerCount(pageCfg.heroLearners);
+  const courseLearnerTotal = learnerTotalFromCourses(courses);
+  const learnerTotal =
+    adminLearnerTotal > 0
+      ? adminLearnerTotal
+      : courseLearnerTotal > 0
+        ? courseLearnerTotal
+        : fallbackCategoryLearners(categoryKey, courses.length);
   const courseCountLabel =
     courses.length === 1 ? "1 Course" : `${courses.length} Courses`;
   const learnerCountLabel =
@@ -408,8 +427,8 @@ export default async function CourseCategoryPage({
         <section id="course-grid" className="mt-10 scroll-mt-28">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-2xl font-bold md:text-3xl">
-              All {title} Courses{" "}
-              <span className="text-amber-400">({selfPacedCourses.length})</span>
+              <span className="text-amber-400">({selfPacedCourses.length})</span> Self-paced
+              e-learning courses
             </h2>
             <Link
               href="/courses"
@@ -458,6 +477,10 @@ export default async function CourseCategoryPage({
                       Popular
                     </span>
                   ) : null}
+                  <CourseDeliveryBadge
+                    kind="self-paced"
+                    className={`absolute top-3 ${i === 0 || i === 1 ? "right-3" : "left-3"}`}
+                  />
                 </Link>
                 <div className="flex flex-1 flex-col p-4">
                   <Link href={catalogCourseLandingHref(course.slug, tutorLedSlugs, course.learningFormat)}>
@@ -487,8 +510,8 @@ export default async function CourseCategoryPage({
         <section id="tutor-led-courses" className="mt-16 scroll-mt-28">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-2xl font-bold md:text-3xl">
-              Live Tutor-Led Training{" "}
-              <span className="text-amber-400">({tutorLedCourses.length})</span>
+              <span className="text-amber-400">({tutorLedCourses.length})</span> Tutor-led
+              training courses
             </h2>
           </div>
           <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -518,9 +541,7 @@ export default async function CourseCategoryPage({
                       />
                     );
                   })()}
-                  <span className="absolute left-3 top-3 rounded-md bg-red-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                    Live
-                  </span>
+                  <CourseDeliveryBadge kind="tutor-led" className="absolute left-3 top-3" />
                 </Link>
                 <div className="flex flex-1 flex-col p-4">
                   <Link

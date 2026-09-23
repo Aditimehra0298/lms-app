@@ -384,6 +384,8 @@ export type CategoryPageEditorConfig = {
   heroImage: string;
   /** When non-empty, replaces hero paragraph under the title */
   heroSubtitle: string;
+  /** Hero “Learners” stat. Empty = sum course learners, then a thousands fallback. */
+  heroLearners: string;
   hiddenCourseSlugs: string[];
   instructors: CategoryPageInstructor[];
   levelFilters: CategoryPageLevelFilter[];

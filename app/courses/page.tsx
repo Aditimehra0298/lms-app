@@ -3,9 +3,9 @@ import Link from "next/link";
 import CourseCardActions from "@/components/CourseCardActions";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
 import { CatalogMediaImage } from "@/components/CatalogMediaImage";
+import { CourseDeliveryBadge } from "@/components/CourseDeliveryBadge";
 import { resolveCourseListThumbnail } from "@/lib/course-thumbnail";
 import type { ComponentType } from "react";
-import LevelFilterSelect from "@/components/LevelFilterSelect";
 import { getManagedCourses } from "@/lib/server/course-catalog";
 import { getPublishedTutorLedPrograms } from "@/lib/server/tutor-led-catalog";
 import { readAdminContent } from "@/lib/server/content-store";
@@ -18,7 +18,6 @@ import {
   BadgeCheck,
   BellRing,
   CalendarDays,
-  ChevronDown,
   ChevronRight,
   Cpu,
   Factory,
@@ -33,7 +32,6 @@ import {
   Stethoscope,
   UtensilsCrossed,
   Rocket,
-  Search,
   Shield,
   Wrench,
   Users,
@@ -362,38 +360,6 @@ export default async function CoursesPage({
           </article>
         </section>
 
-        <section className="courses-surface courses-filters mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="grid gap-3 md:grid-cols-[1.4fr_repeat(4,0.8fr)_auto]">
-            <label className="relative">
-              <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-gray-500" />
-              <input
-                type="search"
-                placeholder="Search courses..."
-                className="courses-filter-input w-full rounded-xl border border-white/10 bg-black/35 py-2.5 pl-10 pr-3 text-sm"
-              />
-            </label>
-            <button
-              type="button"
-              className="courses-filter-btn inline-flex items-center justify-between rounded-xl border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-gray-200"
-            >
-              Domain <ChevronDown size={14} />
-            </button>
-            <LevelFilterSelect variant="courses" className="courses-level-filter" />
-            {["Duration", "Format"].map((label) => (
-              <button
-                key={label}
-                type="button"
-                className="courses-filter-btn inline-flex items-center justify-between rounded-xl border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-gray-200"
-              >
-                {label} <ChevronDown size={14} />
-              </button>
-            ))}
-            <button className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-bold text-black">
-              Search
-            </button>
-          </div>
-        </section>
-
         <section className="courses-surface mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-bold">Categories (Sections)</h3>
@@ -476,6 +442,14 @@ export default async function CoursesPage({
                         />
                       );
                     })()}
+                    <CourseDeliveryBadge
+                      kind={
+                        course.learningFormat === "live" || tutorLedSlugs.has(course.slug)
+                          ? "tutor-led"
+                          : "self-paced"
+                      }
+                      className="absolute left-2 top-2"
+                    />
                   </div>
                   <p className="mt-3 line-clamp-2 text-sm font-semibold group-hover:text-amber-200">{course.title}</p>
                   <p className="mt-1 text-xs text-gray-400">
@@ -654,6 +628,14 @@ export default async function CoursesPage({
                         />
                       );
                     })()}
+                    <CourseDeliveryBadge
+                      kind={
+                        course.learningFormat === "live" || tutorLedSlugs.has(course.slug)
+                          ? "tutor-led"
+                          : "self-paced"
+                      }
+                      className="absolute left-2 top-2"
+                    />
                   </div>
                 </Link>
               ))}
