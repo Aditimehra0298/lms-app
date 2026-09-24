@@ -796,10 +796,15 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       return;
     }
     if (!content) return;
-    // Do not reset modules when content refreshes after save — that dropped unsaved video URLs.
-    if (curriculumHydratedSlugRef.current === selectedSlug) return;
     const c = (content.managedCourses ?? []).find((x) => x.slug === selectedSlug);
     if (!c) return;
+    const incomingLen = c.curriculum?.length ?? 0;
+    const currentLen = modulesRef.current.length;
+    const already = curriculumHydratedSlugRef.current === selectedSlug;
+    // After a server refresh, reload CEH modules if the catalog copy changed.
+    const incomingTitle = c.curriculum?.[1]?.title ?? c.curriculum?.[0]?.title ?? "";
+    const currentTitle = modulesRef.current[1]?.title ?? modulesRef.current[0]?.title ?? "";
+    if (already && incomingLen === currentLen && incomingTitle === currentTitle) return;
     curriculumHydratedSlugRef.current = selectedSlug;
     setModules(cloneMods(getAdminCurriculumForCourse(c.curriculum)));
   }, [selectedSlug, content, isCreating]);

@@ -94,7 +94,14 @@ for (const h of hits) {
   console.log(`     first: ${h.firstModule}\n`);
 }
 
-const chosen = hits.find((h) => !h.leftover) ?? hits[0];
+const jsonPath = path.join(dataDir, "admin-content.json");
+const currentHit = hits.find((h) => h.source === jsonPath);
+const bakHits = hits.filter((h) => String(h.source).includes(".bak"));
+const newestBak = bakHits.sort((a, b) => String(b.when).localeCompare(String(a.when)))[0];
+const chosen =
+  newestBak && newestBak.when > (currentHit?.when ?? "")
+    ? newestBak
+    : hits.find((h) => !h.leftover) ?? hits[0];
 if (!chosen) {
   console.log("No CEH copy found.");
   await prisma.$disconnect();
@@ -109,7 +116,6 @@ if (!apply) {
   process.exit(chosen.leftover ? 2 : 0);
 }
 
-const jsonPath = path.join(dataDir, "admin-content.json");
 const json = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
 const courses = [...(json.managedCourses ?? [])];
 const next = {

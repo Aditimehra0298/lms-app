@@ -31,17 +31,22 @@ export function applyCehCategory(course: ManagedCourse): ManagedCourse {
   };
 }
 
-/** Prefer the redesigned course over the old 85-module leftover. */
+function hasCurriculum(course: ManagedCourse | null | undefined): boolean {
+  return Boolean(course && Array.isArray(course.curriculum) && course.curriculum.length > 0);
+}
+
+/**
+ * The course designed in server Admin lives in admin-content.json.
+ * Do not replace that curriculum with the older MySQL/snapshot copy.
+ */
 export function pickDesignedCeh(
   json: ManagedCourse | null | undefined,
   mysql: ManagedCourse | null | undefined,
 ): ManagedCourse | null {
-  const jsonOld = isOldCehLeftover(json);
-  const mysqlOld = isOldCehLeftover(mysql);
-  if (mysql && !mysqlOld) return applyCehCategory(mysql);
-  if (json && !jsonOld) return applyCehCategory(json);
-  if (mysql) return applyCehCategory(mysql);
+  if (hasCurriculum(json)) return applyCehCategory(json);
+  if (hasCurriculum(mysql)) return applyCehCategory(mysql);
   if (json) return applyCehCategory(json);
+  if (mysql) return applyCehCategory(mysql);
   return null;
 }
 

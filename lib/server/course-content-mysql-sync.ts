@@ -2,7 +2,7 @@ import type { ManagedCourse } from "@/lib/content-schema";
 import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import { curriculumRichnessScore, mergeCoursePreferringRicherCurriculum } from "@/lib/curriculum-richness";
 import { prisma } from "@/lib/prisma";
-import { isCehSlug, pickDesignedCeh } from "@/lib/ceh-course";
+import { isCehSlug } from "@/lib/ceh-course";
 import { ensureCourseInMysql } from "@/lib/server/course-mysql-sync";
 
 /** Allow large curriculum JSON (many modules + video URLs) in one upsert. */
@@ -168,10 +168,12 @@ export async function enrichExistingCoursesFromMysql(
           ? (row.content.payload as ManagedCourse)
           : null;
       let next = list[i];
-      if (isCehSlug(slug) && payload) {
-        const picked = pickDesignedCeh(next, payload);
+      if (isCehSlug(slug)) {
         next = {
-          ...(picked ?? payload),
+          ...next,
+          slug,
+          category: "cyber-security",
+          published: true,
           courseIdentificationNumber:
             row?.courseIdentificationNumber ?? next.courseIdentificationNumber,
         };
@@ -188,13 +190,6 @@ export async function enrichExistingCoursesFromMysql(
                 row?.courseIdentificationNumber ?? next.courseIdentificationNumber,
             }
           : mergeCoursePreferringRicherCurriculum(next, payload);
-      } else if (isCehSlug(slug)) {
-        next = {
-          ...next,
-          slug,
-          category: "cyber-security",
-          published: true,
-        };
       }
       if (JSON.stringify(next) !== JSON.stringify(list[i])) {
         list[i] = next;
