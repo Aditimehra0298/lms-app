@@ -46,7 +46,10 @@ export async function getManagedCourses() {
   return Promise.all(
     published.map(async (course) => {
       const fromMysql = await getCourseContentFromMysql(course.slug).catch(() => null);
-      const merged = mergeCoursePreferringRicherCurriculum(course, fromMysql);
+      const merged =
+        course.slug?.trim() === "courses-certfied-ethical-hacking-and-penitration-testing" && fromMysql
+          ? { ...fromMysql, slug: course.slug, category: "cyber-security", published: true }
+          : mergeCoursePreferringRicherCurriculum(course, fromMysql);
       const uniqueImage = pickUniqueCourseCover(
         course.image,
         fromMysql?.image,
@@ -134,9 +137,15 @@ export async function getManagedCourseForLearner(slug: string): Promise<ManagedC
     (await getCourseContentFromMysql(key)) ??
     (decoded !== key ? await getCourseContentFromMysql(decoded) : null);
 
-  const merged = fromJson
-    ? mergeCoursePreferringRicherCurriculum(fromJson, fromMysql)
-    : fromMysql;
+  const isCeh =
+    key === "courses-certfied-ethical-hacking-and-penitration-testing" ||
+    decoded === "courses-certfied-ethical-hacking-and-penitration-testing";
+  const merged =
+    isCeh && fromMysql
+      ? { ...fromMysql, slug: fromMysql.slug || key, category: "cyber-security", published: true }
+      : fromJson
+        ? mergeCoursePreferringRicherCurriculum(fromJson, fromMysql)
+        : fromMysql;
 
   if (!merged) return null;
 

@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { ManagedCourse } from "@/lib/content-schema";
 import { applyStandardCoursePricing } from "@/lib/standard-course-pricing";
+import { getCourseContentFromMysql } from "@/lib/server/course-content-mysql-sync";
 import { clearDeletedCourseSlugs } from "@/lib/server/deleted-course-tombstones";
 
 export const CEH_SLUG = "courses-certfied-ethical-hacking-and-penitration-testing";
@@ -76,18 +77,35 @@ export async function ensureCehCourse(courses: ManagedCourse[]): Promise<{
   await clearDeletedCourseSlugs([CEH_SLUG]);
   const list = Array.isArray(courses) ? [...courses] : [];
   const idx = list.findIndex((c) => isCehSlug(c.slug));
+  const fromMysql = await getCourseContentFromMysql(CEH_SLUG).catch(() => null);
+
   if (idx >= 0) {
     const prev = list[idx];
+    const designed = fromMysql ?? prev;
     list[idx] = {
-      ...prev,
+      ...designed,
       slug: CEH_SLUG,
-      title: prev.title?.trim() || "Certified Ethical Hacking and Penetration Testing",
-      // Designed on the server as Cyber Security — never leave the Food Safety leftover.
+      title: designed.title?.trim() || "Certified Ethical Hacking and Penetration Testing",
       category: "cyber-security",
       published: true,
-      learningFormat: prev.learningFormat === "live" ? "self-paced" : prev.learningFormat || "self-paced",
+      learningFormat: designed.learningFormat || "self-paced",
     };
-    return { courses: list, added: prev.category !== "cyber-security" };
+    return { courses: list, added: prev.category !== "cyber-security" || Boolean(fromMysql) };
+  }
+
+  if (fromMysql) {
+    return {
+      courses: [
+        ...list,
+        {
+          ...fromMysql,
+          slug: CEH_SLUG,
+          category: "cyber-security",
+          published: true,
+        },
+      ],
+      added: true,
+    };
   }
 
   const root = path.join(process.cwd(), "data");

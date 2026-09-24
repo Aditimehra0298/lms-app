@@ -169,32 +169,40 @@ export async function enrichExistingCoursesFromMysql(
           ? (row.content.payload as ManagedCourse)
           : null;
       let next = list[i];
-      if (payload) {
+      if (slug === CEH_SLUG && payload) {
+        // Server-designed CEH must win. Do not keep the old JSON leftover curriculum.
+        next = {
+          ...payload,
+          slug: CEH_SLUG,
+          title: payload.title?.trim() || row?.title || next.title,
+          category: "cyber-security",
+          published: true,
+          learningFormat: payload.learningFormat || "self-paced",
+          courseIdentificationNumber:
+            row?.courseIdentificationNumber ?? next.courseIdentificationNumber,
+        };
+      } else if (payload) {
         const mysqlRicher =
-          slug === CEH_SLUG ||
           curriculumRichnessScore(payload.curriculum) >= curriculumRichnessScore(next.curriculum);
         next = mysqlRicher
           ? {
               ...next,
               ...payload,
-              ...mergeCoursePreferringRicherCurriculum(payload, next),
               slug,
               title: payload.title?.trim() || row?.title || next.title,
               courseIdentificationNumber:
                 row?.courseIdentificationNumber ?? next.courseIdentificationNumber,
             }
           : mergeCoursePreferringRicherCurriculum(next, payload);
-      }
-      if (slug === CEH_SLUG) {
+      } else if (slug === CEH_SLUG) {
         next = {
           ...next,
           slug: CEH_SLUG,
           category: "cyber-security",
           published: true,
-          learningFormat: next.learningFormat || "self-paced",
         };
       }
-      if (next !== list[i]) {
+      if (JSON.stringify(next) !== JSON.stringify(list[i])) {
         list[i] = next;
         changed = true;
       }

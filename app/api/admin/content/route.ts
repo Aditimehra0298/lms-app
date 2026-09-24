@@ -7,7 +7,6 @@ import {
   enrichExistingCoursesFromMysql,
   hydrateManagedCoursesFromMysql,
   syncAllCourseContentToMysql,
-  syncCourseContentToMysql,
 } from "@/lib/server/course-content-mysql-sync";
 import {
   attachCourseIdentificationNumbers,
@@ -155,14 +154,6 @@ export async function GET(request: Request) {
       await writeAdminContent(next);
       if (addedSlugs.length > 0) {
         console.info("[admin/content GET] restored from MySQL:", addedSlugs.join(", "));
-      }
-      const cehCourse = attached.courses.find(
-        (c) => c.slug?.trim() === "courses-certfied-ethical-hacking-and-penitration-testing",
-      );
-      if (cehCourse) {
-        await syncCourseContentToMysql(cehCourse).catch((err) => {
-          console.error("[admin/content GET] CEH MySQL category sync", err);
-        });
       }
     } catch (err) {
       console.error("[admin/content GET] persist catalog cleanup", err);
