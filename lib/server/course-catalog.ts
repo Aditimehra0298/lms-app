@@ -3,6 +3,7 @@ import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import { curriculumModulesForLearner } from "@/lib/curriculum-learner-filter";
 import { mergeCoursePreferringRicherCurriculum } from "@/lib/curriculum-richness";
 import {
+  enrichExistingCoursesFromMysql,
   getCourseContentFromMysql,
   hydrateManagedCoursesFromMysql,
 } from "@/lib/server/course-content-mysql-sync";
@@ -37,7 +38,8 @@ export async function getManagedCourses() {
   const { courses: hydrated } = await hydrateManagedCoursesFromMysql(reconciled.courses, {
     excludeSlugs: [...deletedSlugs, ...reconciled.droppedSlugs],
   });
-  const { courses } = await ensureCehCourse(hydrated);
+  const enriched = await enrichExistingCoursesFromMysql(hydrated);
+  const { courses } = await ensureCehCourse(enriched.courses);
   const published = courses.filter(
     (course) => course.published && course.settings?.showInCatalog !== false,
   );

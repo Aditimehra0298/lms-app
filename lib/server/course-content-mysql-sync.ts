@@ -1,7 +1,10 @@
 import type { ManagedCourse } from "@/lib/content-schema";
 import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
+import { curriculumRichnessScore, mergeCoursePreferringRicherCurriculum } from "@/lib/curriculum-richness";
 import { prisma } from "@/lib/prisma";
 import { ensureCourseInMysql } from "@/lib/server/course-mysql-sync";
+
+const CEH_SLUG = "courses-certfied-ethical-hacking-and-penitration-testing";
 
 /** Allow large curriculum JSON (many modules + video URLs) in one upsert. */
 async function ensureLargeMysqlPacket(): Promise<void> {
@@ -143,4 +146,61 @@ export async function hydrateManagedCoursesFromMysql(
   }
 
   return { courses: list, addedSlugs };
+}
+
+/**
+ * If JSON already has a slug, still copy richer MySQL payload onto it.
+ * CEH was stuck as Food Safety in JSON while the designed course lived in MySQL.
+ */
+export async function enrichExistingCoursesFromMysql(
+  courses: ManagedCourse[],
+): Promise<{ courses: ManagedCourse[]; changed: boolean }> {
+  const list = Array.isArray(courses) ? [...courses] : [];
+  let changed = false;
+  try {
+    const rows = await prisma.lmsCourse.findMany({ include: { content: true } });
+    const bySlug = new Map(rows.map((r) => [r.slug.trim(), r]));
+    for (let i = 0; i < list.length; i += 1) {
+      const slug = list[i].slug?.trim();
+      if (!slug) continue;
+      const row = bySlug.get(slug);
+      const payload =
+        row?.content?.payload && typeof row.content.payload === "object"
+          ? (row.content.payload as ManagedCourse)
+          : null;
+      let next = list[i];
+      if (payload) {
+        const mysqlRicher =
+          slug === CEH_SLUG ||
+          curriculumRichnessScore(payload.curriculum) >= curriculumRichnessScore(next.curriculum);
+        next = mysqlRicher
+          ? {
+              ...next,
+              ...payload,
+              ...mergeCoursePreferringRicherCurriculum(payload, next),
+              slug,
+              title: payload.title?.trim() || row?.title || next.title,
+              courseIdentificationNumber:
+                row?.courseIdentificationNumber ?? next.courseIdentificationNumber,
+            }
+          : mergeCoursePreferringRicherCurriculum(next, payload);
+      }
+      if (slug === CEH_SLUG) {
+        next = {
+          ...next,
+          slug: CEH_SLUG,
+          category: "cyber-security",
+          published: true,
+          learningFormat: next.learningFormat || "self-paced",
+        };
+      }
+      if (next !== list[i]) {
+        list[i] = next;
+        changed = true;
+      }
+    }
+  } catch (err) {
+    console.error("[enrichExistingCoursesFromMysql]", err);
+  }
+  return { courses: list, changed };
 }

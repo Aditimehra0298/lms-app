@@ -77,15 +77,17 @@ export async function ensureCehCourse(courses: ManagedCourse[]): Promise<{
   const list = Array.isArray(courses) ? [...courses] : [];
   const idx = list.findIndex((c) => isCehSlug(c.slug));
   if (idx >= 0) {
+    const prev = list[idx];
     list[idx] = {
-      ...list[idx],
+      ...prev,
       slug: CEH_SLUG,
-      title: list[idx].title?.trim() || "Certified Ethical Hacking and Penetration Testing",
-      category: list[idx].category?.trim() || "cyber-security",
+      title: prev.title?.trim() || "Certified Ethical Hacking and Penetration Testing",
+      // Designed on the server as Cyber Security — never leave the Food Safety leftover.
+      category: "cyber-security",
       published: true,
-      learningFormat: list[idx].learningFormat || "self-paced",
+      learningFormat: prev.learningFormat === "live" ? "self-paced" : prev.learningFormat || "self-paced",
     };
-    return { courses: list, added: false };
+    return { courses: list, added: prev.category !== "cyber-security" };
   }
 
   const root = path.join(process.cwd(), "data");

@@ -3,7 +3,12 @@ import { revalidatePath } from "next/cache";
 import { AdminContent, type ManagedCourse, mergeTutorLedCatalogPageConfig } from "@/lib/content-schema";
 import { mergeTutorLedCatalogPages, tutorLedCatalogPublicHref } from "@/lib/tutor-led-catalog-landings";
 import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
-import { hydrateManagedCoursesFromMysql, syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
+import {
+  enrichExistingCoursesFromMysql,
+  hydrateManagedCoursesFromMysql,
+  syncAllCourseContentToMysql,
+  syncCourseContentToMysql,
+} from "@/lib/server/course-content-mysql-sync";
 import {
   attachCourseIdentificationNumbers,
   deleteCoursesFromMysql,
@@ -128,7 +133,8 @@ export async function GET(request: Request) {
     catalogWithoutDeletes,
     { excludeSlugs: withoutCehDeletedSlugs(deletedSlugs) },
   );
-  const ceh = await ensureCehCourse(hydrated);
+  const enriched = await enrichExistingCoursesFromMysql(hydrated);
+  const ceh = await ensureCehCourse(enriched.courses);
   const reconciled = await dropCoursesRemovedFromMysql(ceh.courses);
   const attached = await attachCourseIdentificationNumbers(reconciled.courses);
   const nextDeleted = withoutCehDeletedSlugs(deletedSlugs);
@@ -139,6 +145,7 @@ export async function GET(request: Request) {
   };
   const catalogChanged =
     addedSlugs.length > 0 ||
+    enriched.changed ||
     ceh.added ||
     attached.changed ||
     catalogWithoutDeletes.length !== (content.managedCourses ?? []).length ||
@@ -148,6 +155,14 @@ export async function GET(request: Request) {
       await writeAdminContent(next);
       if (addedSlugs.length > 0) {
         console.info("[admin/content GET] restored from MySQL:", addedSlugs.join(", "));
+      }
+      const cehCourse = attached.courses.find(
+        (c) => c.slug?.trim() === "courses-certfied-ethical-hacking-and-penitration-testing",
+      );
+      if (cehCourse) {
+        await syncCourseContentToMysql(cehCourse).catch((err) => {
+          console.error("[admin/content GET] CEH MySQL category sync", err);
+        });
       }
     } catch (err) {
       console.error("[admin/content GET] persist catalog cleanup", err);
