@@ -71,10 +71,14 @@ function stubManagedCourseFromMysqlRow(row: {
   level: string | null;
   published: boolean;
   learningFormat: string | null;
+  courseIdentificationNumber?: number;
 }): ManagedCourse {
   const format = row.learningFormat?.trim().toLowerCase();
   return {
     slug: row.slug.trim(),
+    ...(typeof row.courseIdentificationNumber === "number"
+      ? { courseIdentificationNumber: row.courseIdentificationNumber }
+      : {}),
     title: row.title.trim() || row.slug,
     subtitle: row.subtitle?.trim() || "",
     category: row.category?.trim() || "",
@@ -124,6 +128,7 @@ export async function hydrateManagedCoursesFromMysql(
             ...payload,
             slug,
             title: payload.title?.trim() || row.title,
+            courseIdentificationNumber: row.courseIdentificationNumber,
           }
         : stubManagedCourseFromMysqlRow(row);
       list.push(next);

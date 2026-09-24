@@ -256,6 +256,8 @@ export type OrganizationSeatBandPriceRow = {
 
 export type ManagedCourse = {
   slug: string;
+  /** Permanent catalog ID from MySQL `lms_course.courseIdentificationNumber` (101, 102, …). */
+  courseIdentificationNumber?: number;
   title: string;
   subtitle: string;
   category: string;

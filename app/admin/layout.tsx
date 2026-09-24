@@ -7,6 +7,7 @@ import {
 import { isMainAdminEmail } from "@/lib/server/admin-emails";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 /**
  * Server-side exclusive admin gate (Node runtime — checks DB/file sid registry).

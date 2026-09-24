@@ -193,6 +193,50 @@ export async function listCoursesInMysql(): Promise<CourseMysqlRecord[]> {
   return rows.map(toRecord);
 }
 
+/** Copy MySQL course IDs onto admin JSON rows (slug match). */
+export async function attachCourseIdentificationNumbers(
+  courses: ManagedCourse[],
+): Promise<{
+  courses: ManagedCourse[];
+  nextCourseIdentificationNumber: number;
+  changed: boolean;
+}> {
+  const list = Array.isArray(courses) ? courses : [];
+  let nextCourseIdentificationNumber = COURSE_ID_START;
+  try {
+    const rows = await listCoursesInMysql();
+    const bySlug = new Map(rows.map((r) => [r.slug.trim(), r.courseIdentificationNumber]));
+    const maxId = rows.reduce(
+      (m, r) => Math.max(m, r.courseIdentificationNumber),
+      COURSE_ID_START - 1,
+    );
+    nextCourseIdentificationNumber = maxId + 1;
+    let changed = false;
+    const next = list.map((c) => {
+      const id = bySlug.get(c.slug?.trim() ?? "");
+      if (!id) return c;
+      if (c.courseIdentificationNumber === id) return c;
+      changed = true;
+      return { ...c, courseIdentificationNumber: id };
+    });
+    return { courses: next, nextCourseIdentificationNumber, changed };
+  } catch (err) {
+    console.error("[course-mysql-sync] attachCourseIdentificationNumbers", err);
+    const maxKnown = list.reduce(
+      (m, c) =>
+        typeof c.courseIdentificationNumber === "number"
+          ? Math.max(m, c.courseIdentificationNumber)
+          : m,
+      COURSE_ID_START - 1,
+    );
+    return {
+      courses: list,
+      nextCourseIdentificationNumber: maxKnown + 1,
+      changed: false,
+    };
+  }
+}
+
 /** Remove catalog courses from MySQL so admin delete is not undone by JSON hydrate. */
 export async function deleteCoursesFromMysql(slugs: string[]): Promise<{ deleted: number }> {
   const unique = [...new Set(slugs.map((s) => s.trim()).filter(Boolean))];

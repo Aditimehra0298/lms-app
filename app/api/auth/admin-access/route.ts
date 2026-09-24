@@ -35,20 +35,14 @@ export async function GET(request: Request) {
         allowed: false,
         configured: true,
         message:
-          "Admin access requires signing in at /account?admin=1. If signed in on another device, sign out there first — or use Continue on this device.",
+          "Admin is already signed in on another computer. Sign out from that computer first.",
       },
       { headers: { "Cache-Control": "no-store" } },
     );
     // Drop stale admin cookies so this browser stops hammering /api/admin/*.
     // Do NOT clear the exclusive lock here — only logout / takeover / stale timeout may.
-    const {
-      clearAdminSessionCookieHeader,
-      clearAdminCsrfCookieHeader,
-      clearAdminXsrfCookieHeader,
-    } = await import("@/lib/server/admin-session");
-    res.headers.append("Set-Cookie", clearAdminSessionCookieHeader());
-    res.headers.append("Set-Cookie", clearAdminCsrfCookieHeader());
-    res.headers.append("Set-Cookie", clearAdminXsrfCookieHeader());
+    const { appendClearedAdminAuthCookies } = await import("@/lib/server/admin-session");
+    appendClearedAdminAuthCookies(res, request);
     return res;
   }
 
@@ -74,13 +68,13 @@ export async function GET(request: Request) {
   if (claims?.csrf) {
     const hasCsrf = new RegExp(`(?:^|;\\s*)${ADMIN_CSRF_COOKIE}=`).test(existing);
     if (!hasCsrf) {
-      res.headers.append("Set-Cookie", adminCsrfCookieHeader(claims.csrf));
+      res.headers.append("Set-Cookie", adminCsrfCookieHeader(claims.csrf, request));
     }
   }
   if (claims?.xsrf) {
     const hasXsrf = new RegExp(`(?:^|;\\s*)${ADMIN_XSRF_COOKIE}=`).test(existing);
     if (!hasXsrf) {
-      res.headers.append("Set-Cookie", adminXsrfCookieHeader(claims.xsrf));
+      res.headers.append("Set-Cookie", adminXsrfCookieHeader(claims.xsrf, request));
     }
   }
 

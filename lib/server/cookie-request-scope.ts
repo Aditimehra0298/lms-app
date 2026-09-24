@@ -14,7 +14,11 @@ function isLocalHost(host: string): boolean {
     host === "localhost" ||
     host === "127.0.0.1" ||
     host === "::1" ||
-    host.endsWith(".local")
+    host.endsWith(".local") ||
+    /^(\d{1,3}\.){3}\d{1,3}$/.test(host) ||
+    host.startsWith("192.168.") ||
+    host.startsWith("10.") ||
+    host.startsWith("172.")
   );
 }
 

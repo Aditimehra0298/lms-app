@@ -32,6 +32,7 @@ import {
   Users,
   Video,
   Award,
+  Hash,
   LayoutDashboard,
   Wrench,
 } from "lucide-react";
@@ -51,6 +52,7 @@ import type {
 } from "@/lib/content-schema";
 import { selfPacedCoverImageHint } from "@/lib/admin-image-hints";
 import AdminCourseHeroFieldsEditor from "@/components/admin/AdminCourseHeroFieldsEditor";
+import { COURSE_ID_START, formatCourseCode } from "@/lib/course-ids";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { sanitizeCourseHero } from "@/lib/course-hero-resolve";
 import { sanitizeInstructorSection } from "@/lib/course-instructor-section";
@@ -209,6 +211,45 @@ function slugify(s: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function nextCourseIdFromList(courses: ManagedCourse[], fallback = COURSE_ID_START): number {
+  const maxId = courses.reduce((m, c) => {
+    const n = c.courseIdentificationNumber;
+    return typeof n === "number" && n > 0 ? Math.max(m, n) : m;
+  }, COURSE_ID_START - 1);
+  return Math.max(fallback, maxId + 1);
+}
+
+function CourseIdBadge({
+  id,
+  pendingNext,
+  size = "md",
+}: {
+  id?: number | null;
+  pendingNext?: number;
+  size?: "sm" | "md";
+}) {
+  const assigned = typeof id === "number" && id > 0;
+  const label = assigned
+    ? formatCourseCode(id)
+    : pendingNext
+      ? formatCourseCode(pendingNext)
+      : "—";
+  const pad = size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md border font-mono font-bold tabular-nums ${pad} ${
+        assigned
+          ? "border-amber-400/35 bg-amber-500/15 text-amber-200"
+          : "border-violet-400/30 bg-violet-500/10 text-violet-100"
+      }`}
+      title={assigned ? "Permanent course ID" : "Unique course ID assigned when you save"}
+    >
+      <Hash className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} aria-hidden />
+      {label}
+    </span>
+  );
+}
+
 function rowIcon(kind: CourseCurriculumKind) {
   switch (kind) {
     case "video":
@@ -314,6 +355,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
   const [categoryFilterSlug, setCategoryFilterSlug] = useState("");
   const [catalogSearch, setCatalogSearch] = useState("");
+  const [nextCourseId, setNextCourseId] = useState(COURSE_ID_START);
   const [selectedSlug, setSelectedSlug] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
@@ -341,13 +383,16 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     try {
       const res = await fetch("/api/admin/content", { cache: "no-store", signal: controller.signal });
       if (!res.ok) throw new Error("load");
-      const data = (await res.json()) as AdminContent;
-      setContent({
-        ...data,
-        managedCourses: Array.isArray(data.managedCourses)
-          ? data.managedCourses.map(sanitizeManagedCourse)
-          : [],
-      });
+      const data = (await res.json()) as AdminContent & { nextCourseIdentificationNumber?: number };
+      const courses = Array.isArray(data.managedCourses)
+        ? data.managedCourses.map(sanitizeManagedCourse)
+        : [];
+      setContent({ ...data, managedCourses: courses });
+      setNextCourseId(
+        typeof data.nextCourseIdentificationNumber === "number"
+          ? data.nextCourseIdentificationNumber
+          : nextCourseIdFromList(courses),
+      );
     } catch {
       setLoadError("Could not load admin content. Check that the dev server is running and try again.");
       setContent(null);
@@ -366,10 +411,15 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
+      const errBody = (await put.json().catch(() => ({}))) as {
+        error?: string;
+        managedCourses?: ManagedCourse[];
+        nextCourseIdentificationNumber?: number;
+      };
       if (!put.ok) {
-        const errBody = (await put.json().catch(() => ({}))) as { error?: string };
         throw new Error(errBody.error ?? `Save failed (${put.status})`);
       }
+      return errBody;
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
         throw new Error("Save timed out. Check the dev server and try again.");
@@ -439,7 +489,11 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
         if (courseCat !== filterSlug && c.category !== categoryFilterSlug) return false;
       }
       if (!q) return true;
+      const idMatch =
+        typeof c.courseIdentificationNumber === "number" &&
+        formatCourseCode(c.courseIdentificationNumber).includes(q);
       return (
+        idMatch ||
         c.title.toLowerCase().includes(q) ||
         c.slug.toLowerCase().includes(q) ||
         (c.subtitle ?? "").toLowerCase().includes(q) ||
@@ -471,11 +525,28 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     setSaveNotice(null);
     try {
       // Partial PUT — never echo the full document (wipes category renames / page images).
-      await putAdminContent({
+      const saved = await putAdminContent({
         managedCourses: nextCourses,
         ...(opts?.removedCourseSlugs?.length ? { removedCourseSlugs: opts.removedCourseSlugs } : {}),
       });
-      setContent({ ...content, managedCourses: nextCourses });
+      const courses = Array.isArray(saved?.managedCourses)
+        ? saved.managedCourses.map(sanitizeManagedCourse)
+        : nextCourses;
+      setContent({ ...content, managedCourses: courses });
+      if (typeof saved?.nextCourseIdentificationNumber === "number") {
+        setNextCourseId(saved.nextCourseIdentificationNumber);
+      } else {
+        setNextCourseId(nextCourseIdFromList(courses));
+      }
+      const savedSlug = slugify((draft.slug || draft.title || "").trim());
+      const savedRow = courses.find((c) => c.slug === savedSlug);
+      if (savedRow?.courseIdentificationNumber) {
+        setDraft((d) =>
+          d.slug === savedRow.slug || slugify(d.slug || d.title) === savedRow.slug
+            ? { ...d, courseIdentificationNumber: savedRow.courseIdentificationNumber }
+            : d,
+        );
+      }
       setSaveNotice("Course saved.");
       void load();
       return true;
@@ -1590,7 +1661,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                 <input
                   value={catalogSearch}
                   onChange={(e) => setCatalogSearch(e.target.value)}
-                  placeholder="Search title, slug, or ISO 14001…"
+                  placeholder="Search title, slug, or course ID…"
                   className={`${spField} mt-0 text-sm`}
                 />
               </label>
@@ -1614,12 +1685,12 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
           <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0d1528] shadow-[0_16px_48px_rgba(0,0,0,0.35)]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] text-left text-xs">
+              <table className="w-full min-w-[960px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-white/[0.08] bg-white/[0.03] text-[10px] font-bold uppercase tracking-wider text-gray-500">
                     {(isLessonsMode
-                      ? ["Course", "Slug", "Lessons", "Status", "Actions"]
-                      : ["Course", "Slug", "Category", "Level", "Price", "Status", "Actions"]
+                      ? ["Course ID", "Course", "Slug", "Lessons", "Status", "Actions"]
+                      : ["Course ID", "Course", "Slug", "Category", "Level", "Price", "Status", "Actions"]
                     ).map((h) => (
                       <th key={h} className="px-4 py-3 font-semibold">
                         {h}
@@ -1630,7 +1701,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                 <tbody className="divide-y divide-white/[0.04]">
                   {filteredTableCourses.length === 0 ? (
                     <tr>
-                      <td colSpan={isLessonsMode ? 5 : 7} className="px-4 py-14 text-center">
+                      <td colSpan={isLessonsMode ? 6 : 8} className="px-4 py-14 text-center">
                         <p className="text-sm font-medium text-gray-400">No courses match this filter</p>
                         <p className="mt-1 text-[11px] text-gray-600">
                           {selfPacedCourses.length > 0
@@ -1648,6 +1719,9 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                           key={c.slug}
                           className={`transition hover:bg-violet-500/[0.06] ${sel ? "border-l-2 border-l-violet-500 bg-violet-500/[0.08]" : "border-l-2 border-l-transparent"}`}
                         >
+                          <td className="px-4 py-3">
+                            <CourseIdBadge id={c.courseIdentificationNumber} size="sm" />
+                          </td>
                           <td className="px-4 py-3">
                             <button
                               type="button"
@@ -1769,6 +1843,20 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                       </code>
                     </p>
                   </div>
+                  <div className="rounded-xl border border-amber-400/25 bg-black/30 px-3 py-2.5">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200/80">Course ID</p>
+                    <div className="mt-1.5">
+                      <CourseIdBadge
+                        id={draft.courseIdentificationNumber}
+                        pendingNext={isCreating || !draft.courseIdentificationNumber ? nextCourseId : undefined}
+                      />
+                    </div>
+                    <p className="mt-1.5 max-w-[14rem] text-[10px] leading-relaxed text-gray-500">
+                      {draft.courseIdentificationNumber
+                        ? "Permanent ID — used on certificates and reports."
+                        : `Unique ID ${nextCourseId} is assigned when you save this course.`}
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="space-y-5 p-4 sm:p-6">
@@ -1778,6 +1866,23 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                 description="Title, cover, instructor, and catalog listing — unique for every course."
               >
               <div className="grid gap-4 md:grid-cols-2 md:gap-5">
+                <label className="block md:col-span-2">
+                  <span className="text-[11px] text-gray-500">Course ID</span>
+                  <input
+                    value={
+                      draft.courseIdentificationNumber
+                        ? formatCourseCode(draft.courseIdentificationNumber)
+                        : isCreating
+                          ? `${nextCourseId} (assigned on save)`
+                          : "Assigned on save"
+                    }
+                    readOnly
+                    className={`${spField} cursor-default font-mono text-xs text-amber-200`}
+                  />
+                  <p className="mt-1 text-[10px] text-gray-500">
+                    Unique for every course. Starts at {COURSE_ID_START} and never reused.
+                  </p>
+                </label>
                 <label className="block md:col-span-2">
                   <span className="text-[11px] text-gray-500">URL slug</span>
                   <input
@@ -2338,8 +2443,13 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
                     <ChevronRight className="h-3 w-3 shrink-0" />
                     <span className="max-w-[220px] truncate font-medium text-violet-300">{selectedCourse!.title}</span>
                   </nav>
-                  <h2 className="text-xl font-semibold text-white md:text-2xl">
+                  <h2 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-white md:text-2xl">
                     {isLessonsMode ? "Lesson builder" : "Course content"}
+                    <CourseIdBadge
+                      id={selectedCourse?.courseIdentificationNumber ?? draft.courseIdentificationNumber}
+                      pendingNext={nextCourseId}
+                      size="sm"
+                    />
                   </h2>
                   <p className="mt-1 text-xs text-gray-400">
                     {catLabel} · Build <strong className="font-medium text-gray-300">modules</strong>, add video / document /

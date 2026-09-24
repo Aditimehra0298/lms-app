@@ -62,8 +62,14 @@ env
 *.tsbuildinfo
 next-env.d.ts
 
+# Live / local MySQL dumps — contain learner emails. Share privately, never push.
+sft_lms.sql
+sft_lms_server.sql
+sft_lms_all.sql
+
 # FileZilla packaging output
 deploy-filezilla/
+server-update/
 
 deploy-filezilla-ready/
 

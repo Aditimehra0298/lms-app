@@ -10,9 +10,11 @@ import {
 import { verifyAdminVerifyToken } from "@/lib/server/admin-verify-token";
 import { attachAdminSession, readAdminSessionClaims } from "@/lib/server/admin-session";
 import {
+  ADMIN_SESSION_ELSEWHERE_MESSAGE,
   clearActiveAdminSession,
   isAdminSessionHeldElsewhere,
 } from "@/lib/server/admin-active-session";
+import { isAdminHomeDevice } from "@/lib/server/admin-home-device";
 import { attachLearnerSession } from "@/lib/server/learner-session";
 import { fetchGoogleUserInfo } from "@/lib/server/google-userinfo";
 import {
@@ -43,8 +45,7 @@ type Body = {
   countryName?: string;
   /** From step 1 admin password login — Google must match same email */
   adminVerifyToken?: string;
-  /** End other admin device and open this one. */
-  forceTakeover?: boolean;
+  homeKey?: string;
 };
 
 const ACCOUNT_TYPES = new Set<AccountTypeId>(["individual", "organisation", "self"]);
@@ -263,22 +264,24 @@ export async function POST(request: Request) {
   if (isAdminGoogleStep && isMainAdminEmail(email)) {
     const existingAdmin = readAdminSessionClaims(request);
     const held = await isAdminSessionHeldElsewhere(existingAdmin?.sid ?? null);
+    const homeKey = body.homeKey?.trim() || "";
+    const homeDevice = isAdminHomeDevice(request, homeKey);
     if (held.held) {
-      if (!body.forceTakeover) {
+      if (homeDevice) {
+        await clearActiveAdminSession();
+      } else {
         return NextResponse.json(
           {
             ok: false,
-            message:
-              "Admin panel is already signed in on another device. Sign out there, or continue on this device to end that session.",
+            message: ADMIN_SESSION_ELSEWHERE_MESSAGE,
             sessionActiveElsewhere: true,
-            canForceTakeover: true,
+            canForceTakeover: false,
           },
           { status: 409 },
         );
       }
-      await clearActiveAdminSession();
     }
-    return attachAdminSession(res, email, request);
+    return attachAdminSession(res, email, request, { treatAsHome: homeDevice, homeKey });
   }
   return attachLearnerSession(res, email);
 }

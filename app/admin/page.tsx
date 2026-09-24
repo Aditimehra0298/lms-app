@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -55,14 +55,19 @@ import AdminPaymentsWorkspace from "@/components/admin/AdminPaymentsWorkspace";
 import AdminOrdersWorkspace from "@/components/admin/AdminOrdersWorkspace";
 import AdminInvoicesWorkspace from "@/components/admin/AdminInvoicesWorkspace";
 import AdminRefundsWorkspace from "@/components/admin/AdminRefundsWorkspace";
-import AdminRecentOrders from "@/components/admin/AdminRecentOrders";
 import AdminRolesPermissionsWorkspace from "@/components/admin/AdminRolesPermissionsWorkspace";
 import AdminSettingsWorkspace from "@/components/admin/AdminSettingsWorkspace";
 import AdminAnalyticsWorkspace from "@/components/admin/AdminAnalyticsWorkspace";
 import AdminReportsWorkspace from "@/components/admin/AdminReportsWorkspace";
 import AdminNotificationsBell from "@/components/admin/AdminNotificationsBell";
-import { AdminCommunityConnectEditor } from "@/components/admin/AdminCommunityConnectEditor";
-import { AdminDashboardCalendarEditor } from "@/components/admin/AdminDashboardCalendarEditor";
+import AdminDashboardHome, {
+  type CategoryStatRow,
+  type DashboardRecentUser,
+  type DashboardStats,
+  type DashboardTopCourse,
+  type RecentEnrollmentRow,
+  type WeekActivityRow,
+} from "@/components/admin/AdminDashboardHome";
 import { AdminOrganizationTeamEditor } from "@/components/admin/AdminOrganizationTeamEditor";
 import AdminCourseQAModeration from "@/components/admin/AdminCourseQAModeration";
 import AdminSupportTickets from "@/components/admin/AdminSupportTickets";
@@ -124,50 +129,6 @@ const menuSections = [
     title: "Other",
     items: ["Settings", "Analytics", "Reports"],
   },
-];
-
-type DashboardStats = {
-  totalUsers: number;
-  totalStudents: number;
-  totalAdmins: number;
-  totalOrganizations: number;
-  totalCourses: number;
-  publishedCourses: number;
-  totalCategories: number;
-  totalPurchases: number;
-  totalPayments: number;
-  totalRevenue: number;
-  totalCertificates: number;
-  totalReviews: number;
-  totalFormSubmissions: number;
-  newsletterSubs: number;
-};
-type DashboardRecentUser = { name: string | null; email: string; createdAt: string; role: string };
-type DashboardRecentPayment = {
-  id: string;
-  learnerEmail: string;
-  amount: number;
-  currency: string;
-  status: string;
-  method: string;
-  items: unknown;
-  createdAt: string;
-};
-type DashboardTopCourse = { slug: string; title: string; enrollments: number };
-type CategoryStatRow = {
-  slug: string;
-  title: string;
-  courseCount: number;
-  publishedCourseCount: number;
-  studentCount: number;
-};
-
-const quickActions = [
-  "Add New Course",
-  "Add New Category",
-  "Manage Users",
-  "Create Tutor-Led Session",
-  "Send Newsletter",
 ];
 
 const menuIcons: Record<string, typeof Home> = {
@@ -232,7 +193,7 @@ const PANEL_MENU_QUERY: Record<string, string> = Object.fromEntries(
 
 function formatAdminHeaderDate(now = new Date()): string {
   const start = new Date(now);
-  const day = start.getDay(); // 0 Sun … 6 Sat
+  const day = start.getDay(); // 0 Sun â€¦ 6 Sat
   const mondayOffset = day === 0 ? -6 : 1 - day;
   start.setDate(start.getDate() + mondayOffset);
   start.setHours(12, 0, 0, 0);
@@ -247,39 +208,18 @@ function formatAdminHeaderDate(now = new Date()): string {
     d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
   if (sameMonth && sameYear) {
-    return `${monthDay(start)} – ${end.getDate()}, ${end.getFullYear()}`;
+    return `${monthDay(start)} â€“ ${end.getDate()}, ${end.getFullYear()}`;
   }
   if (sameYear) {
-    return `${monthDay(start)} – ${withYear(end)}`;
+    return `${monthDay(start)} â€“ ${withYear(end)}`;
   }
-  return `${withYear(start)} – ${withYear(end)}`;
-}
-
-function fmtNum(n: number): string {
-  return n.toLocaleString("en-IN");
-}
-
-function fmtCurrency(n: number): string {
-  if (n >= 10_000_000) return `₹${(n / 10_000_000).toFixed(1)}Cr`;
-  if (n >= 100_000) return `₹${(n / 100_000).toFixed(1)}L`;
-  return `₹${n.toLocaleString("en-IN")}`;
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins} min${mins === 1 ? "" : "s"} ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
+  return `${withYear(start)} â€“ ${withYear(end)}`;
 }
 
 function AdminAccessLoading() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-zinc-400">
-      Checking administrator permission…
+      Checking administrator permissionâ€¦
     </div>
   );
 }
@@ -321,9 +261,10 @@ function AdminPageInner() {
   const [categoriesLoadError, setCategoriesLoadError] = useState<string | null>(null);
   const [dashStats, setDashStats] = useState<DashboardStats | null>(null);
   const [dashRecentUsers, setDashRecentUsers] = useState<DashboardRecentUser[]>([]);
-  const [dashRecentPayments, setDashRecentPayments] = useState<DashboardRecentPayment[]>([]);
   const [dashTopCourses, setDashTopCourses] = useState<DashboardTopCourse[]>([]);
   const [categoryStats, setCategoryStats] = useState<CategoryStatRow[]>([]);
+  const [dashWeekActivity, setDashWeekActivity] = useState<WeekActivityRow[]>([]);
+  const [dashRecentEnrollments, setDashRecentEnrollments] = useState<RecentEnrollmentRow[]>([]);
 
   const panelQuery = searchParams.get("panel");
 
@@ -412,7 +353,7 @@ function AdminPageInner() {
           }
         });
 
-    // Server JWT session cookie is the only proof of admin — never trust localStorage alone.
+    // Server JWT session cookie is the only proof of admin â€” never trust localStorage alone.
     void check();
     // Kick this browser quickly if another device took the exclusive admin session.
     const heartbeat = window.setInterval(() => {
@@ -453,8 +394,8 @@ function AdminPageInner() {
         row.title || row.name || row.slug || "",
         row.subtitle || "General",
         row.description || "",
-        "—",
-        "—",
+        "â€”",
+        "â€”",
         row.isActive === false ? "Draft" : "Published",
         row.slug || "",
         row.image?.trim() || "",
@@ -473,16 +414,18 @@ function AdminPageInner() {
         ok?: boolean;
         stats?: DashboardStats;
         recentUsers?: DashboardRecentUser[];
-        recentPayments?: DashboardRecentPayment[];
         topCourses?: DashboardTopCourse[];
         categoryStats?: CategoryStatRow[];
+        weekActivity?: WeekActivityRow[];
+        recentEnrollments?: RecentEnrollmentRow[];
       }) => {
         if (cancelled) return;
         if (data.stats) setDashStats(data.stats);
         if (data.recentUsers) setDashRecentUsers(data.recentUsers);
-        if (data.recentPayments) setDashRecentPayments(data.recentPayments);
         if (data.topCourses) setDashTopCourses(data.topCourses);
         if (Array.isArray(data.categoryStats)) setCategoryStats(data.categoryStats);
+        if (Array.isArray(data.weekActivity)) setDashWeekActivity(data.weekActivity);
+        if (Array.isArray(data.recentEnrollments)) setDashRecentEnrollments(data.recentEnrollments);
       })
       .catch(() => {});
     return () => { cancelled = true; };
@@ -615,7 +558,7 @@ function AdminPageInner() {
     const label = row?.[0] ?? "this category";
     if (
       typeof window !== "undefined" &&
-      !window.confirm(`Delete “${label}”? It will be removed from the website and courses listing.`)
+      !window.confirm(`Delete â€œ${label}â€? It will be removed from the website and courses listing.`)
     ) {
       return;
     }
@@ -794,21 +737,21 @@ function AdminPageInner() {
                   className="w-32 bg-transparent text-sm outline-none placeholder:text-gray-500 sm:w-56 md:w-72 lg:w-96"
                   placeholder={
                     showCoursesWorkspace
-                      ? "Search for courses, modules, users…"
+                      ? "Search for courses, modules, usersâ€¦"
                       : showLessonsWorkspace
-                        ? "Search courses for lessons…"
+                        ? "Search courses for lessonsâ€¦"
                         : showTutorLedHub
-                          ? "Search tutor-led courses…"
+                          ? "Search tutor-led coursesâ€¦"
                           : showWorkshopsWorkspace
-                            ? "Search workshops…"
+                            ? "Search workshopsâ€¦"
                             : showBatchesWorkspace
-                              ? "Search batch schedules…"
+                              ? "Search batch schedulesâ€¦"
                               : showCourseQAModeration
-                                ? "Filter Q&A by course…"
+                                ? "Filter Q&A by courseâ€¦"
                                 : showUsersWorkspace
-                                  ? "Search users by email…"
+                                  ? "Search users by emailâ€¦"
                                   : showPaymentsWorkspace
-                                    ? "Search payments by email or order ID…"
+                                    ? "Search payments by email or order IDâ€¦"
                                     : "Search here..."
                   }
                 />
@@ -827,275 +770,17 @@ function AdminPageInner() {
           </header>
 
           {activeMenu === "Dashboard" && (
-            <>
-          <section className="mb-4 rounded-xl border border-white/10 bg-[#0b1224] p-3">
-            <h1 className="text-2xl font-semibold">Dashboard</h1>
-            <p className="text-xs text-gray-400">
-              Welcome back, Admin! Here&apos;s what&apos;s happening with your platform today.
-            </p>
-          </section>
-
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            {(dashStats ? [
-              ["Total Users", fmtNum(dashStats.totalUsers), Users],
-              ["Total Courses", fmtNum(dashStats.totalCourses), BookOpen],
-              ["Total Revenue", fmtCurrency(dashStats.totalRevenue), CreditCard],
-              ["Orders", fmtNum(dashStats.totalPayments), ShoppingCart],
-              ["Active Students", fmtNum(dashStats.totalStudents), Users],
-            ] as [string, string, typeof Users][] : [
-              ["Total Users", "—", Users],
-              ["Total Courses", "—", BookOpen],
-              ["Total Revenue", "—", CreditCard],
-              ["Orders", "—", ShoppingCart],
-              ["Active Students", "—", Users],
-            ] as [string, string, typeof Users][]).map(([label, value, Icon]) => (
-              <article key={label} className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
-                <div className="mb-2 inline-flex rounded-md bg-[#6f55ff]/20 p-1.5 text-[#b5a8ff]">
-                  <Icon size={14} />
-                </div>
-                <p className="text-[11px] text-gray-400">{label}</p>
-                <p className="mt-1 text-2xl font-semibold">{value}</p>
-              </article>
-            ))}
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-[2fr_1.2fr_1fr]">
-            <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-semibold">Revenue Overview</h3>
-                <button className="rounded-md border border-white/10 bg-[#0a1120] px-2 py-1 text-xs">
-                  This Week
-                </button>
-              </div>
-              <div className="h-48 rounded-lg border border-white/10 bg-[#0a1120] p-3">
-                <svg viewBox="0 0 600 220" className="h-full w-full">
-                  <polyline
-                    fill="none"
-                    stroke="#7b61ff"
-                    strokeWidth="4"
-                    points="20,165 105,120 190,135 275,95 360,110 445,70 530,35"
-                  />
-                  <polyline
-                    fill="none"
-                    stroke="#f5b942"
-                    strokeWidth="4"
-                    points="20,190 105,175 190,185 275,160 360,170 445,145 530,95"
-                  />
-                </svg>
-              </div>
-            </article>
-
-            <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
-              <h3 className="font-semibold">Users Overview</h3>
-              <div className="mt-4 flex items-center gap-3">
-                <div className="grid h-28 w-28 place-items-center rounded-full border-12 border-[#6f55ff] bg-[#0a1120]">
-                  <div className="text-center">
-                    <p className="text-xl font-semibold">{dashStats ? fmtNum(dashStats.totalUsers) : "—"}</p>
-                    <p className="text-[10px] text-gray-400">Total Users</p>
-                  </div>
-                </div>
-                <div className="space-y-2 text-xs text-gray-300">
-                  <p>
-                    <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#6f55ff]" />
-                    Students: {dashStats ? fmtNum(dashStats.totalStudents) : "—"}
-                  </p>
-                  <p>
-                    <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#3b82f6]" />
-                    Organizations: {dashStats ? fmtNum(dashStats.totalOrganizations) : "—"}
-                  </p>
-                  <p>
-                    <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#f59e0b]" />
-                    Admins: {dashStats ? fmtNum(dashStats.totalAdmins) : "—"}
-                  </p>
-                </div>
-              </div>
-            </article>
-
-            <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
-              <h3 className="mb-3 font-semibold">Quick Actions</h3>
-              <div className="space-y-2">
-                {quickActions.map((action) => (
-                  <button
-                    key={action}
-                    type="button"
-                    onClick={() => {
-                      if (action === "Add New Course") selectMenu("Self-paced courses");
-                      else if (action === "Add New Category") selectMenu("Categories");
-                      else if (action === "Manage Users") selectMenu("Users");
-                      else if (action === "Create Tutor-Led Session") selectMenu("Tutor Led");
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-left text-xs hover:border-[#6f55ff]/50"
-                  >
-                    <Video size={13} className="text-[#b5a8ff]" />
-                    {action}
-                  </button>
-                ))}
-              </div>
-            </article>
-          </div>
-
-          <div className="mt-4 grid gap-4 xl:grid-cols-[2fr_1.1fr_1fr]">
-            <AdminRecentOrders onViewAll={() => selectMenu("Orders")} />
-
-            <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="font-semibold">User Registrations</h3>
-                <button onClick={() => selectMenu("Users")} className="rounded-md border border-white/10 bg-[#0a1120] px-2 py-1 text-xs">View All</button>
-              </div>
-              <div className="space-y-3">
-                {(dashRecentUsers.length > 0 ? dashRecentUsers : []).map((u) => (
-                  <div key={u.email} className="flex items-center justify-between rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="grid h-8 w-8 place-items-center rounded-full bg-[#6f55ff]/30 text-[10px] font-bold text-white">
-                        {(u.name || u.email).charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium">{u.name || u.email.split("@")[0]}</p>
-                        <p className="text-[10px] text-gray-500">new user registered</p>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-gray-400">{timeAgo(u.createdAt)}</p>
-                  </div>
-                ))}
-                {dashRecentUsers.length === 0 && (
-                  <p className="py-4 text-center text-xs text-gray-500">No registrations yet</p>
-                )}
-              </div>
-            </article>
-
-            <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="font-semibold">System Overview</h3>
-                <Settings size={14} className="text-gray-400" />
-              </div>
-              <div className="space-y-2 text-xs">
-                {(dashStats ? [
-                  ["Total Categories", fmtNum(dashStats.totalCategories)],
-                  ["Published Courses", fmtNum(dashStats.publishedCourses)],
-                  ["Total Students", fmtNum(dashStats.totalStudents)],
-                  ["Certificates Issued", fmtNum(dashStats.totalCertificates)],
-                  ["Total Reviews", fmtNum(dashStats.totalReviews)],
-                  ["Newsletter Subscribers", fmtNum(dashStats.newsletterSubs)],
-                ] : [
-                  ["Total Categories", "—"],
-                  ["Published Courses", "—"],
-                  ["Total Students", "—"],
-                  ["Certificates Issued", "—"],
-                  ["Total Reviews", "—"],
-                  ["Newsletter Subscribers", "—"],
-                ]).map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2">
-                    <span className="inline-flex items-center gap-2 text-gray-300">
-                      <FileText size={12} />
-                      {k}
-                    </span>
-                    <span className="font-semibold">{v}</span>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </div>
-
-          <div className="mt-4 grid gap-4 xl:grid-cols-[2fr_1fr]">
-            <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-300">
-                <button
-                  type="button"
-                  onClick={() => selectMenu("Home Page")}
-                  className="rounded-md bg-[#6f55ff]/30 px-2 py-1 hover:bg-[#6f55ff]/45"
-                >
-                  Home Page
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectMenu("About Page")}
-                  className="rounded-md border border-white/10 px-2 py-1 hover:bg-white/10"
-                >
-                  About Page
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectMenu("Courses Page")}
-                  className="rounded-md border border-white/10 px-2 py-1 hover:bg-white/10"
-                >
-                  Courses Page
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectMenu("Tutor Led")}
-                  className="rounded-md border border-white/10 px-2 py-1 hover:bg-white/10"
-                >
-                  Tutor Led
-                </button>
-                <button type="button" className="rounded-md border border-white/10 px-2 py-1 opacity-60" disabled>
-                  Contact Page
-                </button>
-              </div>
-              <h3 className="mb-2 font-semibold">Content Management</h3>
-              <table className="w-full text-left text-xs">
-                <thead className="text-gray-400">
-                  <tr>
-                    {["Section", "Title", "Status", "Updated On", "Actions"].map((h) => (
-                      <th key={h} className="border-b border-white/10 py-2">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["Hero Section", "Learn Today, Lead Tomorrow", "Published", "Apr 25, 2026"],
-                    ["Categories Section", "Top Categories", "Published", "Apr 24, 2026"],
-                    ["Popular Courses", "Explore Our Popular Courses", "Published", "Apr 26, 2026"],
-                  ].map((row) => (
-                    <tr key={row[0]} className="border-b border-white/5">
-                      <td className="py-2">{row[0]}</td>
-                      <td className="py-2">{row[1]}</td>
-                      <td className="py-2">
-                        <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-emerald-300">{row[2]}</span>
-                      </td>
-                      <td className="py-2">{row[3]}</td>
-                      <td className="py-2">
-                        <span className="inline-flex gap-2 text-gray-300">
-                          <MessageSquare size={13} />
-                          <CreditCard size={13} />
-                          <ShoppingCart size={13} />
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </article>
-
-            <article className="rounded-xl border border-white/10 bg-[#0d1528] p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="font-semibold">Top Courses</h3>
-                <button onClick={() => selectMenu("Self-paced courses")} className="rounded-md border border-white/10 bg-[#0a1120] px-2 py-1 text-xs">View All</button>
-              </div>
-              <div className="space-y-2">
-                {dashTopCourses.length > 0 ? dashTopCourses.map((c) => (
-                  <div key={c.slug} className="rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2">
-                    <p className="text-xs font-medium">{c.title}</p>
-                    <p className="text-[10px] text-gray-400">{fmtNum(c.enrollments)} Enrollment{c.enrollments !== 1 ? "s" : ""}</p>
-                  </div>
-                )) : (
-                  <p className="py-4 text-center text-xs text-gray-500">No enrollment data yet</p>
-                )}
-              </div>
-            </article>
-          </div>
-
-          <AdminDashboardCalendarEditor />
-
-          <AdminCommunityConnectEditor />
-
-          <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#0b1224] px-3 py-2 text-xs text-gray-400">
-            <Calendar size={12} />
-            Last updated just now
-          </div>
-            </>
+            <AdminDashboardHome
+              stats={dashStats}
+              recentUsers={dashRecentUsers}
+              topCourses={dashTopCourses}
+              categoryStats={categoryStats}
+              weekActivity={dashWeekActivity}
+              recentEnrollments={dashRecentEnrollments}
+              onNavigate={selectMenu}
+            />
           )}
+
 
           {showCoursesWorkspace && <AdminCoursesWorkspace />}
 
@@ -1155,7 +840,7 @@ function AdminPageInner() {
             <>
               {!categoriesReady ? (
                 <div className="mb-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
-                  Loading categories from server…
+                  Loading categories from serverâ€¦
                 </div>
               ) : categoriesLoadError ? (
                 <div className="mb-4 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
@@ -1195,14 +880,14 @@ function AdminPageInner() {
                   ],
                   [
                     "Total Courses",
-                    String(dashStats?.totalCourses ?? "—"),
+                    String(dashStats?.totalCourses ?? "â€”"),
                     "Courses in all categories",
                     Briefcase,
                     "text-amber-300",
                   ],
                   [
                     "Total Students",
-                    String(dashStats?.totalStudents ?? "—"),
+                    String(dashStats?.totalStudents ?? "â€”"),
                     "Learners enrolled on LMS",
                     Users,
                     "text-blue-300",
@@ -1290,7 +975,7 @@ function AdminPageInner() {
                             <span className="inline-flex gap-1 text-gray-300">
                               <button
                                 type="button"
-                                title="Edit category page — hero, courses, instructors, filters"
+                                title="Edit category page â€” hero, courses, instructors, filters"
                                 onClick={() =>
                                   setCategoryPageEditor({
                                     slug,
@@ -1311,7 +996,7 @@ function AdminPageInner() {
                               </button>
                               <button
                                 type="button"
-                                title="Preview category page (popup — stay on admin)"
+                                title="Preview category page (popup â€” stay on admin)"
                                 onClick={() => setCategoryPreviewSlug(slug)}
                                 className="rounded p-1 hover:bg-amber-500/20 hover:text-amber-100"
                               >
@@ -1468,7 +1153,7 @@ function AdminPageInner() {
                           </div>
                           <div className="min-w-[200px] flex-1 space-y-2">
                             <label className="inline-flex cursor-pointer items-center rounded-lg bg-[#f5b942] px-3 py-2 text-xs font-semibold text-black">
-                              {uploadingCategoryImage ? "Uploading…" : "Upload image"}
+                              {uploadingCategoryImage ? "Uploadingâ€¦" : "Upload image"}
                               <input
                                 type="file"
                                 accept="image/jpeg,image/png,image/webp,image/gif"
@@ -1501,7 +1186,7 @@ function AdminPageInner() {
                           </div>
                         </div>
                         <p className="mt-2 text-[10px] text-gray-500">
-                          For the big banner on the category page, use the layout grid icon → Hero banner image.
+                          For the big banner on the category page, use the layout grid icon â†’ Hero banner image.
                         </p>
                       </div>
 
@@ -1539,13 +1224,13 @@ function AdminPageInner() {
               </p>
               <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-amber-100/85">
                 To manage live tutor-led courses (each with its own{" "}
-                <strong className="text-white">/tutor-led/slug</strong> landing — like self-paced), open{" "}
+                <strong className="text-white">/tutor-led/slug</strong> landing â€” like self-paced), open{" "}
                 <button
                   type="button"
                   onClick={() => selectMenu("Tutor Led")}
                   className="font-semibold text-violet-200 underline decoration-violet-400/60 underline-offset-2 hover:text-white"
                 >
-                  Course Management → Tutor Led
+                  Course Management â†’ Tutor Led
                 </button>
                 . For the <strong className="text-white">self-paced catalog</strong>, use{" "}
                 <button

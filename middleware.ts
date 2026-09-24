@@ -131,6 +131,25 @@ function isSameOrigin(request: NextRequest): boolean {
   return false;
 }
 
+function cookieValues(request: NextRequest, name: string): string[] {
+  const header = request.headers.get("cookie") || "";
+  const values: string[] = [];
+  const re = new RegExp(`(?:^|;\\s*)${name}=([^;]*)`, "g");
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(header))) {
+    const raw = match[1]?.trim() ?? "";
+    if (!raw) continue;
+    try {
+      values.push(decodeURIComponent(raw));
+    } catch {
+      values.push(raw);
+    }
+  }
+  const single = request.cookies.get(name)?.value?.trim();
+  if (single && !values.includes(single)) values.push(single);
+  return values;
+}
+
 function csrfOk(request: NextRequest, claims: Claims): boolean {
   const method = request.method.toUpperCase();
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") return true;
@@ -138,15 +157,19 @@ function csrfOk(request: NextRequest, claims: Claims): boolean {
   if (!claims.csrf) return true;
 
   const csrfHeader = request.headers.get(ADMIN_CSRF_HEADER)?.trim() || "";
-  const csrfCookie = request.cookies.get(ADMIN_CSRF_COOKIE)?.value?.trim() || "";
-  if (!csrfHeader || !csrfCookie) return false;
-  if (!safeEqualStr(csrfHeader, csrfCookie) || !safeEqualStr(csrfHeader, claims.csrf)) return false;
+  const csrfCookies = cookieValues(request, ADMIN_CSRF_COOKIE);
+  if (!csrfHeader || csrfCookies.length === 0) return false;
+  if (!safeEqualStr(csrfHeader, claims.csrf) || !csrfCookies.some((v) => safeEqualStr(v, claims.csrf))) {
+    return false;
+  }
 
   if (claims.xsrf) {
     const xsrfHeader = request.headers.get(ADMIN_XSRF_HEADER)?.trim() || "";
-    const xsrfCookie = request.cookies.get(ADMIN_XSRF_COOKIE)?.value?.trim() || "";
-    if (!xsrfHeader || !xsrfCookie) return false;
-    if (!safeEqualStr(xsrfHeader, xsrfCookie) || !safeEqualStr(xsrfHeader, claims.xsrf)) return false;
+    const xsrfCookies = cookieValues(request, ADMIN_XSRF_COOKIE);
+    if (!xsrfHeader || xsrfCookies.length === 0) return false;
+    if (!safeEqualStr(xsrfHeader, claims.xsrf) || !xsrfCookies.some((v) => safeEqualStr(v, claims.xsrf))) {
+      return false;
+    }
   }
   return true;
 }
@@ -182,13 +205,13 @@ export async function middleware(request: NextRequest) {
     }
 
     if (path.startsWith("/api/admin") && !csrfOk(request, claims)) {
+      const here = request.nextUrl.origin || "this same address";
+      const message = `CSRF check failed. Stay on ${here}/admin, hard-refresh, and try again. If Admin is open on another computer, sign out there first.`;
       return NextResponse.json(
         {
           ok: false,
-          message:
-            "CSRF check failed. Open https://sftlms.com/admin (same site as the API), hard-refresh, sign in again if needed, then retry.",
-          error:
-            "CSRF check failed. Open https://sftlms.com/admin (same site as the API), hard-refresh, sign in again if needed, then retry.",
+          message,
+          error: message,
         },
         { status: 403 },
       );

@@ -3,18 +3,19 @@ import path from "node:path";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Exclusive admin panel session: only one active login at a time.
- * Primary store: MySQL. File fallback kept in sync.
+ * Exclusive admin panel session: only one computer at a time.
+ * MySQL is the source of truth so every PC hitting this app shares the same lock.
+ * Local file is a cache only — it must never overwrite a different MySQL session.
  *
- * Sessions without a heartbeat for STALE_AFTER_SEC are treated as abandoned
- * so another admin can sign in after the first PC is closed without logout.
+ * Other PCs: lock stays until Logout (or the 12-hour session expires). They cannot take over.
+ * Owner PC (the machine running this app) is exempt and can always sign in.
  */
 
 const storePath = path.join(process.cwd(), "data", "admin-active-session.json");
 const ROW_ID = "main";
 
-/** No admin-access heartbeat → free the lock (browser closed / app terminated). */
-export const ADMIN_SESSION_STALE_AFTER_SEC = 3 * 60;
+/** Match admin JWT lifetime — do not free the lock while that login is still valid. */
+export const ADMIN_SESSION_STALE_AFTER_SEC = 12 * 60 * 60;
 
 export type ActiveAdminSession = {
   email: string;
@@ -79,10 +80,7 @@ function fromDbRow(row: {
   // (otherwise legacy rows would look "stale" immediately after deploy).
   let lastSeenAt: number | undefined;
   if (row.updatedAt) {
-    const updatedSec = Math.floor(row.updatedAt.getTime() / 1000);
-    if (updatedSec > row.createdAt + 5) {
-      lastSeenAt = updatedSec;
-    }
+    lastSeenAt = Math.floor(row.updatedAt.getTime() / 1000);
   }
   const session: ActiveAdminSession = {
     email: row.email.trim().toLowerCase(),
@@ -93,15 +91,6 @@ function fromDbRow(row: {
   };
   if (isExpiredOrStale(session)) return null;
   return session;
-}
-
-function pickNewer(
-  a: ActiveAdminSession | null,
-  b: ActiveAdminSession | null,
-): ActiveAdminSession | null {
-  if (!a) return b;
-  if (!b) return a;
-  return a.createdAt >= b.createdAt ? a : b;
 }
 
 function isMissingAdminSessionTable(err: unknown): boolean {
@@ -189,6 +178,17 @@ async function clearDb(sid?: string): Promise<void> {
 
 export async function readActiveAdminSession(): Promise<ActiveAdminSession | null> {
   const fromDb = await readFromDb();
+  if (fromDb) {
+    try {
+      await ensureDir();
+      await fs.writeFile(storePath, JSON.stringify(fromDb, null, 2), "utf8");
+    } catch {
+      /* cache only */
+    }
+    return fromDb;
+  }
+
+  // File is fallback only when MySQL has no live row (missing table / empty).
   let fromFile: ActiveAdminSession | null = null;
   try {
     const raw = await fs.readFile(storePath, "utf8");
@@ -196,27 +196,7 @@ export async function readActiveAdminSession(): Promise<ActiveAdminSession | nul
   } catch {
     fromFile = null;
   }
-
-  const session = pickNewer(fromDb, fromFile);
-  if (!session) {
-    if (fromFile === null && fromDb === null) return null;
-    await clearActiveAdminSession();
-    return null;
-  }
-
-  // Keep both stores aligned on the winning sid.
-  if (!fromDb || fromDb.sid !== session.sid) {
-    void writeToDb(session);
-  }
-  if (!fromFile || fromFile.sid !== session.sid) {
-    try {
-      await ensureDir();
-      await fs.writeFile(storePath, JSON.stringify(session, null, 2), "utf8");
-    } catch {
-      /* ignore */
-    }
-  }
-  return session;
+  return fromFile;
 }
 
 export async function writeActiveAdminSession(session: ActiveAdminSession): Promise<void> {
@@ -273,18 +253,6 @@ export async function isAdminSessionHeldElsewhere(currentSid?: string | null): P
   const session = await readActiveAdminSession();
   if (!session) return { held: false, session: null };
   if (currentSid && session.sid === currentSid) return { held: false, session };
-
-  // Closed PC / no heartbeat: free the lock so the next admin can sign in.
-  const age = nowSec() - session.createdAt;
-  const lastSeen = session.lastSeenAt;
-  const abandoned =
-    (Number.isFinite(lastSeen) && nowSec() - (lastSeen as number) > ADMIN_SESSION_STALE_AFTER_SEC) ||
-    (!Number.isFinite(lastSeen) && age > ADMIN_SESSION_STALE_AFTER_SEC);
-  if (abandoned) {
-    await clearActiveAdminSession(session.sid);
-    return { held: false, session: null };
-  }
-
   return { held: true, session };
 }
 
@@ -309,4 +277,4 @@ export function isAdminSessionSidActiveSync(
 }
 
 export const ADMIN_SESSION_ELSEWHERE_MESSAGE =
-  "Admin panel is already signed in on another device. Sign out from that device first, or use Continue on this device.";
+  "Admin is already signed in on another computer. Sign out from that computer first. This computer cannot log in until then.";

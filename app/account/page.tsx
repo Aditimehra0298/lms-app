@@ -135,6 +135,20 @@ function avatarForAccountType(type: AccountType): string {
   return accountTypes.find((t) => t.id === type)?.imageSrc ?? "/1.png";
 }
 
+function readAdminHomeKey(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("device")?.trim();
+    if (fromUrl) {
+      window.localStorage.setItem("sft_admin_home_key", fromUrl);
+      return fromUrl;
+    }
+    return window.localStorage.getItem("sft_admin_home_key")?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
 function emailFromForm(
   formData: FormData,
   accountType: AccountType,
@@ -501,7 +515,7 @@ export default function AccountPage() {
           body: JSON.stringify({
             email: normalizedEmail,
             password: passwordValue,
-            forceTakeover: false,
+            homeKey: readAdminHomeKey() || undefined,
           }),
         });
         const data = (await res.json()) as {
@@ -521,7 +535,7 @@ export default function AccountPage() {
             setAdminBlockedElsewhere(true);
             setAuthError(
               data.message ??
-                "Admin is already signed in on another device. Use Continue on this device to end that session.",
+                "Admin is already signed in on another computer. Sign out from that computer first.",
             );
             return;
           }
@@ -687,16 +701,13 @@ export default function AccountPage() {
         authView === "register" && selectedAccountType !== "self" && countryCodeForRegister
           ? authCountryInput(countryCodeForRegister)
           : undefined;
-      const forceTakeover =
-        typeof window !== "undefined" &&
-        window.sessionStorage.getItem("sft_admin_force_takeover") === "1";
       const result = await signInWithGoogleAccessToken(
         accessToken,
         selectedAccountType,
         selectedAccountType === "self" ? "login" : authView,
         country,
         selectedAccountType === "self" ? verifyTokenForAdmin : undefined,
-        selectedAccountType === "self" ? forceTakeover : false,
+        selectedAccountType === "self" ? readAdminHomeKey() : undefined,
       );
       if (!result.ok) {
         adminGoogleTriggered.current = false;
@@ -707,9 +718,6 @@ export default function AccountPage() {
         if (blocked) setAdminBlockedElsewhere(true);
         setAuthError(result.message ?? "Google sign-in failed.");
         return;
-      }
-      if (typeof window !== "undefined") {
-        window.sessionStorage.removeItem("sft_admin_force_takeover");
       }
       setAdminBlockedElsewhere(false);
       if (!result.dbSaved && authView === "register") {
@@ -1324,90 +1332,10 @@ export default function AccountPage() {
                       <p className="mb-2 text-sm text-rose-300">{authError}</p>
                     )}
                     {adminBlockedElsewhere && !adminAwaitingGoogle ? (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const normalizedEmail = selfEmail.trim().toLowerCase();
-                          const passwordValue = selfPassword;
-                          if (adminRequirePassword && !passwordValue) {
-                            setAuthError("Admin password is required.");
-                            return;
-                          }
-                          setAuthError("");
-                          try {
-                            const res = await fetch("/api/auth/admin-login", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              credentials: "include",
-                              body: JSON.stringify({
-                                email: normalizedEmail,
-                                password: passwordValue,
-                                forceTakeover: true,
-                              }),
-                            });
-                            const data = (await res.json()) as {
-                              ok?: boolean;
-                              message?: string;
-                              email?: string;
-                              verifyToken?: string;
-                              requiresGoogleVerification?: boolean;
-                              profile?: LmsUserProfilePayload;
-                            };
-                            if (!res.ok || !data.ok) {
-                              setAuthError(data.message ?? "Could not take over admin session.");
-                              return;
-                            }
-                            setAdminBlockedElsewhere(false);
-                            if (typeof window !== "undefined") {
-                              window.sessionStorage.setItem("sft_admin_force_takeover", "1");
-                            }
-                            if (data.requiresGoogleVerification === false) {
-                              if (data.profile) {
-                                applyDbProfileToSession(data.profile);
-                              } else {
-                                window.localStorage.setItem(
-                                  "sft_learner_email",
-                                  data.email ?? normalizedEmail,
-                                );
-                                window.localStorage.setItem("sft_user_role", "admin");
-                              }
-                              window.localStorage.setItem("sft_logged_in", "true");
-                              window.sessionStorage.removeItem("sft_admin_force_takeover");
-                              window.location.href = "/admin";
-                              return;
-                            }
-                            if (!data.verifyToken) {
-                              setAuthError(data.message ?? "Admin sign-in failed.");
-                              return;
-                            }
-                            const verifyToken = data.verifyToken;
-                            setAdminVerifyToken(verifyToken);
-                            setAdminAwaitingGoogle(true);
-                            setSelfPassword("");
-                            adminGoogleTriggered.current = false;
-                            const openGoogleAfterPassword = (attempt = 0) => {
-                              if (window.google?.accounts?.oauth2) {
-                                setGoogleScriptReady(true);
-                                runAdminGoogleVerification(verifyToken);
-                                return;
-                              }
-                              if (attempt < 30) {
-                                window.setTimeout(() => openGoogleAfterPassword(attempt + 1), 200);
-                                return;
-                              }
-                              setAuthError(
-                                "Google is still loading. Click Continue with Google when ready.",
-                              );
-                            };
-                            openGoogleAfterPassword();
-                          } catch {
-                            setAuthError("Could not reach the server.");
-                          }
-                        }}
-                        className="mb-3 w-full rounded-xl border border-amber-400/50 bg-amber-500/20 px-6 py-3.5 text-sm font-bold text-amber-50 transition hover:bg-amber-500/30"
-                      >
-                        Continue on this device (end other session)
-                      </button>
+                      <p className="mb-3 rounded-xl border border-amber-400/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                        Admin is already open on another computer. Ask that person to click{" "}
+                        <strong>Logout</strong> in the admin panel. This computer cannot sign in until then.
+                      </p>
                     ) : null}
                     <button
                       type="submit"

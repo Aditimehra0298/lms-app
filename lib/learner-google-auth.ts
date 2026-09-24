@@ -30,6 +30,7 @@ export async function signInWithGoogleAccessToken(
   action: "login" | "register",
   country?: AuthCountryInput,
   adminVerifyToken?: string | null,
+  homeKey?: string | null,
 ): Promise<GoogleAuthResult> {
   const res = await fetch("/api/auth/google", {
     method: "POST",
@@ -42,6 +43,7 @@ export async function signInWithGoogleAccessToken(
       countryCode: country?.countryCode,
       countryName: country?.countryName,
       adminVerifyToken: adminVerifyToken ?? undefined,
+      homeKey: homeKey?.trim() || undefined,
     }),
   });
   const data = (await res.json()) as GoogleAuthResult;

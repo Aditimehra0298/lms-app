@@ -9,6 +9,7 @@ import {
 } from "@/lib/server/admin-active-session";
 import { cookieScopeFromRequest, type CookieRequestScope } from "@/lib/server/cookie-request-scope";
 import { isSameSiteOrigin } from "@/lib/server/csrf-origin";
+import { adminHomeDeviceCookieHeader, isAdminHomeDevice } from "@/lib/server/admin-home-device";
 
 /**
  * JWT-style admin session (HMAC-SHA256):
@@ -197,6 +198,37 @@ function cookieBase(
   return parts.join("; ");
 }
 
+function scopeKey(scope: CookieRequestScope): string {
+  return `${scope.domain ?? "host"}:${scope.secure ? "s" : "i"}`;
+}
+
+/** Host-only + Domain leftovers (sftlms.com) so a second PC/login cannot keep a stale CSRF cookie. */
+export function adminCookieClearScopes(request?: Request): CookieRequestScope[] {
+  const scopes: CookieRequestScope[] = [
+    cookieScopeFromRequest(request),
+    { domain: undefined, secure: false },
+    { domain: undefined, secure: true },
+    { domain: ".sftlms.com", secure: true },
+    { domain: ".sftlms.com", secure: false },
+  ];
+  const seen = new Set<string>();
+  return scopes.filter((s) => {
+    const key = scopeKey(s);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function appendCookieHeaders(
+  response: NextResponse,
+  headers: string[],
+): void {
+  for (const header of headers) {
+    response.headers.append("Set-Cookie", header);
+  }
+}
+
 export function adminSessionCookieHeader(token: string, request?: Request): string {
   return cookieBase(ADMIN_SESSION_COOKIE, token, DEFAULT_TTL_SECONDS, true, cookieScopeFromRequest(request));
 }
@@ -221,6 +253,20 @@ export function clearAdminXsrfCookieHeader(request?: Request): string {
   return cookieBase(ADMIN_XSRF_COOKIE, "", 0, false, cookieScopeFromRequest(request));
 }
 
+export function clearAdminAuthCookieHeaders(request?: Request): string[] {
+  const headers: string[] = [];
+  for (const scope of adminCookieClearScopes(request)) {
+    headers.push(cookieBase(ADMIN_SESSION_COOKIE, "", 0, true, scope));
+    headers.push(cookieBase(ADMIN_CSRF_COOKIE, "", 0, false, scope));
+    headers.push(cookieBase(ADMIN_XSRF_COOKIE, "", 0, false, scope));
+  }
+  return headers;
+}
+
+export function appendClearedAdminAuthCookies(response: NextResponse, request?: Request): void {
+  appendCookieHeaders(response, clearAdminAuthCookieHeaders(request));
+}
+
 export function readAdminSessionCookie(request: Request): string | null {
   const header = request.headers.get("cookie") || "";
   const match = header.match(new RegExp(`(?:^|;\\s*)${ADMIN_SESSION_COOKIE}=([^;]*)`));
@@ -232,26 +278,37 @@ export function readAdminSessionCookie(request: Request): string | null {
   }
 }
 
-export function readAdminCsrfCookie(request: Request): string | null {
-  const header = request.headers.get("cookie") || "";
-  const match = header.match(new RegExp(`(?:^|;\\s*)${ADMIN_CSRF_COOKIE}=([^;]*)`));
-  if (!match?.[1]) return null;
-  try {
-    return decodeURIComponent(match[1].trim());
-  } catch {
-    return match[1].trim();
+function readNamedCookies(header: string, name: string): string[] {
+  const values: string[] = [];
+  const re = new RegExp(`(?:^|;\\s*)${name}=([^;]*)`, "g");
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(header))) {
+    const raw = match[1]?.trim() ?? "";
+    if (!raw) continue;
+    try {
+      values.push(decodeURIComponent(raw));
+    } catch {
+      values.push(raw);
+    }
   }
+  return values;
+}
+
+export function readAdminCsrfCookie(request: Request): string | null {
+  const values = readNamedCookies(request.headers.get("cookie") || "", ADMIN_CSRF_COOKIE);
+  return values[values.length - 1] ?? null;
 }
 
 export function readAdminXsrfCookie(request: Request): string | null {
-  const header = request.headers.get("cookie") || "";
-  const match = header.match(new RegExp(`(?:^|;\\s*)${ADMIN_XSRF_COOKIE}=([^;]*)`));
-  if (!match?.[1]) return null;
-  try {
-    return decodeURIComponent(match[1].trim());
-  } catch {
-    return match[1].trim();
-  }
+  const values = readNamedCookies(request.headers.get("cookie") || "", ADMIN_XSRF_COOKIE);
+  return values[values.length - 1] ?? null;
+}
+
+function anyNamedCookieEquals(request: Request, name: string, expected: string): boolean {
+  if (!expected) return false;
+  return readNamedCookies(request.headers.get("cookie") || "", name).some((value) =>
+    safeEqual(value, expected),
+  );
 }
 
 export function readAdminSessionClaims(request: Request): AdminSessionClaims | null {
@@ -286,27 +343,28 @@ export function assertAdminCsrf(request: Request, claims: AdminSessionClaims): s
   // Legacy sessions without csrf: require same-origin only (checked above).
   if (!claims.csrf) return null;
 
-  const csrfHeader =
-    request.headers.get(ADMIN_CSRF_HEADER)?.trim() ||
-    "";
-  const csrfCookie = readAdminCsrfCookie(request)?.trim() || "";
-
-  if (!csrfHeader || !csrfCookie) {
-    return "Missing CSRF token. Refresh /admin and try again.";
+  const csrfHeader = request.headers.get(ADMIN_CSRF_HEADER)?.trim() || "";
+  if (!csrfHeader) {
+    return "Missing CSRF token. Refresh /admin and sign in again on this computer.";
   }
-  if (!safeEqual(csrfHeader, csrfCookie) || !safeEqual(csrfHeader, claims.csrf)) {
-    return "Invalid CSRF token.";
+  if (
+    !safeEqual(csrfHeader, claims.csrf) ||
+    !anyNamedCookieEquals(request, ADMIN_CSRF_COOKIE, claims.csrf)
+  ) {
+    return "Invalid CSRF token. Hard-refresh /admin. If you signed in on another computer, sign in again here.";
   }
 
   // Second token (XSRF) when present on the session — Coursera-style dual submit.
   if (claims.xsrf) {
     const xsrfHeader = request.headers.get(ADMIN_XSRF_HEADER)?.trim() || "";
-    const xsrfCookie = readAdminXsrfCookie(request)?.trim() || "";
-    if (!xsrfHeader || !xsrfCookie) {
-      return "Missing XSRF token. Refresh /admin and try again.";
+    if (!xsrfHeader) {
+      return "Missing XSRF token. Refresh /admin and sign in again on this computer.";
     }
-    if (!safeEqual(xsrfHeader, xsrfCookie) || !safeEqual(xsrfHeader, claims.xsrf)) {
-      return "Invalid XSRF token.";
+    if (
+      !safeEqual(xsrfHeader, claims.xsrf) ||
+      !anyNamedCookieEquals(request, ADMIN_XSRF_COOKIE, claims.xsrf)
+    ) {
+      return "Invalid XSRF token. Hard-refresh /admin. If you signed in on another computer, sign in again here.";
     }
   }
 
@@ -317,6 +375,7 @@ export async function attachAdminSession(
   response: NextResponse,
   email: string,
   request?: Request,
+  opts?: { treatAsHome?: boolean; homeKey?: string | null },
 ): Promise<NextResponse> {
   const { token, csrf, xsrf, exp, sid } = createAdminSessionToken(email);
   await writeActiveAdminSession({
@@ -325,9 +384,16 @@ export async function attachAdminSession(
     createdAt: Math.floor(Date.now() / 1000),
     exp,
   });
+  appendClearedAdminAuthCookies(response, request);
   response.headers.append("Set-Cookie", adminSessionCookieHeader(token, request));
   response.headers.append("Set-Cookie", adminCsrfCookieHeader(csrf, request));
   response.headers.append("Set-Cookie", adminXsrfCookieHeader(xsrf, request));
+  const home =
+    opts?.treatAsHome === true ||
+    (request ? isAdminHomeDevice(request, opts?.homeKey) : false);
+  if (home && request) {
+    response.headers.append("Set-Cookie", adminHomeDeviceCookieHeader(request));
+  }
   response.headers.set("X-Admin-CSRF", csrf);
   response.headers.set("X-Admin-XSRF", xsrf);
   return response;
@@ -343,8 +409,6 @@ export async function clearAdminSession(
   } else {
     await clearActiveAdminSession();
   }
-  response.headers.append("Set-Cookie", clearAdminSessionCookieHeader(request));
-  response.headers.append("Set-Cookie", clearAdminCsrfCookieHeader(request));
-  response.headers.append("Set-Cookie", clearAdminXsrfCookieHeader(request));
+  appendClearedAdminAuthCookies(response, request);
   return response;
 }

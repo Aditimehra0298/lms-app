@@ -4,9 +4,11 @@ import { isAdminPasswordConfigured, verifyAdminPanelPassword } from "@/lib/serve
 import { createAdminVerifyToken } from "@/lib/server/admin-verify-token";
 import { attachAdminSession, readAdminSessionClaims } from "@/lib/server/admin-session";
 import {
+  ADMIN_SESSION_ELSEWHERE_MESSAGE,
   clearActiveAdminSession,
   isAdminSessionHeldElsewhere,
 } from "@/lib/server/admin-active-session";
+import { isAdminHomeDevice } from "@/lib/server/admin-home-device";
 import { readAdminPanelSettings } from "@/lib/server/admin-panel-settings";
 import { fetchLmsUserProfile } from "@/lib/server/lms-user-profile";
 import { prisma } from "@/lib/prisma";
@@ -52,12 +54,12 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { email?: string; password?: string; forceTakeover?: boolean };
+  let body: { email?: string; password?: string; homeKey?: string };
   try {
     body = (await request.json()) as {
       email?: string;
       password?: string;
-      forceTakeover?: boolean;
+      homeKey?: string;
     };
   } catch {
     return jsonError("Invalid JSON", 400);
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
 
   const email = body.email?.trim().toLowerCase() ?? "";
   const password = body.password ?? "";
-  const forceTakeover = body.forceTakeover === true;
+  const homeKey = body.homeKey?.trim() || "";
   const ip = getTrustedClientIp(request);
 
   const ipLimit = hitRateLimit(
@@ -147,17 +149,16 @@ export async function POST(request: Request) {
 
   const currentClaims = readAdminSessionClaims(request);
   const held = await isAdminSessionHeldElsewhere(currentClaims?.sid);
+  const homeDevice = isAdminHomeDevice(request, homeKey);
   if (held.held) {
-    if (!forceTakeover) {
-      return jsonError(
-        "Admin panel is already signed in on another device. Sign out there, or use “Continue on this device” below to end that session.",
-        409,
-        undefined,
-        { sessionActiveElsewhere: true, canForceTakeover: true },
-      );
+    if (homeDevice) {
+      await clearActiveAdminSession();
+    } else {
+      return jsonError(ADMIN_SESSION_ELSEWHERE_MESSAGE, 409, undefined, {
+        sessionActiveElsewhere: true,
+        canForceTakeover: false,
+      });
     }
-    // Password already verified — end the other device session and continue here.
-    await clearActiveAdminSession();
   }
 
   const googleConfigured = Boolean(
@@ -199,7 +200,7 @@ export async function POST(request: Request) {
       accountType: "self",
       profile,
     });
-    return attachAdminSession(res, email, request);
+    return attachAdminSession(res, email, request, { treatAsHome: homeDevice, homeKey });
   }
 
   const verifyToken = createAdminVerifyToken(email);

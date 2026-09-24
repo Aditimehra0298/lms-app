@@ -11,12 +11,13 @@ const FLAG = "__sft_admin_csrf_fetch__";
 
 function readCookie(name: string): string {
   if (typeof document === "undefined") return "";
-  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
-  if (!match?.[1]) return "";
+  const matches = [...document.cookie.matchAll(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`, "g"))];
+  const raw = matches[matches.length - 1]?.[1]?.trim() ?? "";
+  if (!raw) return "";
   try {
-    return decodeURIComponent(match[1].trim());
+    return decodeURIComponent(raw);
   } catch {
-    return match[1].trim();
+    return raw;
   }
 }
 

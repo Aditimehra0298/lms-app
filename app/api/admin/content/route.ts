@@ -7,7 +7,11 @@ import {
   hydrateManagedCoursesFromMysql,
   syncAllCourseContentToMysql,
 } from "@/lib/server/course-content-mysql-sync";
-import { deleteCoursesFromMysql, syncManagedCoursesToMysql } from "@/lib/server/course-mysql-sync";
+import {
+  attachCourseIdentificationNumbers,
+  deleteCoursesFromMysql,
+  syncManagedCoursesToMysql,
+} from "@/lib/server/course-mysql-sync";
 import { readAdminContentFromDisk, writeAdminContent, normalizeManagedCategories } from "@/lib/server/content-store";
 import { sanitizePromotions } from "@/lib/promotions";
 import { assertMainAdmin } from "@/lib/server/admin-api-auth";
@@ -98,20 +102,22 @@ export async function GET(request: Request) {
     content.managedCourses ?? [],
     { excludeSlugs: content.deletedCourseSlugs },
   );
-  if (addedSlugs.length > 0) {
-    const next = { ...content, managedCourses: courses };
+  const attached = await attachCourseIdentificationNumbers(courses);
+  const next = { ...content, managedCourses: attached.courses };
+  if (addedSlugs.length > 0 || attached.changed) {
     try {
       await writeAdminContent(next);
-      console.info(
-        "[admin/content GET] restored from MySQL:",
-        addedSlugs.join(", "),
-      );
+      if (addedSlugs.length > 0) {
+        console.info("[admin/content GET] restored from MySQL:", addedSlugs.join(", "));
+      }
     } catch (err) {
       console.error("[admin/content GET] persist MySQL hydrate", err);
     }
-    return NextResponse.json(next, { headers: noStoreJson });
   }
-  return NextResponse.json(content, { headers: noStoreJson });
+  return NextResponse.json(
+    { ...next, nextCourseIdentificationNumber: attached.nextCourseIdentificationNumber },
+    { headers: noStoreJson },
+  );
 }
 
 export async function PUT(request: Request) {
@@ -272,16 +278,38 @@ export async function PUT(request: Request) {
       }
     }
 
+    let syncedCourses = nextContent.managedCourses ?? [];
+    let nextCourseIdentificationNumber: number | undefined;
+    try {
+      await syncManagedCoursesToMysql(syncedCourses, { renames });
+      const attached = await attachCourseIdentificationNumbers(syncedCourses);
+      syncedCourses = attached.courses;
+      nextCourseIdentificationNumber = attached.nextCourseIdentificationNumber;
+      if (attached.changed) {
+        await writeAdminContent({ ...nextContent, managedCourses: syncedCourses });
+      }
+    } catch (err) {
+      console.error("[admin/content PUT] course MySQL sync", err);
+    }
+
     void (async () => {
       try {
-        await syncManagedCoursesToMysql(nextContent.managedCourses ?? [], { renames });
-        await syncAllCourseContentToMysql(nextContent.managedCourses ?? []);
+        await syncAllCourseContentToMysql(syncedCourses);
       } catch (err) {
-        console.error("[admin/content PUT] course MySQL sync", err);
+        console.error("[admin/content PUT] course content MySQL sync", err);
       }
     })();
 
-    return NextResponse.json({ ok: true }, { headers: noStoreJson });
+    return NextResponse.json(
+      {
+        ok: true,
+        managedCourses: syncedCourses,
+        ...(typeof nextCourseIdentificationNumber === "number"
+          ? { nextCourseIdentificationNumber }
+          : {}),
+      },
+      { headers: noStoreJson },
+    );
   } catch (err) {
     console.error("[admin/content PUT]", err);
     return NextResponse.json(

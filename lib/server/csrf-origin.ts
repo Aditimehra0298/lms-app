@@ -30,11 +30,23 @@ export function allowedRequestOrigins(request: Request): Set<string> {
   const host = (xfHost || request.headers.get("host")?.trim() || "").replace(/:\d+$/, (m) =>
     m === ":443" || m === ":80" ? "" : m,
   );
+  const hostname = host.split(":")[0]?.toLowerCase() ?? "";
+  const isPrivate =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname.endsWith(".local") ||
+    /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
   const xfProto =
     request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
-    (host && !host.includes("localhost") ? "https" : "http");
+    (isPrivate ? "http" : "https");
   if (host) {
     set.add(`${xfProto}://${host}`);
+    // Browser Origin keeps the port; Host-only variants must match both.
+    if (!host.includes(":") && request.headers.get("host")?.includes(":")) {
+      const rawHost = request.headers.get("host")!.trim();
+      set.add(`${xfProto}://${rawHost}`);
+    }
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
