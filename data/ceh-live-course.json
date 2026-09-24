@@ -1,0 +1,1729 @@
+{
+  "slug": "courses-certfied-ethical-hacking-and-penitration-testing",
+  "title": "Certfied Ethical Hacking and Penitration Testing",
+  "subtitle": "",
+  "category": "food-safety",
+  "level": "Beginner",
+  "duration": "22h 51m",
+  "rating": "4.6",
+  "learners": "0",
+  "price": "$49.00",
+  "oldPrice": "$79.00",
+  "image": "",
+  "published": true,
+  "learningFormat": "self-paced",
+  "instructorName": "",
+  "pageBadge": "",
+  "highlights": [],
+  "faqs": [],
+  "trainerRole": "",
+  "trainerExperience": "",
+  "trainerBio": "",
+  "trainerCertifications": [],
+  "trainerWorkedWith": [],
+  "instructorSection": {
+    "headline": "90+",
+    "teamImage": "/uploads/covers/1786276398144-zawqmw-ChatGPT_Image_Aug_9_2026_05_22_37_PM.png"
+  },
+  "curriculum": [
+    {
+      "title": " Introduction Ethical Hacking & Penetration Testing Professional Course",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 16,
+          "previewLimitMinutes": 13,
+          "videoUrl": "/api/media/serve/1786532076628-35r8sj0p-MODULE_0.mp4",
+          "lessonVideoSizeMb": 45.4
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515163038-v84sy00l-introduction.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 1 : Introduction to Ethical Hacking (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 19,
+          "previewLimitMinutes": 15,
+          "videoUrl": "/api/media/serve/1786532101518-0xilvtwa-m1.mp4",
+          "lessonVideoSizeMb": 490.3
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515175023-xe05rxsq-module_1_part_1.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 1 : The Modern Threat Landscape(Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 23,
+          "previewLimitMinutes": 21,
+          "videoUrl": "/api/media/serve/1786532320456-cpflnc1r-m1_p2.mp4",
+          "lessonVideoSizeMb": 106
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examUploadUrl": "/api/media/serve/1786515188635-v3hxjq1a-Module_1_part_3.csv",
+          "examPassingScorePercent": 70
+        }
+      ]
+    },
+    {
+      "title": "Module 1: Information Warfare , Cyber Kill Chain & MITRE ATT&CK Framework (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 17,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786532405857-e7e495ls-m1_p3.mp4",
+          "lessonVideoSizeMb": 469.9
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examUploadUrl": "/api/media/serve/1786515206545-dqfbblrd-Module_1_part_4.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 1: Information Warfare , Cyber Kill Chain & MITRE ATT&CK Framework (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 20,
+          "previewLimitMinutes": 17,
+          "videoUrl": "/api/media/serve/1786532609004-axcgek6y-m1_p4.mp4",
+          "lessonVideoSizeMb": 228.1
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602921192-v1zhl9rx-Module_1_part_4.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 1: Hacking Concepts & Information Security Controls, Laws, and Standards(Part 5)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 15,
+          "previewLimitMinutes": 12,
+          "videoUrl": "/api/media/serve/1786532739821-y0v2jo9k-m1_p5.mp4",
+          "lessonVideoSizeMb": 403.3
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515269777-xcudnpw3-Module_1_part_5.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 1 : Information Security Laws, and Standards(Part 6)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 10,
+          "previewLimitMinutes": 7,
+          "videoUrl": "/api/media/serve/1786532892453-tb1hvk7c-m1_p6.mp4",
+          "lessonVideoSizeMb": 485.8
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examUploadUrl": "/api/media/serve/1786515260115-msntdkp8-Module_1_part_6.csv",
+          "examPassingScorePercent": 70
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Footprinting and Reconnaissance (Part1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 16,
+          "previewLimitMinutes": 13,
+          "videoUrl": "/api/media/serve/1786533792323-frpq6qwr-m2_p1.mp4",
+          "lessonVideoSizeMb": 450
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515617580-4iju1tbf-module_2_part_1.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Footprinting and Reconnaissance (Part2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 21,
+          "previewLimitMinutes": 18,
+          "videoUrl": "/api/media/serve/1786593854713-gdtbgmmo-m2_p2.mp4",
+          "lessonVideoSizeMb": 386.1
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515631009-o19jvvqq-module_2_part_2.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Footprinting Through Different Services (Part3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 26,
+          "previewLimitMinutes": 22,
+          "videoUrl": "/api/media/serve/1786594000663-1e9r61yb-m2_p3.mp4",
+          "lessonVideoSizeMb": 445.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515643492-wnnb6quv-module_2_part_3.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Network Footprinting (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 18,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786594217617-vwbw7w9r-m2_p4.mp4",
+          "lessonVideoSizeMb": 318.9
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515653931-nfbyisqv-module_2_part_4.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Scanning Networks(Part 5)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 12,
+          "previewLimitMinutes": 9,
+          "videoUrl": "/api/media/serve/1786594334022-3m1xjdtr-m2_p5.mp4",
+          "lessonVideoSizeMb": 237.1
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515680635-l66covic-module_2_part_5.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Host and Port Discovery (Part 6)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 8,
+          "previewLimitMinutes": 5,
+          "videoUrl": "/api/media/serve/1786594481789-p8lj6cpm-m2_p6.mp4",
+          "lessonVideoSizeMb": 191.4
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515692153-h3pxcov6-module_2_part_6.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Scanning Beyond IDS and Firewall (Part 7)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 11,
+          "previewLimitMinutes": 9,
+          "videoUrl": "/api/media/serve/1786594532873-8jc7gknc-m2_p7.mp4",
+          "lessonVideoSizeMb": 212.5
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examUploadUrl": "/api/media/serve/1786515700872-xwnggddu-module_2_part_7.csv",
+          "examPassingScorePercent": 70
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Enumeration (Part 8)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 21,
+          "previewLimitMinutes": 18,
+          "videoUrl": "/api/media/serve/1786594596437-j6x2m7u6-m2_p8.mp4",
+          "lessonVideoSizeMb": 410
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515740253-xdps1de5-module_2_part_8.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 2 : Network Service Enumeration (Part 9)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 15,
+          "previewLimitMinutes": 11,
+          "videoUrl": "/api/media/serve/1786594720888-qwwry1d5-m2_p9.mp4",
+          "lessonVideoSizeMb": 309.2
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515729481-3rmm41fk-module_2_part_9_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 3 : Vulnerability Analysis (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 14,
+          "previewLimitMinutes": 11,
+          "videoUrl": "/api/media/serve/1786594814703-9s0aiw1m-m3_p1.mp4",
+          "lessonVideoSizeMb": 365.3
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515801057-6816xc09-Module_3_part_1.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 3 : System hacking (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 18,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786594951272-feaj965z-m3_p2.mp4",
+          "lessonVideoSizeMb": 339.9
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515814658-lfjycnig-Module_3_part_2.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 3 : Vulnerability Exploitation and privilege Escalation (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 7,
+          "previewLimitMinutes": 5,
+          "videoUrl": "/api/media/serve/1786595085309-ez04wvsx-m3_p3.mp4",
+          "lessonVideoSizeMb": 148.7
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examUploadUrl": "/api/media/serve/1786515828784-f5posuk4-Module_3_part_3.csv",
+          "examPassingScorePercent": 70
+        }
+      ]
+    },
+    {
+      "title": "\tModule 3 : Maintaining Access (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 9,
+          "previewLimitMinutes": 6,
+          "videoUrl": "/api/media/serve/1786595177370-f694d0uk-m3_p4.mp4",
+          "lessonVideoSizeMb": 170.9
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786515891324-th1vnip9-Module_3_part_4.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : Malware Concepts and Component's (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 17,
+          "previewLimitMinutes": 13,
+          "videoUrl": "/api/media/serve/1786595316621-bo6ml02v-m4_p1.mp4",
+          "lessonVideoSizeMb": 309.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516197089-a1ulrey4-Module_4_part_1.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : Understanding Advanced Persistent Threats (APTs) (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 10,
+          "previewLimitMinutes": 6,
+          "videoUrl": "/api/media/serve/1786595461984-0ubxjxqn-m4_p2.mp4",
+          "lessonVideoSizeMb": 191.7
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516208903-d861vbi5-Module_4_part_2.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : Virus vs. worms - Understanding The key Difference (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 20,
+          "previewLimitMinutes": 16,
+          "videoUrl": "/api/media/serve/1786595550694-hgk9l6ev-m4_p3.mp4",
+          "lessonVideoSizeMb": 378
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516221024-eh9fzc5t-Module_4_part_3_.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 4 : What is Malware Analysis ? (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 15,
+          "previewLimitMinutes": 9,
+          "videoUrl": "/api/media/serve/1786595690436-w5lbe5bs-m4_p4.mp4",
+          "lessonVideoSizeMb": 303.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516234988-ua36crj7-Module_4_part_4.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : What is Ransomware ? (Part 5)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 16,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786595810599-1q0mhmtp-m4_p5.mp4",
+          "lessonVideoSizeMb": 291.7
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516253626-tt9rokrd-Module_4_part_5.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 4 : Fileless Malware-The Invisible Cyber Threat (Part 6)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 14,
+          "previewLimitMinutes": 11,
+          "videoUrl": "/api/media/serve/1786595923552-2upzvo4l-m4_p6.mp4",
+          "lessonVideoSizeMb": 250.7
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516266016-0a53z0oa-Module_4_part_6.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 5 : Network Sniffing-Understanding Traffic Visibility and Interception (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 22,
+          "previewLimitMinutes": 18,
+          "videoUrl": "/api/media/serve/1786596023323-vjh78pt8-m5_p1.mp4",
+          "lessonVideoSizeMb": 427.4
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516339745-2r0i8a1j-module_5_part_1_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 5 : MAC Attacks (Breaking the Switch )(Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 10,
+          "previewLimitMinutes": 6,
+          "videoUrl": "/api/media/serve/1786596141863-na8sq2di-m5_p2.mp4",
+          "lessonVideoSizeMb": 222.5
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516351610-vkmkqmzr-module_5_part_2.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 5 : Protocol Poisoning - Surgical Attacks on Network Trust (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 12,
+          "previewLimitMinutes": 6,
+          "videoUrl": "/api/media/serve/1786596216255-ijogl15p-m5_p3.mp4",
+          "lessonVideoSizeMb": 260.4
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516375887-gnh8bb4h-module_5_part_3.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 5 : LLMNR and NBT- NS Poisoning (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 9,
+          "previewLimitMinutes": 6,
+          "videoUrl": "/api/media/serve/1786596316795-26dpp7fh-m5_p4.mp4",
+          "lessonVideoSizeMb": 193.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516389636-h9gwx1t5-module_5_part_4.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 5 : Sniffing Tools and Traffic Analysis (Part 5)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 13,
+          "previewLimitMinutes": 8,
+          "videoUrl": "/api/media/serve/1786596402511-5ps97cok-m5_p5.mp4",
+          "lessonVideoSizeMb": 257.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516405427-7r4eu4sh-module_5_part_5.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 6 : The Psychology of Manipulation (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 19,
+          "previewLimitMinutes": 15,
+          "videoUrl": "/api/media/serve/1786596518233-4kxrpxvz-m6_p1.mp4",
+          "lessonVideoSizeMb": 280.7
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516458111-0wl0ncmg-module_6_part_1.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 6 : Remote Social Engineering Attacks ( Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 22,
+          "previewLimitMinutes": 18,
+          "videoUrl": "/api/media/serve/1786596601227-72cbppf4-m6_p2.mp4",
+          "lessonVideoSizeMb": 343.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516469669-0vjdqk14-module_6_part_2.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 6 : Physical Social Engineering ( Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 13,
+          "previewLimitMinutes": 10,
+          "videoUrl": "/api/media/serve/1786596707324-cec5pgqo-m6_p3.mp4",
+          "lessonVideoSizeMb": 245.2
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516483672-qs22a43l-module_6_part_3_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 6 : Modern Social Engineering Threats (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 17,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786596803251-pwgwj2sh-m6_p4.mp4",
+          "lessonVideoSizeMb": 320.1
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516497200-b8z4t7oj-module_6_part_4_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 7 : DoS Concepts and Availability (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 20,
+          "previewLimitMinutes": 16,
+          "videoUrl": "/api/media/serve/1786596935548-tdizokgj-m7_p1.mp4",
+          "lessonVideoSizeMb": 360.4
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516606803-nt52il8g-module_7_part_1.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 7 : DOS and DDOS Attack Vectors (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 19,
+          "previewLimitMinutes": 15,
+          "videoUrl": "/api/media/serve/1786597099403-cepq1tdj-m7_p2.mp4",
+          "lessonVideoSizeMb": 347.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516619330-fsovdx96-module_7_part_2.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 7 : Botnets and Command - and - Control (C2) (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 20,
+          "previewLimitMinutes": 16,
+          "videoUrl": "/api/media/serve/1786597216161-9e5ft0c3-m7_p3.mp4",
+          "lessonVideoSizeMb": 330.2
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examUploadUrl": "/api/media/serve/1786516629421-7zaaow33-module_7_part_3_.csv",
+          "examPassingScorePercent": 70
+        }
+      ]
+    },
+    {
+      "title": "Module 7 : Dos Countermeasures and Defense (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 19,
+          "previewLimitMinutes": 15,
+          "videoUrl": "/api/media/serve/1786597327180-xh17rqvx-m7_p4.mp4",
+          "lessonVideoSizeMb": 360.4
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516656934-s0qh3dl1-module_7_part_4.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 8 : Session Hijacking Concepts ( Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 25,
+          "previewLimitMinutes": 22,
+          "videoUrl": "/api/media/serve/1786597469955-mg2oi73d-m8_p1.mp4",
+          "lessonVideoSizeMb": 439
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516698400-brp6qi7q-module_8_part_1_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 8 : Application Level Hijacking (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 19,
+          "previewLimitMinutes": 15,
+          "videoUrl": "/api/media/serve/1786597635963-tw9o6j5z-m8_p2.mp4",
+          "lessonVideoSizeMb": 312.5
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516714454-oxddj3rf-module_8_part_2.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 8 : Modern Session Threats (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 22,
+          "previewLimitMinutes": 19,
+          "videoUrl": "/api/media/serve/1786597765161-313hoaep-m8_p3.mp4",
+          "lessonVideoSizeMb": 345.2
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examUploadUrl": "/api/media/serve/1786516725734-o253hbkh-module_8_part_3.csv",
+          "examPassingScorePercent": 70
+        }
+      ]
+    },
+    {
+      "title": "Module 8 : Network Level Session Hijacking (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 22,
+          "previewLimitMinutes": 18,
+          "videoUrl": "/api/media/serve/1786597889415-9itdib2s-m8_p4.mp4",
+          "lessonVideoSizeMb": 413.2
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516739714-wjofwda0-module_8_part_4_.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 8 : Countermeasures and Defense (part 5)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 13,
+          "previewLimitMinutes": 10,
+          "videoUrl": "/api/media/serve/1786598058195-iyc2xkec-m8_p4.mp4",
+          "lessonVideoSizeMb": 413.2
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516755547-st485h08-module_8_part_5.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 9 : Defensive Architecture Concepts (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 13,
+          "previewLimitMinutes": 10,
+          "videoUrl": "/api/media/serve/1786598255021-4y6qpm5p-m9_p1.mp4",
+          "lessonVideoSizeMb": 237.5
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516798321-aflkhtnl-module_9_part_1_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 9 : Firewall Evasion Techniques (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 15,
+          "previewLimitMinutes": 11,
+          "videoUrl": "/api/media/serve/1786598370648-5x7rqc6f-m9_p2.mp4",
+          "lessonVideoSizeMb": 261.8
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516812929-1h0nu4jl-module_9_part_2_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 9 : IDS/IPS Evasion ( Obfuscation) (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 13,
+          "previewLimitMinutes": 11,
+          "videoUrl": "/api/media/serve/1786598488976-jrf5kik8-m9_p3.mp4",
+          "lessonVideoSizeMb": 262.8
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516828788-thxts7x3-module_9_part_3_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 9 : WAF Evasion - Breaking Through Web Application Firewalls (part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 12,
+          "previewLimitMinutes": 9,
+          "videoUrl": "/api/media/serve/1786598588632-yvures23-m9_p4.mp4",
+          "lessonVideoSizeMb": 220.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516846524-c0gk52h4-module_9_part_4.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 9 : Honeypots (Part 5)",
+      "items": [
+        {
+          "label": "Video — New item",
+          "kind": "video",
+          "description": "",
+          "lessonDurationMinutes": 14,
+          "previewLimitMinutes": 11,
+          "videoUrl": "/api/media/serve/1786598745267-vun9ij24-m9_p5.mp4",
+          "lessonVideoSizeMb": 243.1
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516861350-s05z63xw-module_9_part_5.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 10 : Web Server Concepts and Architecture (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 18,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786599179158-xm7d3kmp-m10_p1.mp4",
+          "lessonVideoSizeMb": 307.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516924094-m85nvycm-module_10_part_1_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 10 : Web Server Misconfigurations (part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 17,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786599316335-8c1e77eh-m10_p2.mp4",
+          "lessonVideoSizeMb": 39.4
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516938903-bswj2fri-module_10_part_2.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 10 : Web Server Attack Tools (part 3)",
+      "items": [
+        {
+          "label": "Video — New item",
+          "kind": "video",
+          "description": "",
+          "videoUrl": "/api/media/serve/1786599368062-2s8unjc3-m10_p3.mp4",
+          "lessonVideoSizeMb": 281.7,
+          "lessonDurationMinutes": 14,
+          "previewLimitMinutes": 10
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516951874-adv3d1ji-module_10_part_3.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 10 : Patch Management and Countermeasures (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 18,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786599520070-q06fek0r-m10_p4.mp4",
+          "lessonVideoSizeMb": 345.7
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786516962728-zii6rie3-module_10_part_4.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 11 : Web App Concepts and OWSAP Top 10 (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 17,
+          "previewLimitMinutes": 7,
+          "videoUrl": "/api/media/serve/1786599665088-g8bzhciu-m11_p1.mp4",
+          "lessonVideoSizeMb": 303.5
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786517756091-5zpby0m0-module_11_web_app_concepts_owasp_top_10_.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 11 : Broken Access Control (IDOR) (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 13,
+          "previewLimitMinutes": 10,
+          "videoUrl": "/api/media/serve/1786599824165-cis0i0pl-m11_p2.mp4",
+          "lessonVideoSizeMb": 30.9
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786518189107-0tdcbjim-module_11_broken_access_control_idor_par.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 11 : Cross-Site Scripting (XSS) (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 15,
+          "previewLimitMinutes": 11,
+          "videoUrl": "/api/media/serve/1786599864131-zo77fobl-m11_p3.mp4",
+          "lessonVideoSizeMb": 244.3
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786518353169-gtxk0bzb-module_11_cross_site_scripting_xss_part_.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 11 : Command Injection (Part 4 )",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "videoUrl": "/api/media/serve/1786600066974-c2emogek-m11_p4.mp4",
+          "lessonVideoSizeMb": 37.9,
+          "lessonDurationMinutes": 13,
+          "previewLimitMinutes": 10
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786600116477-0krpg4y0-module_11_command_injection_part_4_exam_.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 11 : Web Hacking Tools (Part 5)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 12,
+          "previewLimitMinutes": 8,
+          "videoUrl": "/api/media/serve/1786600138685-fbrb9cv6-m11_p5.mp4",
+          "lessonVideoSizeMb": 227.7
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786600316809-hqtt1aym-module_11_web_app_concepts_owasp_top_10_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 11 : API Hacking in the Modern web (Part 6)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 17,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786600344738-qihv38eu-m11_p6.mp4",
+          "lessonVideoSizeMb": 317
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786600670642-bqwv8bxr-module_11_api_hacking_in_the_modern_web_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 12 : SQL Concepts and The \"Break\" (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 18,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786600692606-efzx7g8f-m12_p1.mp4",
+          "lessonVideoSizeMb": 56.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786600739412-s60hf03m-module_12_sql_concepts_and_the_break_par.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 12 : In Band SQL Injection (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 19,
+          "previewLimitMinutes": 16,
+          "videoUrl": "/api/media/serve/1786600760161-5jzgh2nc-m12_p2.mp4",
+          "lessonVideoSizeMb": 59.5
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786600800176-o3w2jpx6-module_12_in_band_sql_injection_part_2_e.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 12 : Blind SQL Injection (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 20,
+          "previewLimitMinutes": 15,
+          "videoUrl": "/api/media/serve/1786600824580-udrruipm-m12_p3.mp4",
+          "lessonVideoSizeMb": 63.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786600872383-txvjxpsq-module_12_blind_sql_injection_part_3_exa.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 12 : Automating The Attacks (Part 4)",
+      "items": [
+        {
+          "label": "Video — New item",
+          "kind": "video",
+          "description": "",
+          "lessonDurationMinutes": 21,
+          "videoUrl": "/api/media/serve/1786600911361-0p5itz0m-m12_p4.mp4",
+          "lessonVideoSizeMb": 57.5,
+          "previewLimitMinutes": 17
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786600940737-i22aarvs-module_12_automating_the_attacks_part_4_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 12 : Countermeasures (Part 5)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 15,
+          "previewLimitMinutes": 10,
+          "videoUrl": "/api/media/serve/1786600982361-161p2lbv-m12_p5.mp4",
+          "lessonVideoSizeMb": 45.4
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786601020048-kbhe08n8-module_12_countermeasures_part_5_exam.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 13 : Wireless Concepts and Hardware (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 18,
+          "videoUrl": "/api/media/serve/1786601042221-nw0aobei-m13_p1.mp4",
+          "lessonVideoSizeMb": 38.5,
+          "previewLimitMinutes": 14
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786601295712-e2bju7yr-module_13_wireless_concepts_and_hardware.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 13 : Encryption Standards and Flaws (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 18,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786601069394-zntf9qre-m13_p2.mp4",
+          "lessonVideoSizeMb": 55.1
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786601316300-curkdtzo-module_13_encryption_standards_and_flaws.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 13 : WPA2 Attacks Lifecycle (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "videoUrl": "/api/media/serve/1786601096381-uj50hed6-m13_p3.mp4",
+          "lessonVideoSizeMb": 34.7,
+          "lessonDurationMinutes": 15,
+          "previewLimitMinutes": 11
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786601335191-pjg5m7ol-module_13_wpa2_attacks_lifecycle_part_3_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 13 : Rogue Access Points and Evil Twins (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 22,
+          "previewLimitMinutes": 18,
+          "videoUrl": "/api/media/serve/1786601122634-d9yp9wv9-m13_p4.mp4",
+          "lessonVideoSizeMb": 53.3
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786601359669-uo76zrqm-module_13_rogue_access_points_and_evil_t.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 13 : Enterprise and WPS Attacks (Part 5)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "videoUrl": "/api/media/serve/1786601207365-cix8b4ym-m13_p5.mp4",
+          "lessonVideoSizeMb": 51.1,
+          "lessonDurationMinutes": 17,
+          "previewLimitMinutes": 14
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786601383525-cbjqpfug-module_13_enterprise_and_wps_attacks_par.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 14 : Mobile Architecture and the Sandbox (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 23,
+          "previewLimitMinutes": 21,
+          "videoUrl": "/api/media/serve/1786601628845-cm072tt4-m14_p1.mp4",
+          "lessonVideoSizeMb": 77
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786601809455-mpkubu8w-module_14_mobile_architecture_and_the_sa.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 14 : Static Analysis (Reverse Engineering) (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 17,
+          "previewLimitMinutes": 15,
+          "videoUrl": "/api/media/serve/1786601669792-so6717u1-m14_p2.mp4",
+          "lessonVideoSizeMb": 56.8
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786601789793-pxxu4mde-module_14_static_analysis_reverse_engine.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 14 : Dynamic Analysis and Runtime Attacks (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 25,
+          "previewLimitMinutes": 22,
+          "videoUrl": "/api/media/serve/1786601711657-4a97acjl-m14_p3.mp4",
+          "lessonVideoSizeMb": 65.4
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786601831739-awkjvfnb-module_14_dynamic_analysis_and_runtime_a.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 14 : Mobile Threats and Attack Vectors (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 19,
+          "previewLimitMinutes": 15,
+          "videoUrl": "/api/media/serve/1786601514194-jzm0hkhm-m14_p4.mp4",
+          "lessonVideoSizeMb": 50.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786601852406-xqhzrd4c-module_14_mobile_threats_and_attack_vect.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 15 : IOT Hacking-Consumer and Commercial (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 14,
+          "previewLimitMinutes": 11,
+          "videoUrl": "/api/media/serve/1786601871705-614u1uqt-m15_p1.mp4",
+          "lessonVideoSizeMb": 132.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602082585-ffdj9umd-module_15_iot_hacking_consumer_and_comme.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 15 : Operational Technology (OT) Security (Part 2)",
+      "items": [
+        {
+          "label": "Video — New item",
+          "kind": "video",
+          "description": "",
+          "lessonDurationMinutes": 12,
+          "previewLimitMinutes": 8,
+          "videoUrl": "/api/media/serve/1786601969538-xadbmjqd-m15_p2.mp4",
+          "lessonVideoSizeMb": 75.6
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602099046-nngpc4tp-module_15_operational_technology_ot_secu.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 15 : Hardware and Radio Hacking (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 7,
+          "videoUrl": "/api/media/serve/1786602006693-iq1er9nf-m15_p3.mp4",
+          "lessonVideoSizeMb": 27.5,
+          "previewLimitMinutes": 5
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602123134-ewxmyf28-module_15_hardware_and_radio_hacking_par.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 15 : Hardware and Radio Hacking (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 7,
+          "previewLimitMinutes": 5,
+          "videoUrl": "/api/media/serve/1786602028641-50szxwyw-m15_p4.mp4",
+          "lessonVideoSizeMb": 28.1
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602139075-7j1ux34m-module_15_hardware_and_radio_hacking_par.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 16 : Cloud Concepts and Attack Surface (Part1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video"
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602431948-mxg2lf1a-module_16_cloud_concepts_and_attack_surf.csv"
+        }
+      ]
+    },
+    {
+      "title": "module 16 : IAM Attacks-Identify and Access Management (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 13,
+          "previewLimitMinutes": 10,
+          "videoUrl": "/api/media/serve/1786602160180-vgzqilmn-m16_p1.mp4",
+          "lessonVideoSizeMb": 69.4
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602456817-hjaqd5mm-module_16_iam_attacks_identify_and_acces.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 16 : Storage and Compute Attacks (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 15,
+          "previewLimitMinutes": 11,
+          "videoUrl": "/api/media/serve/1786602195025-idnwekzc-m16_p2.mp4",
+          "lessonVideoSizeMb": 141.8
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602492641-r84e3wyd-module_16_storage_and_compute_attacks_pa.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 16 : Containers and Kubernetes Security (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 15,
+          "previewLimitMinutes": 12,
+          "videoUrl": "/api/media/serve/1786602307290-e8zkwgf3-m16_p4.mp4",
+          "lessonVideoSizeMb": 205.3
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examUploadUrl": "/api/media/serve/1786602507791-m4n4vdk4-module_16_containers_and_kubernetes_secu.csv",
+          "examPassingScorePercent": 70
+        }
+      ]
+    },
+    {
+      "title": "\tModule 17 : Cryptography Concepts and The \"Three Musketeers\" (Part 1)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 13,
+          "previewLimitMinutes": 11,
+          "videoUrl": "/api/media/serve/1786602534614-xheo3su2-m17_p1.mp4",
+          "lessonVideoSizeMb": 117.9
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602833821-och2tmoz-module_17_cryptography_concepts_and_the_.csv"
+        }
+      ]
+    },
+    {
+      "title": "\tModule 17 : Symmetric vs. Asymmetric Encryption (Part 2)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 14,
+          "previewLimitMinutes": 12,
+          "videoUrl": "/api/media/serve/1786602582112-4oqfvhpi-m17_p2.mp4",
+          "lessonVideoSizeMb": 237.3
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602809217-o1rzfpk4-module_17_symmetric_vs_asymmetric_encryp.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 17 : Public Key Infrastructure (PKI) (Part 3)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "previewLimitMinutes": 14,
+          "lessonDurationMinutes": 16,
+          "videoUrl": "/api/media/serve/1786602665050-2owaam6e-m17_p3.mp4",
+          "lessonVideoSizeMb": 121
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602856759-qq8a4o4b-module_17_public_key_infrastructure_pki_.csv"
+        }
+      ]
+    },
+    {
+      "title": "Module 17 : Cryptographic Attacks (Part 4)",
+      "items": [
+        {
+          "label": "Video — Lesson overview",
+          "kind": "video",
+          "lessonDurationMinutes": 18,
+          "previewLimitMinutes": 14,
+          "videoUrl": "/api/media/serve/1786602747958-9tdqisko-m17_p4.mp4",
+          "lessonVideoSizeMb": 70.9
+        },
+        {
+          "label": "Module examination",
+          "kind": "exam",
+          "description": "",
+          "examPassingScorePercent": 70,
+          "examUploadUrl": "/api/media/serve/1786602877859-tpzhk5tt-module_17_cryptographic_attacks_part_4_e.csv"
+        }
+      ]
+    }
+  ],
+  "regionalPrices": [],
+  "organizationSeatPricing": []
+}

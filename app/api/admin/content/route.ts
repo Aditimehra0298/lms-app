@@ -16,6 +16,7 @@ import {
   listDeletedCourseSlugs,
   recordDeletedCourseSlugs,
 } from "@/lib/server/deleted-course-tombstones";
+import { ensureCehCourse, withoutCehDeletedSlugs } from "@/lib/server/ensure-ceh-course";
 import { readAdminContentFromDisk, writeAdminContent, normalizeManagedCategories } from "@/lib/server/content-store";
 import { sanitizePromotions } from "@/lib/promotions";
 import { assertMainAdmin } from "@/lib/server/admin-api-auth";
@@ -125,17 +126,20 @@ export async function GET(request: Request) {
   );
   const { courses: hydrated, addedSlugs } = await hydrateManagedCoursesFromMysql(
     catalogWithoutDeletes,
-    { excludeSlugs: deletedSlugs },
+    { excludeSlugs: withoutCehDeletedSlugs(deletedSlugs) },
   );
-  const reconciled = await dropCoursesRemovedFromMysql(hydrated);
+  const ceh = await ensureCehCourse(hydrated);
+  const reconciled = await dropCoursesRemovedFromMysql(ceh.courses);
   const attached = await attachCourseIdentificationNumbers(reconciled.courses);
+  const nextDeleted = withoutCehDeletedSlugs(deletedSlugs);
   const next = {
     ...content,
     managedCourses: attached.courses,
-    deletedCourseSlugs: deletedSlugs,
+    deletedCourseSlugs: nextDeleted,
   };
   const catalogChanged =
     addedSlugs.length > 0 ||
+    ceh.added ||
     attached.changed ||
     catalogWithoutDeletes.length !== (content.managedCourses ?? []).length ||
     reconciled.droppedSlugs.length > 0;
@@ -230,15 +234,15 @@ export async function PUT(request: Request) {
     const keptSlugs = new Set(
       (nextManagedCourses ?? []).map((c) => c.slug?.trim()).filter(Boolean),
     );
-    const nextDeletedCourseSlugs = [
+    const nextDeletedCourseSlugs = withoutCehDeletedSlugs([
       ...new Set(
         [...durableDeletes, ...removedCourseSlugs]
           .map((s) => s.trim())
           .filter((s) => Boolean(s) && !keptSlugs.has(s)),
       ),
-    ];
+    ]);
     if (removedCourseSlugs.length > 0) {
-      await recordDeletedCourseSlugs(removedCourseSlugs);
+      await recordDeletedCourseSlugs(withoutCehDeletedSlugs(removedCourseSlugs));
     }
     const resurrected = [...explicitIncomingSlugs].filter(
       (s) => durableDeleteSet.has(s) && keptSlugs.has(s) && !removedSet.has(s),

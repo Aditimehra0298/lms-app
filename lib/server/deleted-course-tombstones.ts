@@ -74,11 +74,15 @@ async function readMysqlTombstones(): Promise<string[]> {
 /** Union of durable deletes (MySQL + gitignored file). Survives admin-content.json deploys. */
 export async function listDeletedCourseSlugs(extra?: Iterable<string>): Promise<string[]> {
   const [fileSlugs, mysqlSlugs] = await Promise.all([readFileTombstones(), readMysqlTombstones()]);
-  return normalizeSlugs([...(extra ?? []), ...fileSlugs, ...mysqlSlugs]);
+  return normalizeSlugs([...(extra ?? []), ...fileSlugs, ...mysqlSlugs]).filter(
+    (slug) => slug !== "courses-certfied-ethical-hacking-and-penitration-testing",
+  );
 }
 
 export async function recordDeletedCourseSlugs(slugs: Iterable<string>): Promise<void> {
-  const unique = normalizeSlugs(slugs);
+  const unique = normalizeSlugs(slugs).filter(
+    (slug) => slug !== "courses-certfied-ethical-hacking-and-penitration-testing",
+  );
   if (unique.length === 0) return;
 
   const current = await readFileTombstones();
