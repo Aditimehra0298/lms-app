@@ -107,8 +107,9 @@ export function CourseListThumbnail({
             : "h-full w-full object-cover object-center"
         }
         onError={() => {
-          const next = fallbacks[attempt + 1];
-          if (next && next !== src) {
+          const tried = new Set([src, ...fallbacks.slice(0, attempt + 1)]);
+          const next = fallbacks.find((u) => !tried.has(u));
+          if (next) {
             setAttempt((n) => n + 1);
             setSrc(next);
             return;

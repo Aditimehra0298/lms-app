@@ -69,20 +69,24 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 const PUBLIC_COVERS_DIR = path.join(process.cwd(), "public", "uploads", "covers");
+const DATA_COVERS_DIR = path.join(process.cwd(), "data", "uploads", "covers");
+const DATA_ADMIN_DIR = path.join(process.cwd(), "data", "uploads", "admin");
 
 /** Resolve readable path: private store first, then legacy public folder, then covers. */
 export async function resolveMediaFilePath(fileName: string): Promise<string | null> {
   const safe = path.basename(fileName);
   if (!safe || safe !== fileName || safe.includes("..")) return null;
 
-  const privatePath = path.join(PRIVATE_MEDIA_DIR, safe);
-  if (await fileExists(privatePath)) return privatePath;
-
-  const legacyPath = path.join(LEGACY_PUBLIC_DIR, safe);
-  if (await fileExists(legacyPath)) return legacyPath;
-
-  const coverPath = path.join(PUBLIC_COVERS_DIR, safe);
-  if (await fileExists(coverPath)) return coverPath;
+  const candidates = [
+    path.join(PRIVATE_MEDIA_DIR, safe),
+    path.join(LEGACY_PUBLIC_DIR, safe),
+    path.join(PUBLIC_COVERS_DIR, safe),
+    path.join(DATA_COVERS_DIR, safe),
+    path.join(DATA_ADMIN_DIR, safe),
+  ];
+  for (const filePath of candidates) {
+    if (await fileExists(filePath)) return filePath;
+  }
 
   return null;
 }

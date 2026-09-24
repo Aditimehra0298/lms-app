@@ -1,8 +1,9 @@
 import { createReadStream } from "node:fs";
-import { access, constants, open } from "node:fs/promises";
+import { open } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
+import { resolveMediaFilePath } from "@/lib/server/private-media-storage";
 import { detectContentKind } from "@/lib/server/upload-content-validation";
 
 export const dynamic = "force-dynamic";
@@ -15,18 +16,6 @@ const IMAGE_MIME: Record<string, string> = {
   "image/webp": "image/webp",
   "image/gif": "image/gif",
 };
-
-async function firstExisting(paths: string[]): Promise<string | null> {
-  for (const filePath of paths) {
-    try {
-      await access(filePath, constants.R_OK);
-      return filePath;
-    } catch {
-      /* try next */
-    }
-  }
-  return null;
-}
 
 async function sniffImageMime(filePath: string): Promise<string | null> {
   const fh = await open(filePath, "r");
@@ -59,11 +48,7 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Unsupported cover type" }, { status: 400 });
   }
 
-  const found = await firstExisting([
-    path.join(process.cwd(), "data", "uploads", "covers", base),
-    path.join(process.cwd(), "public", "uploads", "covers", base),
-    path.join(process.cwd(), "public", "uploads", "admin", base),
-  ]);
+  const found = await resolveMediaFilePath(base);
   if (!found) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

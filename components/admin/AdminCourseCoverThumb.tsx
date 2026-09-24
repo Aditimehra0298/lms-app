@@ -76,7 +76,8 @@ export default function AdminCourseCoverThumb({ course, className }: Props) {
         alt={course.title || "Course cover"}
         className="h-full w-full object-cover object-center"
         onError={() => {
-          const nextUrl = fallbacks.find((u) => u !== src && !u.includes("?t="));
+          const idx = fallbacks.indexOf(src);
+          const nextUrl = fallbacks.slice(Math.max(idx, 0) + 1).find((u) => !u.includes("?t="));
           if (nextUrl) {
             setSrc(nextUrl);
             return;
