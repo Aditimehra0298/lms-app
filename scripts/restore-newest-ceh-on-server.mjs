@@ -18,14 +18,31 @@ const SLUGS = new Set([
   "certified-ethical-hacking-and-penetration-testing",
 ]);
 
+function mediaCount(course) {
+  let n = 0;
+  for (const m of course?.curriculum ?? []) {
+    const rows = [...(m.items ?? []), ...((m.subModules ?? []).flatMap((s) => s.items ?? []))];
+    for (const item of rows) {
+      if (item.videoUrl || item.examUploadUrl || item.pdfUrl || item.downloadUrl) n += 1;
+    }
+  }
+  return n;
+}
+
+function designScore(course) {
+  const mods = course?.curriculum ?? [];
+  const first = String(mods[0]?.title ?? "").toLowerCase();
+  const second = String(mods[1]?.title ?? "").toLowerCase();
+  const media = mediaCount(course);
+  if (mods.length === 0) return 0;
+  if (first.includes("general instructions for candidate")) return 1;
+  if (second.includes("ethical hacking foundations")) return 1;
+  if (mods.length <= 15 && media === 0) return 1;
+  return mods.length * 1000 + media;
+}
+
 function isOldLeftover(course) {
-  const mods = course?.curriculum?.length ?? 0;
-  const text = `${course?.subtitle ?? ""} ${course?.title ?? ""}`.toLowerCase();
-  const first = String(course?.curriculum?.[0]?.title ?? "").toLowerCase();
-  return (
-    mods === 85 &&
-    (text.includes("85 video lectures") || first.includes("introduction ethical hacking"))
-  );
+  return designScore(course) <= 1;
 }
 
 function summarize(course, source, when) {
@@ -95,20 +112,23 @@ for (const h of hits) {
 }
 
 const jsonPath = path.join(dataDir, "admin-content.json");
-const currentHit = hits.find((h) => h.source === jsonPath);
-const bakHits = hits.filter((h) => String(h.source).includes(".bak"));
-const newestBak = bakHits.sort((a, b) => String(b.when).localeCompare(String(a.when)))[0];
-const chosen =
-  newestBak && newestBak.when > (currentHit?.when ?? "")
-    ? newestBak
-    : hits.find((h) => !h.leftover) ?? hits[0];
+const chosen = [...hits].sort((a, b) => {
+  const score = designScore(b.course) - designScore(a.course);
+  if (score !== 0) return score;
+  return String(b.when).localeCompare(String(a.when));
+})[0];
 if (!chosen) {
   console.log("No CEH copy found.");
   await prisma.$disconnect();
   process.exit(1);
 }
 
-console.log("Chosen:", chosen.leftover ? "OLD leftover (no newer copy found)" : "designed copy", chosen.source);
+console.log(
+  "Chosen:",
+  chosen.leftover ? "thin template" : "designed copy",
+  chosen.source,
+  `${designScore(chosen.course)} score`,
+);
 
 if (!apply) {
   console.log("Dry run. Re-run with --apply to write this into admin-content.json.");

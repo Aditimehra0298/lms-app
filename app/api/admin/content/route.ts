@@ -20,6 +20,7 @@ import {
   listDeletedCourseSlugs,
   recordDeletedCourseSlugs,
 } from "@/lib/server/deleted-course-tombstones";
+import { isCehSlug, isOldCehLeftover } from "@/lib/ceh-course";
 import { ensureCehCourse, withoutCehDeletedSlugs } from "@/lib/server/ensure-ceh-course";
 import { readAdminContentFromDisk, writeAdminContent, normalizeManagedCategories } from "@/lib/server/content-store";
 import { sanitizePromotions } from "@/lib/promotions";
@@ -78,16 +79,14 @@ function mergeManagedCoursesPreservingCurriculum(
       } else {
         // Guard: never replace a richer curriculum (more modules/videos) with a poorer stale payload.
         // Skip for CEH — the redesigned server course can have fewer modules than the old 85-part leftover.
-        const isCeh =
-          slug === "courses-certfied-ethical-hacking-and-penitration-testing" ||
-          slug === "certified-ethical-hacking-and-penetration-testing";
         const inScore = curriculumMediaScore(course.curriculum);
         const prevScore = curriculumMediaScore(prev.curriculum);
+        const incomingThinCeh = isCehSlug(slug) && isOldCehLeftover(course);
         if (
-          !isCeh &&
           prevScore > 0 &&
           inScore < prevScore &&
-          (course.curriculum?.length ?? 0) < (prev.curriculum?.length ?? 0)
+          (course.curriculum?.length ?? 0) < (prev.curriculum?.length ?? 0) &&
+          (!isCehSlug(slug) || incomingThinCeh)
         ) {
           next = { ...course, curriculum: prev.curriculum };
         }

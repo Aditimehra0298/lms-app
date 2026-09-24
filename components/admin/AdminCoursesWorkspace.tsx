@@ -817,6 +817,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
         .then((body: { ok?: boolean; curriculum?: CourseCurriculumModule[] }) => {
           if (!body?.ok || !Array.isArray(body.curriculum) || body.curriculum.length === 0) return;
           if (curriculumHydratedSlugRef.current !== selectedSlug) return;
+          if (body.curriculum.length < modulesRef.current.length) return;
           setModules(cloneMods(getAdminCurriculumForCourse(body.curriculum)));
         })
         .catch(() => undefined);

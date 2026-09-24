@@ -5,9 +5,13 @@ import {
   CEH_SLUG,
   CEH_SLUG_ALT,
   applyCehCategory,
+  cehDesignScore,
   pickDesignedCeh,
 } from "@/lib/ceh-course";
-import { getCourseContentRowFromMysql } from "@/lib/server/course-content-mysql-sync";
+import {
+  getCourseContentRowFromMysql,
+  syncCourseContentToMysql,
+} from "@/lib/server/course-content-mysql-sync";
 import { clearDeletedCourseSlugs } from "@/lib/server/deleted-course-tombstones";
 
 export {
@@ -29,7 +33,18 @@ async function jsonFileTime(): Promise<Date | null> {
   }
 }
 
-/** Keep CEH visible and show whichever copy was saved last. */
+export async function loadCehSnapshot(): Promise<ManagedCourse | null> {
+  try {
+    const raw = await fs.readFile(path.join(process.cwd(), "data", "ceh-live-course.json"), "utf8");
+    const course = JSON.parse(raw) as ManagedCourse;
+    if (!course || !Array.isArray(course.curriculum) || course.curriculum.length === 0) return null;
+    return course;
+  } catch {
+    return null;
+  }
+}
+
+/** Keep CEH visible and show the designed 85-module course, not the empty template. */
 export async function ensureCehCourse(courses: ManagedCourse[]): Promise<{
   courses: ManagedCourse[];
   added: boolean;
@@ -40,15 +55,45 @@ export async function ensureCehCourse(courses: ManagedCourse[]): Promise<{
   const row =
     (await getCourseContentRowFromMysql(CEH_SLUG).catch(() => null)) ??
     (await getCourseContentRowFromMysql(CEH_SLUG_ALT).catch(() => null));
-  const picked = pickDesignedCeh(idx >= 0 ? list[idx] : null, row?.course, {
+  const snapshot = await loadCehSnapshot();
+  const current = idx >= 0 ? list[idx] : null;
+  const picked = pickDesignedCeh(current, row?.course, {
     mysqlUpdatedAt: row?.updatedAt ?? null,
     jsonUpdatedAt: await jsonFileTime(),
+    extra: snapshot,
   });
   if (!picked) return { courses: list, added: false };
+
   if (idx >= 0) {
     const prev = list[idx];
-    list[idx] = applyCehCategory(picked);
-    return { courses: list, added: prev.category !== "cyber-security" || prev !== list[idx] };
+    const prevScore = cehDesignScore(prev);
+    const nextScore = cehDesignScore(picked);
+    const categoryFixed = prev.category !== "cyber-security";
+    if (nextScore < prevScore) {
+      const kept = applyCehCategory(prev);
+      list[idx] = kept;
+      return { courses: list, added: categoryFixed };
+    }
+    if (nextScore === prevScore) {
+      const kept = applyCehCategory(prev);
+      list[idx] = kept;
+      return { courses: list, added: categoryFixed };
+    }
+    const next = applyCehCategory(picked, prev);
+    list[idx] = next;
+    try {
+      await syncCourseContentToMysql(next);
+    } catch (err) {
+      console.error("[ensureCehCourse] restore MySQL", err);
+    }
+    return { courses: list, added: true };
   }
-  return { courses: [...list, applyCehCategory(picked)], added: true };
+
+  const next = applyCehCategory(picked);
+  try {
+    await syncCourseContentToMysql(next);
+  } catch (err) {
+    console.error("[ensureCehCourse] add MySQL", err);
+  }
+  return { courses: [...list, next], added: true };
 }
