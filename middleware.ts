@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { allowedRequestOrigins } from "@/lib/server/csrf-origin";
+import { allowedRequestOrigins, browserFacingOrigin } from "@/lib/server/csrf-origin";
 
 const ADMIN_SESSION_COOKIE = "sft_admin_session";
 const ADMIN_CSRF_COOKIE = "sft_admin_csrf";
@@ -205,7 +205,7 @@ export async function middleware(request: NextRequest) {
     }
 
     if (path.startsWith("/api/admin") && !csrfOk(request, claims)) {
-      const here = request.nextUrl.origin || "this same address";
+      const here = browserFacingOrigin(request);
       const message = `CSRF check failed. Stay on ${here}/admin, hard-refresh, and try again. If Admin is open on another computer, sign out there first.`;
       return NextResponse.json(
         {
