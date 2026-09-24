@@ -10,6 +10,7 @@ import {
   Video,
 } from "lucide-react";
 import type { CourseCurriculumItem, CourseCurriculumKind } from "@/lib/content-schema";
+import { applyAdminCsrfToXhr } from "@/lib/admin-csrf-client";
 import AdminAssetUrlField from "@/components/admin/AdminAssetUrlField";
 import AdminExamImageOptionsBuilder from "@/components/admin/AdminExamImageOptionsBuilder";
 
@@ -75,6 +76,7 @@ function uploadAdminFile(
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/admin/upload");
+    applyAdminCsrfToXhr(xhr);
     xhr.timeout = 30 * 60 * 1000; // 30 min for large videos
 
     xhr.upload.onprogress = (event) => {

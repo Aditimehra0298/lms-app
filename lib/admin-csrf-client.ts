@@ -8,6 +8,13 @@ export const ADMIN_CSRF_HEADER = "x-csrf-token";
 export const ADMIN_XSRF_HEADER = "x-xsrf-token";
 
 const FLAG = "__sft_admin_csrf_fetch__";
+const XHR_FLAG = "__sft_admin_csrf_xhr__";
+
+type CsrfXhr = XMLHttpRequest & {
+  __sftAdminMethod?: string;
+  __sftAdminUrl?: string;
+  __sftCsrfApplied?: boolean;
+};
 
 function readCookie(name: string): string {
   if (typeof document === "undefined") return "";
@@ -21,6 +28,14 @@ function readCookie(name: string): string {
   }
 }
 
+function isAdminApiPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/api/admin") ||
+    pathname.startsWith("/api/tickets") ||
+    pathname.startsWith("/api/issues")
+  );
+}
+
 function isAdminApiUrl(input: RequestInfo | URL): boolean {
   try {
     const raw =
@@ -31,14 +46,32 @@ function isAdminApiUrl(input: RequestInfo | URL): boolean {
           : input.url;
     const url = new URL(raw, window.location.origin);
     if (url.origin !== window.location.origin) return false;
-    return (
-      url.pathname.startsWith("/api/admin") ||
-      url.pathname.startsWith("/api/tickets") ||
-      url.pathname.startsWith("/api/issues")
-    );
+    return isAdminApiPath(url.pathname);
   } catch {
     return false;
   }
+}
+
+function applyAdminCsrfToHeaders(headers: Headers): void {
+  const csrf = readCookie(ADMIN_CSRF_COOKIE);
+  const xsrf = readCookie(ADMIN_XSRF_COOKIE);
+  if (csrf && !headers.has(ADMIN_CSRF_HEADER)) {
+    headers.set(ADMIN_CSRF_HEADER, csrf);
+  }
+  if (xsrf && !headers.has(ADMIN_XSRF_HEADER)) {
+    headers.set(ADMIN_XSRF_HEADER, xsrf);
+  }
+}
+
+/** Attach CSRF/XSRF headers to XHR (video uploads bypass window.fetch). */
+export function applyAdminCsrfToXhr(xhr: XMLHttpRequest): void {
+  const tagged = xhr as CsrfXhr;
+  if (tagged.__sftCsrfApplied) return;
+  tagged.__sftCsrfApplied = true;
+  const csrf = readCookie(ADMIN_CSRF_COOKIE);
+  const xsrf = readCookie(ADMIN_XSRF_COOKIE);
+  if (csrf) xhr.setRequestHeader(ADMIN_CSRF_HEADER, csrf);
+  if (xsrf) xhr.setRequestHeader(ADMIN_XSRF_HEADER, xsrf);
 }
 
 /** Patch window.fetch once so admin mutations send CSRF + XSRF headers. */
@@ -61,14 +94,7 @@ export function installAdminCsrfFetch(): () => void {
     );
 
     if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
-      const csrf = readCookie(ADMIN_CSRF_COOKIE);
-      const xsrf = readCookie(ADMIN_XSRF_COOKIE);
-      if (csrf && !headers.has(ADMIN_CSRF_HEADER)) {
-        headers.set(ADMIN_CSRF_HEADER, csrf);
-      }
-      if (xsrf && !headers.has(ADMIN_XSRF_HEADER)) {
-        headers.set(ADMIN_XSRF_HEADER, xsrf);
-      }
+      applyAdminCsrfToHeaders(headers);
     }
 
     return original(input, {
@@ -78,9 +104,50 @@ export function installAdminCsrfFetch(): () => void {
     });
   };
 
+  const wXhr = window as Window & { [XHR_FLAG]?: boolean };
+  const origOpen = XMLHttpRequest.prototype.open;
+  const origSend = XMLHttpRequest.prototype.send;
+  if (!wXhr[XHR_FLAG]) {
+    wXhr[XHR_FLAG] = true;
+    XMLHttpRequest.prototype.open = function (
+      this: CsrfXhr,
+      method: string,
+      url: string | URL,
+      async?: boolean,
+      username?: string | null,
+      password?: string | null,
+    ) {
+      this.__sftAdminMethod = String(method || "GET");
+      this.__sftAdminUrl = typeof url === "string" ? url : url.href;
+      return origOpen.call(this, method, url, async ?? true, username, password);
+    };
+    XMLHttpRequest.prototype.send = function (this: CsrfXhr, body?: Document | XMLHttpRequestBodyInit | null) {
+      const method = (this.__sftAdminMethod || "GET").toUpperCase();
+      const rawUrl = this.__sftAdminUrl || "";
+      try {
+        const parsed = new URL(rawUrl, window.location.origin);
+        if (
+          parsed.origin === window.location.origin &&
+          isAdminApiPath(parsed.pathname) &&
+          method !== "GET" &&
+          method !== "HEAD" &&
+          method !== "OPTIONS"
+        ) {
+          applyAdminCsrfToXhr(this);
+        }
+      } catch {
+        /* ignore */
+      }
+      return origSend.call(this, body);
+    };
+  }
+
   return () => {
     window.fetch = original;
+    XMLHttpRequest.prototype.open = origOpen;
+    XMLHttpRequest.prototype.send = origSend;
     delete w[FLAG];
+    delete wXhr[XHR_FLAG];
   };
 }
 
@@ -98,14 +165,7 @@ export function adminMutationHeaders(extra?: HeadersInit): Headers {
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const csrf = getAdminCsrfToken();
-  const xsrf = getAdminXsrfToken();
-  if (csrf && !headers.has(ADMIN_CSRF_HEADER)) {
-    headers.set(ADMIN_CSRF_HEADER, csrf);
-  }
-  if (xsrf && !headers.has(ADMIN_XSRF_HEADER)) {
-    headers.set(ADMIN_XSRF_HEADER, xsrf);
-  }
+  applyAdminCsrfToHeaders(headers);
   return headers;
 }
 

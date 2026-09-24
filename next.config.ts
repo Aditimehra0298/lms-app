@@ -95,6 +95,14 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  async rewrites() {
+    return [
+      {
+        source: "/uploads/covers/:path*",
+        destination: "/api/covers/:path*",
+      },
+    ];
+  },
   images: {
     // In dev, Next fetches remote URLs to optimize; some networks (SSL inspection)
     // make Node TLS verification fail ("unable to verify the first certificate").

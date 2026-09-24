@@ -139,7 +139,11 @@ export function resolveManagedCourseThumbnail(course: ManagedCourse): string {
 export function catalogCoverFallbackUrls(stored: string): string[] {
   const s = stored.trim().split("?")[0] ?? "";
   if (!s) return [];
-  const out: string[] = [s];
+  const out: string[] = [];
+  // Unsigned /api/media/serve 401s — try public cover API first.
+  if (!s.startsWith("/api/media/serve/")) {
+    out.push(s);
+  }
   const serve = s.match(/\/api\/media\/serve\/([^/]+)$/);
   const coversApi = s.match(/\/api\/covers\/([^/]+)$/);
   const admin = s.match(/\/uploads\/admin\/([^/]+)$/);
@@ -152,8 +156,6 @@ export function catalogCoverFallbackUrls(stored: string): string[] {
         out.push(`/api/covers/${encodeURIComponent(base)}`);
         out.push(`/uploads/covers/${encodeURIComponent(base)}`);
         out.push(`/uploads/covers/${base}`);
-        out.push(`/uploads/admin/${encodeURIComponent(base)}`);
-        out.push(`/uploads/admin/${base}`);
       }
     } catch {
       /* ignore */

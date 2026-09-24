@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { isProtectedMediaUrl, resolveProtectedMediaUrl } from "@/lib/media-client";
-import { catalogCoverFallbackUrls, isGenericCoursePlaceholder } from "@/lib/course-thumbnail";
+import {
+  catalogCoverFallbackUrls,
+  isGenericCoursePlaceholder,
+  resolveCourseImageSrc,
+} from "@/lib/course-thumbnail";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 
 type Props = {
@@ -41,7 +45,7 @@ export function CourseListThumbnail({
       return;
     }
     if (!isProtectedMediaUrl(next)) {
-      setSrc(next);
+      setSrc(resolveCourseImageSrc(next) || next);
       return;
     }
     setSrc("");

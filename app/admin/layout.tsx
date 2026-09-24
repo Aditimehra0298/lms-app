@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import AdminCsrfBootstrap from "@/components/admin/AdminCsrfBootstrap";
 import {
   ADMIN_SESSION_COOKIE,
   verifyAdminSessionClaimsActive,
@@ -22,5 +23,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/account?admin=1&reason=session");
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <AdminCsrfBootstrap />
+      {children}
+    </>
+  );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ClipboardList, Upload } from "lucide-react";
+import { applyAdminCsrfToXhr } from "@/lib/admin-csrf-client";
 import AdminExamImageOptionsBuilder from "@/components/admin/AdminExamImageOptionsBuilder";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import type { TutorLedLearnerSection } from "@/lib/tutor-led-learner-section";
@@ -24,6 +25,7 @@ function uploadExamFile(file: File, courseSlug?: string): Promise<string> {
     if (courseSlug?.trim()) fd.append("courseSlug", courseSlug.trim());
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/admin/upload");
+    applyAdminCsrfToXhr(xhr);
     xhr.onload = () => {
       try {
         const data = JSON.parse(xhr.responseText) as { url?: string; error?: string };
