@@ -12,6 +12,11 @@ import {
   deleteCoursesFromMysql,
   syncManagedCoursesToMysql,
 } from "@/lib/server/course-mysql-sync";
+import {
+  clearDeletedCourseSlugs,
+  listDeletedCourseSlugs,
+  recordDeletedCourseSlugs,
+} from "@/lib/server/deleted-course-tombstones";
 import { readAdminContentFromDisk, writeAdminContent, normalizeManagedCategories } from "@/lib/server/content-store";
 import { sanitizePromotions } from "@/lib/promotions";
 import { assertMainAdmin } from "@/lib/server/admin-api-auth";
@@ -98,17 +103,29 @@ export async function GET(request: Request) {
 
   // Bypass React cache so admin always sees the latest disk write.
   const content = await readAdminContentFromDisk();
-  const { courses, addedSlugs } = await hydrateManagedCoursesFromMysql(
-    content.managedCourses ?? [],
-    { excludeSlugs: content.deletedCourseSlugs },
+  const deletedSlugs = await listDeletedCourseSlugs(content.deletedCourseSlugs);
+  const deletedSet = new Set(deletedSlugs);
+  const catalogWithoutDeletes = (content.managedCourses ?? []).filter(
+    (c) => !deletedSet.has(c.slug?.trim() ?? ""),
   );
+  const { courses, addedSlugs } = await hydrateManagedCoursesFromMysql(catalogWithoutDeletes, {
+    excludeSlugs: deletedSlugs,
+  });
   const attached = await attachCourseIdentificationNumbers(courses);
-  const next = { ...content, managedCourses: attached.courses };
-  if (addedSlugs.length > 0 || attached.changed) {
+  const next = {
+    ...content,
+    managedCourses: attached.courses,
+    deletedCourseSlugs: deletedSlugs,
+  };
+  const strippedDeletes = catalogWithoutDeletes.length !== (content.managedCourses ?? []).length;
+  if (addedSlugs.length > 0 || attached.changed || strippedDeletes) {
     try {
       await writeAdminContent(next);
       if (addedSlugs.length > 0) {
         console.info("[admin/content GET] restored from MySQL:", addedSlugs.join(", "));
+      }
+      if (strippedDeletes) {
+        console.info("[admin/content GET] kept admin deletes hidden:", deletedSlugs.join(", "));
       }
     } catch (err) {
       console.error("[admin/content GET] persist MySQL hydrate", err);
@@ -166,7 +183,15 @@ export async function PUT(request: Request) {
         }
       : existing.categoryPages ?? {};
 
-    const nextManagedCourses = Array.isArray(body.managedCourses)
+    const durableDeletes = await listDeletedCourseSlugs(existing.deletedCourseSlugs);
+    const durableDeleteSet = new Set(durableDeletes);
+    const explicitIncomingSlugs = new Set(
+      (Array.isArray(body.managedCourses) ? body.managedCourses : [])
+        .map((c) => c.slug?.trim())
+        .filter((s): s is string => Boolean(s)),
+    );
+
+    const mergedCourses = Array.isArray(body.managedCourses)
       ? mergeManagedCoursesPreservingCurriculum(
           existing.managedCourses ?? [],
           body.managedCourses,
@@ -176,16 +201,33 @@ export async function PUT(request: Request) {
       : removedSet.size > 0
         ? (existing.managedCourses ?? []).filter((c) => !removedSet.has(c.slug?.trim() ?? ""))
         : existing.managedCourses;
+    // An older deployed JSON can still list deleted courses. Keep them hidden unless
+    // this PUT explicitly re-saves that slug (admin created it again).
+    const nextManagedCourses = (mergedCourses ?? []).filter((c) => {
+      const slug = c.slug?.trim() ?? "";
+      if (!slug || removedSet.has(slug)) return false;
+      if (!durableDeleteSet.has(slug)) return true;
+      return explicitIncomingSlugs.has(slug);
+    });
     const keptSlugs = new Set(
       (nextManagedCourses ?? []).map((c) => c.slug?.trim()).filter(Boolean),
     );
     const nextDeletedCourseSlugs = [
       ...new Set(
-        [...(existing.deletedCourseSlugs ?? []), ...removedCourseSlugs]
+        [...durableDeletes, ...removedCourseSlugs]
           .map((s) => s.trim())
           .filter((s) => Boolean(s) && !keptSlugs.has(s)),
       ),
     ];
+    if (removedCourseSlugs.length > 0) {
+      await recordDeletedCourseSlugs(removedCourseSlugs);
+    }
+    const resurrected = [...explicitIncomingSlugs].filter(
+      (s) => durableDeleteSet.has(s) && keptSlugs.has(s) && !removedSet.has(s),
+    );
+    if (resurrected.length > 0) {
+      await clearDeletedCourseSlugs(resurrected);
+    }
 
     // Allow clearing the last tutor-led/workshop program (empty array must persist).
     const tutorLedProvided = Object.prototype.hasOwnProperty.call(body, "tutorLedPrograms");

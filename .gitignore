@@ -53,6 +53,8 @@ env
 /storage/private/
 /data/uploads/
 /data/admin-active-session.json
+# Durable admin deletes — must not be overwritten by an older admin-content.json deploy
+/data/deleted-course-slugs.json
 
 # media over GitHub's 100MB single-file limit (keep locally; use CDN/LFS if needed in repo)
 /public/1773913728What is Phishing__1080p_caption.mp4
@@ -70,6 +72,7 @@ sft_lms_all.sql
 # FileZilla packaging output
 deploy-filezilla/
 server-update/
+
 
 deploy-filezilla-ready/
 

@@ -37,6 +37,33 @@ function stub(row) {
 }
 
 const json = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+const tombstonePath = path.join(root, "data", "deleted-course-slugs.json");
+const tombstones = new Set(
+  Array.isArray(json.deletedCourseSlugs)
+    ? json.deletedCourseSlugs.map((s) => String(s || "").trim()).filter(Boolean)
+    : [],
+);
+try {
+  const extra = JSON.parse(fs.readFileSync(tombstonePath, "utf8"));
+  if (Array.isArray(extra)) {
+    for (const s of extra) {
+      const slug = String(s || "").trim();
+      if (slug) tombstones.add(slug);
+    }
+  }
+} catch {
+  // optional local tombstone file
+}
+try {
+  const tombRows = await prisma.$queryRawUnsafe("SELECT slug FROM lms_deleted_course");
+  for (const row of tombRows) {
+    const slug = String(row?.slug || "").trim();
+    if (slug) tombstones.add(slug);
+  }
+} catch {
+  // table may not exist yet
+}
+
 const courses = Array.isArray(json.managedCourses) ? [...json.managedCourses] : [];
 const have = new Set(courses.map((c) => String(c.slug || "").trim()).filter(Boolean));
 const added = [];
@@ -48,7 +75,7 @@ const rows = await prisma.lmsCourse.findMany({
 
 for (const row of rows) {
   const slug = String(row.slug || "").trim();
-  if (!slug || have.has(slug)) continue;
+  if (!slug || have.has(slug) || tombstones.has(slug)) continue;
   const payload =
     row.content?.payload && typeof row.content.payload === "object" ? row.content.payload : null;
   const next = payload

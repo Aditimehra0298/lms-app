@@ -7,6 +7,7 @@ import {
   hydrateManagedCoursesFromMysql,
 } from "@/lib/server/course-content-mysql-sync";
 import { readAdminContent } from "@/lib/server/content-store";
+import { listDeletedCourseSlugs } from "@/lib/server/deleted-course-tombstones";
 import { pickUniqueCourseCover, isGenericCoursePlaceholder } from "@/lib/course-thumbnail";
 import { ensureCourseRegionalPricing } from "@/lib/standard-course-pricing";
 
@@ -26,9 +27,12 @@ function pickRegionalPrices(
 
 export async function getManagedCourses() {
   const content = await readAdminContent();
-  const { courses } = await hydrateManagedCoursesFromMysql(content.managedCourses ?? [], {
-    excludeSlugs: content.deletedCourseSlugs,
-  });
+  const deletedSlugs = await listDeletedCourseSlugs(content.deletedCourseSlugs);
+  const deletedSet = new Set(deletedSlugs);
+  const { courses } = await hydrateManagedCoursesFromMysql(
+    (content.managedCourses ?? []).filter((c) => !deletedSet.has(c.slug?.trim() ?? "")),
+    { excludeSlugs: deletedSlugs },
+  );
   const published = courses.filter(
     (course) => course.published && course.settings?.showInCatalog !== false,
   );
@@ -112,6 +116,10 @@ export async function getManagedCourseForLearner(slug: string): Promise<ManagedC
   }
 
   const content = await readAdminContent();
+  const deletedSlugs = await listDeletedCourseSlugs(content.deletedCourseSlugs);
+  if (deletedSlugs.includes(key) || (decoded !== key && deletedSlugs.includes(decoded))) {
+    return null;
+  }
   const all = content.managedCourses ?? [];
 
   const fromJson = all.find((course) => matchSlug(course, key, decoded)) ?? null;

@@ -1,6 +1,7 @@
 import type { ManagedCourse } from "@/lib/content-schema";
 import { COURSE_ID_START, formatCourseCode } from "@/lib/course-ids";
 import { prisma } from "@/lib/prisma";
+import { listDeletedCourseSlugs, recordDeletedCourseSlugs } from "@/lib/server/deleted-course-tombstones";
 
 export type CourseMysqlRecord = {
   id: string;
@@ -164,9 +165,12 @@ export async function syncManagedCoursesToMysql(
       .filter((r) => r.from.trim() && r.to.trim() && r.from.trim() !== r.to.trim())
       .map((r) => [r.to.trim(), r.from.trim()] as const),
   );
+  const blocked = new Set(await listDeletedCourseSlugs());
   const records: CourseMysqlRecord[] = [];
   for (const c of courses) {
-    const row = await ensureCourseInMysql(c, renameToPrevious.get(c.slug?.trim() ?? ""));
+    const slug = c.slug?.trim() ?? "";
+    if (slug && blocked.has(slug) && !renameToPrevious.has(slug)) continue;
+    const row = await ensureCourseInMysql(c, renameToPrevious.get(slug));
     if (row) records.push(row);
   }
   return { synced: records.length, records };
@@ -241,6 +245,7 @@ export async function attachCourseIdentificationNumbers(
 export async function deleteCoursesFromMysql(slugs: string[]): Promise<{ deleted: number }> {
   const unique = [...new Set(slugs.map((s) => s.trim()).filter(Boolean))];
   if (unique.length === 0) return { deleted: 0 };
+  await recordDeletedCourseSlugs(unique);
   let deleted = 0;
   for (const slug of unique) {
     try {
