@@ -12,7 +12,7 @@ import {
 import { readAdminContent } from "@/lib/server/content-store";
 import { dropCoursesRemovedFromMysql } from "@/lib/server/course-mysql-sync";
 import { listDeletedCourseSlugs } from "@/lib/server/deleted-course-tombstones";
-import { ensureCehCourse } from "@/lib/server/ensure-ceh-course";
+import { ensureCehCourse, loadCehLandingOverlay } from "@/lib/server/ensure-ceh-course";
 import { pickUniqueCourseCover, isGenericCoursePlaceholder } from "@/lib/course-thumbnail";
 import { ensureCourseRegionalPricing } from "@/lib/standard-course-pricing";
 
@@ -51,8 +51,12 @@ export async function getManagedCourses() {
         ? await getCourseContentRowFromMysql(course.slug).catch(() => null)
         : null;
       const fromMysql = mysqlRow?.course ?? (await getCourseContentFromMysql(course.slug).catch(() => null));
+      const overlay = isCehSlug(course.slug) ? await loadCehLandingOverlay() : null;
       const merged = isCehSlug(course.slug)
-        ? pickDesignedCeh(course, fromMysql, { mysqlUpdatedAt: mysqlRow?.updatedAt ?? null }) ?? course
+        ? pickDesignedCeh(course, fromMysql, {
+            mysqlUpdatedAt: mysqlRow?.updatedAt ?? null,
+            overlay,
+          }) ?? course
         : mergeCoursePreferringRicherCurriculum(course, fromMysql);
       const uniqueImage = pickUniqueCourseCover(
         course.image,
@@ -145,8 +149,9 @@ export async function getManagedCourseForLearner(slug: string): Promise<ManagedC
     (await getCourseContentFromMysql(key)) ??
     (decoded !== key ? await getCourseContentFromMysql(decoded) : null);
 
+  const overlay = isCehSlug(key) || isCehSlug(decoded) ? await loadCehLandingOverlay() : null;
   const merged = isCehSlug(key) || isCehSlug(decoded)
-    ? pickDesignedCeh(fromJson, fromMysql, { mysqlUpdatedAt: mysqlRow?.updatedAt ?? null })
+    ? pickDesignedCeh(fromJson, fromMysql, { mysqlUpdatedAt: mysqlRow?.updatedAt ?? null, overlay })
     : fromJson
       ? mergeCoursePreferringRicherCurriculum(fromJson, fromMysql)
       : fromMysql;

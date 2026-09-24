@@ -6,6 +6,7 @@ import {
   CEH_SLUG_ALT,
   applyCehCategory,
   cehDesignScore,
+  cehLandingScore,
   pickDesignedCeh,
 } from "@/lib/ceh-course";
 import {
@@ -44,6 +45,16 @@ export async function loadCehSnapshot(): Promise<ManagedCourse | null> {
   }
 }
 
+export async function loadCehLandingOverlay(): Promise<ManagedCourse | null> {
+  try {
+    const raw = await fs.readFile(path.join(process.cwd(), "data", "ceh-landing-overlay.json"), "utf8");
+    const parsed = JSON.parse(raw) as { course?: ManagedCourse };
+    return parsed.course ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Keep CEH visible and show the designed 85-module course, not the empty template. */
 export async function ensureCehCourse(courses: ManagedCourse[]): Promise<{
   courses: ManagedCourse[];
@@ -56,37 +67,32 @@ export async function ensureCehCourse(courses: ManagedCourse[]): Promise<{
     (await getCourseContentRowFromMysql(CEH_SLUG).catch(() => null)) ??
     (await getCourseContentRowFromMysql(CEH_SLUG_ALT).catch(() => null));
   const snapshot = await loadCehSnapshot();
+  const overlay = await loadCehLandingOverlay();
   const current = idx >= 0 ? list[idx] : null;
   const picked = pickDesignedCeh(current, row?.course, {
     mysqlUpdatedAt: row?.updatedAt ?? null,
     jsonUpdatedAt: await jsonFileTime(),
     extra: snapshot,
+    overlay,
   });
   if (!picked) return { courses: list, added: false };
 
   if (idx >= 0) {
     const prev = list[idx];
-    const prevScore = cehDesignScore(prev);
-    const nextScore = cehDesignScore(picked);
-    const categoryFixed = prev.category !== "cyber-security";
-    if (nextScore < prevScore) {
-      const kept = applyCehCategory(prev);
-      list[idx] = kept;
-      return { courses: list, added: categoryFixed };
-    }
-    if (nextScore === prevScore) {
-      const kept = applyCehCategory(prev);
-      list[idx] = kept;
-      return { courses: list, added: categoryFixed };
-    }
     const next = applyCehCategory(picked, prev);
     list[idx] = next;
-    try {
-      await syncCourseContentToMysql(next);
-    } catch (err) {
-      console.error("[ensureCehCourse] restore MySQL", err);
+    const changed =
+      prev.category !== "cyber-security" ||
+      cehDesignScore(next) > cehDesignScore(prev) ||
+      cehLandingScore(next) > cehLandingScore(prev);
+    if (changed) {
+      try {
+        await syncCourseContentToMysql(next);
+      } catch (err) {
+        console.error("[ensureCehCourse] restore MySQL", err);
+      }
     }
-    return { courses: list, added: true };
+    return { courses: list, added: changed };
   }
 
   const next = applyCehCategory(picked);

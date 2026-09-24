@@ -1,4 +1,5 @@
 import type { ManagedCourse, ManagedCourseHeroSection } from "@/lib/content-schema";
+import { isCehSlug } from "@/lib/ceh-course";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import type { ResolvedCourseHero } from "@/lib/course-hero-resolve";
 import {
@@ -50,6 +51,34 @@ const CYBER_REQUIREMENTS = [
   "A computer with internet access to complete hands-on labs",
 ];
 
+const CEH_ABOUT =
+  "This self-paced professional course delivers 85 video lectures and 85 assessments across the ethical hacking lifecycle. You begin with ethical hacking foundations, the modern threat landscape, cyber kill chain and MITRE ATT&CK, then move into footprinting, reconnaissance, and network scanning.\n\nLater modules continue through containers/Kubernetes and cryptography — matching the Cybersecurity, Ethical Hacking & Penetration Testing Professional Course certificate pathway (25 hours, e-learning, video-based, self-paced).";
+
+const CEH_OUTCOMES = [
+  "Explain ethical hacking concepts, laws, and security standards",
+  "Apply footprinting and reconnaissance techniques responsibly",
+  "Scan and interpret network attack surfaces",
+  "Relate threats to Cyber Kill Chain and MITRE ATT&CK",
+  "Assess modern surfaces including containers and cryptography themes",
+  "Complete module assessments to prove understanding before moving on",
+];
+
+const CEH_LEARN_GRID: [string, string][] = [
+  ["Ethical hacking foundations", "Threat landscape, controls, laws, and standards."],
+  ["ATT&CK & kill chain", "How real adversary behavior is framed."],
+  ["Footprinting & recon", "Information gathering before deeper testing."],
+  ["Network scanning", "Discover hosts, ports, and services."],
+  ["Modern platforms", "Containers, Kubernetes, and crypto modules."],
+  ["Assessment discipline", "Prove learning after each lecture part."],
+];
+
+const CEH_REQUIREMENTS = [
+  "Basic networking and OS familiarity",
+  "Authorization to practice only on permitted systems",
+  "Computer with internet access for video lessons",
+  "Commitment to complete lecture + assessment pairs",
+];
+
 const CYBER_ABOUT =
   "This comprehensive course takes you from foundational cybersecurity concepts to advanced defensive and offensive techniques. You will work through real-world scenarios, hands-on labs, and structured assessments designed to build job-ready skills for security analyst and engineer roles.";
 
@@ -59,24 +88,28 @@ export function landingAboutText(
 ): string {
   const custom = (heroAbout ?? "").trim();
   if (custom) return custom;
+  if (isCehSlug(course.slug)) return CEH_ABOUT;
   const cat = canonicalCategorySlug(course.category);
   if (cat === "cyber-security") return CYBER_ABOUT;
   return course.subtitle.trim();
 }
 
 export function landingLearnOutcomes(course: ManagedCourse): string[] {
+  if (isCehSlug(course.slug)) return CEH_OUTCOMES;
   const cat = canonicalCategorySlug(course.category);
   if (cat === "cyber-security") return CYBER_OUTCOMES;
   return learningOutcomeBullets(course.title).slice(0, 5);
 }
 
 export function landingWhatYouLearnGrid(course: ManagedCourse): [string, string][] {
+  if (isCehSlug(course.slug)) return CEH_LEARN_GRID;
   const cat = canonicalCategorySlug(course.category);
   if (cat === "cyber-security") return CYBER_LEARN_GRID;
   return whatYouLearnGrid(course.title);
 }
 
 export function landingRequirements(course: ManagedCourse): string[] {
+  if (isCehSlug(course.slug)) return CEH_REQUIREMENTS;
   const cat = canonicalCategorySlug(course.category);
   if (cat === "cyber-security") return CYBER_REQUIREMENTS;
   return requirementBullets(

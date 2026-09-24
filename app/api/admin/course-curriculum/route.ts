@@ -3,7 +3,7 @@ import { isCehSlug, pickDesignedCeh } from "@/lib/ceh-course";
 import type { CourseCurriculumModule, ManagedCourse } from "@/lib/content-schema";
 import { assertCurriculumModuleCapacity } from "@/lib/curriculum-limits";
 import { getCourseContentRowFromMysql, syncCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
-import { loadCehSnapshot } from "@/lib/server/ensure-ceh-course";
+import { loadCehLandingOverlay, loadCehSnapshot } from "@/lib/server/ensure-ceh-course";
 import { readAdminContentFromDisk, writeAdminContent } from "@/lib/server/content-store";
 import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
@@ -32,8 +32,13 @@ export async function GET(request: Request) {
   const existing = await readAdminContentFromDisk();
   const json = (existing.managedCourses ?? []).find((c) => c.slug?.trim() === slug);
   const snapshot = isCehSlug(slug) ? await loadCehSnapshot() : null;
+  const overlay = isCehSlug(slug) ? await loadCehLandingOverlay() : null;
   const course = isCehSlug(slug)
-    ? pickDesignedCeh(json, row?.course, { extra: snapshot, mysqlUpdatedAt: row?.updatedAt ?? null })
+    ? pickDesignedCeh(json, row?.course, {
+        extra: snapshot,
+        overlay,
+        mysqlUpdatedAt: row?.updatedAt ?? null,
+      })
     : row?.course ?? json ?? null;
   const curriculum = course?.curriculum ?? [];
   return NextResponse.json(
