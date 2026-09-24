@@ -1,12 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { isMainAdminEmail } from "@/lib/server/admin-emails";
-import {
-  clearActiveAdminSession,
-  isAdminSessionSidActive,
-  isAdminSessionSidActiveSync,
-  writeActiveAdminSession,
-} from "@/lib/server/admin-active-session";
+import { clearActiveAdminSession, writeActiveAdminSession } from "@/lib/server/admin-active-session";
 import { cookieScopeFromRequest, type CookieRequestScope } from "@/lib/server/cookie-request-scope";
 import { isSameSiteOrigin } from "@/lib/server/csrf-origin";
 import { adminHomeDeviceCookieHeader, isAdminHomeDevice } from "@/lib/server/admin-home-device";
@@ -163,15 +158,11 @@ export function verifyAdminSessionClaims(
   }
 }
 
-/** Verify token + exclusive active-session registry. */
+/** Verify signed admin session (any computer — no one-device lock). */
 export async function verifyAdminSessionClaimsActive(
   token: string | undefined | null,
 ): Promise<AdminSessionClaims | null> {
-  const claims = verifyAdminSessionClaims(token);
-  if (!claims) return null;
-  if (!claims.sid) return null;
-  const ok = await isAdminSessionSidActive(claims.email, claims.sid);
-  return ok ? claims : null;
+  return verifyAdminSessionClaims(token);
 }
 
 /** Verify token; returns email if valid main-admin session. */
@@ -322,10 +313,7 @@ export async function readAdminSessionClaimsActive(
 }
 
 export function readAdminSessionEmail(request: Request): string | null {
-  const claims = readAdminSessionClaims(request);
-  if (!claims?.email || !claims.sid) return null;
-  if (!isAdminSessionSidActiveSync(claims.email, claims.sid)) return null;
-  return claims.email;
+  return readAdminSessionClaims(request)?.email ?? null;
 }
 
 export async function readAdminSessionEmailActive(request: Request): Promise<string | null> {
@@ -351,7 +339,7 @@ export function assertAdminCsrf(request: Request, claims: AdminSessionClaims): s
     !safeEqual(csrfHeader, claims.csrf) ||
     !anyNamedCookieEquals(request, ADMIN_CSRF_COOKIE, claims.csrf)
   ) {
-    return "Invalid CSRF token. Hard-refresh /admin. If you signed in on another computer, sign in again here.";
+    return "Invalid CSRF token. Hard-refresh /admin and sign in again.";
   }
 
   // Second token (XSRF) when present on the session — Coursera-style dual submit.
@@ -364,7 +352,7 @@ export function assertAdminCsrf(request: Request, claims: AdminSessionClaims): s
       !safeEqual(xsrfHeader, claims.xsrf) ||
       !anyNamedCookieEquals(request, ADMIN_XSRF_COOKIE, claims.xsrf)
     ) {
-      return "Invalid XSRF token. Hard-refresh /admin. If you signed in on another computer, sign in again here.";
+      return "Invalid XSRF token. Hard-refresh /admin and sign in again.";
     }
   }
 

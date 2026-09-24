@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import { isMainAdminEmail } from "@/lib/server/admin-emails";
 import { isAdminPasswordConfigured, verifyAdminPanelPassword } from "@/lib/server/admin-password";
 import { createAdminVerifyToken } from "@/lib/server/admin-verify-token";
-import { attachAdminSession, readAdminSessionClaims } from "@/lib/server/admin-session";
-import {
-  ADMIN_SESSION_ELSEWHERE_MESSAGE,
-  clearActiveAdminSession,
-  isAdminSessionHeldElsewhere,
-} from "@/lib/server/admin-active-session";
+import { attachAdminSession } from "@/lib/server/admin-session";
 import { isAdminHomeDevice } from "@/lib/server/admin-home-device";
 import { readAdminPanelSettings } from "@/lib/server/admin-panel-settings";
 import { fetchLmsUserProfile } from "@/lib/server/lms-user-profile";
@@ -147,19 +142,7 @@ export async function POST(request: Request) {
   clearRateLimitKey(failKey);
   clearRateLimitKey(`admin-login:gap:${email}`);
 
-  const currentClaims = readAdminSessionClaims(request);
-  const held = await isAdminSessionHeldElsewhere(currentClaims?.sid);
   const homeDevice = isAdminHomeDevice(request, homeKey);
-  if (held.held) {
-    if (homeDevice) {
-      await clearActiveAdminSession();
-    } else {
-      return jsonError(ADMIN_SESSION_ELSEWHERE_MESSAGE, 409, undefined, {
-        sessionActiveElsewhere: true,
-        canForceTakeover: false,
-      });
-    }
-  }
 
   const googleConfigured = Boolean(
     process.env.GOOGLE_CLIENT_ID?.trim() && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim(),

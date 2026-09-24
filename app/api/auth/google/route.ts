@@ -8,12 +8,7 @@ import {
   roleForEmail,
 } from "@/lib/server/admin-emails";
 import { verifyAdminVerifyToken } from "@/lib/server/admin-verify-token";
-import { attachAdminSession, readAdminSessionClaims } from "@/lib/server/admin-session";
-import {
-  ADMIN_SESSION_ELSEWHERE_MESSAGE,
-  clearActiveAdminSession,
-  isAdminSessionHeldElsewhere,
-} from "@/lib/server/admin-active-session";
+import { attachAdminSession } from "@/lib/server/admin-session";
 import { isAdminHomeDevice } from "@/lib/server/admin-home-device";
 import { attachLearnerSession } from "@/lib/server/learner-session";
 import { fetchGoogleUserInfo } from "@/lib/server/google-userinfo";
@@ -262,25 +257,8 @@ export async function POST(request: Request) {
     googleRecommendationSignals,
   });
   if (isAdminGoogleStep && isMainAdminEmail(email)) {
-    const existingAdmin = readAdminSessionClaims(request);
-    const held = await isAdminSessionHeldElsewhere(existingAdmin?.sid ?? null);
     const homeKey = body.homeKey?.trim() || "";
     const homeDevice = isAdminHomeDevice(request, homeKey);
-    if (held.held) {
-      if (homeDevice) {
-        await clearActiveAdminSession();
-      } else {
-        return NextResponse.json(
-          {
-            ok: false,
-            message: ADMIN_SESSION_ELSEWHERE_MESSAGE,
-            sessionActiveElsewhere: true,
-            canForceTakeover: false,
-          },
-          { status: 409 },
-        );
-      }
-    }
     return attachAdminSession(res, email, request, { treatAsHome: homeDevice, homeKey });
   }
   return attachLearnerSession(res, email);

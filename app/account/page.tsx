@@ -245,7 +245,6 @@ export default function AccountPage() {
   const [adminAwaitingGoogle, setAdminAwaitingGoogle] = useState(false);
   const adminGoogleTriggered = useRef(false);
   const [authError, setAuthError] = useState("");
-  const [adminBlockedElsewhere, setAdminBlockedElsewhere] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleScriptReady, setGoogleScriptReady] = useState(false);
   const [browserOrigin, setBrowserOrigin] = useState("");
@@ -502,7 +501,6 @@ export default function AccountPage() {
 
     if (selectedAccountType === "self") {
       setAuthError("");
-      setAdminBlockedElsewhere(false);
       if (adminRequirePassword && !passwordValue) {
         setAuthError("Admin password is required.");
         return;
@@ -527,18 +525,8 @@ export default function AccountPage() {
           profile?: LmsUserProfilePayload;
           role?: string;
           accountType?: string;
-          sessionActiveElsewhere?: boolean;
-          canForceTakeover?: boolean;
         };
         if (!res.ok || !data.ok) {
-          if (data.sessionActiveElsewhere || res.status === 409 || data.canForceTakeover) {
-            setAdminBlockedElsewhere(true);
-            setAuthError(
-              data.message ??
-                "Admin is already signed in on another computer. Sign out from that computer first.",
-            );
-            return;
-          }
           setAuthError(data.message ?? "Admin sign-in failed.");
           return;
         }
@@ -711,15 +699,9 @@ export default function AccountPage() {
       );
       if (!result.ok) {
         adminGoogleTriggered.current = false;
-        const blocked = Boolean(
-          (result as { sessionActiveElsewhere?: boolean }).sessionActiveElsewhere ||
-            (result as { canForceTakeover?: boolean }).canForceTakeover,
-        );
-        if (blocked) setAdminBlockedElsewhere(true);
         setAuthError(result.message ?? "Google sign-in failed.");
         return;
       }
-      setAdminBlockedElsewhere(false);
       if (!result.dbSaved && authView === "register") {
         setAuthError(
           "Google sign-in succeeded but could not save to the database. Ensure MySQL is running, then run: npm run db:push",
@@ -1331,12 +1313,6 @@ export default function AccountPage() {
                     {!adminAwaitingGoogle && authError && (
                       <p className="mb-2 text-sm text-rose-300">{authError}</p>
                     )}
-                    {adminBlockedElsewhere && !adminAwaitingGoogle ? (
-                      <p className="mb-3 rounded-xl border border-amber-400/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                        Admin is already open on another computer. Ask that person to click{" "}
-                        <strong>Logout</strong> in the admin panel. This computer cannot sign in until then.
-                      </p>
-                    ) : null}
                     <button
                       type="submit"
                       className={`w-full rounded-xl px-6 py-3.5 font-bold text-black transition-all hover:-translate-y-0.5 hover:brightness-110 ${goldGradient}`}

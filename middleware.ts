@@ -206,7 +206,7 @@ export async function middleware(request: NextRequest) {
 
     if (path.startsWith("/api/admin") && !csrfOk(request, claims)) {
       const here = browserFacingOrigin(request);
-      const message = `CSRF check failed. Stay on ${here}/admin, hard-refresh, and try again. If Admin is open on another computer, sign out there first.`;
+      const message = `CSRF check failed. Stay on ${here}/admin, hard-refresh, and try again.`;
       return NextResponse.json(
         {
           ok: false,

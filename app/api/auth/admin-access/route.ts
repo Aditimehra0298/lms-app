@@ -12,7 +12,7 @@ import { touchActiveAdminSession } from "@/lib/server/admin-active-session";
 export const dynamic = "force-dynamic";
 
 /**
- * Admin access check — JWT httpOnly session cookie + exclusive sid registry.
+ * Admin access check — JWT httpOnly session cookie.
  *
  * Intentionally ignores:
  * - ?email= query (client-controlled — POC-C-03)
@@ -34,19 +34,16 @@ export async function GET(request: Request) {
         ok: true,
         allowed: false,
         configured: true,
-        message:
-          "Admin is already signed in on another computer. Sign out from that computer first.",
+        message: "Admin access requires signing in at /account?admin=1.",
       },
       { headers: { "Cache-Control": "no-store" } },
     );
     // Drop stale admin cookies so this browser stops hammering /api/admin/*.
-    // Do NOT clear the exclusive lock here — only logout / takeover / stale timeout may.
     const { appendClearedAdminAuthCookies } = await import("@/lib/server/admin-session");
     appendClearedAdminAuthCookies(res, request);
     return res;
   }
 
-  // Keep exclusive lock alive while this admin tab is open.
   if (claims?.sid) {
     void touchActiveAdminSession(claims.sid);
   }

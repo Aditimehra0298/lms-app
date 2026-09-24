@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 import { isMainAdminEmail } from "@/lib/server/admin-emails";
 import {
   assertAdminCsrf,
-  readAdminSessionClaims,
   readAdminSessionClaimsActive,
   readAdminSessionEmailActive,
 } from "@/lib/server/admin-session";
-import { ADMIN_SESSION_ELSEWHERE_MESSAGE } from "@/lib/server/admin-active-session";
 
 /**
  * Admin identity from the httpOnly JWT-style session cookie only.
@@ -17,22 +15,18 @@ export async function adminEmailFromRequest(request: Request): Promise<string | 
 }
 
 /**
- * Returns a 403 response when the request lacks a valid exclusive admin session
+ * Returns a 403 response when the request lacks a valid admin session
  * (and CSRF on mutations).
  */
 export async function assertMainAdmin(request: Request): Promise<NextResponse | null> {
   const claims = await readAdminSessionClaimsActive(request);
   if (!claims?.email || !isMainAdminEmail(claims.email)) {
-    const stale = readAdminSessionClaims(request);
-    const message = stale
-      ? ADMIN_SESSION_ELSEWHERE_MESSAGE
-      : "Admin access required. Sign in at /account?admin=1. If you were signed in elsewhere, that session may still be active.";
+    const message = "Admin access required. Sign in at /account?admin=1.";
     return NextResponse.json(
       {
         ok: false,
         message,
         error: message,
-        sessionActiveElsewhere: Boolean(stale),
       },
       { status: 403 },
     );
