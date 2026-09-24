@@ -3,11 +3,12 @@ import { revalidatePath } from "next/cache";
 import { AdminContent, type ManagedCourse, mergeTutorLedCatalogPageConfig } from "@/lib/content-schema";
 import { mergeTutorLedCatalogPages, tutorLedCatalogPublicHref } from "@/lib/tutor-led-catalog-landings";
 import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
-import { syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
+import { hydrateManagedCoursesFromMysql, syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
 import {
   attachCourseIdentificationNumbers,
   deleteCoursesFromMysql,
   dropCoursesRemovedFromMysql,
+  getCourseBySlug,
   syncManagedCoursesToMysql,
 } from "@/lib/server/course-mysql-sync";
 import {
@@ -101,31 +102,48 @@ export async function GET(request: Request) {
 
   // Bypass React cache so admin always sees the latest disk write.
   const content = await readAdminContentFromDisk();
-  const deletedSlugs = await listDeletedCourseSlugs(content.deletedCourseSlugs);
+  // If a course was re-added (JSON or MySQL), do not keep a stale hide-list entry.
+  const presentSlugs = new Set(
+    (content.managedCourses ?? []).map((c) => c.slug?.trim()).filter(Boolean),
+  );
+  for (const slug of content.deletedCourseSlugs ?? []) {
+    const key = slug.trim();
+    if (!key) continue;
+    const inMysql = presentSlugs.has(key)
+      ? true
+      : Boolean(await getCourseBySlug(key).catch(() => null));
+    if (presentSlugs.has(key) || inMysql) {
+      await clearDeletedCourseSlugs([key]);
+    }
+  }
+  const deletedSlugs = await listDeletedCourseSlugs(
+    (content.deletedCourseSlugs ?? []).filter((s) => !presentSlugs.has(s.trim())),
+  );
   const deletedSet = new Set(deletedSlugs);
   const catalogWithoutDeletes = (content.managedCourses ?? []).filter(
     (c) => !deletedSet.has(c.slug?.trim() ?? ""),
   );
-  // JSON leftovers stay after a MySQL delete and look like duplicates in Admin.
-  const reconciled = await dropCoursesRemovedFromMysql(catalogWithoutDeletes);
+  const { courses: hydrated, addedSlugs } = await hydrateManagedCoursesFromMysql(
+    catalogWithoutDeletes,
+    { excludeSlugs: deletedSlugs },
+  );
+  const reconciled = await dropCoursesRemovedFromMysql(hydrated);
   const attached = await attachCourseIdentificationNumbers(reconciled.courses);
-  const allDeleted = [...new Set([...deletedSlugs, ...reconciled.droppedSlugs])];
   const next = {
     ...content,
     managedCourses: attached.courses,
-    deletedCourseSlugs: allDeleted,
+    deletedCourseSlugs: deletedSlugs,
   };
-  const strippedDeletes =
+  const catalogChanged =
+    addedSlugs.length > 0 ||
+    attached.changed ||
     catalogWithoutDeletes.length !== (content.managedCourses ?? []).length ||
     reconciled.droppedSlugs.length > 0;
-  if (attached.changed || strippedDeletes) {
+  if (catalogChanged) {
     try {
       await writeAdminContent(next);
-      if (strippedDeletes) {
-        console.info(
-          "[admin/content GET] kept admin deletes hidden:",
-          allDeleted.join(", "),
-        );
+      if (addedSlugs.length > 0) {
+        console.info("[admin/content GET] restored from MySQL:", addedSlugs.join(", "));
       }
     } catch (err) {
       console.error("[admin/content GET] persist catalog cleanup", err);

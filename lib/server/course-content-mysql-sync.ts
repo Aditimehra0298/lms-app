@@ -1,4 +1,5 @@
 import type { ManagedCourse } from "@/lib/content-schema";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import { prisma } from "@/lib/prisma";
 import { ensureCourseInMysql } from "@/lib/server/course-mysql-sync";
 
@@ -117,7 +118,9 @@ export async function hydrateManagedCoursesFromMysql(
     });
     for (const row of rows) {
       const slug = row.slug?.trim();
-      if (!slug || have.has(slug) || excluded.has(slug)) continue;
+      if (!slug || have.has(slug) || have.has(canonicalCourseSlug(slug)) || excluded.has(slug)) {
+        continue;
+      }
       const payload =
         row.content?.payload && typeof row.content.payload === "object"
           ? (row.content.payload as ManagedCourse)

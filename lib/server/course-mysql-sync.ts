@@ -1,6 +1,7 @@
 import type { ManagedCourse } from "@/lib/content-schema";
 import { COURSE_ID_START, formatCourseCode } from "@/lib/course-ids";
-import { curriculumRichnessScore } from "@/lib/curriculum-richness";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
+import { curriculumRichnessScore, mergeCoursePreferringRicherCurriculum } from "@/lib/curriculum-richness";
 import { prisma } from "@/lib/prisma";
 import { listDeletedCourseSlugs, recordDeletedCourseSlugs } from "@/lib/server/deleted-course-tombstones";
 
@@ -198,84 +199,45 @@ export async function listCoursesInMysql(): Promise<CourseMysqlRecord[]> {
   return rows.map(toRecord);
 }
 
-function titleKey(title: string | undefined): string {
-  return (title ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-/** One row per slug — keep the copy with more curriculum/media. */
+/** One row per slug (and slug aliases) — keep the copy with more curriculum/media. */
 export function dedupeManagedCoursesBySlug(courses: ManagedCourse[]): ManagedCourse[] {
   const bySlug = new Map<string, ManagedCourse>();
   for (const course of courses ?? []) {
-    const slug = course.slug?.trim();
-    if (!slug) continue;
+    const raw = course.slug?.trim();
+    if (!raw) continue;
+    const slug = canonicalCourseSlug(raw);
+    const normalized = slug !== raw ? { ...course, slug } : course;
     const prev = bySlug.get(slug);
     if (!prev) {
-      bySlug.set(slug, course);
+      bySlug.set(slug, normalized);
       continue;
     }
-    const nextScore = curriculumRichnessScore(course.curriculum);
+    const richer = mergeCoursePreferringRicherCurriculum(prev, normalized);
     const prevScore = curriculumRichnessScore(prev.curriculum);
-    bySlug.set(slug, nextScore >= prevScore ? course : prev);
+    const nextScore = curriculumRichnessScore(normalized.curriculum);
+    bySlug.set(slug, nextScore > prevScore ? { ...normalized, ...richer } : { ...prev, ...richer });
   }
   return [...bySlug.values()];
 }
 
 /**
- * Hide JSON leftovers after a MySQL delete, and collapse duplicate titles.
- * Unsynced drafts (no course ID yet) stay visible.
+ * Collapse duplicate catalog rows only. Do not hide a course just because
+ * the current MySQL catalog is missing it (that hid newly added ethical courses).
  */
 export async function dropCoursesRemovedFromMysql(courses: ManagedCourse[]): Promise<{
   courses: ManagedCourse[];
   droppedSlugs: string[];
 }> {
   const unique = dedupeManagedCoursesBySlug(courses);
-  try {
-    const rows = await listCoursesInMysql();
-    if (rows.length === 0) {
-      return { courses: unique, droppedSlugs: [] };
-    }
-    const mysqlSlugs = new Set(rows.map((r) => r.slug.trim()));
-    const mysqlIds = new Set(rows.map((r) => r.courseIdentificationNumber));
-
-    const droppedSlugs: string[] = [];
-    const afterMissingDb: ManagedCourse[] = [];
-    for (const course of unique) {
-      const slug = course.slug?.trim() ?? "";
-      const id = course.courseIdentificationNumber;
-      const wasSynced = typeof id === "number" && id >= COURSE_ID_START;
-      if (wasSynced && slug && !mysqlSlugs.has(slug) && !mysqlIds.has(id)) {
-        droppedSlugs.push(slug);
-        continue;
-      }
-      afterMissingDb.push(course);
-    }
-
-    const kept: ManagedCourse[] = [];
-    const seenTitleInDb = new Set<string>();
-    for (const course of afterMissingDb) {
-      const slug = course.slug?.trim() ?? "";
-      const key = titleKey(course.title);
-      if (mysqlSlugs.has(slug) && key) seenTitleInDb.add(key);
-    }
-    for (const course of afterMissingDb) {
-      const slug = course.slug?.trim() ?? "";
-      const key = titleKey(course.title);
-      const inMysql = mysqlSlugs.has(slug);
-      if (!inMysql && key && seenTitleInDb.has(key)) {
-        if (slug) droppedSlugs.push(slug);
-        continue;
-      }
-      kept.push(course);
-    }
-
-    if (droppedSlugs.length > 0) {
-      await recordDeletedCourseSlugs(droppedSlugs);
-    }
-    return { courses: kept, droppedSlugs: [...new Set(droppedSlugs)] };
-  } catch (err) {
-    console.error("[course-mysql-sync] dropCoursesRemovedFromMysql", err);
-    return { courses: unique, droppedSlugs: [] };
-  }
+  const kept = new Set(unique.map((c) => c.slug?.trim()).filter(Boolean));
+  const droppedSlugs = [
+    ...new Set(
+      (courses ?? [])
+        .map((c) => c.slug?.trim())
+        .filter((slug): slug is string => Boolean(slug) && !kept.has(slug) && !kept.has(canonicalCourseSlug(slug))),
+    ),
+  ];
+  return { courses: unique, droppedSlugs };
 }
 
 /** Copy MySQL course IDs onto admin JSON rows (slug match). */

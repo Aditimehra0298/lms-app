@@ -4,14 +4,6 @@ import { prisma } from "@/lib/prisma";
 
 const tombstoneFilePath = path.join(process.cwd(), "data", "deleted-course-slugs.json");
 
-/**
- * Always-hidden slugs. A DATABASE_URL switch or old admin-content.json can
- * otherwise put these back into Admin even after the user deleted them.
- */
-export const SEEDED_DELETED_COURSE_SLUGS = [
-  "courses-certfied-ethical-hacking-and-penitration-testing",
-];
-
 function normalizeSlugs(slugs: Iterable<string | undefined | null>): string[] {
   return [
     ...new Set(
@@ -82,12 +74,7 @@ async function readMysqlTombstones(): Promise<string[]> {
 /** Union of durable deletes (MySQL + gitignored file). Survives admin-content.json deploys. */
 export async function listDeletedCourseSlugs(extra?: Iterable<string>): Promise<string[]> {
   const [fileSlugs, mysqlSlugs] = await Promise.all([readFileTombstones(), readMysqlTombstones()]);
-  return normalizeSlugs([
-    ...SEEDED_DELETED_COURSE_SLUGS,
-    ...(extra ?? []),
-    ...fileSlugs,
-    ...mysqlSlugs,
-  ]);
+  return normalizeSlugs([...(extra ?? []), ...fileSlugs, ...mysqlSlugs]);
 }
 
 export async function recordDeletedCourseSlugs(slugs: Iterable<string>): Promise<void> {
