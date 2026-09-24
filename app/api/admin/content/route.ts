@@ -3,10 +3,7 @@ import { revalidatePath } from "next/cache";
 import { AdminContent, type ManagedCourse, mergeTutorLedCatalogPageConfig } from "@/lib/content-schema";
 import { mergeTutorLedCatalogPages, tutorLedCatalogPublicHref } from "@/lib/tutor-led-catalog-landings";
 import { mergeOrganizationTeamAdminConfig } from "@/lib/organization-team-config";
-import {
-  hydrateManagedCoursesFromMysql,
-  syncAllCourseContentToMysql,
-} from "@/lib/server/course-content-mysql-sync";
+import { syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
 import {
   attachCourseIdentificationNumbers,
   deleteCoursesFromMysql,
@@ -108,27 +105,23 @@ export async function GET(request: Request) {
   const catalogWithoutDeletes = (content.managedCourses ?? []).filter(
     (c) => !deletedSet.has(c.slug?.trim() ?? ""),
   );
-  const { courses, addedSlugs } = await hydrateManagedCoursesFromMysql(catalogWithoutDeletes, {
-    excludeSlugs: deletedSlugs,
-  });
-  const attached = await attachCourseIdentificationNumbers(courses);
+  // Do not copy extra MySQL rows into Admin. Switching DATABASE_URL used to
+  // resurrect deleted courses (and dump another catalog into the panel).
+  const attached = await attachCourseIdentificationNumbers(catalogWithoutDeletes);
   const next = {
     ...content,
     managedCourses: attached.courses,
     deletedCourseSlugs: deletedSlugs,
   };
   const strippedDeletes = catalogWithoutDeletes.length !== (content.managedCourses ?? []).length;
-  if (addedSlugs.length > 0 || attached.changed || strippedDeletes) {
+  if (attached.changed || strippedDeletes) {
     try {
       await writeAdminContent(next);
-      if (addedSlugs.length > 0) {
-        console.info("[admin/content GET] restored from MySQL:", addedSlugs.join(", "));
-      }
       if (strippedDeletes) {
         console.info("[admin/content GET] kept admin deletes hidden:", deletedSlugs.join(", "));
       }
     } catch (err) {
-      console.error("[admin/content GET] persist MySQL hydrate", err);
+      console.error("[admin/content GET] persist catalog cleanup", err);
     }
   }
   return NextResponse.json(
