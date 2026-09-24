@@ -75,13 +75,17 @@ async function readMysqlTombstones(): Promise<string[]> {
 export async function listDeletedCourseSlugs(extra?: Iterable<string>): Promise<string[]> {
   const [fileSlugs, mysqlSlugs] = await Promise.all([readFileTombstones(), readMysqlTombstones()]);
   return normalizeSlugs([...(extra ?? []), ...fileSlugs, ...mysqlSlugs]).filter(
-    (slug) => slug !== "courses-certfied-ethical-hacking-and-penitration-testing",
+    (slug) =>
+      slug !== "courses-certfied-ethical-hacking-and-penitration-testing" &&
+      slug !== "certified-ethical-hacking-and-penetration-testing",
   );
 }
 
 export async function recordDeletedCourseSlugs(slugs: Iterable<string>): Promise<void> {
   const unique = normalizeSlugs(slugs).filter(
-    (slug) => slug !== "courses-certfied-ethical-hacking-and-penitration-testing",
+    (slug) =>
+      slug !== "courses-certfied-ethical-hacking-and-penitration-testing" &&
+      slug !== "certified-ethical-hacking-and-penetration-testing",
   );
   if (unique.length === 0) return;
 

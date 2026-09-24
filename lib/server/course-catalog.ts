@@ -1,4 +1,5 @@
 import type { ManagedCourse } from "@/lib/content-schema";
+import { isCehSlug, pickDesignedCeh } from "@/lib/ceh-course";
 import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import { curriculumModulesForLearner } from "@/lib/curriculum-learner-filter";
 import { mergeCoursePreferringRicherCurriculum } from "@/lib/curriculum-richness";
@@ -46,10 +47,9 @@ export async function getManagedCourses() {
   return Promise.all(
     published.map(async (course) => {
       const fromMysql = await getCourseContentFromMysql(course.slug).catch(() => null);
-      const merged =
-        course.slug?.trim() === "courses-certfied-ethical-hacking-and-penitration-testing" && fromMysql
-          ? { ...fromMysql, slug: course.slug, category: "cyber-security", published: true }
-          : mergeCoursePreferringRicherCurriculum(course, fromMysql);
+      const merged = isCehSlug(course.slug)
+        ? pickDesignedCeh(course, fromMysql) ?? course
+        : mergeCoursePreferringRicherCurriculum(course, fromMysql);
       const uniqueImage = pickUniqueCourseCover(
         course.image,
         fromMysql?.image,
@@ -137,15 +137,11 @@ export async function getManagedCourseForLearner(slug: string): Promise<ManagedC
     (await getCourseContentFromMysql(key)) ??
     (decoded !== key ? await getCourseContentFromMysql(decoded) : null);
 
-  const isCeh =
-    key === "courses-certfied-ethical-hacking-and-penitration-testing" ||
-    decoded === "courses-certfied-ethical-hacking-and-penitration-testing";
-  const merged =
-    isCeh && fromMysql
-      ? { ...fromMysql, slug: fromMysql.slug || key, category: "cyber-security", published: true }
-      : fromJson
-        ? mergeCoursePreferringRicherCurriculum(fromJson, fromMysql)
-        : fromMysql;
+  const merged = isCehSlug(key) || isCehSlug(decoded)
+    ? pickDesignedCeh(fromJson, fromMysql)
+    : fromJson
+      ? mergeCoursePreferringRicherCurriculum(fromJson, fromMysql)
+      : fromMysql;
 
   if (!merged) return null;
 

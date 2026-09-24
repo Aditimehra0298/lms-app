@@ -77,9 +77,18 @@ function mergeManagedCoursesPreservingCurriculum(
         next = { ...course, curriculum: prev.curriculum };
       } else {
         // Guard: never replace a richer curriculum (more modules/videos) with a poorer stale payload.
+        // Skip for CEH — the redesigned server course can have fewer modules than the old 85-part leftover.
+        const isCeh =
+          slug === "courses-certfied-ethical-hacking-and-penitration-testing" ||
+          slug === "certified-ethical-hacking-and-penetration-testing";
         const inScore = curriculumMediaScore(course.curriculum);
         const prevScore = curriculumMediaScore(prev.curriculum);
-        if (prevScore > 0 && inScore < prevScore && (course.curriculum?.length ?? 0) < (prev.curriculum?.length ?? 0)) {
+        if (
+          !isCeh &&
+          prevScore > 0 &&
+          inScore < prevScore &&
+          (course.curriculum?.length ?? 0) < (prev.curriculum?.length ?? 0)
+        ) {
           next = { ...course, curriculum: prev.curriculum };
         }
       }
