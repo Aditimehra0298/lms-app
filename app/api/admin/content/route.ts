@@ -7,6 +7,7 @@ import { syncAllCourseContentToMysql } from "@/lib/server/course-content-mysql-s
 import {
   attachCourseIdentificationNumbers,
   deleteCoursesFromMysql,
+  dropCoursesRemovedFromMysql,
   syncManagedCoursesToMysql,
 } from "@/lib/server/course-mysql-sync";
 import {
@@ -105,20 +106,26 @@ export async function GET(request: Request) {
   const catalogWithoutDeletes = (content.managedCourses ?? []).filter(
     (c) => !deletedSet.has(c.slug?.trim() ?? ""),
   );
-  // Do not copy extra MySQL rows into Admin. Switching DATABASE_URL used to
-  // resurrect deleted courses (and dump another catalog into the panel).
-  const attached = await attachCourseIdentificationNumbers(catalogWithoutDeletes);
+  // JSON leftovers stay after a MySQL delete and look like duplicates in Admin.
+  const reconciled = await dropCoursesRemovedFromMysql(catalogWithoutDeletes);
+  const attached = await attachCourseIdentificationNumbers(reconciled.courses);
+  const allDeleted = [...new Set([...deletedSlugs, ...reconciled.droppedSlugs])];
   const next = {
     ...content,
     managedCourses: attached.courses,
-    deletedCourseSlugs: deletedSlugs,
+    deletedCourseSlugs: allDeleted,
   };
-  const strippedDeletes = catalogWithoutDeletes.length !== (content.managedCourses ?? []).length;
+  const strippedDeletes =
+    catalogWithoutDeletes.length !== (content.managedCourses ?? []).length ||
+    reconciled.droppedSlugs.length > 0;
   if (attached.changed || strippedDeletes) {
     try {
       await writeAdminContent(next);
       if (strippedDeletes) {
-        console.info("[admin/content GET] kept admin deletes hidden:", deletedSlugs.join(", "));
+        console.info(
+          "[admin/content GET] kept admin deletes hidden:",
+          allDeleted.join(", "),
+        );
       }
     } catch (err) {
       console.error("[admin/content GET] persist catalog cleanup", err);

@@ -7,6 +7,7 @@ import {
   hydrateManagedCoursesFromMysql,
 } from "@/lib/server/course-content-mysql-sync";
 import { readAdminContent } from "@/lib/server/content-store";
+import { dropCoursesRemovedFromMysql, getCourseBySlug } from "@/lib/server/course-mysql-sync";
 import { listDeletedCourseSlugs } from "@/lib/server/deleted-course-tombstones";
 import { pickUniqueCourseCover, isGenericCoursePlaceholder } from "@/lib/course-thumbnail";
 import { ensureCourseRegionalPricing } from "@/lib/standard-course-pricing";
@@ -29,10 +30,12 @@ export async function getManagedCourses() {
   const content = await readAdminContent();
   const deletedSlugs = await listDeletedCourseSlugs(content.deletedCourseSlugs);
   const deletedSet = new Set(deletedSlugs);
-  const { courses } = await hydrateManagedCoursesFromMysql(
+  const reconciled = await dropCoursesRemovedFromMysql(
     (content.managedCourses ?? []).filter((c) => !deletedSet.has(c.slug?.trim() ?? "")),
-    { excludeSlugs: deletedSlugs },
   );
+  const { courses } = await hydrateManagedCoursesFromMysql(reconciled.courses, {
+    excludeSlugs: [...deletedSlugs, ...reconciled.droppedSlugs],
+  });
   const published = courses.filter(
     (course) => course.published && course.settings?.showInCatalog !== false,
   );
@@ -126,6 +129,15 @@ export async function getManagedCourseForLearner(slug: string): Promise<ManagedC
   const fromMysql =
     (await getCourseContentFromMysql(key)) ??
     (decoded !== key ? await getCourseContentFromMysql(decoded) : null);
+  const mysqlRow =
+    (await getCourseBySlug(key).catch(() => null)) ??
+    (decoded !== key ? await getCourseBySlug(decoded).catch(() => null) : null);
+  const wasSynced =
+    typeof fromJson?.courseIdentificationNumber === "number" &&
+    fromJson.courseIdentificationNumber > 0;
+  if (wasSynced && !mysqlRow && !fromMysql) {
+    return null;
+  }
 
   const merged = fromJson
     ? mergeCoursePreferringRicherCurriculum(fromJson, fromMysql)
