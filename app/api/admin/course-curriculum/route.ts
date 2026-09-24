@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { CourseCurriculumModule, ManagedCourse } from "@/lib/content-schema";
 import { assertCurriculumModuleCapacity } from "@/lib/curriculum-limits";
-import { syncCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
+import { getCourseContentRowFromMysql, syncCourseContentToMysql } from "@/lib/server/course-content-mysql-sync";
 import { readAdminContentFromDisk, writeAdminContent } from "@/lib/server/content-store";
 import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 
@@ -17,6 +17,33 @@ type Body = {
   /** Optional catalog duration label (e.g. "12h 30m") derived from lesson lengths. */
   duration?: string;
 };
+
+/** Latest saved curriculum (MySQL first, then JSON). */
+export async function GET(request: Request) {
+  const denied = await assertMainAdmin(request);
+  if (denied) return denied;
+  const slug = new URL(request.url).searchParams.get("slug")?.trim() ?? "";
+  if (!slug) {
+    return NextResponse.json({ ok: false, error: "slug is required" }, { status: 400, headers: noStoreJson });
+  }
+  const row = await getCourseContentRowFromMysql(slug).catch(() => null);
+  const existing = await readAdminContentFromDisk();
+  const json = (existing.managedCourses ?? []).find((c) => c.slug?.trim() === slug);
+  const course = row?.course ?? json ?? null;
+  const curriculum = course?.curriculum ?? [];
+  return NextResponse.json(
+    {
+      ok: true,
+      slug,
+      source: row?.course ? "mysql" : json ? "json" : "none",
+      updatedAt: row?.updatedAt?.toISOString() ?? null,
+      moduleCount: curriculum.length,
+      curriculum,
+      course,
+    },
+    { headers: noStoreJson },
+  );
+}
 
 /**
  * Persist one course curriculum without re-sending the full catalog.

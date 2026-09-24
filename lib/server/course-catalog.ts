@@ -6,6 +6,7 @@ import { mergeCoursePreferringRicherCurriculum } from "@/lib/curriculum-richness
 import {
   enrichExistingCoursesFromMysql,
   getCourseContentFromMysql,
+  getCourseContentRowFromMysql,
   hydrateManagedCoursesFromMysql,
 } from "@/lib/server/course-content-mysql-sync";
 import { readAdminContent } from "@/lib/server/content-store";
@@ -46,9 +47,12 @@ export async function getManagedCourses() {
   );
   return Promise.all(
     published.map(async (course) => {
-      const fromMysql = await getCourseContentFromMysql(course.slug).catch(() => null);
+      const mysqlRow = isCehSlug(course.slug)
+        ? await getCourseContentRowFromMysql(course.slug).catch(() => null)
+        : null;
+      const fromMysql = mysqlRow?.course ?? (await getCourseContentFromMysql(course.slug).catch(() => null));
       const merged = isCehSlug(course.slug)
-        ? pickDesignedCeh(course, fromMysql) ?? course
+        ? pickDesignedCeh(course, fromMysql, { mysqlUpdatedAt: mysqlRow?.updatedAt ?? null }) ?? course
         : mergeCoursePreferringRicherCurriculum(course, fromMysql);
       const uniqueImage = pickUniqueCourseCover(
         course.image,
@@ -133,12 +137,16 @@ export async function getManagedCourseForLearner(slug: string): Promise<ManagedC
   const { courses: all } = await ensureCehCourse(content.managedCourses ?? []);
 
   const fromJson = all.find((course) => matchSlug(course, key, decoded)) ?? null;
+  const mysqlRow =
+    (await getCourseContentRowFromMysql(key).catch(() => null)) ??
+    (decoded !== key ? await getCourseContentRowFromMysql(decoded).catch(() => null) : null);
   const fromMysql =
+    mysqlRow?.course ??
     (await getCourseContentFromMysql(key)) ??
     (decoded !== key ? await getCourseContentFromMysql(decoded) : null);
 
   const merged = isCehSlug(key) || isCehSlug(decoded)
-    ? pickDesignedCeh(fromJson, fromMysql)
+    ? pickDesignedCeh(fromJson, fromMysql, { mysqlUpdatedAt: mysqlRow?.updatedAt ?? null })
     : fromJson
       ? mergeCoursePreferringRicherCurriculum(fromJson, fromMysql)
       : fromMysql;

@@ -801,12 +801,26 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     const incomingLen = c.curriculum?.length ?? 0;
     const currentLen = modulesRef.current.length;
     const already = curriculumHydratedSlugRef.current === selectedSlug;
-    // After a server refresh, reload CEH modules if the catalog copy changed.
     const incomingTitle = c.curriculum?.[1]?.title ?? c.curriculum?.[0]?.title ?? "";
     const currentTitle = modulesRef.current[1]?.title ?? modulesRef.current[0]?.title ?? "";
     if (already && incomingLen === currentLen && incomingTitle === currentTitle) return;
     curriculumHydratedSlugRef.current = selectedSlug;
     setModules(cloneMods(getAdminCurriculumForCourse(c.curriculum)));
+    if (
+      selectedSlug === "courses-certfied-ethical-hacking-and-penitration-testing" ||
+      selectedSlug === "certified-ethical-hacking-and-penetration-testing"
+    ) {
+      void fetch(`/api/admin/course-curriculum?slug=${encodeURIComponent(selectedSlug)}`, {
+        cache: "no-store",
+      })
+        .then((res) => res.json())
+        .then((body: { ok?: boolean; curriculum?: CourseCurriculumModule[] }) => {
+          if (!body?.ok || !Array.isArray(body.curriculum) || body.curriculum.length === 0) return;
+          if (curriculumHydratedSlugRef.current !== selectedSlug) return;
+          setModules(cloneMods(getAdminCurriculumForCourse(body.curriculum)));
+        })
+        .catch(() => undefined);
+    }
   }, [selectedSlug, content, isCreating]);
 
   useEffect(() => {

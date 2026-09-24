@@ -59,11 +59,18 @@ export async function syncAllCourseContentToMysql(
 export async function getCourseContentFromMysql(
   slug: string,
 ): Promise<ManagedCourse | null> {
+  const row = await getCourseContentRowFromMysql(slug);
+  return row?.course ?? null;
+}
+
+export async function getCourseContentRowFromMysql(
+  slug: string,
+): Promise<{ course: ManagedCourse; updatedAt: Date } | null> {
   const row = await prisma.lmsCourseContent.findUnique({
     where: { courseSlug: slug.trim() },
   });
   if (!row?.payload || typeof row.payload !== "object") return null;
-  return row.payload as ManagedCourse;
+  return { course: row.payload as ManagedCourse, updatedAt: row.updatedAt };
 }
 
 function stubManagedCourseFromMysqlRow(row: {

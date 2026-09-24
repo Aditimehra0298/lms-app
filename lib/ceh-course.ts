@@ -35,14 +35,15 @@ function hasCurriculum(course: ManagedCourse | null | undefined): boolean {
   return Boolean(course && Array.isArray(course.curriculum) && course.curriculum.length > 0);
 }
 
-/**
- * The course designed in server Admin lives in admin-content.json.
- * Do not replace that curriculum with the older MySQL/snapshot copy.
- */
+/** Prefer the most recently saved CEH copy (MySQL updatedAt vs JSON file time). */
 export function pickDesignedCeh(
   json: ManagedCourse | null | undefined,
   mysql: ManagedCourse | null | undefined,
+  opts?: { mysqlUpdatedAt?: Date | null; jsonUpdatedAt?: Date | null },
 ): ManagedCourse | null {
+  const mysqlAt = opts?.mysqlUpdatedAt ? opts.mysqlUpdatedAt.getTime() : 0;
+  const jsonAt = opts?.jsonUpdatedAt ? opts.jsonUpdatedAt.getTime() : 0;
+  if (hasCurriculum(mysql) && mysqlAt >= jsonAt) return applyCehCategory(mysql);
   if (hasCurriculum(json)) return applyCehCategory(json);
   if (hasCurriculum(mysql)) return applyCehCategory(mysql);
   if (json) return applyCehCategory(json);
