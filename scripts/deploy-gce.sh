@@ -19,9 +19,19 @@ if [[ ! -d .git ]]; then
 fi
 
 echo "==> git fetch / pull"
+if [[ -f data/admin-content.json ]]; then
+  cp -a data/admin-content.json "data/admin-content.json.bak-$(date +%F-%H%M%S)"
+  cp -a data/admin-content.json data/admin-content.json.server-backup
+  echo "==> Backed up live data/admin-content.json"
+fi
 git fetch origin "$BRANCH"
 git checkout "$BRANCH"
+git checkout -- data/admin-content.json 2>/dev/null || true
 git pull --ff-only origin "$BRANCH"
+if [[ -f data/admin-content.json.server-backup ]]; then
+  cp -a data/admin-content.json.server-backup data/admin-content.json
+  echo "==> Restored live data/admin-content.json (not replaced by GitHub / localhost)"
+fi
 echo "    HEAD=$(git rev-parse --short HEAD) $(git log -1 --pretty=%s)"
 
 if [[ ! -f .env.local ]] && [[ ! -f .env ]]; then

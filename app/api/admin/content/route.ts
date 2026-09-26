@@ -81,12 +81,11 @@ function mergeManagedCoursesPreservingCurriculum(
         // Skip for CEH — the redesigned server course can have fewer modules than the old 85-part leftover.
         const inScore = curriculumMediaScore(course.curriculum);
         const prevScore = curriculumMediaScore(prev.curriculum);
-        const incomingThinCeh = isCehSlug(slug) && isOldCehLeftover(course);
         if (
           prevScore > 0 &&
           inScore < prevScore &&
           (course.curriculum?.length ?? 0) < (prev.curriculum?.length ?? 0) &&
-          (!isCehSlug(slug) || incomingThinCeh)
+          !isCehSlug(slug)
         ) {
           next = { ...course, curriculum: prev.curriculum };
         }
