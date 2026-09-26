@@ -12,6 +12,7 @@ import {
 import AdminRecentOrders from "@/components/admin/AdminRecentOrders";
 import { AdminCommunityConnectEditor } from "@/components/admin/AdminCommunityConnectEditor";
 import { AdminDashboardCalendarEditor } from "@/components/admin/AdminDashboardCalendarEditor";
+import { commerceMethodLabel } from "@/lib/admin-commerce-ui";
 
 export type DashboardStats = {
   totalUsers: number;
@@ -72,6 +73,18 @@ export type RecentEnrollmentRow = {
   createdAt: string;
 };
 
+export type RevenueRecordRow = {
+  id: string;
+  when: string;
+  amount: number;
+  currency: string;
+  method: string;
+  learnerEmail: string;
+  course: string;
+  note: string | null;
+  receipt: string | null;
+};
+
 type Props = {
   stats: DashboardStats | null;
   recentUsers: DashboardRecentUser[];
@@ -79,6 +92,7 @@ type Props = {
   categoryStats: CategoryStatRow[];
   weekActivity: WeekActivityRow[];
   recentEnrollments: RecentEnrollmentRow[];
+  revenueRecords: RevenueRecordRow[];
   onNavigate: (menu: string) => void;
 };
 
@@ -205,6 +219,7 @@ export default function AdminDashboardHome({
   categoryStats,
   weekActivity,
   recentEnrollments,
+  revenueRecords,
   onNavigate,
 }: Props) {
   const enrollments = stats?.totalPurchases ?? 0;
@@ -492,6 +507,72 @@ export default function AdminDashboardHome({
           )}
         </article>
       </div>
+
+      <article className="mt-4 rounded-xl border border-white/10 bg-[#0d1528] p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div>
+            <h3 className="font-semibold">Revenue records</h3>
+            <p className="mt-0.5 text-[11px] text-gray-500">
+              All money collected — online checkout, cash, grant, bank transfer, and cheque.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate("Payments")}
+            className="rounded-md border border-white/10 bg-[#0a1120] px-2 py-1 text-xs"
+          >
+            Record cash / grant
+          </button>
+        </div>
+        {revenueRecords.length === 0 ? (
+          <p className="py-6 text-center text-xs text-gray-500">
+            No paid records yet. Add cash or grant income under Payments.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-xs">
+              <thead className="text-[10px] uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th className="px-2 py-2">Date</th>
+                  <th className="px-2 py-2">Amount</th>
+                  <th className="px-2 py-2">Method</th>
+                  <th className="px-2 py-2">Payer / learner</th>
+                  <th className="px-2 py-2">Course</th>
+                  <th className="px-2 py-2">Note</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.06]">
+                {revenueRecords.map((row) => (
+                  <tr key={row.id}>
+                    <td className="whitespace-nowrap px-2 py-2 text-gray-300">
+                      {new Date(row.when).toLocaleString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 font-medium text-white">
+                      {fmtCurrency(row.amount)}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 text-gray-300">
+                      {commerceMethodLabel(row.method)}
+                    </td>
+                    <td className="max-w-[10rem] truncate px-2 py-2 text-gray-300" title={row.learnerEmail}>
+                      {row.learnerEmail === "offline-record@sftlms.local" ? "—" : row.learnerEmail}
+                    </td>
+                    <td className="max-w-[10rem] truncate px-2 py-2 text-gray-400" title={row.course}>
+                      {row.course}
+                    </td>
+                    <td className="max-w-[12rem] truncate px-2 py-2 text-gray-500" title={row.note ?? ""}>
+                      {row.note || row.receipt || "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </article>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.4fr_1fr]">
         <AdminRecentOrders onViewAll={() => onNavigate("Orders")} />

@@ -1,5 +1,6 @@
 import { normalizeLearnerEmail } from "@/lib/learner-email";
-import type { AdminPaymentRow, PaymentLineItem } from "@/lib/payment-types";
+import type { AdminPaymentRow, OfflinePaymentMethod, PaymentLineItem } from "@/lib/payment-types";
+import { OFFLINE_PAYMENT_METHODS } from "@/lib/payment-types";
 import { prisma } from "@/lib/prisma";
 import { recordPurchasesForLearner } from "@/lib/server/record-purchase";
 import { resolveGrantableOfferingTitle } from "@/lib/server/admin-grantable-offerings";
@@ -79,7 +80,10 @@ function toAdminRow(row: {
     receipt: row.receipt,
     amount: row.amount,
     currency: row.currency,
-    amountLabel: row.method === "admin_grant" ? "Waived" : formatAmountLabel(row.amount, row.currency),
+    amountLabel:
+      row.method === "admin_grant" && row.amount === 0
+        ? "Waived"
+        : formatAmountLabel(row.amount, row.currency),
     status: row.status,
     method: row.method,
     items,
@@ -289,6 +293,76 @@ export async function grantCourseAccessWithoutPayment(input: {
     paymentId: row.id,
     message,
   };
+}
+
+/** Record cash / grant / bank / other money received outside Razorpay. */
+export async function recordOfflineRevenue(input: {
+  amountMajor: number;
+  method: string;
+  grantedByEmail: string;
+  payerName?: string;
+  learnerEmail?: string;
+  courseSlug?: string;
+  courseTitle?: string;
+  adminNote?: string;
+  reference?: string;
+  enrollLearner?: boolean;
+}): Promise<{ ok: true; paymentId: string; message: string } | { ok: false; message: string }> {
+  const method = String(input.method ?? "").trim() as OfflinePaymentMethod;
+  if (!OFFLINE_PAYMENT_METHODS.includes(method)) {
+    return { ok: false, message: "Choose cash, bank transfer, grant, cheque, or other." };
+  }
+  const amountMajor = Number(input.amountMajor);
+  if (!Number.isFinite(amountMajor) || amountMajor <= 0) {
+    return { ok: false, message: "Enter an amount greater than 0." };
+  }
+  const grantedBy = normalizeLearnerEmail(input.grantedByEmail);
+  if (!grantedBy) return { ok: false, message: "Admin email is required." };
+
+  const email = normalizeLearnerEmail(input.learnerEmail ?? "") || "offline-record@sftlms.local";
+  const payer = input.payerName?.trim() || "";
+  const slug = input.courseSlug?.trim().toLowerCase() ?? "";
+  const title = slug
+    ? await resolveGrantableOfferingTitle(slug, input.courseTitle?.trim() || slug)
+    : payer || "Outside payment";
+  const amountPaise = Math.round(amountMajor * 100);
+  const noteParts = [
+    payer ? `Payer: ${payer}` : "",
+    input.adminNote?.trim() || "",
+  ].filter(Boolean);
+
+  const userId = email.includes("@sftlms.local") ? null : await resolveUserId(email);
+  const row = await prisma.lmsPayment.create({
+    data: {
+      learnerEmail: email,
+      userId,
+      amount: amountPaise,
+      currency: "INR",
+      status: "paid",
+      method,
+      items: [{ slug: slug || "offline-revenue", title, qty: 1, price: String(amountMajor) }],
+      receipt: input.reference?.trim() || null,
+      adminNote: noteParts.join(" · ") || `Recorded ${method} payment`,
+      grantedByEmail: grantedBy,
+      paidAt: new Date(),
+    },
+  });
+
+  let enrolled = 0;
+  if (input.enrollLearner && slug && email !== "offline-record@sftlms.local") {
+    const result = await recordPurchasesForLearner({
+      learnerEmail: email,
+      courses: [{ slug, title }],
+      skipPurchaseEmail: true,
+    });
+    if (!result.ok) return { ok: false, message: result.message };
+    enrolled = result.recorded;
+  }
+
+  const message = enrolled
+    ? `Recorded ₹${amountMajor.toFixed(2)} (${method}) and enrolled the learner.`
+    : `Recorded ₹${amountMajor.toFixed(2)} received by ${method}.`;
+  return { ok: true, paymentId: row.id, message };
 }
 
 /** Unenroll a learner from every course. Does not grant access and does not delete the account. */

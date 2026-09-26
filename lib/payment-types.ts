@@ -1,3 +1,17 @@
+export const OFFLINE_PAYMENT_METHODS = [
+  "cash",
+  "bank_transfer",
+  "grant",
+  "cheque",
+  "other",
+] as const;
+
+export type OfflinePaymentMethod = (typeof OFFLINE_PAYMENT_METHODS)[number];
+
+export function isOfflinePaymentMethod(method: string | undefined | null): boolean {
+  return OFFLINE_PAYMENT_METHODS.includes(String(method ?? "") as OfflinePaymentMethod);
+}
+
 export type PaymentLineItem = {
   slug: string;
   title: string;

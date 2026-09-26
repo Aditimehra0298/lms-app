@@ -66,6 +66,7 @@ import AdminDashboardHome, {
   type DashboardStats,
   type DashboardTopCourse,
   type RecentEnrollmentRow,
+  type RevenueRecordRow,
   type WeekActivityRow,
 } from "@/components/admin/AdminDashboardHome";
 import { AdminOrganizationTeamEditor } from "@/components/admin/AdminOrganizationTeamEditor";
@@ -265,6 +266,7 @@ function AdminPageInner() {
   const [categoryStats, setCategoryStats] = useState<CategoryStatRow[]>([]);
   const [dashWeekActivity, setDashWeekActivity] = useState<WeekActivityRow[]>([]);
   const [dashRecentEnrollments, setDashRecentEnrollments] = useState<RecentEnrollmentRow[]>([]);
+  const [dashRevenueRecords, setDashRevenueRecords] = useState<RevenueRecordRow[]>([]);
 
   const panelQuery = searchParams.get("panel");
 
@@ -418,6 +420,7 @@ function AdminPageInner() {
         categoryStats?: CategoryStatRow[];
         weekActivity?: WeekActivityRow[];
         recentEnrollments?: RecentEnrollmentRow[];
+        revenueRecords?: RevenueRecordRow[];
       }) => {
         if (cancelled) return;
         if (data.stats) setDashStats(data.stats);
@@ -426,6 +429,7 @@ function AdminPageInner() {
         if (Array.isArray(data.categoryStats)) setCategoryStats(data.categoryStats);
         if (Array.isArray(data.weekActivity)) setDashWeekActivity(data.weekActivity);
         if (Array.isArray(data.recentEnrollments)) setDashRecentEnrollments(data.recentEnrollments);
+        if (Array.isArray(data.revenueRecords)) setDashRevenueRecords(data.revenueRecords);
       })
       .catch(() => {});
     return () => { cancelled = true; };
@@ -777,6 +781,7 @@ function AdminPageInner() {
               categoryStats={categoryStats}
               weekActivity={dashWeekActivity}
               recentEnrollments={dashRecentEnrollments}
+              revenueRecords={dashRevenueRecords}
               onNavigate={selectMenu}
             />
           )}

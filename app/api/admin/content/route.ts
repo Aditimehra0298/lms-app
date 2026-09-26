@@ -20,7 +20,7 @@ import {
   listDeletedCourseSlugs,
   recordDeletedCourseSlugs,
 } from "@/lib/server/deleted-course-tombstones";
-import { isCehSlug, isOldCehLeftover } from "@/lib/ceh-course";
+import { isCehSlug } from "@/lib/ceh-course";
 import { ensureCehCourse, withoutCehDeletedSlugs } from "@/lib/server/ensure-ceh-course";
 import { readAdminContentFromDisk, writeAdminContent, normalizeManagedCategories } from "@/lib/server/content-store";
 import { sanitizePromotions } from "@/lib/promotions";

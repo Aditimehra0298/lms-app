@@ -25,6 +25,11 @@ export function commerceMethodLabel(method: string): string {
   if (method === "razorpay") return "Online payment";
   if (method === "demo") return "Practice checkout";
   if (method === "admin_grant") return "Free access";
+  if (method === "cash") return "Cash";
+  if (method === "bank_transfer") return "Bank transfer";
+  if (method === "grant") return "Grant";
+  if (method === "cheque") return "Cheque";
+  if (method === "other") return "Other (outside)";
   return method;
 }
 

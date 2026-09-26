@@ -3,6 +3,7 @@ import { assertMainAdmin, adminEmailFromRequest } from "@/lib/server/admin-api-a
 import {
   getPaymentGatewaySnapshot,
   grantCourseAccessWithoutPayment,
+  recordOfflineRevenue,
   revokeAllCourseAccessForLearner,
   listAdminPayments,
   markPaymentFailed,
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
       prisma.lmsPayment.groupBy({ by: ["status"], _count: { _all: true } }),
       prisma.lmsPayment.groupBy({ by: ["method"], _count: { _all: true } }),
       prisma.lmsPayment.aggregate({
-        where: { status: "paid", method: "razorpay" },
+        where: { status: "paid" },
         _sum: { amount: true },
         _count: { _all: true },
       }),
@@ -103,6 +104,11 @@ export async function POST(request: Request) {
     learnerEmail?: string;
     courseSlug?: string;
     courseTitle?: string;
+    amountMajor?: number;
+    method?: string;
+    payerName?: string;
+    reference?: string;
+    enrollLearner?: boolean;
     adminNote?: string;
     paymentId?: string;
     refundNote?: string;
@@ -131,6 +137,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: result.message }, { status: 400 });
     }
 
+    return NextResponse.json(
+      { ok: true, paymentId: result.paymentId, message: result.message },
+      { headers: noStore },
+    );
+  }
+
+  if (body.action === "record-offline") {
+    const result = await recordOfflineRevenue({
+      amountMajor: Number(body.amountMajor),
+      method: body.method ?? "",
+      grantedByEmail: adminEmail,
+      payerName: body.payerName,
+      learnerEmail: body.learnerEmail,
+      courseSlug: body.courseSlug,
+      courseTitle: body.courseTitle,
+      adminNote: body.adminNote,
+      reference: body.reference,
+      enrollLearner: body.enrollLearner === true,
+    });
+    if (!result.ok) {
+      return NextResponse.json({ ok: false, message: result.message }, { status: 400 });
+    }
     return NextResponse.json(
       { ok: true, paymentId: result.paymentId, message: result.message },
       { headers: noStore },

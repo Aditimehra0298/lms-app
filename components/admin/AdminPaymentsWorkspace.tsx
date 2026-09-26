@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BadgeIndianRupee,
+  Banknote,
   CreditCard,
   Gift,
   Loader2,
@@ -12,13 +13,13 @@ import {
 } from "lucide-react";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import type { AdminPaymentRow } from "@/lib/payment-types";
-import { commerceStatusLabel } from "@/lib/admin-commerce-ui";
+import { commerceMethodLabel, commerceStatusLabel } from "@/lib/admin-commerce-ui";
 import AdminRazorpayControlBar, {
   type RazorpayAdminStatus,
 } from "@/components/admin/AdminRazorpayControlBar";
 
 type StatusFilter = "all" | "pending" | "paid" | "demo" | "waived" | "failed" | "refunded";
-type MethodFilter = "all" | "razorpay" | "demo" | "admin_grant";
+type MethodFilter = "all" | "razorpay" | "demo" | "admin_grant" | "cash" | "bank_transfer" | "grant" | "cheque" | "other";
 
 type GrantableOffering = {
   slug: string;
@@ -69,10 +70,7 @@ function statusTone(status: string): string {
 }
 
 function methodLabel(method: string): string {
-  if (method === "razorpay") return "Online payment";
-  if (method === "demo") return "Practice checkout";
-  if (method === "admin_grant") return "Free access";
-  return method;
+  return commerceMethodLabel(method);
 }
 
 function formatRupees(paise: number): string {
@@ -93,13 +91,22 @@ export default function AdminPaymentsWorkspace() {
   const [grantNote, setGrantNote] = useState("");
   const [grantBusy, setGrantBusy] = useState(false);
   const [grantNotice, setGrantNotice] = useState<string | null>(null);
+  const [offlineAmount, setOfflineAmount] = useState("");
+  const [offlineMethod, setOfflineMethod] = useState<"cash" | "bank_transfer" | "grant" | "cheque" | "other">("cash");
+  const [offlinePayer, setOfflinePayer] = useState("");
+  const [offlineEmail, setOfflineEmail] = useState("");
+  const [offlineCourseSlug, setOfflineCourseSlug] = useState("");
+  const [offlineNote, setOfflineNote] = useState("");
+  const [offlineRef, setOfflineRef] = useState("");
+  const [offlineEnroll, setOfflineEnroll] = useState(false);
+  const [offlineBusy, setOfflineBusy] = useState(false);
   const [razorpay, setRazorpay] = useState<RazorpayAdminStatus | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
 
   const adminHeaders = useCallback((): Record<string, string> => {
     const email = getLearnerEmail();
     return {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json",
     };
   }, []);
 
@@ -173,6 +180,50 @@ export default function AdminPaymentsWorkspace() {
     return match?.title?.trim() || grantCourseSlug;
   }, [grantCourseSlug, offerings]);
 
+  const offlineCourseTitle = useMemo(() => {
+    const match = offerings.find((c) => c.slug === offlineCourseSlug);
+    return match?.title?.trim() || offlineCourseSlug;
+  }, [offlineCourseSlug, offerings]);
+
+  const submitOffline = async () => {
+    setOfflineBusy(true);
+    setGrantNotice(null);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/admin/payments", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          action: "record-offline",
+          amountMajor: Number(offlineAmount),
+          method: offlineMethod,
+          payerName: offlinePayer.trim() || undefined,
+          learnerEmail: offlineEmail.trim() || undefined,
+          courseSlug: offlineCourseSlug || undefined,
+          courseTitle: offlineCourseTitle || undefined,
+          adminNote: offlineNote.trim() || undefined,
+          reference: offlineRef.trim() || undefined,
+          enrollLearner: offlineEnroll,
+        }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) throw new Error(data.message ?? "Could not save record");
+      setGrantNotice(data.message ?? "Outside payment recorded.");
+      setOfflineAmount("");
+      setOfflinePayer("");
+      setOfflineEmail("");
+      setOfflineCourseSlug("");
+      setOfflineNote("");
+      setOfflineRef("");
+      setOfflineEnroll(false);
+      await load();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not save record");
+    } finally {
+      setOfflineBusy(false);
+    }
+  };
+
   const submitGrant = async () => {
     setGrantBusy(true);
     setGrantNotice(null);
@@ -239,7 +290,7 @@ export default function AdminPaymentsWorkspace() {
                 </p>
                 <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">Payments</h1>
                 <p className="mt-2 max-w-2xl text-xs leading-relaxed text-gray-400">
-                  See learner payments, practice checkouts, and free access you granted — all in one place.
+                  Record cash, grant, or bank money received outside checkout. All revenue rows appear here and on the dashboard.
                 </p>
               </div>
             </div>
@@ -286,6 +337,11 @@ export default function AdminPaymentsWorkspace() {
             <option value="razorpay">Online payment</option>
             <option value="demo">Practice checkout</option>
             <option value="admin_grant">Free access</option>
+            <option value="cash">Cash</option>
+            <option value="bank_transfer">Bank transfer</option>
+            <option value="grant">Grant</option>
+            <option value="cheque">Cheque</option>
+            <option value="other">Other (outside)</option>
           </select>
         </div>
       </div>
@@ -351,6 +407,123 @@ export default function AdminPaymentsWorkspace() {
           ))}
         </section>
       ) : null}
+
+      <section className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4 sm:p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Banknote className="h-4 w-4 text-emerald-300" />
+          <h2 className="text-sm font-semibold text-white">Record money received outside</h2>
+        </div>
+        <p className="mb-4 text-xs text-gray-400">
+          Use this when you received cash, a grant, a bank transfer, or a cheque — not Razorpay. The
+          amount is saved as revenue and shown on the dashboard.
+        </p>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <label className="block text-xs text-gray-400">
+            Amount (₹)
+            <input
+              type="number"
+              min="1"
+              step="0.01"
+              value={offlineAmount}
+              onChange={(e) => setOfflineAmount(e.target.value)}
+              placeholder="5000"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none"
+            />
+          </label>
+          <label className="block text-xs text-gray-400">
+            How you received it
+            <select
+              value={offlineMethod}
+              onChange={(e) =>
+                setOfflineMethod(e.target.value as typeof offlineMethod)
+              }
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
+            >
+              <option value="cash">Cash</option>
+              <option value="bank_transfer">Bank transfer</option>
+              <option value="grant">Grant</option>
+              <option value="cheque">Cheque</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label className="block text-xs text-gray-400">
+            Payer / organization
+            <input
+              value={offlinePayer}
+              onChange={(e) => setOfflinePayer(e.target.value)}
+              placeholder="Name or company"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none"
+            />
+          </label>
+          <label className="block text-xs text-gray-400">
+            Learner email (optional)
+            <input
+              type="email"
+              value={offlineEmail}
+              onChange={(e) => setOfflineEmail(e.target.value)}
+              placeholder="learner@example.com"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none"
+            />
+          </label>
+          <label className="block text-xs text-gray-400">
+            Course (optional)
+            <select
+              value={offlineCourseSlug}
+              onChange={(e) => setOfflineCourseSlug(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
+            >
+              <option value="">No course / general income</option>
+              {offeringsByKind.map(([kindLabel, rows]) => (
+                <optgroup key={kindLabel} label={kindLabel}>
+                  {rows.map((row) => (
+                    <option key={`${row.kind}-${row.slug}`} value={row.slug}>
+                      {row.title}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs text-gray-400">
+            Receipt / reference
+            <input
+              value={offlineRef}
+              onChange={(e) => setOfflineRef(e.target.value)}
+              placeholder="Receipt no. or UTR"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none"
+            />
+          </label>
+          <label className="block text-xs text-gray-400 md:col-span-2">
+            Note
+            <input
+              value={offlineNote}
+              onChange={(e) => setOfflineNote(e.target.value)}
+              placeholder="Grant letter, cash received at office…"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none"
+            />
+          </label>
+          <div className="flex flex-col justify-end gap-2">
+            <label className="inline-flex items-center gap-2 text-xs text-gray-300">
+              <input
+                type="checkbox"
+                checked={offlineEnroll}
+                onChange={(e) => setOfflineEnroll(e.target.checked)}
+                disabled={!offlineEmail.trim() || !offlineCourseSlug}
+              />
+              Also enroll this learner in the course
+            </label>
+            <button
+              type="button"
+              onClick={() => void submitOffline()}
+              disabled={offlineBusy || !offlineAmount || Number(offlineAmount) <= 0}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-black hover:bg-emerald-400 disabled:opacity-50"
+            >
+              {offlineBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
+              Save revenue record
+            </button>
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-xl border border-violet-500/20 bg-violet-500/[0.06] p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2">

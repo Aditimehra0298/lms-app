@@ -85,6 +85,7 @@ export async function GET(request: Request) {
       recentPurchases7d,
       paidPayments7d,
       recentEnrollments,
+      revenueRecords,
     ] = await Promise.all([
       safeCount(() => prisma.lmsUser.count()),
       safeCount(() => prisma.lmsUser.count({ where: { role: "learner" } })),
@@ -163,6 +164,26 @@ export async function GET(request: Request) {
           orderBy: { createdAt: "desc" },
           take: 6,
           select: { id: true, learnerEmail: true, title: true, courseSlug: true, createdAt: true },
+        })
+        .catch(() => []),
+      prisma.lmsPayment
+        .findMany({
+          where: { status: { in: ["paid", "captured"] }, amount: { gt: 0 } },
+          orderBy: { paidAt: "desc" },
+          take: 40,
+          select: {
+            id: true,
+            learnerEmail: true,
+            amount: true,
+            currency: true,
+            method: true,
+            status: true,
+            items: true,
+            adminNote: true,
+            receipt: true,
+            paidAt: true,
+            createdAt: true,
+          },
         })
         .catch(() => []),
     ]);
@@ -249,6 +270,22 @@ export async function GET(request: Request) {
       };
     });
 
+    const revenueRecordRows = revenueRecords.map((row) => {
+      const items = Array.isArray(row.items) ? row.items : [];
+      const first = items[0] as { title?: string; slug?: string } | undefined;
+      return {
+        id: row.id,
+        when: (row.paidAt ?? row.createdAt).toISOString(),
+        amount: Math.round(Number(row.amount || 0) / 100),
+        currency: row.currency,
+        method: row.method,
+        learnerEmail: row.learnerEmail,
+        course: first?.title || first?.slug || "—",
+        note: row.adminNote,
+        receipt: row.receipt,
+      };
+    });
+
     return NextResponse.json({
       ok: true,
       stats: {
@@ -279,6 +316,7 @@ export async function GET(request: Request) {
       },
       weekActivity,
       recentEnrollments,
+      revenueRecords: revenueRecordRows,
       categoryStats,
       recentUsers,
       recentPayments,
