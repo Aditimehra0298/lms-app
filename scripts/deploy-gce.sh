@@ -19,18 +19,37 @@ if [[ ! -d .git ]]; then
 fi
 
 echo "==> git fetch / pull"
+LIVE_DATA_BACKUP="$(mktemp -d /tmp/lms-live-data.XXXXXX)"
+if [[ -d data ]]; then
+  find data -maxdepth 1 -type f -name '*.json' -exec cp -a {} "$LIVE_DATA_BACKUP/" \;
+  echo "==> Backed up live data/*.json to $LIVE_DATA_BACKUP"
+fi
 if [[ -f data/admin-content.json ]]; then
   cp -a data/admin-content.json "data/admin-content.json.bak-$(date +%F-%H%M%S)"
   cp -a data/admin-content.json data/admin-content.json.server-backup
-  echo "==> Backed up live data/admin-content.json"
 fi
+
 git fetch origin "$BRANCH"
 git checkout "$BRANCH"
-git checkout -- data/admin-content.json 2>/dev/null || true
+
+# Drop leftover local code edits so pull cannot abort. Live JSON is restored after.
+git restore --worktree --source=HEAD -- . 2>/dev/null || git checkout -- . || true
+
+# Untracked files that GitHub now tracks (e.g. ISO cover PNGs) must be moved aside.
+while IFS= read -r incoming; do
+  [[ -z "$incoming" ]] && continue
+  if [[ -e "$incoming" ]] && ! git ls-files --error-unmatch "$incoming" >/dev/null 2>&1; then
+    echo "==> Moving untracked $incoming aside so GitHub can add it"
+    mkdir -p "/tmp/lms-untracked-backup/$(dirname "$incoming")"
+    mv -f "$incoming" "/tmp/lms-untracked-backup/$incoming"
+  fi
+done < <(git diff --name-only --diff-filter=A "HEAD..origin/${BRANCH}")
+
 git pull --ff-only origin "$BRANCH"
-if [[ -f data/admin-content.json.server-backup ]]; then
-  cp -a data/admin-content.json.server-backup data/admin-content.json
-  echo "==> Restored live data/admin-content.json (not replaced by GitHub / localhost)"
+
+if [[ -d "$LIVE_DATA_BACKUP" ]]; then
+  find "$LIVE_DATA_BACKUP" -maxdepth 1 -type f -name '*.json' -exec cp -a {} data/ \;
+  echo "==> Restored live data/*.json (not replaced by GitHub / localhost)"
 fi
 echo "    HEAD=$(git rev-parse --short HEAD) $(git log -1 --pretty=%s)"
 
