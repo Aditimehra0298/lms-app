@@ -15,6 +15,7 @@ import { CourseListThumbnail } from "@/components/CourseListThumbnail";
 import { resolveCourseImageSrc } from "@/lib/course-thumbnail";
 import type { ManagedCourse } from "@/lib/content-schema";
 import { completeCheckoutPurchase } from "@/lib/checkout-complete-client";
+import { parseBuyNowSlugs } from "@/lib/push-checkout-or-login";
 import { tutorLedPricingCourse } from "@/lib/tutor-led-pricing";
 import { openRazorpayCheckout, verifyRazorpayPaymentOnServer } from "@/lib/razorpay-client";
 import { getLearnerEmail } from "@/lib/learner-session-client";
@@ -51,7 +52,7 @@ export default function CheckoutPage() {
   const [promoCode, setPromoCode] = useState("");
   const [catalog, setCatalog] = useState<ManagedCourse[]>([]);
   const [tutorPricing, setTutorPricing] = useState<ManagedCourse[]>([]);
-  const [buyNowSlug, setBuyNowSlug] = useState<string | null>(null);
+  const [buyNowSlugs, setBuyNowSlugs] = useState<string[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
   const [razorpayConfig, setRazorpayConfig] = useState<RazorpayPublicConfig | null>(null);
   const [payLoading, setPayLoading] = useState(false);
@@ -77,14 +78,15 @@ export default function CheckoutPage() {
     setIsHydrated(true);
     const search = new URLSearchParams(window.location.search);
     const buyNow = search.get("buyNow");
-    setBuyNowSlug(buyNow);
+    const slugs = parseBuyNowSlugs(buyNow);
+    setBuyNowSlugs(slugs);
     if (window.localStorage.getItem("sft_logged_in") !== "true") {
       const redirect = encodeURIComponent(window.location.pathname + window.location.search);
       window.location.href = `/account?mode=login&redirect=${redirect}`;
       return;
     }
-    if (buyNow && !hasViewedCourseLanding(buyNow)) {
-      window.location.replace(prePaymentLandingHref(buyNow, null, true));
+    if (slugs.length === 1 && !hasViewedCourseLanding(slugs[0])) {
+      window.location.replace(prePaymentLandingHref(slugs[0], null, true));
     }
 
     const profile = readLearnerProfileFromStorage();
@@ -135,7 +137,7 @@ export default function CheckoutPage() {
         }
       };
 
-      if (buyNowSlug) {
+      if (buyNowSlugs.length > 0) {
         hydrateFromCart();
       } else {
         hydrateFromCart();
@@ -143,51 +145,65 @@ export default function CheckoutPage() {
 
       const tutorPrograms = await fetchTutorLedProgramsClient();
 
-      if (buyNowSlug) {
-        const tutorHit = tutorLedProgramBySlug(tutorPrograms, buyNowSlug);
-        if (tutorHit) {
-          const pricing = tutorLedPricingCourse(tutorHit);
-          setTutorPricing((prev) => [...prev.filter((c) => c.slug !== pricing.slug), pricing]);
-          setItems([
-            applyTutorLedShopMeta(
-              {
-                slug: tutorHit.slug,
-                title: tutorHit.title,
-                price: pricing.price,
-                image: tutorHit.heroSrc,
-                qty: 1,
-              },
-              tutorPrograms,
-            ),
-          ]);
-          return;
-        }
-        try {
-          const res = await fetch("/api/courses", { cache: "no-store" });
-          if (res.ok) {
-            const data = (await res.json()) as {
-              courses?: ManagedCourse[];
-            };
-            const match = data.courses?.find((course) => course.slug === buyNowSlug);
-            if (match) {
-              if (Array.isArray(data.courses)) setCatalog(data.courses);
-              setItems([
-                applyTutorLedShopMeta(
-                  {
-                    slug: match.slug,
-                    title: match.title,
-                    price: match.price,
-                    image: match.image,
-                    qty: 1,
-                  },
-                  tutorPrograms,
-                ),
-              ]);
-              return;
-            }
+      if (buyNowSlugs.length > 0) {
+        const bundleLines: ShopCartItem[] = [];
+        const bundlePricing: ManagedCourse[] = [];
+        for (const slug of buyNowSlugs) {
+          const tutorHit = tutorLedProgramBySlug(tutorPrograms, slug);
+          if (tutorHit) {
+            const pricing = tutorLedPricingCourse(tutorHit);
+            bundlePricing.push(pricing);
+            bundleLines.push(
+              applyTutorLedShopMeta(
+                {
+                  slug: tutorHit.slug,
+                  title: tutorHit.title,
+                  price: pricing.price,
+                  image: tutorHit.heroSrc,
+                  qty: 1,
+                },
+                tutorPrograms,
+              ),
+            );
+            continue;
           }
-        } catch {
-          // Fallback to cart below.
+          try {
+            const res = await fetch("/api/courses", { cache: "no-store" });
+            if (res.ok) {
+              const data = (await res.json()) as { courses?: ManagedCourse[] };
+              const match = data.courses?.find((course) => course.slug === slug);
+              if (match) {
+                if (Array.isArray(data.courses)) setCatalog(data.courses);
+                bundleLines.push(
+                  applyTutorLedShopMeta(
+                    {
+                      slug: match.slug,
+                      title: match.title,
+                      price: match.price,
+                      image: match.image,
+                      qty: 1,
+                    },
+                    tutorPrograms,
+                  ),
+                );
+              }
+            }
+          } catch {
+            // skip missing slug
+          }
+        }
+        if (bundleLines.length > 0) {
+          setTutorPricing((prev) => {
+            const next = [...prev];
+            for (const row of bundlePricing) {
+              const i = next.findIndex((c) => c.slug === row.slug);
+              if (i >= 0) next[i] = row;
+              else next.push(row);
+            }
+            return next;
+          });
+          setItems(bundleLines);
+          return;
         }
       }
 
@@ -196,7 +212,7 @@ export default function CheckoutPage() {
     };
 
     void loadItems();
-  }, [buyNowSlug]);
+  }, [buyNowSlugs.join("|")]);
 
   const successHasTutorLed = useMemo(
     () => items.some((i) => i.deliveryKind === "tutor-led" || i.deliveryKind === "workshop"),

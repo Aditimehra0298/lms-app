@@ -22,6 +22,7 @@ import { ensureIso22000TutorLedPrograms } from "@/lib/iso-22000-tutor-led-seed";
 import { isWorkshopProgram, workshopLandingHref } from "@/lib/workshop-program";
 import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
 import { adminApiErrorMessage, adminMutationHeaders } from "@/lib/admin-csrf-client";
+import { applyZoomInvitePaste, applyZoomMeetingIdField } from "@/lib/zoom-meeting";
 
 type BatchFilter = "all" | "tutor-led" | "workshop" | "upcoming";
 
@@ -236,7 +237,7 @@ export default function AdminBatchesWorkspace() {
                 </p>
                 <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">Batches · Students · Certificates</h1>
                 <p className="mt-2 max-w-2xl text-xs leading-relaxed text-gray-400">
-                  Each tutor-led category (Basic, Implementation, Internal Auditor, Lead Auditor) is its own
+                  Each tutor-led category (Awareness, Implementator, Internal Auditor, Lead Auditor) is its own
                   program with its own <strong className="text-gray-300">Zoom link</strong>,{" "}
                   <strong className="text-gray-300">batch</strong>,{" "}
                   <strong className="text-gray-300">student roster</strong>, and{" "}
@@ -328,7 +329,7 @@ export default function AdminBatchesWorkspace() {
           <CalendarDays className="mx-auto mb-3 h-10 w-10 text-amber-400/40" aria-hidden />
           <p className="text-sm font-medium text-white">No programs match this filter</p>
           <p className="mt-1 text-xs text-gray-500">
-            Click <strong className="text-gray-300">Add 4 ISO programs</strong> to create Basic / Implementation /
+            Click <strong className="text-gray-300">Add 4 ISO programs</strong> to create Awareness / Implementator /
             Internal Auditor / Lead Auditor with separate Zoom slots.
           </p>
         </div>
@@ -435,12 +436,13 @@ export default function AdminBatchesWorkspace() {
                         Zoom for this batch (shows on learner dashboard)
                       </p>
                       <div className="grid gap-3 md:grid-cols-3">
-                        <label className="block md:col-span-2">
-                          <span className="text-[11px] text-gray-500">Zoom join URL</span>
-                          <input
+                        <label className="block md:col-span-3">
+                          <span className="text-[11px] text-gray-500">Paste Zoom join link or invitation</span>
+                          <textarea
                             value={draft.liveJoinUrl}
-                            onChange={(e) => patchDraft(p.slug, { liveJoinUrl: e.target.value })}
-                            placeholder="https://zoom.us/j/…"
+                            onChange={(e) => patchDraft(p.slug, applyZoomInvitePaste(draft, e.target.value))}
+                            placeholder="https://zoom.us/j/… or Zoom → Copy invitation"
+                            rows={3}
                             className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none focus:border-sky-500/40"
                           />
                         </label>
@@ -448,18 +450,18 @@ export default function AdminBatchesWorkspace() {
                           <span className="text-[11px] text-gray-500">Meeting ID</span>
                           <input
                             value={draft.zoomMeetingId}
-                            onChange={(e) => patchDraft(p.slug, { zoomMeetingId: e.target.value })}
+                            onChange={(e) => patchDraft(p.slug, applyZoomMeetingIdField(draft, e.target.value))}
                             placeholder="Optional"
                             className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none focus:border-sky-500/40"
                           />
                         </label>
-                        <label className="block md:col-span-3">
+                        <label className="block md:col-span-2">
                           <span className="text-[11px] text-gray-500">Passcode (optional)</span>
                           <input
                             value={draft.zoomPasscode}
                             onChange={(e) => patchDraft(p.slug, { zoomPasscode: e.target.value })}
                             placeholder="Shown to enrolled learners"
-                            className="mt-1 w-full max-w-xs rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none focus:border-sky-500/40"
+                            className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none focus:border-sky-500/40"
                           />
                         </label>
                       </div>

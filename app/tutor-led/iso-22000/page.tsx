@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import FoodTutorLedCatalogLanding from "@/components/FoodTutorLedCatalogLanding";
 import { findTutorLedCatalog, mergeTutorLedCatalogPages } from "@/lib/tutor-led-catalog-landings";
+import { mergeCatalogProgramCards } from "@/lib/tutor-led-catalog-batches";
 import { readAdminContentFromDisk } from "@/lib/server/content-store";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "ISO 22000:2018 Training Programs | Live tutor-led",
   description:
-    "Four live online ISO 22000:2018 programs — Foundation, Implementation, Internal Auditor, and Lead Auditor.",
+    "Four live online ISO 22000:2018 programs — Awareness, Implementator, Internal Auditor, and Lead Auditor.",
 };
 
 export default async function Iso22000TutorLedCatalogPage() {
@@ -21,9 +22,10 @@ export default async function Iso22000TutorLedCatalogPage() {
   const page = catalog?.page;
   if (!page) return null;
 
+  const programs = mergeCatalogProgramCards(page.programs, adminContent.tutorLedPrograms ?? []);
   return (
     <div className="min-h-screen bg-[#07090f]">
-      <FoodTutorLedCatalogLanding page={page} />
+      <FoodTutorLedCatalogLanding page={{ ...page, programs }} />
     </div>
   );
 }

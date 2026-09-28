@@ -8,9 +8,9 @@ import type { AdminContent, TutorLedCatalogLandingStored } from "@/lib/content-s
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { adminApiErrorMessage, adminMutationHeaders } from "@/lib/admin-csrf-client";
 import {
-  blankTutorLedCatalogLanding,
+  cloneTutorLedCatalogPattern,
   mergeTutorLedCatalogPages,
-  slugifyTutorLedCatalog,
+  publishLinkedTutorLedPrograms,
   tutorLedCatalogPublicHref,
 } from "@/lib/tutor-led-catalog-landings";
 
@@ -98,24 +98,27 @@ export default function AdminTutorLedCatalogLandingsWorkspace() {
     "mt-0 w-full rounded-xl border border-white/[0.07] bg-[#060b14]/90 px-3 py-2.5 text-sm text-white outline-none placeholder:text-gray-600 focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20";
 
   const createNew = async () => {
-    const draft = blankTutorLedCatalogLanding();
-    const next = [...catalogs, draft];
-    await persist(next);
-    setSelectedSlug(draft.slug);
+    const iso = catalogs.find((c) => c.slug === "iso-22000") ?? catalogs[0] ?? null;
+    const { catalog, programs: cloned } = cloneTutorLedCatalogPattern({
+      source: iso,
+      livePrograms: programs,
+      takenSlugs: catalogs.map((c) => c.slug),
+    });
+    await persist([...catalogs, catalog], [...programs, ...cloned]);
+    setSelectedSlug(catalog.slug);
   };
 
   const duplicate = async (slug: string) => {
     const src = catalogs.find((c) => c.slug === slug);
     if (!src) return;
-    const copy: TutorLedCatalogLandingStored = {
-      ...structuredClone(src),
-      slug: slugifyTutorLedCatalog(`${src.slug}-copy-${Date.now()}`),
-      published: false,
-      cardTitle: `${src.cardTitle} (copy)`,
-    };
-    const next = [...catalogs, copy];
-    await persist(next);
-    setSelectedSlug(copy.slug);
+    const { catalog, programs: cloned } = cloneTutorLedCatalogPattern({
+      source: src,
+      livePrograms: programs,
+      takenSlugs: catalogs.map((c) => c.slug),
+      asCopy: true,
+    });
+    await persist([...catalogs, catalog], [...programs, ...cloned]);
+    setSelectedSlug(catalog.slug);
   };
 
   const remove = async (slug: string) => {
@@ -150,7 +153,7 @@ export default function AdminTutorLedCatalogLandingsWorkspace() {
         onSave={async (next) => {
           const list = catalogs.map((row) => (row.slug === selected.slug || row.slug === next.slug ? next : row));
           setCatalogs(list);
-          await persist(list, programs);
+          await persist(list, publishLinkedTutorLedPrograms(next, programs));
           setSelectedSlug(next.slug);
         }}
       />
@@ -168,7 +171,8 @@ export default function AdminTutorLedCatalogLandingsWorkspace() {
             <div>
               <h2 className="text-sm font-bold text-white sm:text-base">Catalog</h2>
               <p className="text-[11px] text-gray-500">
-                Select a row to edit, or create a new tutor-led course. Students pick a level on one landing.
+                Same pattern as ISO 22000: one category thumbnail, four live levels, Description
+                pages, and buy any 2 / 3 / all. New course clones that template.
               </p>
             </div>
           </div>
@@ -183,7 +187,7 @@ export default function AdminTutorLedCatalogLandingsWorkspace() {
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-violet-900/40 transition hover:from-violet-500 hover:to-indigo-500 disabled:opacity-60"
             >
-              <Plus className="h-4 w-4" /> New course
+              <Plus className="h-4 w-4" /> New course (same template)
             </button>
           </div>
         </div>

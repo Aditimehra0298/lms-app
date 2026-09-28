@@ -35,6 +35,14 @@ import { slugifyTutorLedCatalog, tutorLedCatalogPublicHref } from "@/lib/tutor-l
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { ensureIso22000TutorLedPrograms, ISO_22000_TUTOR_LED_TEMPLATES } from "@/lib/iso-22000-tutor-led-seed";
 import { AdminTutorLedLevelSteps, type TutorLedLevelStep } from "@/components/admin/AdminTutorLedLevelSteps";
+import { programHasAnySessionZoom } from "@/lib/zoom-meeting";
+import { AdminTutorLedSessionZoomList } from "@/components/admin/AdminTutorLedSessionZoomList";
+import {
+  applyTrainingDays,
+  catalogDurationLabel,
+  getCurriculumSessionCount,
+  parseTrainingDaysLabel,
+} from "@/lib/tutor-led-training-schedule";
 
 type SectionKey = "hero" | "programs" | "why" | "audience" | "batches" | "trainer" | "faqs" | "cta" | "basics";
 
@@ -174,6 +182,12 @@ export default function AdminTutorLedCatalogLandingEditor({
       liveJoinUrl: "",
       zoomMeetingId: "",
       zoomPasscode: "",
+      curriculum: (base.curriculum ?? []).map((row) => ({
+        ...row,
+        liveJoinUrl: "",
+        zoomMeetingId: "",
+        zoomPasscode: "",
+      })),
     };
   };
 
@@ -182,10 +196,13 @@ export default function AdminTutorLedCatalogLandingEditor({
       ? programs.map((p) => (p.slug === next.slug ? next : p))
       : [...programs, next];
     onProgramsChange?.(list);
+    const durationLabel = catalogDurationLabel(getCurriculumSessionCount(next));
     setPage((p) => ({
       ...p,
       programs: p.programs.map((row, idx) =>
-        idx === cardIndex ? { ...row, enrollSlug: next.slug, title: next.title, price: next.price } : row,
+        idx === cardIndex
+          ? { ...row, enrollSlug: next.slug, title: next.title, price: next.price, durationLabel }
+          : row,
       ),
     }));
   };
@@ -196,11 +213,12 @@ export default function AdminTutorLedCatalogLandingEditor({
       : [...programs, next];
     onProgramsChange?.(list);
     if (selectedCard) {
+      const durationLabel = catalogDurationLabel(getCurriculumSessionCount(next));
       setPage((p) => ({
         ...p,
         programs: p.programs.map((row, idx) =>
           idx === levelIndex
-            ? { ...row, title: next.title, price: next.price, enrollSlug: next.slug }
+            ? { ...row, title: next.title, price: next.price, enrollSlug: next.slug, durationLabel }
             : row,
         ),
       }));
@@ -208,21 +226,63 @@ export default function AdminTutorLedCatalogLandingEditor({
   };
 
   const addFourLevels = () => {
-    const seeded = ensureIso22000TutorLedPrograms(programs).programs;
-    onProgramsChange?.(seeded);
-    const existing = new Set(page.programs.map((row) => row.enrollSlug));
-    const missing = ISO_22000_TUTOR_LED_TEMPLATES.filter((tpl) => !existing.has(tpl.slug)).map(
-      (tpl, i) => ({
+    if (catalog.slug === "iso-22000") {
+      const seeded = ensureIso22000TutorLedPrograms(programs).programs;
+      onProgramsChange?.(seeded);
+      const existing = new Set(page.programs.map((row) => row.enrollSlug));
+      const missing = ISO_22000_TUTOR_LED_TEMPLATES.filter((tpl) => !existing.has(tpl.slug)).map(
+        (tpl, i) => ({
+          ...blankProgram(),
+          id: tpl.slug,
+          title: tpl.title,
+          tagline: tpl.subtitle,
+          price: tpl.price,
+          theme: (["emerald", "sky", "violet", "gold"] as const)[i % 4],
+          enrollSlug: tpl.slug,
+          popular: tpl.slug.includes("implementation"),
+        }),
+      );
+      if (missing.length === 0 && page.programs.length > 0) return;
+      setPage((p) => ({ ...p, programs: [...p.programs, ...missing] }));
+      setLevelIndex(0);
+      return;
+    }
+
+    const prefix = slugifyTutorLedCatalog(catalog.slug) || `catalog-${Date.now()}`;
+    const have = new Set(programs.map((p) => p.slug));
+    const nextPrograms = [...programs];
+    const missing = ISO_22000_TUTOR_LED_TEMPLATES.map((tpl, i) => {
+      const id = ["basic", "implementation", "internal-auditor", "lead-auditor"][i] ?? `level-${i}`;
+      const enrollSlug = `${prefix}-${id}`;
+      if (!have.has(enrollSlug)) {
+        const clone = JSON.parse(JSON.stringify(tpl)) as TutorLedProgramStored;
+        clone.slug = enrollSlug;
+        clone.published = false;
+        clone.liveJoinUrl = "";
+        clone.zoomMeetingId = "";
+        clone.zoomPasscode = "";
+        clone.curriculum = (clone.curriculum ?? []).map((row) => ({
+          ...row,
+          liveJoinUrl: "",
+          zoomMeetingId: "",
+          zoomPasscode: "",
+        }));
+        clone.title = tpl.title.replace(/ISO 22000:2018/gi, "New program");
+        nextPrograms.push(clone);
+        have.add(enrollSlug);
+      }
+      return {
         ...blankProgram(),
-        id: tpl.slug,
-        title: tpl.title,
+        id,
+        title: tpl.title.replace(/ISO 22000:2018/gi, "New program"),
         tagline: tpl.subtitle,
         price: tpl.price,
         theme: (["emerald", "sky", "violet", "gold"] as const)[i % 4],
-        enrollSlug: tpl.slug,
-        popular: tpl.slug.includes("implementation"),
-      }),
-    );
+        enrollSlug,
+        popular: i === 1,
+      };
+    }).filter((row) => !page.programs.some((p) => p.enrollSlug === row.enrollSlug));
+    onProgramsChange?.(nextPrograms);
     if (missing.length === 0 && page.programs.length > 0) return;
     setPage((p) => ({ ...p, programs: [...p.programs, ...missing] }));
     setLevelIndex(0);
@@ -354,7 +414,8 @@ export default function AdminTutorLedCatalogLandingEditor({
                       <p className="mt-1 text-[11px] text-gray-400">
                         {program.enrollSlug || "No Zoom course linked"}
                         {live?.nextBatchDate ? ` · Batch ${live.nextBatchDate}` : ""}
-                        {live?.liveJoinUrl?.trim() ? " · Zoom set" : " · Zoom missing"}
+                        {live ? ` · ${getCurriculumSessionCount(live)} day${getCurriculumSessionCount(live) === 1 ? "" : "s"}` : ""}
+                        {live && programHasAnySessionZoom(live) ? " · Zoom set" : " · Zoom missing"}
                       </p>
                     </button>
                   );
@@ -366,7 +427,8 @@ export default function AdminTutorLedCatalogLandingEditor({
           {step === "zoom" ? (
             <div className="space-y-3">
               <p className="text-xs text-gray-400">
-                Each level has its own Zoom link. Basic, Foundation, Implementer, Internal, and Lead must not share a meeting.
+                These are Zoom classes. Set training days, then paste a <strong className="text-gray-200">different</strong>{" "}
+                Zoom link on every session. After the last live day, learners take the final exam on their dashboard.
               </p>
               {page.programs.length === 0 ? (
                 <p className="text-sm text-amber-100">Add levels first, then paste a different Zoom link on each.</p>
@@ -378,31 +440,30 @@ export default function AdminTutorLedCatalogLandingEditor({
                       <p className="text-sm font-semibold text-white">{card.title || `Level ${i + 1}`}</p>
                       <p className="text-[11px] text-gray-500">{live.slug}</p>
                       <label className="block">
-                        <span className="text-[11px] text-gray-500">Zoom join link</span>
+                        <span className="text-[11px] text-gray-500">Training days (Zoom classes)</span>
                         <input
+                          type="number"
+                          min={1}
+                          max={30}
                           className={inputCls}
-                          value={live.liveJoinUrl ?? ""}
-                          onChange={(e) => saveLevelProgram(i, { ...live, liveJoinUrl: e.target.value })}
-                          placeholder="https://zoom.us/j/… different for this level"
+                          value={
+                            live.trainingDays ??
+                            parseTrainingDaysLabel(card.durationLabel) ??
+                            getCurriculumSessionCount(live)
+                          }
+                          onChange={(e) =>
+                            saveLevelProgram(i, applyTrainingDays(live, Number(e.target.value) || 1))
+                          }
                         />
+                        <p className="mt-1 text-[10px] text-gray-500">
+                          Learner dashboard lists Day 1–{getCurriculumSessionCount(live)} plus the final exam.
+                        </p>
                       </label>
+                      <AdminTutorLedSessionZoomList
+                        program={live}
+                        onChange={(next) => saveLevelProgram(i, next)}
+                      />
                       <div className="grid gap-2 sm:grid-cols-2">
-                        <label className="block">
-                          <span className="text-[11px] text-gray-500">Meeting ID</span>
-                          <input
-                            className={inputCls}
-                            value={live.zoomMeetingId ?? ""}
-                            onChange={(e) => saveLevelProgram(i, { ...live, zoomMeetingId: e.target.value })}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="text-[11px] text-gray-500">Passcode</span>
-                          <input
-                            className={inputCls}
-                            value={live.zoomPasscode ?? ""}
-                            onChange={(e) => saveLevelProgram(i, { ...live, zoomPasscode: e.target.value })}
-                          />
-                        </label>
                         <label className="block">
                           <span className="text-[11px] text-gray-500">Batch date</span>
                           <input
@@ -463,7 +524,8 @@ export default function AdminTutorLedCatalogLandingEditor({
                 Publish this landing (one thumbnail on the category page)
               </label>
               <p className="text-xs text-gray-500">
-                Save after Zoom, price, and assessment are set on each level. Learners who choose Basic do not join the Lead Zoom.
+                Save after Zoom, price, and assessment are set on each level. Publishing this landing also
+                publishes the linked Zoom levels so enrolled learners see Join on their dashboard.
               </p>
             </div>
           ) : null}
@@ -677,7 +739,23 @@ export default function AdminTutorLedCatalogLandingEditor({
                 </select>
                 <input className={inputCls} value={program.icon} onChange={(e) => setProgram(i, { icon: e.target.value })} placeholder="Icon (ShieldCheck)" />
                 <input className={inputCls} value={program.enrollSlug} onChange={(e) => setProgram(i, { enrollSlug: e.target.value })} placeholder="Enroll slug (iso-22000-basic)" />
-                <input className={inputCls} value={program.durationLabel} onChange={(e) => setProgram(i, { durationLabel: e.target.value })} />
+                <label className="block md:col-span-1">
+                  <span className="mb-1 block text-[10px] text-gray-500">Training days</span>
+                  <input
+                    className={inputCls}
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={
+                      programForCard(program).trainingDays ??
+                      parseTrainingDaysLabel(program.durationLabel) ??
+                      getCurriculumSessionCount(programForCard(program))
+                    }
+                    onChange={(e) =>
+                      saveLevelProgram(i, applyTrainingDays(programForCard(program), Number(e.target.value) || 1))
+                    }
+                  />
+                </label>
                 <input className={inputCls} value={program.modeLabel} onChange={(e) => setProgram(i, { modeLabel: e.target.value })} />
                 <input className={inputCls} value={program.certificateLabel} onChange={(e) => setProgram(i, { certificateLabel: e.target.value })} />
               </div>

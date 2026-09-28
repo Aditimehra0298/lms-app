@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
-import { resolveZoomJoinUrl } from "@/lib/zoom-meeting";
+import { getCurriculumSessionZoom, resolveZoomJoinUrl } from "@/lib/zoom-meeting";
 import { TutorLedLearnerHero } from "@/components/TutorLedLearnerHero";
 import {
   buildJourneySteps,
@@ -29,8 +29,7 @@ function formatRecordingDuration(minutes?: number): string {
 
 export default function TutorLedLearnerDashboard({ program }: Props) {
   const weeks = program.curriculum;
-  const zoomJoinUrl = resolveZoomJoinUrl(program);
-
+  const totalSessions = getCurriculumSessionCount(program);
   const sessionRecordings = useMemo(() => {
     const fromZoom = program.zoomRecordings ?? [];
     if (fromZoom.length === 0) return [];
@@ -43,7 +42,6 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
     }));
   }, [program.zoomRecordings, program.heroSrc, program.learnerHeroSrc, program.nextBatchDate]);
 
-  const totalSessions = getCurriculumSessionCount(program);
   const completedSessions = computeCompletedLiveSessions(
     sessionRecordings.length,
     totalSessions,
@@ -51,6 +49,7 @@ export default function TutorLedLearnerDashboard({ program }: Props) {
   );
   const nextSessionIndex = Math.min(completedSessions, Math.max(0, weeks.length - 1));
   const nextSessionTitle = weeks[nextSessionIndex]?.topic ?? weeks[0]?.topic ?? "Live session";
+  const zoomJoinUrl = resolveZoomJoinUrl(getCurriculumSessionZoom(program, nextSessionIndex));
 
   const {
     completedCount,

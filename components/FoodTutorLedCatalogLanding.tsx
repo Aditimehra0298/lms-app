@@ -10,10 +10,14 @@ import {
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
-import type { TutorLedCatalogPageConfig, TutorLedCatalogTheme } from "@/lib/content-schema";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
+import { DescriptionButton } from "@/components/CourseActionButtons";
+import type { TutorLedCatalogPageConfig, TutorLedCatalogProgramCard, TutorLedCatalogTheme } from "@/lib/content-schema";
 import { markCourseLandingViewed } from "@/lib/course-landing";
 import { resolveLucideIcon } from "@/lib/lucide-icon-resolve";
-import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
+import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import { registerTutorLedFromTemplate, registerTutorLedBundle } from "@/lib/push-checkout-or-login";
+import { multiItemBundlePercent, multiItemBundleRate } from "@/lib/checkout-totals";
 
 type Props = {
   page: TutorLedCatalogPageConfig;
@@ -61,6 +65,33 @@ function inr(amount: number): string {
   }).format(amount);
 }
 
+function cardCourseTitle(program: TutorLedCatalogProgramCard): string {
+  return program.title?.trim() || "Live training";
+}
+
+const CARD_HOVER: Record<string, { about: string; forWho: string }> = {
+  basic: {
+    about:
+      "Start with ISO 22000:2018 language, food-safety principles, and how an FSMS protects people and brands.",
+    forWho: "New joiners, operators, and anyone who needs a clear awareness of the standard.",
+  },
+  implementation: {
+    about:
+      "Turn the standard into a working system: PRPs, documentation, hazard control, and day-to-day FSMS routines.",
+    forWho: "QA officers, supervisors, and teams who will implement ISO 22000 in the plant.",
+  },
+  "internal-auditor": {
+    about:
+      "Plan audits, gather evidence, write non-conformities, and check whether controls really work on the floor.",
+    forWho: "Internal auditors, QA, and staff who will audit the organisation’s own FSMS.",
+  },
+  "lead-auditor": {
+    about:
+      "Lead audit teams, manage certification-style audits, and apply ISO 19011 reporting with confidence.",
+    forWho: "Experienced auditors and professionals on the Lead Auditor certification pathway.",
+  },
+};
+
 function ChipIcon({ name }: { name: string }) {
   const Icon = resolveLucideIcon(name) as LucideIcon;
   return <Icon className="h-4 w-4" strokeWidth={2} />;
@@ -90,17 +121,158 @@ function EnrollButton({
   );
 }
 
+function CardActions({ slug, enrollClassName }: { slug: string; enrollClassName: string }) {
+  return (
+    <div className="mt-4 flex min-w-0 gap-2">
+      <EnrollButton slug={slug} className={`min-w-0 flex-1 ${enrollClassName}`}>
+        Enroll Now
+        <ChevronRight className="h-3.5 w-3.5" />
+      </EnrollButton>
+      <DescriptionButton href={liveTutorCourseHref(slug)} className="flex-1" />
+    </div>
+  );
+}
+
+function programEnrollSlug(
+  program: TutorLedCatalogProgramCard,
+  enrollById: Record<string, string>,
+): string {
+  return program.enrollSlug?.trim() || enrollById[program.id] || program.id;
+}
+
+function BuyAllProgramsBanner({
+  programs,
+  enrollById,
+  selected,
+  onToggle,
+  onSelectAll,
+  onClear,
+}: {
+  programs: TutorLedCatalogProgramCard[];
+  enrollById: Record<string, string>;
+  selected: Set<string>;
+  onToggle: (slug: string) => void;
+  onSelectAll: () => void;
+  onClear: () => void;
+}) {
+  const router = useRouter();
+  const allSlugs = programs.map((p) => programEnrollSlug(p, enrollById)).filter(Boolean);
+  if (allSlugs.length < 2) return null;
+
+  const picked = programs.filter((p) => selected.has(programEnrollSlug(p, enrollById)));
+  const count = picked.length;
+  const subtotal = picked.reduce((sum, p) => sum + (Number(p.price) || 0), 0);
+  const percent = multiItemBundlePercent(count);
+  const bundle = Math.round(subtotal * (1 - multiItemBundleRate(count)));
+  const ctaSlugs = picked.map((p) => programEnrollSlug(p, enrollById));
+
+  const ctaLabel =
+    count === 0
+      ? "Tick 2, 3 or all batches"
+      : count === 1
+        ? "Enroll in 1 batch"
+        : count === allSlugs.length
+          ? `Buy all ${count} batches · ${percent}% off`
+          : `Buy ${count} batches · ${percent}% off`;
+
+  return (
+    <div
+      id="buy-all-batches"
+      className="mt-8 flex flex-col gap-4 rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-950/50 to-emerald-950/30 p-5 md:flex-row md:items-center md:justify-between"
+    >
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-300">Mix your pathway</p>
+        <h3 className="mt-1 text-lg font-bold text-white md:text-xl">Buy any 2, any 3, or all {allSlugs.length}</h3>
+        <p className="mt-1 max-w-xl text-sm text-zinc-400">
+          Tick the live batches you want. 2 programs save 10%, 3 save 15%, all {allSlugs.length} save 20%.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {programs.map((p) => {
+            const slug = programEnrollSlug(p, enrollById);
+            const on = selected.has(slug);
+            return (
+              <button
+                key={slug}
+                type="button"
+                onClick={() => onToggle(slug)}
+                className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
+                  on
+                    ? "border-amber-400 bg-amber-400 text-black"
+                    : "border-white/15 bg-black/30 text-zinc-300 hover:border-amber-400/50"
+                }`}
+              >
+                {cardCourseTitle(p).replace(/^ISO 22000:2018\s+/i, "")}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={onSelectAll}
+            className="rounded-full border border-white/20 px-3 py-1 text-[11px] font-semibold text-amber-200 hover:border-amber-400/60"
+          >
+            Select all
+          </button>
+          {count > 0 ? (
+            <button
+              type="button"
+              onClick={onClear}
+              className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-semibold text-zinc-500 hover:text-zinc-300"
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
+        {count >= 2 && subtotal > 0 ? (
+          <p className="mt-2 text-sm">
+            <span className="text-lg font-extrabold text-amber-300">{inr(bundle)}</span>
+            <span className="ml-2 text-xs text-zinc-500 line-through">{inr(subtotal)}</span>
+            <span className="ml-2 rounded bg-violet-600/90 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              {percent}% OFF
+            </span>
+          </p>
+        ) : count === 1 && subtotal > 0 ? (
+          <p className="mt-2 text-sm text-zinc-400">
+            Add one more batch for 10% off · this one is {inr(subtotal)}
+          </p>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        disabled={count === 0}
+        onClick={() => {
+          if (count === 1) registerTutorLedFromTemplate(router, ctaSlugs[0]);
+          else if (count > 1) registerTutorLedBundle(router, ctaSlugs);
+        }}
+        className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#f4c150] px-5 py-3 text-sm font-bold text-black shadow-[0_8px_28px_rgba(244,193,80,0.35)] transition hover:bg-[#f9d06a] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {ctaLabel}
+        {count > 0 ? <ChevronRight className="h-4 w-4" /> : null}
+      </button>
+    </div>
+  );
+}
+
 /**
  * Designed ISO 22000 tutor-led catalog — opens from Description on Food category cards.
  */
 export default function FoodTutorLedCatalogLanding({ page }: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const heroBg = page.hero.backgroundImage?.trim() || "/tutor-led-iso-hero.png";
   const enrollById: Record<string, string> = {
     basic: "iso-22000-basic",
     implementation: "iso-22000-implementation",
     "internal-auditor": "iso-22000-internal-auditor",
     "lead-auditor": "iso-22000-lead-auditor",
+  };
+
+  const toggleSlug = (slug: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
   };
 
   return (
@@ -183,47 +355,125 @@ export default function FoodTutorLedCatalogLanding({ page }: Props) {
           {page.programs.map((program) => {
             const theme = THEME[program.theme] ?? THEME.gold;
             const slug = program.enrollSlug || enrollById[program.id] || program.id;
-            const Icon = resolveLucideIcon(program.icon);
+            const courseTitle = cardCourseTitle(program);
+            const extra = /iso\s*22000/i.test(courseTitle)
+              ? CARD_HOVER[program.id]
+              : {
+                  about: program.tagline || program.bullets[0] || "Live Zoom training for this level.",
+                  forWho: program.bullets.filter(Boolean).slice(0, 2).join(" · ") || "Professionals on this pathway.",
+                };
+            const thumb = program.thumbnail?.trim() || "/tutor-led-iso-hero.png";
             return (
               <article
                 key={program.id}
-                className={`relative flex h-full flex-col rounded-2xl border bg-[#0d1118] p-5 ${theme.ring}`}
+                tabIndex={0}
+                className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-[#0d1118] outline-none transition duration-500 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.45)] focus-within:-translate-y-1 ${theme.ring} ${
+                  selected.has(slug) ? "ring-2 ring-amber-400" : ""
+                }`}
               >
+                <button
+                  type="button"
+                  aria-pressed={selected.has(slug)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSlug(slug);
+                  }}
+                  className={`absolute left-3 top-3 z-40 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide shadow-lg ${
+                    selected.has(slug)
+                      ? "border-amber-400 bg-amber-400 text-black"
+                      : "border-white/20 bg-black/70 text-white hover:border-amber-400/70"
+                  }`}
+                >
+                  <span
+                    className={`grid h-3.5 w-3.5 place-items-center rounded-sm border ${
+                      selected.has(slug) ? "border-black bg-black/20" : "border-white/50"
+                    }`}
+                  >
+                    {selected.has(slug) ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+                  </span>
+                  {selected.has(slug) ? "Added" : "Add"}
+                </button>
                 {program.popular ? (
-                  <span className="absolute right-3 top-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
+                  <span className="absolute right-3 top-3 z-30 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
                     Most Popular
                   </span>
                 ) : null}
-                <Icon className={`h-8 w-8 ${theme.icon}`} strokeWidth={1.75} />
-                <h3 className={`mt-4 text-lg font-bold ${theme.title}`}>{program.title}</h3>
-                <p className="mt-1 text-sm font-medium text-white">{program.tagline}</p>
-                <ul className="mt-4 space-y-2 text-xs text-zinc-300">
-                  {program.bullets.map((b) => (
-                    <li key={b} className="flex gap-2">
-                      <Check className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${theme.icon}`} />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-5 flex flex-wrap gap-1.5 text-[10px] text-zinc-400">
-                  <span className="rounded-md border border-white/10 px-2 py-1">{program.durationLabel}</span>
-                  <span className="rounded-md border border-white/10 px-2 py-1">{program.modeLabel}</span>
-                  <span className="rounded-md border border-white/10 px-2 py-1">{program.certificateLabel}</span>
+                <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-black">
+                  <div className="absolute inset-0 transition duration-700 ease-out group-hover:scale-110 group-focus-within:scale-110">
+                    <CatalogMediaImage
+                      storedSrc={thumb}
+                      courseSlug={slug}
+                      alt={courseTitle}
+                      fill
+                      className="object-contain"
+                      extraFallback="/tutor-led-iso-hero.png"
+                    />
+                  </div>
                 </div>
-                <p className="mt-4 text-[11px] font-medium text-amber-200/90">Own Zoom class &amp; batch</p>
-                <p className={`mt-2 text-2xl font-extrabold ${theme.price}`}>{inr(program.price)}</p>
-                <p className="text-[11px] text-zinc-500">(Incl. of taxes)</p>
-                <EnrollButton
-                  slug={slug}
-                  className={`mt-5 inline-flex items-center justify-center gap-1 rounded-xl px-3 py-2.5 text-xs font-bold ${theme.btn}`}
-                >
-                  Enroll Now
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </EnrollButton>
+                <div className="flex flex-1 flex-col p-5">
+                  <h3 className={`text-[15px] font-bold leading-snug ${theme.title}`}>{courseTitle}</h3>
+                  <p className="mt-1 text-sm font-medium text-white">{program.tagline}</p>
+                  <p className="mt-4 text-[11px] font-medium text-amber-200/90">Own Zoom class &amp; batch</p>
+                  <p className={`mt-2 text-2xl font-extrabold ${theme.price}`}>{inr(program.price)}</p>
+                  <p className="text-[11px] text-zinc-500">(Incl. of taxes)</p>
+                  <p className="mt-4 text-[11px] text-zinc-500 group-hover:hidden group-focus-within:hidden">
+                    Hover to see what this level covers
+                  </p>
+                  <CardActions slug={slug} enrollClassName={`inline-flex items-center justify-center gap-1 rounded-xl px-3 py-2.5 text-xs font-bold ${theme.btn}`} />
+                </div>
+
+                <div className="pointer-events-none absolute inset-0 z-20 flex translate-y-[18%] flex-col justify-end bg-gradient-to-t from-black via-black/92 to-black/35 p-4 opacity-0 transition-all duration-500 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                  <div className="translate-y-4 rounded-xl border border-white/15 bg-black/70 p-3.5 shadow-2xl backdrop-blur-md transition duration-500 delay-75 group-hover:translate-y-0 group-focus-within:translate-y-0">
+                    {extra ? (
+                      <>
+                        <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${theme.title}`}>
+                          About this level
+                        </p>
+                        <p className="mt-2 text-xs leading-relaxed text-zinc-200">{extra.about}</p>
+                        <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-200/90">
+                          Who it is for
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-zinc-300">{extra.forWho}</p>
+                      </>
+                    ) : null}
+                    <ul className="mt-3 space-y-1.5">
+                      {program.bullets.map((b) => (
+                        <li key={b} className="flex gap-2 text-[11px] text-zinc-200">
+                          <Check className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${theme.icon}`} />
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] text-zinc-400">
+                      <span className="rounded-md border border-white/10 px-2 py-1">{program.durationLabel}</span>
+                      <span className="rounded-md border border-white/10 px-2 py-1">{program.modeLabel}</span>
+                      <span className="rounded-md border border-white/10 px-2 py-1">{program.certificateLabel}</span>
+                    </div>
+                    <CardActions
+                      slug={slug}
+                      enrollClassName={`inline-flex items-center justify-center gap-1 rounded-xl px-3 py-2.5 text-xs font-bold ${theme.btn}`}
+                    />
+                  </div>
+                </div>
               </article>
             );
           })}
         </div>
+
+        {page.programs.length > 1 ? (
+          <BuyAllProgramsBanner
+            programs={page.programs}
+            enrollById={enrollById}
+            selected={selected}
+            onToggle={toggleSlug}
+            onSelectAll={() =>
+              setSelected(
+                new Set(page.programs.map((p) => programEnrollSlug(p, enrollById)).filter(Boolean)),
+              )
+            }
+            onClear={() => setSelected(new Set())}
+          />
+        ) : null}
       </section>
 
       <section className="px-5 py-10 md:px-10">

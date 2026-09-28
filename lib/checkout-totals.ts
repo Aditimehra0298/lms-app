@@ -12,10 +12,22 @@ export type CheckoutTotals = {
   total: number;
 };
 
-/** Same math as checkout page — multi-item 10% discount + optional coupon + 18% GST. */
+/** Multi-batch bundle: 2 → 10%, 3 → 15%, 4+ → 20%. */
+export function multiItemBundleRate(itemCount: number): number {
+  if (itemCount >= 4) return 0.2;
+  if (itemCount >= 3) return 0.15;
+  if (itemCount >= 2) return 0.1;
+  return 0;
+}
+
+export function multiItemBundlePercent(itemCount: number): number {
+  return Math.round(multiItemBundleRate(itemCount) * 100);
+}
+
+/** Same math as checkout page — multi-item bundle + optional coupon + 18% GST. */
 export function computeCheckoutTotals(items: CheckoutLineItem[], extraDiscount = 0): CheckoutTotals {
   const subtotal = items.reduce((sum, item) => sum + parsePriceLabel(item.price) * item.qty, 0);
-  const bundle = items.length >= 2 ? subtotal * 0.1 : 0;
+  const bundle = subtotal * multiItemBundleRate(items.length);
   const discount = Math.min(subtotal, Math.max(0, bundle + extraDiscount));
   const gst = (subtotal - discount) * 0.18;
   const total = subtotal - discount + gst;

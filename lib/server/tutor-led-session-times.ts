@@ -1,6 +1,7 @@
 import { parseFlexibleDate } from "@/lib/my-learning-dashboard-events";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { getProgramTrainingDays, isWorkshopProgram } from "@/lib/workshop-program";
+import { getCurriculumSessionZoom, programHasAnySessionZoom, resolveZoomJoinUrl } from "@/lib/zoom-meeting";
 
 const WEEKDAY_MAP: Record<string, number> = {
   sun: 0,
@@ -131,14 +132,31 @@ function detectMeetingPlatform(joinLink: string): string {
   return "Live video";
 }
 
+/** Count weekday (or workshop) sessions from batch start up to, but not including, this calendar day. */
+function trainingSessionIndexOnDate(
+  batchStart: Date,
+  dayStart: Date,
+  weekdays: number[],
+  workshop: boolean,
+): number {
+  let index = 0;
+  const cursor = new Date(batchStart.getFullYear(), batchStart.getMonth(), batchStart.getDate());
+  const target = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate());
+  while (cursor < target) {
+    if (workshop || weekdays.includes(cursor.getDay())) index += 1;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return index;
+}
+
 export function listUpcomingLiveSessionsInWindow(input: {
   program: TutorLedProgramStored;
   windowStart: Date;
   windowEnd: Date;
 }): UpcomingLiveSession[] {
   const { program, windowStart, windowEnd } = input;
-  const joinLink = program.liveJoinUrl?.trim();
-  if (!joinLink || program.published === false) return [];
+  if (program.published === false) return [];
+  if (!programHasAnySessionZoom(program)) return [];
 
   const parsed = parseLiveSchedule(program.schedule ?? "");
   if (!parsed) return [];
@@ -166,6 +184,12 @@ export function listUpcomingLiveSessionsInWindow(input: {
     if (dayStart < batchStart || dayStart > batchEnd) continue;
 
     if (!workshop && !parsed.weekdays.includes(dayStart.getDay())) continue;
+
+    const sessionIndex = trainingSessionIndexOnDate(batchStart, dayStart, parsed.weekdays, workshop);
+    if (sessionIndex >= trainingDays) continue;
+
+    const joinLink = resolveZoomJoinUrl(getCurriculumSessionZoom(program, sessionIndex))?.trim();
+    if (!joinLink) continue;
 
     const sessionStart = sessionStartUtc(
       y,

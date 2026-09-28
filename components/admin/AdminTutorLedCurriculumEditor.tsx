@@ -13,6 +13,7 @@ import {
 } from "@/lib/tutor-led-curriculum-days";
 import { AdminModeToggle } from "@/components/admin/AdminModeToggle";
 import {
+  applyTrainingDays,
   formatTrainingDuration,
   getCurriculumSessionCount,
   getDurationSource,
@@ -73,11 +74,21 @@ export function AdminTutorLedCurriculumEditor({ draft, setDraft, onUploadImage }
       <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3">
         <p className="text-[11px] font-semibold text-amber-100">Training length on learner dashboard</p>
         <p className="mt-1 text-[10px] text-amber-200/80">
-          <strong className="text-white">{sessionCount}</strong> live module
-          {sessionCount === 1 ? "" : "s"} → journey shows Day 1–{sessionCount}, duration{" "}
-          <strong className="text-white">{autoDurationLabel}</strong>. Progress updates when Zoom
-          recordings are synced.
+          <strong className="text-white">{sessionCount}</strong> live Zoom{" "}
+          {sessionCount === 1 ? "class" : "classes"} → learner dashboard shows Day 1–{sessionCount} (
+          <strong className="text-white">{autoDurationLabel}</strong>). Paste one Zoom link; it is used every day.
         </p>
+        <label className="mt-3 block max-w-[12rem]">
+          <span className="text-[10px] text-amber-200/80">Training days</span>
+          <input
+            type="number"
+            min={1}
+            max={30}
+            value={sessionCount}
+            onChange={(e) => commitDraft(applyTrainingDays(draft, Number(e.target.value) || 1))}
+            className="mt-1 w-full rounded-lg border border-amber-400/30 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-amber-300"
+          />
+        </label>
         <div className="mt-3 flex flex-wrap gap-3">
           <label className="flex cursor-pointer items-center gap-2 text-[11px] text-gray-200">
             <input

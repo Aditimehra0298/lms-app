@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import FoodTutorLedCatalogLanding from "@/components/FoodTutorLedCatalogLanding";
 import { findTutorLedCatalog, mergeTutorLedCatalogPages } from "@/lib/tutor-led-catalog-landings";
+import { mergeCatalogProgramCards } from "@/lib/tutor-led-catalog-batches";
 import { readAdminContentFromDisk } from "@/lib/server/content-store";
 
 export const dynamic = "force-dynamic";
@@ -29,9 +30,14 @@ export default async function TutorLedCatalogLandingPage({ params }: PageProps) 
   const catalog = findTutorLedCatalog(pages, slug);
   if (!catalog || !catalog.published) notFound();
 
+  const programs = mergeCatalogProgramCards(
+    catalog.page.programs,
+    content.tutorLedPrograms ?? [],
+  );
+
   return (
     <div className="min-h-screen bg-[#07090f]">
-      <FoodTutorLedCatalogLanding page={catalog.page} />
+      <FoodTutorLedCatalogLanding page={{ ...catalog.page, programs }} />
     </div>
   );
 }

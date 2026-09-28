@@ -1,3 +1,4 @@
+import { getCurriculumSessionCount, formatTrainingDuration } from "@/lib/tutor-led-training-schedule";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import {
   extractScheduleTime,
@@ -109,10 +110,7 @@ export function mergeCatalogProgramCards(
 
   if (!cards.length && live.length > 0) {
     return live.map((p, i) => {
-      const duration =
-        p.batchDetails?.find((d) => /duration/i.test(d.label))?.value ||
-        p.schedule ||
-        "Live Zoom";
+      const duration = formatTrainingDuration(getCurriculumSessionCount(p));
       return {
         id: p.slug,
         title: p.title,
@@ -141,16 +139,17 @@ export function mergeCatalogProgramCards(
     if (!program) {
       return { ...card, resolvedSlug: slug };
     }
-    const duration =
-      program.batchDetails?.find((d) => /duration/i.test(d.label))?.value ||
-      card.durationLabel;
+    const duration = formatTrainingDuration(getCurriculumSessionCount(program)) || card.durationLabel;
     return {
       ...card,
       title: program.title?.trim() || card.title,
       tagline: program.subtitle?.trim() || card.tagline,
       price: typeof program.price === "number" ? program.price : card.price,
-      // Admin card thumbnail wins; only fall back to program hero when card has none.
-      thumbnail: card.thumbnail?.trim() || program.heroSrc?.trim() || "",
+      thumbnail:
+        card.thumbnail?.trim() ||
+        program.heroSrc?.trim() ||
+        program.learnerHeroSrc?.trim() ||
+        "",
       durationLabel: duration,
       enrollSlug: program.slug,
       resolvedSlug: program.slug,

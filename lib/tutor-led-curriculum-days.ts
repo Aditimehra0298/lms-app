@@ -1,4 +1,6 @@
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { isLiveDayCurriculum } from "@/lib/tutor-led-training-schedule";
+import { getCurriculumSessionZoom, resolveZoomJoinUrl } from "@/lib/zoom-meeting";
 
 export type TutorLedContentMode = "auto" | "manual";
 
@@ -10,6 +12,9 @@ export type TutorLedCurriculumDay = {
   kind: "recording" | "lab" | "live";
   recordingUrl?: string;
   imageUrl?: string;
+  liveJoinUrl?: string;
+  zoomMeetingId?: string;
+  zoomPasscode?: string;
 };
 
 export type TutorLedCurriculumWeek = TutorLedProgramStored["curriculum"][number] & {
@@ -44,10 +49,28 @@ export function autoGenerateCurriculumDays(
 }
 
 export function resolveCurriculumDays(
-  program: Pick<TutorLedProgramStored, "curriculumMode" | "curriculum">,
+  program: Pick<
+    TutorLedProgramStored,
+    "curriculumMode" | "curriculum" | "trainingDays" | "schedule" | "liveJoinUrl" | "zoomMeetingId" | "zoomPasscode"
+  >,
   week: TutorLedProgramStored["curriculum"][number],
   weekIndex: number,
 ): TutorLedCurriculumDay[] {
+  if (isLiveDayCurriculum(program)) {
+    const zoom = getCurriculumSessionZoom(program, weekIndex);
+    return [
+      {
+        id: `live-day-${weekIndex}`,
+        label: week.label || `Day ${weekIndex + 1}`,
+        title: week.topic,
+        duration: program.schedule?.trim() || week.sessionType || "Live Zoom",
+        kind: "live",
+        liveJoinUrl: resolveZoomJoinUrl(zoom) ?? undefined,
+        zoomMeetingId: zoom.zoomMeetingId,
+        zoomPasscode: zoom.zoomPasscode,
+      },
+    ];
+  }
   const mode = program.curriculumMode ?? "auto";
   const weekExt = week as TutorLedCurriculumWeek;
   if (mode === "manual" && weekExt.days?.length) {

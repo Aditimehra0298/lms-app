@@ -32,6 +32,7 @@ import { readAdminContent } from "@/lib/server/content-store";
 import { tutorLedDescriptionHref } from "@/lib/tutor-led-routes";
 import { tutorLedProgramMatchesCategory } from "@/lib/tutor-led-program-category";
 import {
+  catalogBuyAllSlugs,
   catalogHrefForProgramSlug,
   enrollSlugsCoveredByCatalogs,
   mergeTutorLedCatalogPages,
@@ -120,6 +121,9 @@ type CourseCard = {
   regionalPrices?: CourseRegionalPriceRow[];
   image?: string;
   learningFormat?: CourseLearningFormat;
+  /** When set (>1), this card is a catalog of many live batches — hide a single fee. */
+  catalogBatchCount?: number;
+  buyAllSlugs?: string[];
 };
 
 const featureStrip = [
@@ -270,22 +274,24 @@ export default async function CourseCategoryPage({
       })),
   ];
   const tutorLedCourses: CourseCard[] = [
-    ...categoryCatalogs.map((catalog) => ({
-      slug: catalog.slug,
-      title: catalog.cardTitle,
-      level: "Live",
-      duration: "Live online",
-      rating: "4.7",
-      price:
-        catalog.page.programs[0]?.price != null
-          ? `₹${catalog.page.programs[0].price.toLocaleString("en-IN")}`
-          : "",
-      image:
-        catalog.page.pageThumbnail ||
-        catalog.page.hero.backgroundImage ||
-        "/tutor-led-iso-hero.png",
-      learningFormat: "live" as const,
-    })),
+    ...categoryCatalogs.map((catalog) => {
+      const batchCount = catalog.page.programs.length;
+      return {
+        slug: catalog.slug,
+        title: catalog.cardTitle,
+        level: "Live",
+        duration: batchCount > 1 ? `${batchCount} live batches` : "Live online",
+        rating: "4.7",
+        price: "",
+        image:
+          catalog.page.pageThumbnail ||
+          catalog.page.hero.backgroundImage ||
+          "/tutor-led-iso-hero.png",
+        learningFormat: "live" as const,
+        catalogBatchCount: batchCount,
+        buyAllSlugs: catalogBuyAllSlugs(catalog.page.programs),
+      };
+    }),
     ...tutorLedCoursesRaw,
   ];
   const tutorLedCountLabel =

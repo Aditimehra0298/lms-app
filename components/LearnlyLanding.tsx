@@ -4,11 +4,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { defaultHomePageConfig, type HomePageConfig, type ManagedCategory, type ManagedCourse } from "@/lib/content-schema";
+import type { HomePageConfig, ManagedCategory, ManagedCourse, TutorLedCatalogLandingStored } from "@/lib/content-schema";
+import { defaultHomePageConfig } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { isIso22000TutorLedSlug, liveTutorCourseHref, TUTOR_LED_ISO_22000_CATALOG_HREF } from "@/lib/tutor-led-routes";
+import {
+  catalogLandingEnrollSlugs,
+  enrollSlugsCoveredByCatalogs,
+  liveCatalogBatchCopy,
+  tutorLedCatalogPublicHref,
+} from "@/lib/tutor-led-catalog-landings";
 import { tutorLedProgramMatchesCategory } from "@/lib/tutor-led-program-category";
 import { CourseDeliveryBadge } from "@/components/CourseDeliveryBadge";
 import { CoursePrice } from "@/components/CoursePrice";
@@ -495,6 +502,7 @@ export type LearnlyLandingInitialData = {
   categories?: ManagedCategory[];
   courses?: ManagedCourse[];
   tutorLedPrograms?: TutorLedProgramStored[];
+  tutorLedCatalogs?: TutorLedCatalogLandingStored[];
 };
 
 export default function LearnlyLanding({ initialData }: { initialData?: LearnlyLandingInitialData }) {
@@ -517,6 +525,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   );
   const [tutorLedPrograms, setTutorLedPrograms] = useState<TutorLedProgramStored[]>(
     () => initialData?.tutorLedPrograms ?? [],
+  );
+  const [tutorLedCatalogs] = useState<TutorLedCatalogLandingStored[]>(
+    () => (initialData?.tutorLedCatalogs ?? []).filter((c) => c.published),
   );
   const [planAudience, setPlanAudience] = useState<"individual" | "organisation">("individual");
   const [openFaq, setOpenFaq] = useState<string | null>(null);
@@ -714,18 +725,61 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   );
 
   const tutorLedBrowseCards = useMemo(() => {
+    const covered = enrollSlugsCoveredByCatalogs(tutorLedCatalogs);
+    const catalogCards = tutorLedCatalogs.map((cat) => {
+      const slugs = catalogLandingEnrollSlugs(cat);
+      const members = publishedTutorLedPrograms.filter((p) => slugs.includes(p.slug));
+      return {
+        ...(members[0] ?? ({} as TutorLedProgramStored)),
+        slug: cat.slug,
+        title: cat.cardTitle,
+        heroSrc:
+          cat.page.pageThumbnail ||
+          cat.page.hero.backgroundImage ||
+          members[0]?.heroSrc ||
+          "/tutor-led-iso-hero.png",
+        catalogBatchCount: Math.max(cat.page.programs.length, slugs.length, members.length, 1),
+        buyAllSlugs: slugs.length ? slugs : members.map((p) => p.slug),
+        catalogCategory: cat.category,
+      };
+    });
+    const rest = publishedTutorLedPrograms
+      .filter((p) => !covered.has(p.slug))
+      .map((p) => ({
+        ...p,
+        catalogBatchCount: 1,
+        buyAllSlugs: undefined as string[] | undefined,
+        catalogCategory: p.category,
+      }));
+    if (catalogCards.length) return [...catalogCards, ...rest];
     const iso = publishedTutorLedPrograms.filter((p) => isIso22000TutorLedSlug(p.slug));
-    if (!iso.length) return publishedTutorLedPrograms;
+    if (!iso.length) return rest;
     return [
       {
         ...iso[0],
         slug: "iso-22000",
         title: "ISO 22000:2018 Training Programs",
         heroSrc: iso[0].heroSrc || "/tutor-led-iso-hero.png",
+        catalogBatchCount: iso.length,
+        buyAllSlugs: iso.map((p) => p.slug),
+        catalogCategory: "food-safety",
       },
-      ...publishedTutorLedPrograms.filter((p) => !isIso22000TutorLedSlug(p.slug)),
+      ...publishedTutorLedPrograms
+        .filter((p) => !isIso22000TutorLedSlug(p.slug))
+        .map((p) => ({
+          ...p,
+          catalogBatchCount: 1,
+          buyAllSlugs: undefined as string[] | undefined,
+          catalogCategory: p.category,
+        })),
     ];
-  }, [publishedTutorLedPrograms]);
+  }, [publishedTutorLedPrograms, tutorLedCatalogs]);
+
+  const tutorLedCardHref = (slug: string) => {
+    if (tutorLedCatalogs.some((c) => c.slug === slug)) return tutorLedCatalogPublicHref(slug);
+    if (isIso22000TutorLedSlug(slug)) return TUTOR_LED_ISO_22000_CATALOG_HREF;
+    return liveTutorCourseHref(slug);
+  };
 
   const tutorLedSlugSet = useMemo(
     () => new Set(publishedTutorLedPrograms.map((p) => p.slug)),
@@ -758,6 +812,8 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   const popularTutorLedCourses = useMemo(() => {
     if (!activeCategorySlug) return [];
     return tutorLedBrowseCards.filter((program) => {
+      const cat = "catalogCategory" in program ? program.catalogCategory : undefined;
+      if (cat) return canonicalCategorySlug(activeCategorySlug) === canonicalCategorySlug(cat);
       if (program.slug === "iso-22000") {
         return canonicalCategorySlug(activeCategorySlug) === "food-safety";
       }
@@ -785,6 +841,8 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           courseMatchesCategory(c, slug, cat.title),
       );
       const tutorLed = tutorLedBrowseCards.some((program) => {
+        const cat = "catalogCategory" in program ? program.catalogCategory : undefined;
+        if (cat) return canonicalCategorySlug(cat) === slug;
         if (program.slug === "iso-22000") return slug === "food-safety";
         return tutorLedProgramMatchesCategory(program, slug);
       });
@@ -1207,14 +1265,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                       key={`tutor-${program.slug}`}
                       className="lh-course-card flex h-full flex-col overflow-hidden rounded-2xl border border-violet-500/35 bg-linear-to-b from-[#1a1030] via-[#120c06] to-[#07070a]"
                     >
-                      <Link
-                        href={
-                          isIso22000TutorLedSlug(program.slug)
-                            ? TUTOR_LED_ISO_22000_CATALOG_HREF
-                            : liveTutorCourseHref(program.slug)
-                        }
-                        className="block"
-                      >
+                      <Link href={tutorLedCardHref(program.slug)} className="block">
                         <div className="relative aspect-[16/10] bg-black/40">
                           <Image
                             src={program.heroSrc || "/h1.png"}
@@ -1235,12 +1286,15 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                           {program.title}
                         </h5>
                         <CourseCardActions
-                          descriptionHref={
-                            isIso22000TutorLedSlug(program.slug)
-                              ? TUTOR_LED_ISO_22000_CATALOG_HREF
-                              : liveTutorCourseHref(program.slug)
+                          descriptionHref={tutorLedCardHref(program.slug)}
+                          priceInr={
+                            liveCatalogBatchCopy(program.catalogBatchCount ?? 0)
+                              ? undefined
+                              : program.price
                           }
-                          priceInr={program.price}
+                          priceNote={liveCatalogBatchCopy(program.catalogBatchCount ?? 0)?.note}
+                          priceNoteHint={liveCatalogBatchCopy(program.catalogBatchCount ?? 0)?.hint}
+                          buyAllSlugs={program.buyAllSlugs}
                           className="px-0"
                         />
                       </div>
@@ -1388,14 +1442,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                       key={program.slug}
                       className="lh-course-card flex h-full flex-col overflow-hidden rounded-2xl border border-violet-500/35 bg-linear-to-b from-[#1a1030] via-[#120c06] to-[#07070a]"
                     >
-                      <Link
-                        href={
-                          isIso22000TutorLedSlug(program.slug)
-                            ? TUTOR_LED_ISO_22000_CATALOG_HREF
-                            : liveTutorCourseHref(program.slug)
-                        }
-                        className="block"
-                      >
+                      <Link href={tutorLedCardHref(program.slug)} className="block">
                         <div className="relative aspect-[16/10] bg-black/40">
                           <Image
                             src={program.heroSrc || "/h1.png"}
@@ -1420,12 +1467,15 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                           {program.title}
                         </h5>
                         <CourseCardActions
-                          descriptionHref={
-                            isIso22000TutorLedSlug(program.slug)
-                              ? TUTOR_LED_ISO_22000_CATALOG_HREF
-                              : liveTutorCourseHref(program.slug)
+                          descriptionHref={tutorLedCardHref(program.slug)}
+                          priceInr={
+                            liveCatalogBatchCopy(program.catalogBatchCount ?? 0)
+                              ? undefined
+                              : program.price
                           }
-                          priceInr={program.price}
+                          priceNote={liveCatalogBatchCopy(program.catalogBatchCount ?? 0)?.note}
+                          priceNoteHint={liveCatalogBatchCopy(program.catalogBatchCount ?? 0)?.hint}
+                          buyAllSlugs={program.buyAllSlugs}
                           className="px-0"
                         />
                       </div>

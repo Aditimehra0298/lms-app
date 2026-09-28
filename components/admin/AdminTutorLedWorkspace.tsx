@@ -32,6 +32,7 @@ import { AdminTutorLedMediaPanel } from "@/components/admin/AdminTutorLedMediaPa
 import AdminCourseStudentsPanel from "@/components/admin/AdminCourseStudentsPanel";
 import { AdminTutorLedFinalAssessmentPanel } from "@/components/admin/AdminTutorLedFinalAssessmentPanel";
 import { AdminTutorLedPricingPanel } from "@/components/admin/AdminTutorLedPricingPanel";
+import { AdminTutorLedSessionZoomList } from "@/components/admin/AdminTutorLedSessionZoomList";
 import { patchProgramCertificateConfig, sanitizeCertificateConfig } from "@/lib/course-certificate-config";
 import { getCertificateUploadStatus } from "@/lib/certificate-admin-status";
 import type { AdminContent } from "@/lib/content-schema";
@@ -48,11 +49,13 @@ import {
 import {
   isZoomJoinUrl,
   formatZoomMeetingId,
-  parseZoomMeetingFromUrl,
+  applyZoomInvitePaste,
+  applyZoomMeetingIdField,
+  programHasAnySessionZoom,
   resolveZoomJoinUrl,
   ZOOM_PREMIUM_ADMIN_HINTS,
 } from "@/lib/zoom-meeting";
-import { syncDurationBatchDetail, getDurationSource } from "@/lib/tutor-led-training-schedule";
+import { syncDurationBatchDetail, getDurationSource, applyTrainingDays, getCurriculumSessionCount, isLiveDayCurriculum } from "@/lib/tutor-led-training-schedule";
 import { isWorkshopProgram, workshopLandingHref } from "@/lib/workshop-program";
 import { adminApiErrorMessage, adminMutationHeaders } from "@/lib/admin-csrf-client";
 
@@ -219,28 +222,6 @@ function newWorkshopFromTemplate(): TutorLedProgramStored {
   };
 }
 
-function applyZoomPaste(draft: TutorLedProgramStored, pastedUrl: string): TutorLedProgramStored {
-  const trimmed = pastedUrl.trim();
-  if (!trimmed) return { ...draft, liveJoinUrl: "" };
-  const parsed = parseZoomMeetingFromUrl(trimmed);
-  return {
-    ...draft,
-    liveJoinUrl: trimmed,
-    zoomMeetingId: parsed.meetingId ?? draft.zoomMeetingId ?? "",
-    zoomPasscode: parsed.passcode ?? draft.zoomPasscode ?? "",
-  };
-}
-
-function applyMeetingIdField(draft: TutorLedProgramStored, raw: string): TutorLedProgramStored {
-  const zoomMeetingId = raw.replace(/\s/g, "");
-  const liveJoinUrl = draft.liveJoinUrl?.trim()
-    ? draft.liveJoinUrl
-    : zoomMeetingId
-      ? `https://zoom.us/j/${zoomMeetingId}`
-      : "";
-  return { ...draft, zoomMeetingId, liveJoinUrl };
-}
-
 type WorkspaceKind = "tutor-led" | "workshop";
 
 type Props = {
@@ -375,7 +356,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
       const m = data.meeting;
       setDraft((prev) =>
         prev
-          ? applyZoomPaste(
+          ? applyZoomInvitePaste(
               { ...prev, zoomMeetingUuid: m.uuid },
               m.joinUrl,
             )
@@ -828,7 +809,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                         >
                           {p.published ? "Live" : "Draft"}
                         </span>
-                        {p.liveJoinUrl?.trim() ? (
+                        {programHasAnySessionZoom(p) ? (
                           <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[9px] text-sky-200">Zoom</span>
                         ) : null}
                         {(() => {
@@ -966,15 +947,56 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                 </nav>
                 <div className="mt-3 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3">
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-sky-200">
-                    Zoom link for this course
+                    {isLiveDayCurriculum(draft) && !isWorkshopProgram(draft)
+                      ? "Zoom: unique meeting each day + final exam"
+                      : "Zoom link for this course"}
                   </p>
+                  {isLiveDayCurriculum(draft) || isWorkshopProgram(draft) ? (
+                    <label className="mb-2 block max-w-[12rem]">
+                      <span className="text-[10px] text-gray-500">Training days</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={isWorkshopProgram(draft) ? 1 : (draft.trainingDays ?? getCurriculumSessionCount(draft))}
+                        onChange={(e) => setDraft(applyTrainingDays(draft, Number(e.target.value) || 1))}
+                        disabled={isWorkshopProgram(draft)}
+                        className="mt-1 w-full rounded-lg border border-sky-500/30 bg-black/40 px-3 py-2 text-[11px] text-white outline-none focus:border-sky-400/50 disabled:opacity-60"
+                      />
+                    </label>
+                  ) : null}
+                  {isLiveDayCurriculum(draft) && !isWorkshopProgram(draft) ? (
+                    <div className="space-y-2">
+                      <p className="text-[11px] leading-relaxed text-sky-100/85">
+                        Do not reuse one Zoom link. Paste a different join URL on each training day in the Zoom tab.
+                        After the last live class, learners take the final exam on their dashboard.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab("zoom");
+                          requestAnimationFrame(() =>
+                            document.getElementById("zoom-editor-panel")?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            }),
+                          );
+                        }}
+                        className="rounded-lg border border-sky-400/40 bg-sky-500/20 px-3 py-2 text-[11px] font-semibold text-sky-100 hover:bg-sky-500/30"
+                      >
+                        Paste Zoom links per session
+                      </button>
+                    </div>
+                  ) : (
+                  <>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                     <label className="min-w-0 flex-1">
-                      <span className="text-[10px] text-gray-500">Paste join URL from Zoom</span>
-                      <input
+                      <span className="text-[10px] text-gray-500">Paste Zoom join link or Copy invitation</span>
+                      <textarea
                         value={draft.liveJoinUrl ?? ""}
-                        onChange={(e) => setDraft(applyZoomPaste(draft, e.target.value))}
-                        placeholder="https://zoom.us/j/…"
+                        onChange={(e) => setDraft(applyZoomInvitePaste(draft, e.target.value))}
+                        placeholder="https://zoom.us/j/… or full invitation"
+                        rows={2}
                         className="mt-1 w-full rounded-lg border border-sky-500/30 bg-black/40 px-3 py-2 font-mono text-[11px] text-white outline-none focus:border-sky-400/50"
                       />
                     </label>
@@ -1027,7 +1049,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                       <span className="text-[10px] font-semibold text-amber-200/90">Meeting ID</span>
                       <input
                         value={draft.zoomMeetingId ?? ""}
-                        onChange={(e) => setDraft(applyMeetingIdField(draft, e.target.value))}
+                        onChange={(e) => setDraft(applyZoomMeetingIdField(draft, e.target.value))}
                         placeholder="e.g. 12345678901"
                         className="mt-1 w-full rounded-lg border-2 border-amber-400/50 bg-black/50 px-3 py-2.5 font-mono text-sm font-semibold tracking-wide text-white shadow-inner outline-none placeholder:text-gray-500 focus:border-amber-300 focus:ring-2 focus:ring-amber-400/50"
                       />
@@ -1076,6 +1098,8 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                     <p className="mt-2 text-[10px] text-amber-200/80">
                       Paste a join URL or enter Meeting ID above, then Save program.
                     </p>
+                  )}
+                  </>
                   )}
                 </div>
               </div>
@@ -1266,7 +1290,9 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
               <AdminTutorLedFinalAssessmentPanel draft={draft} setDraft={setDraft} />
             </div>
             <div className={activeTab === "zoom" ? "space-y-4" : "hidden"} id="zoom-editor-panel">
-            <h3 className="text-xs font-semibold text-sky-300">Zoom — live meeting link</h3>
+            <h3 className="text-xs font-semibold text-sky-300">
+              {isLiveDayCurriculum(draft) ? "Zoom — unique meeting per session" : "Zoom — live meeting link"}
+            </h3>
             <AdminModeToggle
               label="Zoom setup"
               value={draft.zoomLinkMode ?? (zoomApiConfigured ? "auto" : "manual")}
@@ -1345,13 +1371,17 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                 <li key={hint}>{hint}</li>
               ))}
             </ul>
+            {isLiveDayCurriculum(draft) ? (
+              <AdminTutorLedSessionZoomList program={draft} onChange={(next) => setDraft(next)} />
+            ) : (
             <div className="grid gap-3 md:grid-cols-2">
               <label className="block md:col-span-2">
-                <span className="text-[11px] text-gray-500">Zoom join link (manual)</span>
-                <input
+                <span className="text-[11px] text-gray-500">Paste Zoom join link or full invitation</span>
+                <textarea
                   value={draft.liveJoinUrl ?? ""}
-                  onChange={(e) => setDraft(applyZoomPaste(draft, e.target.value))}
-                  placeholder="https://zoom.us/j/12345678901?pwd=..."
+                  onChange={(e) => setDraft(applyZoomInvitePaste(draft, e.target.value))}
+                  placeholder="https://zoom.us/j/12345678901?pwd=…  or paste Zoom → Copy invitation"
+                  rows={3}
                   className="mt-1 w-full rounded-lg border border-sky-500/30 bg-black/40 px-3 py-2 font-mono text-[11px] outline-none focus:border-sky-500/50"
                 />
               </label>
@@ -1370,7 +1400,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                     <span className="text-[11px] font-semibold text-amber-200/90">Meeting ID</span>
                     <input
                       value={draft.zoomMeetingId ?? ""}
-                      onChange={(e) => setDraft(applyMeetingIdField(draft, e.target.value))}
+                      onChange={(e) => setDraft(applyZoomMeetingIdField(draft, e.target.value))}
                       placeholder="e.g. 12345678901"
                       className="mt-1 w-full rounded-lg border-2 border-amber-400/50 bg-black/50 px-3 py-2 font-mono text-sm font-semibold text-white outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-400/50"
                     />
@@ -1411,6 +1441,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                 </p>
               )}
             </div>
+            )}
             </div>
             <div className={activeTab === "trainer" ? "space-y-4" : "hidden"}>
             <h3 className="text-xs font-semibold text-gray-300">Trainer</h3>

@@ -3,16 +3,29 @@
 import { useMemo, useState } from "react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import {
+  getCurriculumSessionZoom,
   getZoomMeetingDisplay,
+  programHasAnySessionZoom,
+  resolveZoomJoinUrl,
   ZOOM_JOIN_STEPS,
   type ZoomMeetingFields,
 } from "@/lib/zoom-meeting";
+import {
+  formatTrainingDuration,
+  getCurriculumSessionCount,
+  isLiveDayCurriculum,
+} from "@/lib/tutor-led-training-schedule";
 import { Copy, ExternalLink, MonitorPlay, Video } from "lucide-react";
 
 type Props = {
-  program: Pick<TutorLedProgramStored, "liveJoinUrl" | "zoomMeetingId" | "zoomPasscode" | "title" | "schedule">;
+  program: Pick<
+    TutorLedProgramStored,
+    "liveJoinUrl" | "zoomMeetingId" | "zoomPasscode" | "title" | "schedule" | "curriculum" | "trainingDays" | "slug"
+  >;
   variant?: "full" | "compact";
   id?: string;
+  currentDay?: number;
+  examUnlocked?: boolean;
 };
 
 async function copyText(text: string): Promise<boolean> {
@@ -49,10 +62,21 @@ export function TutorLedLiveZoomPanel({
   program,
   variant = "full",
   id = "zoom-live",
+  currentDay,
+  examUnlocked = false,
 }: Props) {
   const [copied, setCopied] = useState<string | null>(null);
-  const zoom = useMemo(() => getZoomMeetingDisplay(program as ZoomMeetingFields), [program]);
   const compact = variant === "compact";
+  const totalDays = getCurriculumSessionCount(program);
+  const liveDays = isLiveDayCurriculum(program);
+  const dayRows = liveDays ? (program.curriculum ?? []).slice(0, totalDays) : [];
+  const activeDay = Math.min(Math.max(1, currentDay ?? 1), totalDays);
+  const durationLabel = formatTrainingDuration(totalDays);
+  const zoom = useMemo(
+    () => getZoomMeetingDisplay(getCurriculumSessionZoom(program, activeDay - 1) as ZoomMeetingFields),
+    [program, activeDay],
+  );
+  const anyZoom = programHasAnySessionZoom(program);
 
   const onCopy = async (key: string, value: string) => {
     const ok = await copyText(value);
@@ -62,7 +86,7 @@ export function TutorLedLiveZoomPanel({
     }
   };
 
-  if (!zoom.hasZoom) {
+  if (!anyZoom && !zoom.hasZoom) {
     return (
       <div
         id={id}
@@ -75,7 +99,8 @@ export function TutorLedLiveZoomPanel({
           <div>
             <p className="text-sm font-bold text-white">Live Zoom classroom</p>
             <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-              Your trainer will share the Zoom meeting link before your first session. Check back here when it is time to join.
+              Each training day has its own Zoom meeting. Your trainer will paste the join link for Day {activeDay} before class.
+              After the last live session, the final exam unlocks on this dashboard.
             </p>
           </div>
         </div>
@@ -99,7 +124,10 @@ export function TutorLedLiveZoomPanel({
             <ZoomBrandBadge />
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-sky-200">Live on Zoom</p>
-              <p className="text-[11px] text-zinc-400">Tutor-led training · {program.title}</p>
+              <p className="text-[11px] text-zinc-400">
+                {program.title} · {durationLabel}
+                {liveDays && totalDays > 1 ? ` · Day ${activeDay} of ${totalDays}` : ""}
+              </p>
             </div>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-300">
@@ -113,9 +141,68 @@ export function TutorLedLiveZoomPanel({
         <div className="min-w-0 space-y-4">
           {!compact ? (
             <p className="text-sm leading-relaxed text-zinc-300">
-              All live sessions for this cohort use the same Zoom meeting attached by your trainer. Join from here —
-              no separate links per class.
+              {totalDays === 1
+                ? "This is a one-day live Zoom class. Join from here when your session starts. Complete the final exam after class."
+                : `This course runs for ${durationLabel.toLowerCase()}. Each day has a different Zoom meeting — join the link for that session only. After Day ${totalDays}, take the final exam on this dashboard.`}
             </p>
+          ) : null}
+
+          {liveDays && dayRows.length > 0 ? (
+            <ol className="grid gap-1.5">
+              {dayRows.map((row, index) => {
+                const dayNum = index + 1;
+                const current = dayNum === activeDay;
+                const done = dayNum < activeDay;
+                const sessionJoin = resolveZoomJoinUrl(getCurriculumSessionZoom(program, index));
+                return (
+                  <li
+                    key={`${row.label}-${index}`}
+                    className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-[11px] ${
+                      current
+                        ? "border-[#2D8CFF]/50 bg-[#2D8CFF]/15 text-sky-100"
+                        : done
+                          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-100"
+                          : "border-white/10 bg-black/30 text-zinc-400"
+                    }`}
+                  >
+                    <span className="min-w-0 truncate font-semibold">
+                      {row.label || `Day ${dayNum}`}
+                      {row.topic ? ` · ${row.topic}` : ""}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wide">
+                        {current ? "Today" : done ? "Done" : "Upcoming"}
+                      </span>
+                      {sessionJoin ? (
+                        <a
+                          href={sessionJoin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-md bg-[#2D8CFF] px-2 py-1 text-[10px] font-bold text-white hover:bg-[#2681eb]"
+                        >
+                          Join
+                        </a>
+                      ) : (
+                        <span className="text-[10px] text-amber-200/80">Link pending</span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+              <li className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#FFC107]/25 bg-[#FFC107]/10 px-3 py-2 text-[11px] text-amber-100">
+                <span className="font-semibold">Final exam</span>
+                {examUnlocked && program.slug ? (
+                  <a
+                    href={`/my-learning/course/${program.slug}/exam?module=final`}
+                    className="rounded-md bg-[#FFC107] px-2 py-1 text-[10px] font-bold text-black"
+                  >
+                    Start exam
+                  </a>
+                ) : (
+                  <span className="text-[10px] text-zinc-500">Unlocks after last Zoom day</span>
+                )}
+              </li>
+            </ol>
           ) : null}
 
           {zoom.joinUrl ? (
@@ -126,7 +213,7 @@ export function TutorLedLiveZoomPanel({
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2D8CFF] py-3.5 text-sm font-bold text-white shadow-[0_8px_28px_rgba(45,140,255,0.35)] transition hover:bg-[#2681eb]"
             >
               <Video className="h-4 w-4" aria-hidden />
-              Join Live Session on Zoom
+              Join {liveDays && totalDays > 1 ? `Day ${activeDay}` : "Live Session"} on Zoom
               <ExternalLink className="h-3.5 w-3.5 opacity-90" aria-hidden />
             </a>
           ) : null}

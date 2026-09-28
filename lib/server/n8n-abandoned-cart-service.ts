@@ -1,5 +1,6 @@
 import { emailAppName, emailAppUrl, emailLogoSrc, emailShortBrand } from "@/lib/email-brand-config";
 import { buildN8nWebhookAuthHeaders, n8nWebhookAuthHint } from "@/lib/server/n8n-webhook-auth";
+import { multiItemBundleRate } from "@/lib/checkout-totals";
 
 export type AbandonedCartLine = {
   slug: string;
@@ -72,7 +73,7 @@ export async function sendAbandonedCartViaN8n(
     const n = Number(String(row.price).replace(/[^0-9.]/g, ""));
     return sum + (Number.isFinite(n) ? n : 0) * Math.max(1, row.qty);
   }, 0);
-  const discount = items.length >= 2 ? subtotal * 0.1 : 0;
+  const discount = subtotal * multiItemBundleRate(items.length);
   const total = subtotal - discount;
 
   const learnerName =

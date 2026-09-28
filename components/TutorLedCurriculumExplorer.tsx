@@ -4,13 +4,17 @@ import { useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { resolveCurriculumDays } from "@/lib/tutor-led-curriculum-days";
+import { formatTrainingDuration, getCurriculumSessionCount, isLiveDayCurriculum } from "@/lib/tutor-led-training-schedule";
 
 type ViewMode = "week" | "day";
 
 type WeekProgress = { done: number; total: number; label: string | null };
 
 type Props = {
-  program: Pick<TutorLedProgramStored, "curriculum" | "curriculumMode">;
+  program: Pick<
+    TutorLedProgramStored,
+    "curriculum" | "curriculumMode" | "trainingDays" | "schedule" | "liveJoinUrl" | "zoomMeetingId" | "zoomPasscode"
+  >;
   variant?: "marketing" | "learner";
   weekProgress?: WeekProgress[];
   liveJoinAnchor?: string;
@@ -35,9 +39,10 @@ export function TutorLedCurriculumExplorer({
   embedded = false,
 }: Props) {
   const weeks = program.curriculum;
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const liveDayMode = isLiveDayCurriculum(program);
+  const [viewMode, setViewMode] = useState<ViewMode>(liveDayMode ? "day" : "week");
   const [openWeeks, setOpenWeeks] = useState<Record<number, boolean>>(() => ({ 0: true }));
-  const [expandAll, setExpandAll] = useState(false);
+  const [expandAll, setExpandAll] = useState(liveDayMode);
 
   const weeksWithDays = useMemo(
     () =>
@@ -85,32 +90,38 @@ export function TutorLedCurriculumExplorer({
                 {variant === "learner" ? "Course Curriculum" : "Live Training Schedule"}
               </h2>
               <p className="mt-0.5 text-xs text-zinc-500">
-                {weeks.length} weeks · {totalDays} live sessions (days)
+                {liveDayMode
+                  ? `${getCurriculumSessionCount(program)} live Zoom ${getCurriculumSessionCount(program) === 1 ? "class" : "classes"} · ${formatTrainingDuration(getCurriculumSessionCount(program))}`
+                  : `${weeks.length} weeks · ${totalDays} live sessions (days)`}
               </p>
             </>
           ) : (
             <p className="text-xs text-zinc-500">
-              {weeks.length} weeks · {totalDays} sessions
+              {liveDayMode
+                ? `${formatTrainingDuration(getCurriculumSessionCount(program))} · ${totalDays} Zoom ${totalDays === 1 ? "class" : "classes"}`
+                : `${weeks.length} weeks · ${totalDays} sessions`}
             </p>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-white/10 bg-black/40 p-0.5">
-            <button
-              type="button"
-              onClick={() => setViewMode("week")}
-              className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${tabClass("week")}`}
-            >
-              By week
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("day")}
-              className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${tabClass("day")}`}
-            >
-              By day
-            </button>
-          </div>
+          {liveDayMode ? null : (
+            <div className="inline-flex rounded-lg border border-white/10 bg-black/40 p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("week")}
+                className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${tabClass("week")}`}
+              >
+                By week
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("day")}
+                className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${tabClass("day")}`}
+              >
+                By day
+              </button>
+            </div>
+          )}
           {viewMode === "day" ? (
             <button
               type="button"
@@ -135,7 +146,9 @@ export function TutorLedCurriculumExplorer({
                     : "border-white/10 bg-black/20"
                 }`}
               >
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#FFB800]">Week {week.week}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#FFB800]">
+                  {liveDayMode ? week.label || `Day ${week.week}` : `Week ${week.week}`}
+                </p>
                 <p className="text-[11px] text-zinc-400">{week.label}</p>
                 <p className="mt-1 text-[10px] text-zinc-600">{days.length} days</p>
               </div>
@@ -145,7 +158,7 @@ export function TutorLedCurriculumExplorer({
             <table className="w-full min-w-[520px] text-left text-xs md:min-w-0">
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                  <th className="px-4 py-3">Week</th>
+                  <th className="px-4 py-3">{liveDayMode ? "Day" : "Week"}</th>
                   <th className="px-4 py-3">Topic</th>
                   <th className="px-4 py-3">Key learning</th>
                   <th className="px-4 py-3 text-right">Days</th>
@@ -156,7 +169,9 @@ export function TutorLedCurriculumExplorer({
                 {weeksWithDays.map(({ week, days }) => (
                   <tr key={week.week} className="border-b border-white/5 transition hover:bg-white/[0.02]">
                     <td className="px-4 py-3.5 align-top">
-                      <span className="font-bold text-[#FFB800]">Week {week.week}</span>
+                      <span className="font-bold text-[#FFB800]">
+                        {liveDayMode ? week.label || `Day ${week.week}` : `Week ${week.week}`}
+                      </span>
                       <p className="mt-0.5 text-[10px] text-zinc-500">{week.label}</p>
                     </td>
                     <td className="px-4 py-3.5 align-top text-zinc-200">{week.topic}</td>
@@ -172,7 +187,13 @@ export function TutorLedCurriculumExplorer({
               </tbody>
             </table>
             <p className="border-t border-white/5 px-4 py-3 text-[10px] text-zinc-600">
-              Switch to <strong className="text-zinc-400">By day</strong> to see each live session (Day 1–5 per week).
+              {liveDayMode
+                ? "Each row is one live Zoom class. Join from the classroom above."
+                : (
+                  <>
+                    Switch to <strong className="text-zinc-400">By day</strong> to see each live session (Day 1–5 per week).
+                  </>
+                )}
             </p>
           </div>
         </div>
@@ -194,9 +215,11 @@ export function TutorLedCurriculumExplorer({
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1 font-semibold text-zinc-100">
-                    Week {week.week}: {week.topic}
+                    {liveDayMode ? `${week.label || `Day ${week.week}`}: ${week.topic}` : `Week ${week.week}: ${week.topic}`}
                   </span>
-                  <span className="shrink-0 text-[10px] text-zinc-500">{days.length} days</span>
+                  {liveDayMode ? null : (
+                    <span className="shrink-0 text-[10px] text-zinc-500">{days.length} days</span>
+                  )}
                   {progress?.label === "Completed" ? (
                     <span className="shrink-0 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
                       Completed
@@ -212,6 +235,8 @@ export function TutorLedCurriculumExplorer({
                   <ul className="mb-3 ml-7 space-y-2 border-l border-white/10 pl-4">
                     {days.map((day) => {
                       const badge = kindBadge[day.kind] ?? kindBadge.recording;
+                      const dayJoin =
+                        day.liveJoinUrl?.trim() || (liveDayMode ? "" : liveJoinUrl?.trim()) || "";
                       return (
                         <li
                           key={day.id}
@@ -240,13 +265,13 @@ export function TutorLedCurriculumExplorer({
                             ) : null}
                             {variant === "learner" && day.kind === "live" ? (
                               <a
-                                href={liveJoinUrl?.trim() || liveJoinAnchor}
-                                {...(liveJoinUrl?.trim()
+                                href={dayJoin || liveJoinAnchor}
+                                {...(dayJoin
                                   ? { target: "_blank", rel: "noopener noreferrer" }
                                   : {})}
                                 className="rounded-lg border border-sky-400/40 bg-sky-500/15 px-3 py-1.5 text-xs font-bold text-sky-200 hover:bg-sky-500/25"
                               >
-                                {liveJoinUrl?.trim() ? "Join on Zoom" : "Join live"}
+                                {dayJoin ? "Join on Zoom" : "Join live"}
                               </a>
                             ) : null}
                             {variant === "marketing" && day.kind === "live" ? (

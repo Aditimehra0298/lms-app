@@ -20,6 +20,11 @@ type Props = {
   discountPercent?: number | null;
   /** Prices already formatted for the learner region */
   exactPriceLabels?: boolean;
+  /** Multi-batch catalog card — replaces a single sale price */
+  priceNote?: string;
+  priceNoteHint?: string;
+  hideKnowPrice?: boolean;
+  buyAllSlugs?: string[];
   className?: string;
   trailing?: ReactNode;
 };
@@ -33,12 +38,17 @@ export default function CourseCardActions({
   oldPriceInr,
   discountPercent,
   exactPriceLabels = false,
+  priceNote,
+  priceNoteHint,
+  hideKnowPrice = false,
+  buyAllSlugs,
   className = "",
   trailing,
 }: Props) {
   const { ready } = useLearnerPricing();
   const hasCatalogPrice = priceLabel != null && priceLabel !== "";
   const hasInrPrice = priceInr != null;
+  const isMultiBatch = Boolean(priceNote?.trim());
 
   return (
     <div
@@ -47,6 +57,13 @@ export default function CourseCardActions({
     >
       {!ready ? (
         <div className="mb-2 h-6 animate-pulse rounded bg-zinc-800/80" aria-hidden />
+      ) : isMultiBatch ? (
+        <div className="mb-2 min-h-[1.75rem]">
+          <p className="text-base font-bold text-amber-400">{priceNote}</p>
+          {priceNoteHint ? (
+            <p className="mt-0.5 text-[11px] text-zinc-500">{priceNoteHint}</p>
+          ) : null}
+        </div>
       ) : hasCatalogPrice || hasInrPrice ? (
         <div className="mb-2 min-h-[1.75rem]">
           {hasInrPrice ? (
@@ -77,7 +94,12 @@ export default function CourseCardActions({
         <p className="mb-2 min-h-[1.75rem] text-xs text-zinc-500">Price on request</p>
       )}
 
-      <PriceDescriptionButtonRow descriptionHref={descriptionHref} />
+      <PriceDescriptionButtonRow
+        descriptionHref={descriptionHref}
+        enrollHref={isMultiBatch ? `${descriptionHref}#food-tutor-led-programs` : undefined}
+        buyAllSlugs={isMultiBatch ? buyAllSlugs : undefined}
+        hideKnowPrice={hideKnowPrice}
+      />
 
       {trailing ? <div className="mt-2 flex justify-end">{trailing}</div> : null}
     </div>

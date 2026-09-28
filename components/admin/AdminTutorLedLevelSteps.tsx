@@ -7,6 +7,9 @@ import { AdminTutorLedFinalAssessmentPanel } from "@/components/admin/AdminTutor
 import { AdminTutorLedPricingPanel } from "@/components/admin/AdminTutorLedPricingPanel";
 import { patchProgramCertificateConfig } from "@/lib/course-certificate-config";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { applyTrainingDays, getCurriculumSessionCount } from "@/lib/tutor-led-training-schedule";
+import { programHasAnySessionZoom } from "@/lib/zoom-meeting";
+import { AdminTutorLedSessionZoomList } from "@/components/admin/AdminTutorLedSessionZoomList";
 
 const field =
   "mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-violet-500/40";
@@ -24,7 +27,7 @@ export function AdminTutorLedLevelSteps({ step, program, onChange }: Props) {
     return (
       <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-6 text-sm text-amber-100">
         Pick a level on the <strong>Levels</strong> step first (Basic, Implementer, Internal, or Lead).
-        Each level has its own Zoom meeting, batch, price, and student list.
+        Each session has its own Zoom link. The final exam is on the Assessment tab.
       </div>
     );
   }
@@ -43,37 +46,23 @@ export function AdminTutorLedLevelSteps({ step, program, onChange }: Props) {
             <h3 className="text-sm font-semibold">Zoom &amp; batch — {program.title}</h3>
           </div>
           <p className="mt-1 text-xs text-sky-100/80">
-            This meeting is only for learners who buy this level on the shared landing page. The other
-            levels keep their own Zoom links and batches.
+            Set training days, then paste a unique Zoom link on each session. After the last live day,
+            learners take the final exam (Assessment tab).
           </p>
         </div>
         <label className="block">
-          <span className="text-[11px] text-gray-500">Zoom join link</span>
+          <span className="text-[11px] text-gray-500">Training days (Zoom classes)</span>
           <input
+            type="number"
+            min={1}
+            max={30}
             className={field}
-            value={program.liveJoinUrl ?? ""}
-            onChange={(e) => onChange({ ...program, liveJoinUrl: e.target.value })}
-            placeholder="https://zoom.us/j/…"
+            value={program.trainingDays ?? getCurriculumSessionCount(program)}
+            onChange={(e) => onChange(applyTrainingDays(program, Number(e.target.value) || 1))}
           />
         </label>
+        <AdminTutorLedSessionZoomList program={program} onChange={onChange} />
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-[11px] text-gray-500">Meeting ID</span>
-            <input
-              className={field}
-              value={program.zoomMeetingId ?? ""}
-              onChange={(e) => onChange({ ...program, zoomMeetingId: e.target.value })}
-              placeholder="123 456 7890"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[11px] text-gray-500">Passcode</span>
-            <input
-              className={field}
-              value={program.zoomPasscode ?? ""}
-              onChange={(e) => onChange({ ...program, zoomPasscode: e.target.value })}
-            />
-          </label>
           <label className="block">
             <span className="text-[11px] text-gray-500">Next batch date</span>
             <input
@@ -98,7 +87,7 @@ export function AdminTutorLedLevelSteps({ step, program, onChange }: Props) {
               className={field}
               value={program.batchLabel}
               onChange={(e) => onChange({ ...program, batchLabel: e.target.value })}
-              placeholder="Basic Foundation Batch"
+              placeholder="Awareness Batch"
             />
           </label>
           <label className="block">
@@ -113,7 +102,7 @@ export function AdminTutorLedLevelSteps({ step, program, onChange }: Props) {
         </div>
         <p className="text-[11px] text-gray-500">
           Slug <span className="font-mono text-gray-300">{program.slug}</span>
-          {program.liveJoinUrl?.trim() ? " · Zoom link saved" : " · add a Zoom link before the batch starts"}
+          {programHasAnySessionZoom(program) ? " · Zoom links saved" : " · paste a unique Zoom link on each training day"}
         </p>
       </div>
     );

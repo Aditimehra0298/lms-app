@@ -1,5 +1,6 @@
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { defaultTutorLedPrograms } from "@/lib/default-tutor-led-programs";
+import { formatTrainingDuration } from "@/lib/tutor-led-training-schedule";
 
 /** Catalog card id → live Zoom program slug (4 ISO 22000 levels). */
 export const ISO_22000_PROGRAM_SLUGS = {
@@ -20,44 +21,20 @@ const SHARED_TRAINER: TutorLedProgramStored["trainer"] = {
   workedWith: ["Food manufacturing", "QSR / food service", "Export units"],
 };
 
-function baseCurriculum(level: string): TutorLedProgramStored["curriculum"] {
-  return [
-    {
-      week: 1,
-      label: "Day 1",
-      topic: `${level} — Foundations`,
-      keyLearning: "Core FSMS concepts and ISO 22000:2018 overview",
-      sessionType: "Live Zoom",
-    },
-    {
-      week: 2,
-      label: "Day 2",
-      topic: `${level} — Requirements`,
-      keyLearning: "Clause walkthrough and documentation expectations",
-      sessionType: "Live Zoom",
-    },
-    {
-      week: 3,
-      label: "Day 3",
-      topic: `${level} — Practice`,
-      keyLearning: "Case studies and practical exercises",
-      sessionType: "Live Zoom",
-    },
-    {
-      week: 4,
-      label: "Day 4",
-      topic: `${level} — Application`,
-      keyLearning: "Workshops and evidence techniques",
-      sessionType: "Live Zoom",
-    },
-    {
-      week: 5,
-      label: "Day 5",
-      topic: `${level} — Assessment & wrap-up`,
-      keyLearning: "Review, Q&A, and certificate pathway",
-      sessionType: "Live Zoom",
-    },
-  ];
+function baseCurriculum(level: string, days: number): TutorLedProgramStored["curriculum"] {
+  return Array.from({ length: days }, (_, index) => ({
+    week: index + 1,
+    label: `Day ${index + 1}`,
+    topic:
+      days === 1
+        ? `${level} — Live Zoom class`
+        : `${level} — Day ${index + 1}`,
+    keyLearning: `Live Zoom class ${index + 1} of ${days}`,
+    sessionType: "Live Zoom",
+    liveJoinUrl: "",
+    zoomMeetingId: "",
+    zoomPasscode: "",
+  }));
 }
 
 function makeIsoProgram(opts: {
@@ -68,8 +45,12 @@ function makeIsoProgram(opts: {
   originalPrice: number;
   badge: string;
   batchLabel: string;
+  heroSrc: string;
+  trainingDays?: number;
 }): TutorLedProgramStored {
   const template = defaultTutorLedPrograms[0];
+  const trainingDays = opts.trainingDays ?? 5;
+  const duration = formatTrainingDuration(trainingDays);
   return {
     ...JSON.parse(JSON.stringify(template)) as TutorLedProgramStored,
     slug: opts.slug,
@@ -91,8 +72,10 @@ function makeIsoProgram(opts: {
     nextBatchDate: "",
     schedule: "Mon–Fri (10:00 AM – 5:00 PM IST)",
     language: "English",
+    trainingDays,
+    durationSource: "curriculum",
     batchDetails: [
-      { icon: "Clock", label: "Duration", value: "5 Days" },
+      { icon: "Clock", label: "Duration", value: duration },
       { icon: "Monitor", label: "Mode", value: "Live on Zoom" },
       { icon: "GraduationCap", label: "Certificate", value: "Included" },
     ],
@@ -102,11 +85,11 @@ function makeIsoProgram(opts: {
       { icon: "FileText", title: "Materials", desc: "Notes, PPT and workbook downloads" },
     ],
     highlights: [
-      "Dedicated Zoom classroom for this program level",
-      "Batch-wise enrollment and student roster",
+      "Unique Zoom meeting for every training day",
+      "Final exam after the last live session",
       "Certificate issued for this program batch",
     ],
-    curriculum: baseCurriculum(opts.title),
+    curriculum: baseCurriculum(opts.title, trainingDays),
     whyChoose: [
       { icon: "Video", title: "Live instructor-led", desc: "Ask questions in real time on Zoom" },
       { icon: "Award", title: "Recognized certificate", desc: "Issued after batch completion" },
@@ -115,11 +98,11 @@ function makeIsoProgram(opts: {
     faqs: [
       {
         q: "Will I get a Zoom link?",
-        a: "Yes. After enrollment, your Zoom join link for this program appears on your My Learning dashboard.",
+        a: "Yes. Each training day has a different Zoom meeting — not one shared link. After enrollment, Day 1, Day 2, … join buttons appear on your dashboard. After the last live day you take the final exam.",
       },
       {
-        q: "Is the certificate tied to this batch?",
-        a: "Yes. Certificates are issued for this program level / batch after you complete the live training requirements.",
+        q: "Is there an exam?",
+        a: "Yes. After the last live Zoom day, the final exam unlocks on your enrolled dashboard. Complete it to earn the certificate for this batch.",
       },
     ],
     liveJoinUrl: "",
@@ -127,9 +110,9 @@ function makeIsoProgram(opts: {
     zoomPasscode: "",
     zoomLinkMode: "manual",
     learningMaterials: [],
-    heroSrc: "/tutor-led-iso-hero.png",
+    heroSrc: opts.heroSrc,
     heroAlt: opts.title,
-    learnerHeroSrc: "/tutor-led-iso-hero.png",
+    learnerHeroSrc: opts.heroSrc,
   };
 }
 
@@ -137,21 +120,23 @@ function makeIsoProgram(opts: {
 export const ISO_22000_TUTOR_LED_TEMPLATES: TutorLedProgramStored[] = [
   makeIsoProgram({
     slug: ISO_22000_PROGRAM_SLUGS.basic,
-    title: "ISO 22000:2018 Basic (Foundation)",
+    title: "ISO 22000:2018 Awareness",
     tagline: "Learn Food Safety Fundamentals",
     price: 9999,
     originalPrice: 14999,
-    badge: "BASIC",
-    batchLabel: "Basic Foundation Batch",
+    badge: "AWARENESS",
+    batchLabel: "Awareness Batch",
+    heroSrc: "/iso-22000-awareness.png",
   }),
   makeIsoProgram({
     slug: ISO_22000_PROGRAM_SLUGS.implementation,
-    title: "ISO 22000:2018 Implementation",
+    title: "ISO 22000:2018 Implementator",
     tagline: "Implement Food Safety Systems",
     price: 14999,
     originalPrice: 21999,
-    badge: "IMPLEMENTATION",
-    batchLabel: "Implementation Batch",
+    badge: "IMPLEMENTATOR",
+    batchLabel: "Implementator Batch",
+    heroSrc: "/iso-22000-implementator.png",
   }),
   makeIsoProgram({
     slug: ISO_22000_PROGRAM_SLUGS["internal-auditor"],
@@ -161,6 +146,7 @@ export const ISO_22000_TUTOR_LED_TEMPLATES: TutorLedProgramStored[] = [
     originalPrice: 27999,
     badge: "INTERNAL AUDITOR",
     batchLabel: "Internal Auditor Batch",
+    heroSrc: "/iso-22000-internal-auditor.png",
   }),
   makeIsoProgram({
     slug: ISO_22000_PROGRAM_SLUGS["lead-auditor"],
@@ -170,6 +156,7 @@ export const ISO_22000_TUTOR_LED_TEMPLATES: TutorLedProgramStored[] = [
     originalPrice: 39999,
     badge: "LEAD AUDITOR",
     batchLabel: "Lead Auditor Batch",
+    heroSrc: "/iso-22000-lead-auditor.png",
   }),
 ];
 

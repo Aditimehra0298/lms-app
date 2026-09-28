@@ -59,6 +59,10 @@ export type TutorLedProgramStored = {
     topic: string;
     keyLearning: string;
     sessionType: string;
+    /** Unique Zoom join URL for this session (not shared with other days). */
+    liveJoinUrl?: string;
+    zoomMeetingId?: string;
+    zoomPasscode?: string;
   }[];
   whyChoose: { icon: string; title: string; desc: string }[];
   faqs: { q: string; a: string }[];
@@ -71,7 +75,7 @@ export type TutorLedProgramStored = {
   /** Gold shield background on enrolled learner hero card. */
   learnerHeroBgSrc?: string;
   learnerHeroBgAlt?: string;
-  /** Full Zoom join link (from Zoom → Meetings → copy invitation). */
+  /** Legacy fallback Zoom for older programs that still use one meeting for every day. */
   liveJoinUrl?: string;
   /** Optional — auto-filled when you paste a Zoom link; or enter PMI / meeting ID manually. */
   zoomMeetingId?: string;
@@ -91,6 +95,8 @@ export type TutorLedProgramStored = {
   learnerSection?: TutorLedLearnerSection;
   /** `curriculum` (default) = duration & journey follow module count; `manual` = batchDetails Duration row. */
   durationSource?: "curriculum" | "manual";
+  /** Intensive Zoom programs: 1 = one-day class, 5 = five live days. Dashboard and curriculum follow this. */
+  trainingDays?: number;
   /** Catalog category slug (e.g. food-safety) so the program appears on that category page. */
   category?: string;
   /** Same certificate / badge / transcript uploads as self-paced courses (Admin → Certificate tab). */
@@ -224,7 +230,7 @@ export const defaultTutorLedPrograms: TutorLedProgramStored[] = [
         a: "Classes run on Zoom with screen share, live Q&A, polls, and breakout activities.",
       },
     ],
-    heroSrc: "/h1.png",
+    heroSrc: "/tutor-led-cyber-professional.png",
     heroAlt: "Live interactive sessions with expert trainer",
     learnerHeroSrc: "/h2.png",
     learnerHeroAlt: "Your live cohort dashboard",

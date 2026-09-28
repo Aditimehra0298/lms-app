@@ -7,6 +7,7 @@
  */
 import {
   hasViewedCourseLanding,
+  markCourseLandingViewed,
   tutorLedLandingHref,
 } from "@/lib/course-landing";
 import { liveTutorCourseHref, resolveTutorLedSlug, tutorLedTemplatePath } from "@/lib/tutor-led-routes";
@@ -15,8 +16,32 @@ export type AppPush = { push: (href: string) => void };
 
 export const tutorLedProgramPath = tutorLedTemplatePath;
 
+export function parseBuyNowSlugs(raw: string | null | undefined): string[] {
+  if (!raw?.trim()) return [];
+  const out: string[] = [];
+  for (const part of raw.split(",")) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    try {
+      const decoded = decodeURIComponent(trimmed).trim();
+      if (decoded) out.push(decoded);
+    } catch {
+      out.push(trimmed);
+    }
+  }
+  return [...new Set(out)];
+}
+
 export const checkoutBuyNowPath = (slug: string) =>
   `/checkout?buyNow=${encodeURIComponent(resolveTutorLedSlug(slug))}`;
+
+/** Checkout every live batch in one cart (2+ items already get the bundle discount). */
+export function checkoutBuyNowBundlePath(slugs: string[]): string {
+  const list = [...new Set(slugs.map((s) => resolveTutorLedSlug(s)).filter(Boolean))];
+  if (list.length === 0) return "/checkout";
+  if (list.length === 1) return checkoutBuyNowPath(list[0]);
+  return `/checkout?buyNow=${list.map((s) => encodeURIComponent(s)).join(",")}`;
+}
 
 function isLoggedInLearner() {
   return typeof window !== "undefined" && window.localStorage.getItem("sft_logged_in") === "true";
@@ -39,6 +64,24 @@ export function registerTutorLedFromTemplate(router: AppPush, slug: string) {
     return;
   }
   const checkout = checkoutBuyNowPath(resolved);
+  if (!isLoggedInLearner()) {
+    router.push(`/account?mode=login&redirect=${encodeURIComponent(checkout)}`);
+    return;
+  }
+  router.push(checkout);
+}
+
+/** Enroll in every catalog batch in a single checkout. */
+export function registerTutorLedBundle(router: AppPush, slugs: string[]) {
+  if (typeof window === "undefined") return;
+  const list = [...new Set(slugs.map((s) => s.trim()).filter(Boolean))];
+  if (list.length === 0) return;
+  if (list.length === 1) {
+    registerTutorLedFromTemplate(router, list[0]);
+    return;
+  }
+  for (const slug of list) markCourseLandingViewed(slug);
+  const checkout = checkoutBuyNowBundlePath(list);
   if (!isLoggedInLearner()) {
     router.push(`/account?mode=login&redirect=${encodeURIComponent(checkout)}`);
     return;

@@ -7,6 +7,7 @@ import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { TutorLedCurriculumExplorer } from "@/components/TutorLedCurriculumExplorer";
 import { CoursePlayerFeedbackSection } from "@/components/CoursePlayerFeedbackSection";
 import { TutorLedLearningToolsPanel } from "@/components/TutorLedLearningToolsPanel";
+import { TutorLedLiveZoomPanel } from "@/components/TutorLedLiveZoomPanel";
 import { TUTOR_LED_CLASSROOM_IMAGE_SRC } from "@/lib/tutor-led-marketing-assets";
 import {
   tlCard,
@@ -15,10 +16,8 @@ import {
   tlGoldSolid,
   tlGreenBadge,
 } from "@/lib/tutor-led-learner-theme";
-import {
-  resolveLearnerSection,
-  type TutorLedLearnerResourceTileType,
-} from "@/lib/tutor-led-learner-section";
+import { resolveLearnerSection, type TutorLedLearnerResourceTileType } from "@/lib/tutor-led-learner-section";
+import { formatTrainingDuration, getCurriculumSessionCount } from "@/lib/tutor-led-training-schedule";
 import { tutorLedIcon } from "@/lib/tutor-led-program-map";
 import {
   Award,
@@ -26,12 +25,10 @@ import {
   CheckCircle2,
   Download,
   FileText,
-  Hand,
   Headphones,
   HelpCircle,
   Link2,
   Lock,
-  MessageSquare,
   Play,
   Presentation,
   Star,
@@ -74,14 +71,6 @@ const RESOURCE_TILE_STYLES: Record<
   links: { bg: "bg-sky-500/20", border: "border-sky-500/40", iconColor: "text-sky-400", icon: Link2 },
 };
 
-async function copyText(text: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    /* ignore */
-  }
-}
-
 export function TutorLedLearnerHubSections({
   program,
   nextSessionTitle,
@@ -93,7 +82,6 @@ export function TutorLedLearnerHubSections({
   examUnlocked,
 }: Props) {
   const [forumTab, setForumTab] = useState<"recent" | "unanswered">("recent");
-  const [copied, setCopied] = useState(false);
   const section = useMemo(() => resolveLearnerSection(program), [program]);
 
   const lastRecording = sessionRecordings[sessionRecordings.length - 1] ?? sessionRecordings[0];
@@ -114,110 +102,54 @@ export function TutorLedLearnerHubSections({
 
   return (
     <div className="mt-4 space-y-4 pb-24">
-      {/* Live classroom + quick links */}
-      <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
-        <article id="zoom-live" className={`${tlCard} relative scroll-mt-24 border-[#2D8CFF]/25`}>
-          {section.showLiveNowBadge ? (
-            <span className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-red-500/50 bg-red-500/20 px-2.5 py-1 text-[10px] font-bold uppercase text-red-300 shadow-[0_0_12px_rgba(239,68,68,0.3)]">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" aria-hidden />
-              Live now
-            </span>
-          ) : null}
-          <h2 className="text-lg font-bold text-white">{section.liveClassroomTitle}</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr]">
-            <div className="rounded-xl border border-[#2D8CFF]/30 bg-[#0a1628]/90 p-4">
-              <div className="flex items-center gap-2">
-                <span className="rounded-md bg-[#2D8CFF] px-2 py-0.5 text-[10px] font-bold text-white shadow-[0_0_10px_rgba(45,140,255,0.4)]">zoom</span>
-                <span className="text-xs font-semibold text-sky-200">Live Zoom session</span>
-              </div>
-              {zoomJoinUrl ? (
-                <a href={zoomJoinUrl} target="_blank" rel="noopener noreferrer" className={`${tlGoldSolid} mt-4 w-full`}>
-                  <Video className="h-4 w-4" aria-hidden />
-                  Join now
-                </a>
-              ) : (
-                <div className="mt-4 rounded-lg border border-dashed border-amber-500/30 bg-amber-500/10 px-3 py-3 text-center">
-                  <p className="text-xs font-semibold text-amber-100">Zoom link not set yet</p>
-                  <p className="mt-1 text-[10px] text-zinc-400">
-                    Your trainer will publish the join link for this batch in Admin → Tutor Led / Batches.
-                  </p>
-                </div>
-              )}
-              {(program.zoomMeetingId?.trim() || program.zoomPasscode?.trim()) && zoomJoinUrl ? (
-                <dl className="mt-3 space-y-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-[11px]">
-                  {program.zoomMeetingId?.trim() ? (
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-zinc-500">Meeting ID</dt>
-                      <dd className="font-mono font-semibold text-sky-200">{program.zoomMeetingId}</dd>
-                    </div>
-                  ) : null}
-                  {program.zoomPasscode?.trim() ? (
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-zinc-500">Passcode</dt>
-                      <dd className="font-mono font-semibold text-sky-200">{program.zoomPasscode}</dd>
-                    </div>
-                  ) : null}
-                </dl>
-              ) : null}
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {[
-                  { icon: Link2, label: "Meeting link", action: () => zoomJoinUrl && void copyText(zoomJoinUrl).then(() => setCopied(true)) },
-                  { icon: MessageSquare, label: "Chat", href: zoomJoinUrl ?? "#zoom-live" },
-                  { icon: Hand, label: "Raise hand", href: zoomJoinUrl ?? "#zoom-live" },
-                  { icon: HelpCircle, label: "Q&A", href: "/my-learning?tab=community" },
-                ].map((item) =>
-                  item.action ? (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={item.action}
-                      className="flex flex-col items-center gap-1 rounded-lg border border-white/10 bg-black/30 px-2 py-2.5 text-[10px] text-zinc-400 hover:border-[#FFC107]/30"
-                    >
-                      <item.icon className="h-4 w-4 text-[#FFC107]" aria-hidden />
-                      {copied && item.label === "Meeting link" ? "Copied!" : item.label}
-                    </button>
-                  ) : (
-                    <Link
-                      key={item.label}
-                      href={item.href!}
-                      className="flex flex-col items-center gap-1 rounded-lg border border-white/10 bg-black/30 px-2 py-2.5 text-[10px] text-zinc-400 hover:border-[#FFC107]/30"
-                    >
-                      <item.icon className="h-4 w-4 text-[#FFC107]" aria-hidden />
-                      {item.label}
-                    </Link>
-                  ),
-                )}
-              </div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/30 p-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">Session details</p>
-              <dl className="mt-3 space-y-2 text-sm">
-                <div>
-                  <dt className="text-zinc-500">Topic</dt>
-                  <dd className="font-medium text-white">{nextSessionTitle}</dd>
-                </div>
-                <div>
-                  <dt className="text-zinc-500">Time</dt>
-                  <dd className="text-zinc-300">{program.schedule}</dd>
-                </div>
-                <div>
-                  <dt className="text-zinc-500">Trainer</dt>
-                  <dd className="text-zinc-300">{program.trainer.name}</dd>
-                </div>
-                <div>
-                  <dt className="text-zinc-500">Participants</dt>
-                  <dd className="inline-flex items-center gap-1 text-zinc-300">
-                    <Users className="h-3.5 w-3.5" aria-hidden />
-                    Cohort enrolled
-                  </dd>
-                </div>
-              </dl>
-              <Link href="#live-curriculum" className={`${tlGoldOutline} mt-4 w-full text-xs`}>
-                View session agenda
-              </Link>
-            </div>
+      {/* Live Zoom classroom + session details / quick links */}
+      <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          <div className="relative scroll-mt-24">
+            {section.showLiveNowBadge ? (
+              <span className="absolute right-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-red-500/50 bg-red-500/20 px-2.5 py-1 text-[10px] font-bold uppercase text-red-300 shadow-[0_0_12px_rgba(239,68,68,0.3)]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" aria-hidden />
+                Live now
+              </span>
+            ) : null}
+            <TutorLedLiveZoomPanel
+              program={program}
+              currentDay={completedSessions + 1}
+              examUnlocked={examUnlocked}
+            />
           </div>
-        </article>
+          <article className={tlCard}>
+            <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">Session details</p>
+            <dl className="mt-3 grid gap-3 sm:grid-cols-2 text-sm">
+              <div>
+                <dt className="text-zinc-500">Topic</dt>
+                <dd className="font-medium text-white">{nextSessionTitle}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-500">Duration</dt>
+                <dd className="text-zinc-300">{formatTrainingDuration(getCurriculumSessionCount(program))}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-500">Time</dt>
+                <dd className="text-zinc-300">{program.schedule || "Set after batch is scheduled"}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-500">Trainer</dt>
+                <dd className="text-zinc-300">{program.trainer.name}</dd>
+              </div>
+              <div>
+                <dt className="text-zinc-500">Participants</dt>
+                <dd className="inline-flex items-center gap-1 text-zinc-300">
+                  <Users className="h-3.5 w-3.5" aria-hidden />
+                  Cohort enrolled
+                </dd>
+              </div>
+            </dl>
+            <Link href="#live-curriculum" className={`${tlGoldOutline} mt-4 w-full text-xs`}>
+              View session agenda
+            </Link>
+          </article>
+        </div>
 
         <aside className={`${tlCard} flex flex-col gap-2`}>
           <h2 className="text-lg font-bold text-white">{section.quickLinksTitle}</h2>

@@ -191,6 +191,7 @@ export default function CourseLearningPlayerPage() {
     () => isCoursePurchased(slug),
     () => false,
   );
+  const [previewEnrolled, setPreviewEnrolled] = useState(false);
   const [combinedExamPercent, setCombinedExamPercent] = useState<number | null>(null);
   const [allExamsPassed, setAllExamsPassed] = useState(false);
   const [examMarksSummary, setExamMarksSummary] = useState<{ correct: number; total: number } | null>(null);
@@ -258,6 +259,14 @@ export default function CourseLearningPlayerPage() {
   }, [paramSlug, slug, router]);
 
   useEffect(() => {
+    try {
+      setPreviewEnrolled(new URLSearchParams(window.location.search).get("preview") === "1");
+    } catch {
+      setPreviewEnrolled(false);
+    }
+  }, [slug]);
+
+  useEffect(() => {
     const email = getLearnerEmail()?.trim();
     if (!email) return;
     void syncEnrollmentsFromServer(email);
@@ -322,25 +331,34 @@ export default function CourseLearningPlayerPage() {
   useEffect(() => {
     let cancelled = false;
 
-    let isTutorLedPurchase = false;
-    let purchasedThisSlug = false;
+    let isTutorLedPurchase = previewEnrolled;
+    let purchasedThisSlug = previewEnrolled || isPurchased;
     try {
       const raw = window.localStorage.getItem("sft_purchased_courses");
       const parsed = raw ? (JSON.parse(raw) as Array<{ slug?: string; deliveryKind?: string }>) : [];
       if (Array.isArray(parsed)) {
         const row = parsed.find((c) => (c.slug ?? "").trim() === slug);
-        purchasedThisSlug = !!row;
+        purchasedThisSlug = previewEnrolled || !!row || isPurchased;
         isTutorLedPurchase =
-          row?.deliveryKind === "tutor-led" || row?.deliveryKind === "workshop";
+          previewEnrolled ||
+          row?.deliveryKind === "tutor-led" ||
+          row?.deliveryKind === "workshop";
       }
     } catch {
-      isTutorLedPurchase = false;
-      purchasedThisSlug = false;
+      isTutorLedPurchase = previewEnrolled;
+      purchasedThisSlug = previewEnrolled || isPurchased;
     }
 
     const applyPrograms = (programs: TutorLedProgramStored[]) => {
       if (cancelled) return;
-      setTutorLedResolved(resolveTutorLedHit(programs, slug, purchasedThisSlug, isTutorLedPurchase));
+      const inLiveCatalog = programs.some((p) => p.slug === slug);
+      const livePurchase =
+        previewEnrolled ||
+        isTutorLedPurchase ||
+        ((purchasedThisSlug || isPurchased) && inLiveCatalog);
+      setTutorLedResolved(
+        resolveTutorLedHit(programs, slug, purchasedThisSlug || previewEnrolled, livePurchase),
+      );
     };
 
     void (async () => {
@@ -375,7 +393,7 @@ export default function CourseLearningPlayerPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, isPurchased, previewEnrolled]);
 
   useEffect(() => {
     const load = () => {
@@ -919,7 +937,7 @@ export default function CourseLearningPlayerPage() {
   };
 
   if (tutorLedResolved) {
-    if (!isPurchased) {
+    if (!isPurchased && !previewEnrolled) {
       return (
         <div className="my-learning-course-player">
           <main className="mx-auto max-w-[1760px] px-4 py-8 md:px-6 xl:px-8">

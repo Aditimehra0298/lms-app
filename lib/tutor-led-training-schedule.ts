@@ -2,11 +2,93 @@ import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 
 export type TutorLedDurationSource = "curriculum" | "manual";
 
-/** Live sessions / journey steps — one per curriculum module. */
+export const MIN_TRAINING_DAYS = 1;
+export const MAX_TRAINING_DAYS = 30;
+
+export function clampTrainingDays(raw: number): number {
+  const n = Math.round(Number(raw));
+  if (!Number.isFinite(n)) return MIN_TRAINING_DAYS;
+  return Math.min(MAX_TRAINING_DAYS, Math.max(MIN_TRAINING_DAYS, n));
+}
+
+/** Parse “Duration: 2 Days” / “5 Days” from marketing labels. */
+export function parseTrainingDaysLabel(raw: string | undefined | null): number | null {
+  const text = raw?.trim() ?? "";
+  if (!text) return null;
+  if (/\bweek/i.test(text)) return null;
+  const match = text.match(/(\d+)\s*(?:day|days|d)\b/i);
+  if (!match) return null;
+  return clampTrainingDays(Number(match[1]));
+}
+
+export function catalogDurationLabel(days: number): string {
+  return `Duration: ${formatTrainingDuration(days)}`;
+}
+
+/** True when this program is a short live Zoom course (Day 1…N), not a multi-week syllabus. */
+export function isLiveDayCurriculum(
+  program: Pick<TutorLedProgramStored, "curriculum" | "trainingDays">,
+): boolean {
+  if (typeof program.trainingDays === "number" && program.trainingDays >= 1) return true;
+  const rows = program.curriculum ?? [];
+  return rows.length > 0 && rows.every((week) => /^day\s*\d+/i.test((week.label ?? "").trim()));
+}
+
+/** Live sessions / journey steps — trainingDays when set, otherwise one per curriculum module. */
 export function getCurriculumSessionCount(
-  program: Pick<TutorLedProgramStored, "curriculum">,
+  program: Pick<TutorLedProgramStored, "curriculum" | "trainingDays">,
 ): number {
+  if (typeof program.trainingDays === "number" && program.trainingDays >= 1) {
+    return clampTrainingDays(program.trainingDays);
+  }
   return Math.max(1, program.curriculum?.length ?? 0);
+}
+
+/** Resize Zoom days. Each new day starts with an empty Zoom link (sessions do not share a meeting). */
+export function applyTrainingDays(
+  program: TutorLedProgramStored,
+  daysRaw: number,
+): TutorLedProgramStored {
+  const days = clampTrainingDays(daysRaw);
+  const previous = program.curriculum ?? [];
+  const curriculum = Array.from({ length: days }, (_, index) => {
+    const existing = previous[index];
+    if (existing) {
+      return {
+        ...existing,
+        week: index + 1,
+        label: /^day\s*\d+/i.test((existing.label ?? "").trim())
+          ? `Day ${index + 1}`
+          : existing.label || `Day ${index + 1}`,
+        sessionType: existing.sessionType?.trim() || "Live Zoom",
+      };
+    }
+    return {
+      week: index + 1,
+      label: `Day ${index + 1}`,
+      topic: days === 1 ? program.title : `${program.title} — Day ${index + 1}`,
+      keyLearning: `Live Zoom class ${index + 1} of ${days}`,
+      sessionType: "Live Zoom",
+      liveJoinUrl: "",
+      zoomMeetingId: "",
+      zoomPasscode: "",
+    };
+  });
+  const duration = formatTrainingDuration(days);
+  const batchDetails = [...(program.batchDetails ?? [])];
+  const durationIdx = batchDetails.findIndex((row) => row.label === "Duration");
+  if (durationIdx >= 0) {
+    batchDetails[durationIdx] = { ...batchDetails[durationIdx], value: duration };
+  } else {
+    batchDetails.unshift({ icon: "Clock", label: "Duration", value: duration });
+  }
+  return {
+    ...program,
+    trainingDays: days,
+    curriculum,
+    durationSource: "curriculum",
+    batchDetails,
+  };
 }
 
 /** Human-readable training length from session count (intensive = days). */
@@ -26,7 +108,7 @@ export function getDurationSource(
 
 /** Duration label for marketing + learner hub. */
 export function resolveTrainingDuration(
-  program: Pick<TutorLedProgramStored, "curriculum" | "batchDetails" | "durationSource">,
+  program: Pick<TutorLedProgramStored, "curriculum" | "batchDetails" | "durationSource" | "trainingDays">,
 ): string {
   const manual = program.batchDetails?.find((d) => d.label === "Duration")?.value?.trim();
   if (getDurationSource(program) === "manual" && manual) return manual;

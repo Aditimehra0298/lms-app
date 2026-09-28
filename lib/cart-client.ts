@@ -1,3 +1,5 @@
+import { multiItemBundleRate } from "@/lib/checkout-totals";
+
 /** Client cart helpers (`localStorage` key `sft_cart`). */
 
 export const CART_STORAGE_KEY = "sft_cart";
@@ -30,7 +32,7 @@ export function parseCartPrice(value: string): number {
 
 export function cartTotals(items: CartLineItem[]) {
   const subtotal = items.reduce((sum, item) => sum + parseCartPrice(item.price) * item.qty, 0);
-  const discount = items.length >= 2 ? subtotal * 0.1 : 0;
+  const discount = subtotal * multiItemBundleRate(items.length);
   const total = subtotal - discount;
   return { subtotal, discount, total, itemCount: items.length };
 }
