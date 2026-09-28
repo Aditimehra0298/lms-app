@@ -6,6 +6,15 @@ import { applyAdminCsrfToXhr } from "@/lib/admin-csrf-client";
 import AdminExamImageOptionsBuilder from "@/components/admin/AdminExamImageOptionsBuilder";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import type { TutorLedLearnerSection } from "@/lib/tutor-led-learner-section";
+import {
+  formatTutorLedBatchLabel,
+  getActiveTutorLedBatch,
+  getTutorLedBatchById,
+  listTutorLedBatches,
+  patchTutorLedBatchExam,
+  startNewTutorLedBatch,
+  syncProgramBatchFromSchedule,
+} from "@/lib/tutor-led-batches";
 
 const EXAM_FILE_ACCEPT =
   ".pdf,.doc,.docx,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,application/csv";
@@ -41,7 +50,23 @@ function uploadExamFile(file: File, courseSlug?: string): Promise<string> {
 }
 
 export function AdminTutorLedFinalAssessmentPanel({ draft, setDraft }: Props) {
-  const ls = draft.learnerSection ?? {};
+  const synced = syncProgramBatchFromSchedule(draft);
+  const batches = listTutorLedBatches(synced);
+  const active = getActiveTutorLedBatch(synced);
+  const [batchId, setBatchId] = useState(active?.id ?? "");
+  const [newLabel, setNewLabel] = useState("");
+  const [newDate, setNewDate] = useState("");
+  const currentId = batchId || active?.id || "";
+  const currentBatch = getTutorLedBatchById(synced, currentId);
+  const ls = {
+    ...(draft.learnerSection ?? {}),
+    examUploadUrl: currentBatch?.examUploadUrl ?? draft.learnerSection?.examUploadUrl,
+    finalExamTitle: currentBatch?.examTitle ?? draft.learnerSection?.finalExamTitle,
+    examMinutes: currentBatch?.examMinutes ?? draft.learnerSection?.examMinutes,
+    examPassingScore: currentBatch?.examPassingScore ?? draft.learnerSection?.examPassingScore,
+    examTimed: currentBatch?.examTimed ?? draft.learnerSection?.examTimed,
+    examQuestions: currentBatch?.examQuestions ?? draft.learnerSection?.examQuestions,
+  };
   const [examSource, setExamSource] = useState<"upload" | "url">(
     ls.examUploadUrl?.trim() ? "url" : "upload",
   );
@@ -49,7 +74,21 @@ export function AdminTutorLedFinalAssessmentPanel({ draft, setDraft }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const patch = (next: Partial<TutorLedLearnerSection>) => {
-    setDraft({ ...draft, learnerSection: { ...ls, ...next } });
+    const merged = { ...ls, ...next };
+    setDraft(
+      patchTutorLedBatchExam(
+        { ...draft, learnerSection: merged },
+        currentId,
+        {
+          examUploadUrl: merged.examUploadUrl,
+          examTitle: merged.finalExamTitle,
+          examMinutes: merged.examMinutes,
+          examPassingScore: merged.examPassingScore,
+          examTimed: merged.examTimed,
+          examQuestions: merged.examQuestions,
+        },
+      ),
+    );
   };
 
   const timed = ls.examTimed !== false;
@@ -62,9 +101,62 @@ export function AdminTutorLedFinalAssessmentPanel({ draft, setDraft }: Props) {
           <h3 className="text-sm font-semibold">Final assessment</h3>
         </div>
         <p className="mt-1 text-xs text-amber-100/80">
-          Same controls as a self-paced module exam: timer, passing score, and CSV / PDF paper.
-          Learners open it from My Learning after the live days are complete. Save the program to keep this.
+          Each live batch has its own exam paper. Students stay on the exam for the batch they enrolled in.
+          Save the program after you upload.
         </p>
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-sky-500/25 bg-sky-500/10 p-4">
+        <p className="text-xs font-semibold text-sky-100">Which batch is this exam for?</p>
+        <select
+          className={field}
+          value={currentId}
+          onChange={(e) => setBatchId(e.target.value)}
+        >
+          {batches.length === 0 ? <option value="">Current batch</option> : null}
+          {batches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {formatTutorLedBatchLabel(b)} {b.status === "active" ? "(current enrollments)" : "(closed — keep student records)"}
+            </option>
+          ))}
+        </select>
+        <p className="text-[11px] text-sky-100/80">
+          Closed batches keep their students and their exam. Start a new batch when the next cohort begins — do not
+          overwrite the old paper.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+          <input
+            className={field}
+            placeholder="New batch name"
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+          />
+          <input
+            className={field}
+            placeholder="Start date (12 Oct 2026)"
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
+          />
+          <button
+            type="button"
+            className="rounded-lg border border-sky-400/40 bg-sky-500/20 px-3 py-2 text-[11px] font-semibold text-sky-100 hover:bg-sky-500/30"
+            onClick={() => {
+              const next = startNewTutorLedBatch(draft, {
+                label: newLabel || `${draft.batchLabel || "Live batch"}`,
+                date: newDate,
+                schedule: draft.schedule,
+              });
+              setDraft(next);
+              const opened = getActiveTutorLedBatch(next);
+              setBatchId(opened?.id ?? "");
+              setNewLabel("");
+              setNewDate("");
+              setExamSource("upload");
+            }}
+          >
+            Start new batch
+          </button>
+        </div>
       </div>
 
       <label className="block">

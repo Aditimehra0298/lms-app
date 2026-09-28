@@ -123,7 +123,7 @@ export function AdminTutorLedLevelSteps({ step, program, onChange }: Props) {
         workspaceCourseSlug={program.slug}
         canEdit
         onGoCourseInfo={() => undefined}
-        batchContext={`${program.batchLabel || "Batch"} · ${program.nextBatchDate || "set batch date"} · Zoom is unique to this level.`}
+        batchContext={`${program.batchLabel || "Batch"} · ${program.nextBatchDate || "set batch date"}. Roster lists every cohort. Filter by batch. Each batch has its own exam (Assessment tab).`}
       />
     );
   }

@@ -33,6 +33,9 @@ type MysqlStudentRow = {
   certificateMode: "auto" | "manual-needed";
   certificateVisible: boolean;
   amountPaidLabel: string;
+  batchKey?: string | null;
+  batchLabel?: string | null;
+  batchDate?: string | null;
 };
 
 export default function AdminCourseStudentsPanel({
@@ -48,7 +51,7 @@ export default function AdminCourseStudentsPanel({
   const [dbError, setDbError] = useState<string | null>(null);
   const [rowBusyKey, setRowBusyKey] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
-  const [manualEmail, setManualEmail] = useState("");
+  const [batchFilter, setBatchFilter] = useState("all");
   const [syncBusy, setSyncBusy] = useState(false);
   const [cleanupBusy, setCleanupBusy] = useState(false);
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
@@ -85,7 +88,23 @@ export default function AdminCourseStudentsPanel({
     tableScrollRef.current.scrollLeft = 0;
   }, [workspaceCourseSlug, dbRows.length]);
 
-  const displayRows = useMemo(() => dbRows, [dbRows]);
+  const displayRows = useMemo(() => {
+    if (batchFilter === "all") return dbRows;
+    if (batchFilter === "unassigned") {
+      return dbRows.filter((row) => !row.batchLabel?.trim() && !row.batchKey?.trim());
+    }
+    return dbRows.filter((row) => (row.batchKey || row.batchLabel) === batchFilter);
+  }, [dbRows, batchFilter]);
+
+  const batchOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const row of dbRows) {
+      const key = row.batchKey?.trim() || row.batchLabel?.trim();
+      if (!key) continue;
+      map.set(key, row.batchLabel?.trim() || key);
+    }
+    return [...map.entries()];
+  }, [dbRows]);
 
   const cleanupDuplicates = async () => {
     if (!workspaceCourseSlug) return;
@@ -200,9 +219,29 @@ export default function AdminCourseStudentsPanel({
           {batchContext}
         </p>
       ) : null}
-      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-[#0d1528] px-4 py-3">
-        <span className="text-sm text-gray-300">Total enrolled</span>
-        <span className="text-2xl font-bold tabular-nums text-white">{displayRows.length}</span>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#0d1528] px-4 py-3">
+        <span className="text-sm text-gray-300">
+          Total enrolled <span className="font-bold tabular-nums text-white">{dbRows.length}</span>
+          {batchFilter !== "all" ? (
+            <span className="ml-2 text-xs text-gray-500">showing {displayRows.length} in this batch</span>
+          ) : null}
+        </span>
+        <label className="text-[11px] text-gray-400">
+          Batch
+          <select
+            className="ml-2 rounded-lg border border-white/15 bg-black/40 px-2 py-1.5 text-xs text-white"
+            value={batchFilter}
+            onChange={(e) => setBatchFilter(e.target.value)}
+          >
+            <option value="all">All batches</option>
+            <option value="unassigned">No batch stamped</option>
+            {batchOptions.map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       {loadingDb ? <p className="text-xs text-gray-500">Loading MySQL student data…</p> : null}
       {dbError ? (
@@ -265,6 +304,9 @@ export default function AdminCourseStudentsPanel({
               certificateMode: "auto",
               certificateVisible: false,
               amountPaidLabel: "—",
+              batchKey: null,
+              batchLabel: null,
+              batchDate: null,
             },
             "bypass-access",
           ).then((ok) => {
@@ -314,13 +356,14 @@ export default function AdminCourseStudentsPanel({
           ref={tableScrollRef}
           className="w-full max-w-full overflow-x-auto overscroll-x-contain pb-2 [scrollbar-gutter:stable] touch-pan-x"
         >
-          <table className="w-full min-w-[1350px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[1500px] table-fixed text-left text-sm">
             <colgroup>
               <col className="w-12" />
               <col className="w-24" />
               <col className="w-40" />
               <col className="w-32" />
               <col className="w-56" />
+              <col className="w-40" />
               <col className="w-32" />
               <col className="w-24" />
               <col className="w-28" />
@@ -342,6 +385,7 @@ export default function AdminCourseStudentsPanel({
                 <th className="px-3 py-3 font-medium">Name</th>
                 <th className="px-3 py-3 font-medium">Phone</th>
                 <th className="px-3 py-3 font-medium">Email</th>
+                <th className="px-3 py-3 font-medium">Batch</th>
                 <th className="px-3 py-3 font-medium">Occupation</th>
                 <th className="px-3 py-3 font-medium">Role</th>
                 <th className="px-3 py-3 font-medium">User type</th>
@@ -360,7 +404,7 @@ export default function AdminCourseStudentsPanel({
             <tbody className="divide-y divide-white/5">
               {displayRows.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-6 text-sm text-gray-500" colSpan={18}>
+                  <td className="px-4 py-6 text-sm text-gray-500" colSpan={19}>
                     <p className="max-w-xl whitespace-normal text-sm leading-relaxed text-gray-400">
                       No learners yet for{" "}
                       <span className="font-mono text-gray-300">{workspaceCourseSlug}</span>. Enter an email above
@@ -384,6 +428,17 @@ export default function AdminCourseStudentsPanel({
                     <td className="px-4 py-3 font-mono text-xs text-violet-200/90">
                       <span className="block truncate" title={row.learnerEmail}>
                         {row.learnerEmail}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-amber-100">
+                      <span
+                        className="block truncate"
+                        title={[row.batchLabel, row.batchDate].filter(Boolean).join(" · ") || "—"}
+                      >
+                        {row.batchLabel?.trim() || "—"}
+                        {row.batchDate?.trim() ? (
+                          <span className="mt-0.5 block text-[10px] text-gray-500">{row.batchDate}</span>
+                        ) : null}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-300">

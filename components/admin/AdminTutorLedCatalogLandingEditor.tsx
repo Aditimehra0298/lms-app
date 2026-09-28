@@ -23,7 +23,9 @@ import {
 } from "lucide-react";
 import AdminImageUrlUpload from "@/components/admin/AdminImageUrlUpload";
 import FoodTutorLedCatalogLanding from "@/components/FoodTutorLedCatalogLanding";
+import Iso22000CourseLanding from "@/components/Iso22000CourseLanding";
 import type {
+  TutorLedCatalogBatchRow,
   TutorLedCatalogLandingStored,
   TutorLedCatalogPageConfig,
   TutorLedCatalogProgramCard,
@@ -31,13 +33,20 @@ import type {
 } from "@/lib/content-schema";
 import { mergeTutorLedCatalogPageConfig } from "@/lib/content-schema";
 import { uploadAdminImageFile } from "@/lib/admin-upload-image";
-import { applyLiveProgramsToCatalogPage } from "@/lib/tutor-led-catalog-batches";
+import {
+  applyLiveProgramsToCatalogPage,
+  buildLiveCatalogBatchRows,
+} from "@/lib/tutor-led-catalog-batches";
 import { slugifyTutorLedCatalog, tutorLedCatalogPublicHref } from "@/lib/tutor-led-catalog-landings";
+import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import { tutorLedLandingCopy } from "@/lib/iso-22000-landing-copy";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { ensureIso22000TutorLedPrograms, ISO_22000_TUTOR_LED_TEMPLATES } from "@/lib/iso-22000-tutor-led-seed";
 import { AdminTutorLedLevelSteps, type TutorLedLevelStep } from "@/components/admin/AdminTutorLedLevelSteps";
 import { programHasAnySessionZoom } from "@/lib/zoom-meeting";
 import { AdminTutorLedSessionZoomList } from "@/components/admin/AdminTutorLedSessionZoomList";
+import { syncProgramBatchFromSchedule } from "@/lib/tutor-led-batches";
+import { extractScheduleTime } from "@/lib/my-learning-dashboard-events";
 import {
   applyTrainingDays,
   catalogDurationLabel,
@@ -47,7 +56,7 @@ import {
 
 type SectionKey = "hero" | "programs" | "why" | "audience" | "batches" | "trainer" | "faqs" | "cta" | "basics";
 
-type CourseStep = "course" | "levels" | TutorLedLevelStep | "publish" | "landing";
+type CourseStep = "course" | "levels" | TutorLedLevelStep | "publish" | "landing" | "batch-landing";
 
 const COURSE_STEPS: { id: CourseStep; label: string }[] = [
   { id: "course", label: "Course" },
@@ -59,6 +68,7 @@ const COURSE_STEPS: { id: CourseStep; label: string }[] = [
   { id: "certificate", label: "Certificate" },
   { id: "publish", label: "Publish" },
   { id: "landing", label: "Landing design" },
+  { id: "batch-landing", label: "Batch landing" },
 ];
 
 type Props = {
@@ -192,12 +202,15 @@ export default function AdminTutorLedCatalogLandingEditor({
     };
   };
 
+  const designedProgram = selectedCard ? selectedProgram ?? programForCard(selectedCard) : null;
+
   const saveLevelProgram = (cardIndex: number, next: TutorLedProgramStored) => {
-    const list = programs.some((p) => p.slug === next.slug)
-      ? programs.map((p) => (p.slug === next.slug ? next : p))
-      : [...programs, next];
-    onProgramsChange?.(list);
     const durationLabel = catalogDurationLabel(getCurriculumSessionCount(next));
+    const withBatch = syncProgramBatchFromSchedule(next);
+    const list = programs.some((p) => p.slug === withBatch.slug)
+      ? programs.map((p) => (p.slug === withBatch.slug ? withBatch : p))
+      : [...programs, withBatch];
+    onProgramsChange?.(list);
     setPage((p) => ({
       ...p,
       programs: p.programs.map((row, idx) =>
@@ -209,22 +222,112 @@ export default function AdminTutorLedCatalogLandingEditor({
   };
 
   const updateProgram = (next: TutorLedProgramStored) => {
-    const list = programs.some((p) => p.slug === next.slug)
-      ? programs.map((p) => (p.slug === next.slug ? next : p))
-      : [...programs, next];
+    const withBatch = syncProgramBatchFromSchedule(next);
+    const list = programs.some((p) => p.slug === withBatch.slug)
+      ? programs.map((p) => (p.slug === withBatch.slug ? withBatch : p))
+      : [...programs, withBatch];
     onProgramsChange?.(list);
     if (selectedCard) {
-      const durationLabel = catalogDurationLabel(getCurriculumSessionCount(next));
+      const durationLabel = catalogDurationLabel(getCurriculumSessionCount(withBatch));
+      const extractedTime = extractScheduleTime(withBatch.schedule || "");
+      const time =
+        withBatch.schedule?.trim() && extractedTime && extractedTime !== "See program hub"
+          ? extractedTime
+          : "";
       setPage((p) => ({
         ...p,
         programs: p.programs.map((row, idx) =>
           idx === levelIndex
-            ? { ...row, title: next.title, price: next.price, enrollSlug: next.slug, durationLabel }
+            ? { ...row, title: withBatch.title, price: withBatch.price, enrollSlug: withBatch.slug, durationLabel }
             : row,
         ),
+        batches: {
+          ...p.batches,
+          rows: p.batches.rows.map((row) => {
+            const slug =
+              row.slug?.trim() ||
+              p.programs.find((c) => c.id === row.programId || c.enrollSlug === row.programId)?.enrollSlug ||
+              row.programId;
+            if (slug !== withBatch.slug) return row;
+            return {
+              ...row,
+              date: withBatch.nextBatchDate || row.date,
+              time: time || row.time,
+              seats: typeof withBatch.seatsLeft === "number" ? withBatch.seatsLeft : row.seats,
+              durationLabel: durationLabel || row.durationLabel,
+            };
+          }),
+        },
       }));
     }
   };
+
+  const batchRowSlug = (row: TutorLedCatalogBatchRow): string =>
+    row.slug?.trim() ||
+    page.programs.find((p) => p.id === row.programId || p.enrollSlug === row.programId)?.enrollSlug ||
+    row.programId;
+
+  const syncProgramFromBatchRow = (row: TutorLedCatalogBatchRow) => {
+    const slug = batchRowSlug(row);
+    const live = programs.find((p) => p.slug === slug);
+    if (!live || !onProgramsChange) return;
+    const time = row.time.trim();
+    const schedule = time
+      ? live.schedule?.includes(time)
+        ? live.schedule
+        : live.schedule?.replace(/\([^)]*\)/, `(${time})`) || `Live (${time})`
+      : live.schedule;
+    onProgramsChange(
+      programs.map((p) =>
+        p.slug === slug
+          ? syncProgramBatchFromSchedule({
+              ...live,
+              nextBatchDate: row.date,
+              batchLabel: row.programLabel.trim() || live.batchLabel,
+              seatsLeft: row.seats,
+              schedule,
+            })
+          : p,
+      ),
+    );
+  };
+
+  const setBatch = (i: number, patch: Partial<TutorLedCatalogBatchRow>) => {
+    const merged = { ...page.batches.rows[i], ...patch };
+    setPage((p) => ({
+      ...p,
+      batches: {
+        ...p.batches,
+        rows: p.batches.rows.map((row, idx) => (idx === i ? { ...row, ...patch } : row)),
+      },
+    }));
+    syncProgramFromBatchRow(merged);
+  };
+
+  const fillBatchesFromZoom = () => {
+    const linked = page.programs
+      .map((card) => programs.find((p) => p.slug === card.enrollSlug.trim()))
+      .filter((p): p is TutorLedProgramStored => Boolean(p));
+    const fromZoom = buildLiveCatalogBatchRows(linked);
+    const rows: TutorLedCatalogBatchRow[] =
+      fromZoom.length > 0
+        ? fromZoom
+        : page.programs.map((card) => ({
+            date: "",
+            time: "10:00 AM – 5:00 PM",
+            programId: card.id,
+            programLabel: card.title,
+            seats: 12,
+            slug: card.enrollSlug,
+            durationLabel: card.durationLabel,
+          }));
+    setPage((p) => ({ ...p, batches: { ...p.batches, rows } }));
+  };
+
+  const landingFaqsFor = (program: TutorLedProgramStored) =>
+    program.faqs?.length
+      ? program.faqs
+      : tutorLedLandingCopy(program).faqs.filter((f) => f.q !== "When is the next batch?");
 
   const addFourLevels = () => {
     if (catalog.slug === "iso-22000") {
@@ -431,7 +534,8 @@ export default function AdminTutorLedCatalogLandingEditor({
                 <strong className="text-gray-200">1.</strong> Set how many training days.{" "}
                 <strong className="text-gray-200">2.</strong> Set the batch date and class time.{" "}
                 <strong className="text-gray-200">3.</strong> Paste a <strong className="text-gray-200">different</strong>{" "}
-                Zoom link on each day. The public landing (duration, weeks, dates) updates from these fields.
+                Zoom link on each day. Catalog card duration follows training days. Upcoming batch dates, times,
+                and seats on the public landing are edited in <strong className="text-gray-200">Landing design → Upcoming batches</strong>.
               </p>
               {page.programs.length === 0 ? (
                 <p className="text-sm text-amber-100">Add levels first, then choose training days and Zoom links.</p>
@@ -571,12 +675,231 @@ export default function AdminTutorLedCatalogLandingEditor({
               })}
             </div>
           ) : null}
+          {step === "batch-landing" ? (
+            <div className="space-y-4">
+              <p className="text-xs leading-relaxed text-gray-400">
+                Design the Description page for each level at{" "}
+                <code className="rounded bg-black/40 px-1 font-mono text-[11px] text-violet-200">/tutor-led/[slug]</code>.
+                Pick a level, then edit hero, about, outcomes, FAQs, and the next batch shown on that page.
+              </p>
+              {page.programs.length === 0 ? (
+                <p className="text-sm text-amber-100">Add levels first, then design each batch landing.</p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {page.programs.map((card, i) => (
+                      <button
+                        key={card.id}
+                        type="button"
+                        onClick={() => setLevelIndex(i)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                          i === levelIndex ? "bg-violet-600 text-white" : "border border-white/15 text-gray-300"
+                        }`}
+                      >
+                        {card.title || `Level ${i + 1}`}
+                      </button>
+                    ))}
+                  </div>
+                  {designedProgram ? (
+                    <div className="space-y-3">
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <label className="block sm:col-span-2">
+                          <span className={labelCls}>Title</span>
+                          <input
+                            className={inputCls}
+                            value={designedProgram.title}
+                            onChange={(e) => updateProgram({ ...designedProgram, title: e.target.value })}
+                          />
+                        </label>
+                        <label className="block sm:col-span-2">
+                          <span className={labelCls}>Tagline</span>
+                          <input
+                            className={inputCls}
+                            value={designedProgram.subtitle}
+                            onChange={(e) => updateProgram({ ...designedProgram, subtitle: e.target.value })}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className={labelCls}>Badge</span>
+                          <input
+                            className={inputCls}
+                            value={designedProgram.badge}
+                            onChange={(e) => updateProgram({ ...designedProgram, badge: e.target.value })}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className={labelCls}>Next batch date</span>
+                          <input
+                            className={inputCls}
+                            value={designedProgram.nextBatchDate}
+                            onChange={(e) => updateProgram({ ...designedProgram, nextBatchDate: e.target.value })}
+                            placeholder="12 Oct 2026"
+                          />
+                        </label>
+                        <label className="block">
+                          <span className={labelCls}>Schedule / time</span>
+                          <input
+                            className={inputCls}
+                            value={designedProgram.schedule}
+                            onChange={(e) => updateProgram({ ...designedProgram, schedule: e.target.value })}
+                            placeholder="Mon–Fri (10:00 AM – 5:00 PM IST)"
+                          />
+                        </label>
+                        <label className="block">
+                          <span className={labelCls}>Seats left</span>
+                          <input
+                            type="number"
+                            min={0}
+                            className={inputCls}
+                            value={designedProgram.seatsLeft}
+                            onChange={(e) =>
+                              updateProgram({ ...designedProgram, seatsLeft: Number(e.target.value) || 0 })
+                            }
+                          />
+                        </label>
+                      </div>
+                      <AdminImageUrlUpload
+                        label="Description hero image"
+                        value={designedProgram.heroSrc ?? ""}
+                        onChange={(url) => updateProgram({ ...designedProgram, heroSrc: url, learnerHeroSrc: url })}
+                        uploading={uploading === "batch-hero"}
+                        onUploadFile={(file) =>
+                          upload("batch-hero", file, (url) =>
+                            updateProgram({ ...designedProgram, heroSrc: url, learnerHeroSrc: url }),
+                          )
+                        }
+                      />
+                      <label className="block">
+                        <span className={labelCls}>About this batch</span>
+                        <textarea
+                          className={inputCls}
+                          rows={6}
+                          value={designedProgram.landingAbout ?? tutorLedLandingCopy(designedProgram).about}
+                          onChange={(e) => updateProgram({ ...designedProgram, landingAbout: e.target.value })}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className={labelCls}>What you will learn (one per line)</span>
+                        <textarea
+                          className={inputCls}
+                          rows={4}
+                          value={(designedProgram.landingAbout?.trim() && designedProgram.highlights?.length
+                            ? designedProgram.highlights
+                            : tutorLedLandingCopy(designedProgram).highlights
+                          ).join("\n")}
+                          onChange={(e) =>
+                            updateProgram({
+                              ...designedProgram,
+                              landingAbout: designedProgram.landingAbout ?? tutorLedLandingCopy(designedProgram).about,
+                              highlights: e.target.value.split("\n").map((line) => line.trim()).filter(Boolean),
+                            })
+                          }
+                        />
+                      </label>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <input
+                          className={inputCls}
+                          value={designedProgram.trainer.name}
+                          onChange={(e) =>
+                            updateProgram({
+                              ...designedProgram,
+                              trainer: { ...designedProgram.trainer, name: e.target.value },
+                            })
+                          }
+                          placeholder="Trainer name"
+                        />
+                        <input
+                          className={inputCls}
+                          value={designedProgram.trainer.role}
+                          onChange={(e) =>
+                            updateProgram({
+                              ...designedProgram,
+                              trainer: { ...designedProgram.trainer, role: e.target.value },
+                            })
+                          }
+                          placeholder="Trainer role"
+                        />
+                      </div>
+                      <textarea
+                        className={inputCls}
+                        rows={3}
+                        value={designedProgram.trainer.bio}
+                        onChange={(e) =>
+                          updateProgram({
+                            ...designedProgram,
+                            trainer: { ...designedProgram.trainer, bio: e.target.value },
+                          })
+                        }
+                        placeholder="Trainer bio"
+                      />
+                      <div className="space-y-2">
+                        <p className={labelCls}>FAQs on this landing</p>
+                        {landingFaqsFor(designedProgram).map((faq, i) => (
+                          <div key={`${faq.q}-${i}`} className={`${itemCls} space-y-2`}>
+                            <input
+                              className={inputCls}
+                              value={faq.q}
+                              onChange={(e) =>
+                                updateProgram({
+                                  ...designedProgram,
+                                  faqs: landingFaqsFor(designedProgram).map((row, idx) =>
+                                    idx === i ? { ...row, q: e.target.value } : row,
+                                  ),
+                                })
+                              }
+                              placeholder="Question"
+                            />
+                            <textarea
+                              className={inputCls}
+                              rows={2}
+                              value={faq.a}
+                              onChange={(e) =>
+                                updateProgram({
+                                  ...designedProgram,
+                                  faqs: landingFaqsFor(designedProgram).map((row, idx) =>
+                                    idx === i ? { ...row, a: e.target.value } : row,
+                                  ),
+                                })
+                              }
+                              placeholder="Answer"
+                            />
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateProgram({
+                              ...designedProgram,
+                              faqs: [...landingFaqsFor(designedProgram), { q: "New question?", a: "" }],
+                            })
+                          }
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber-200"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Add FAQ
+                        </button>
+                      </div>
+                      <Link
+                        href={`${liveTutorCourseHref(designedProgram.slug)}?preview=1`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-200 hover:text-white"
+                      >
+                        Open public Description page <ExternalLink className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          ) : null}
         </div>
 
         {previewOpen ? (
         <div className="sticky top-4 min-w-0 overflow-hidden rounded-xl border border-amber-400/25 bg-black xl:max-h-[calc(100vh-6rem)] xl:overflow-auto">
           <div className="flex items-center justify-between gap-2 border-b border-white/10 bg-[#0b1224] px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-300">Landing preview</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-300">
+              {step === "batch-landing" ? "Batch landing preview" : "Landing preview"}
+            </p>
             <button
               type="button"
               onClick={() => setPreviewOpen(false)}
@@ -587,7 +910,11 @@ export default function AdminTutorLedCatalogLandingEditor({
               Close
             </button>
           </div>
-          <FoodTutorLedCatalogLanding page={applyLiveProgramsToCatalogPage(page, programs, true)} />
+          {step === "batch-landing" && designedProgram ? (
+            <Iso22000CourseLanding program={designedProgram} />
+          ) : (
+            <FoodTutorLedCatalogLanding page={applyLiveProgramsToCatalogPage(page, programs, true)} />
+          )}
         </div>
         ) : null}
       </div>
@@ -878,40 +1205,176 @@ export default function AdminTutorLedCatalogLandingEditor({
     }
 
     if (id === "batches") {
-      const livePreview = applyLiveProgramsToCatalogPage(page, programs, true);
       return (
         <>
           <p className="text-xs leading-relaxed text-gray-400">
-            Dates, times, seats, and duration on the public landing come from{" "}
-            <strong className="text-gray-200">Zoom &amp; batch</strong> (training days, start date, schedule).
-            Change them there — this table is a live preview, not a separate list to type twice.
+            Every field on this table is saved with the catalog landing. Linked Zoom levels update when you
+            change date, time, seats, or program name. Description opens the designed batch page under Tutor Led.
           </p>
-          <input className={inputCls} value={page.batches.eyebrow} onChange={(e) => setPage((p) => ({ ...p, batches: { ...p.batches, eyebrow: e.target.value } }))} />
-          {livePreview.batches.rows.length === 0 ? (
-            <p className="text-sm text-amber-100">Set a batch start date on each level in Zoom &amp; batch to show upcoming dates here.</p>
+          <label className="block">
+            <span className={labelCls}>Section title</span>
+            <input
+              className={inputCls}
+              value={page.batches.eyebrow}
+              onChange={(e) => setPage((p) => ({ ...p, batches: { ...p.batches, eyebrow: e.target.value } }))}
+            />
+          </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              className={inputCls}
+              value={page.batches.viewAllLabel}
+              onChange={(e) => setPage((p) => ({ ...p, batches: { ...p.batches, viewAllLabel: e.target.value } }))}
+              placeholder="View all batches label"
+            />
+            <input
+              className={inputCls}
+              value={page.batches.viewAllHref}
+              onChange={(e) => setPage((p) => ({ ...p, batches: { ...p.batches, viewAllHref: e.target.value } }))}
+              placeholder="#food-tutor-led-programs"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={fillBatchesFromZoom}
+              className="rounded-lg border border-sky-400/40 px-3 py-1.5 text-[11px] font-semibold text-sky-100 hover:bg-sky-500/10"
+            >
+              Load from Zoom dates
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setPage((p) => ({
+                  ...p,
+                  batches: {
+                    ...p.batches,
+                    rows: [
+                      ...p.batches.rows,
+                      {
+                        date: "",
+                        time: "10:00 AM – 5:00 PM",
+                        programId: selectedCard?.id || "",
+                        programLabel: selectedCard?.title || "New batch",
+                        seats: 12,
+                        slug: selectedCard?.enrollSlug || "",
+                        durationLabel: selectedCard?.durationLabel || "",
+                      },
+                    ],
+                  },
+                }))
+              }
+              className="inline-flex items-center gap-1 text-xs font-semibold text-amber-200"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add batch
+            </button>
+          </div>
+          {page.batches.rows.length === 0 ? (
+            <p className="text-sm text-amber-100">No upcoming batches yet. Add a row or load from Zoom dates.</p>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-white/10 text-xs">
-              <table className="w-full text-left">
-                <thead className="bg-black/40 text-[10px] uppercase tracking-wider text-gray-500">
-                  <tr>
-                    <th className="px-3 py-2">Date</th>
-                    <th className="px-3 py-2">Time</th>
-                    <th className="px-3 py-2">Program</th>
-                    <th className="px-3 py-2">Seats</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/10 text-gray-200">
-                  {livePreview.batches.rows.map((row) => (
-                    <tr key={`${row.programId}-${row.date}`}>
-                      <td className="px-3 py-2">{row.date}</td>
-                      <td className="px-3 py-2 text-gray-400">{row.time}</td>
-                      <td className="px-3 py-2">{row.programLabel}</td>
-                      <td className="px-3 py-2">{row.seats}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            page.batches.rows.map((row, i) => {
+              const slug = batchRowSlug(row);
+              return (
+                <div key={`${row.programId}-${i}`} className={`${itemCls} grid gap-2`}>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500">Date</span>
+                      <input
+                        className={inputCls}
+                        value={row.date}
+                        onChange={(e) => setBatch(i, { date: e.target.value })}
+                        placeholder="12 Oct 2026"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500">Time</span>
+                      <input
+                        className={inputCls}
+                        value={row.time}
+                        onChange={(e) => setBatch(i, { time: e.target.value })}
+                        placeholder="10:00 AM – 5:00 PM"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500">Program</span>
+                      <select
+                        className={inputCls}
+                        value={slug}
+                        onChange={(e) => {
+                          const card = page.programs.find(
+                            (p) => p.enrollSlug === e.target.value || p.id === e.target.value,
+                          );
+                          setBatch(i, {
+                            programId: card?.id || e.target.value,
+                            slug: card?.enrollSlug || e.target.value,
+                            programLabel: card?.title || row.programLabel,
+                            durationLabel: card?.durationLabel || row.durationLabel,
+                          });
+                        }}
+                      >
+                        {page.programs.map((p) => (
+                          <option key={p.id} value={p.enrollSlug || p.id}>
+                            {p.title}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500">Label on table</span>
+                      <input
+                        className={inputCls}
+                        value={row.programLabel}
+                        onChange={(e) => setBatch(i, { programLabel: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500">Duration</span>
+                      <input
+                        className={inputCls}
+                        value={row.durationLabel ?? ""}
+                        onChange={(e) => setBatch(i, { durationLabel: e.target.value })}
+                        placeholder="Duration: 5 Days"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500">Seats left</span>
+                      <input
+                        type="number"
+                        min={0}
+                        className={inputCls}
+                        value={row.seats}
+                        onChange={(e) => setBatch(i, { seats: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    {slug ? (
+                      <Link
+                        href={`${liveTutorCourseHref(slug)}?preview=1`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-200 hover:text-white"
+                      >
+                        Open designed landing <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    ) : (
+                      <span />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPage((p) => ({
+                          ...p,
+                          batches: { ...p.batches, rows: p.batches.rows.filter((_, idx) => idx !== i) },
+                        }))
+                      }
+                      className="inline-flex items-center gap-1 text-xs text-rose-300"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })
           )}
         </>
       );

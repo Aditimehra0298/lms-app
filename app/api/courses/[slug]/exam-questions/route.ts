@@ -4,7 +4,10 @@ import { getFirstExamRowInModule } from "@/lib/my-learning-exams";
 import { loadExamQuestionsFromStoredUrl } from "@/lib/server/load-exam-questions";
 import { getManagedCourseForLearner } from "@/lib/server/course-catalog";
 import { getTutorLedProgramForLearner } from "@/lib/server/tutor-led-catalog";
-import { resolveLearnerSection } from "@/lib/tutor-led-learner-section";
+import { requireLearnerSessionEmail } from "@/lib/server/learner-session";
+import { findExistingEnrollment } from "@/lib/server/enrollment-lookup";
+import { prisma } from "@/lib/prisma";
+import { resolveTutorLedBatchExam, syncProgramBatchFromSchedule } from "@/lib/tutor-led-batches";
 
 export const dynamic = "force-dynamic";
 
@@ -22,18 +25,53 @@ export async function GET(
 
   if (isFinal) {
     const fe = course?.finalExam;
-    const tutorLed = course ? null : await getTutorLedProgramForLearner(slug);
-    const tutorSection = tutorLed ? resolveLearnerSection(tutorLed) : null;
+    const tutorLedRaw = course ? null : await getTutorLedProgramForLearner(slug);
+    const tutorLed = tutorLedRaw ? syncProgramBatchFromSchedule(tutorLedRaw) : null;
+    let batchExamUrl = "";
+    let batchExamTitle = "";
+    let batchMinutes: number | undefined;
+    let batchPass: number | undefined;
+    let batchTimed: boolean | undefined;
+    if (tutorLed) {
+      const email = requireLearnerSessionEmail(request);
+      let batchId: string | undefined;
+      if (email) {
+        const purchase = await prisma.lmsPurchase.findFirst({
+          where: { courseSlug: slug.trim().toLowerCase(), learnerEmail: email },
+          select: { batchKey: true, examUploadUrl: true },
+        });
+        if (!purchase) {
+          const existing = await findExistingEnrollment({ learnerEmail: email, courseSlug: slug });
+          if (existing) {
+            const row = await prisma.lmsPurchase.findUnique({
+              where: { id: existing.id },
+              select: { batchKey: true, examUploadUrl: true },
+            });
+            batchId = row?.batchKey ?? undefined;
+            batchExamUrl = row?.examUploadUrl?.trim() || "";
+          }
+        } else {
+          batchId = purchase.batchKey ?? undefined;
+          batchExamUrl = purchase.examUploadUrl?.trim() || "";
+        }
+      }
+      const resolved = resolveTutorLedBatchExam(tutorLed, batchId);
+      batchExamUrl = batchExamUrl || resolved.examUploadUrl;
+      batchExamTitle = resolved.examTitle;
+      batchMinutes = resolved.examMinutes;
+      batchPass = resolved.examPassingScore;
+      batchTimed = resolved.examTimed;
+    }
     const examUploadUrl =
-      fe?.examUploadUrl?.trim() || tutorSection?.examUploadUrl?.trim() || "";
+      fe?.examUploadUrl?.trim() || batchExamUrl || "";
     const title =
       fe?.title?.trim() ||
-      tutorSection?.finalExamTitle?.trim() ||
+      batchExamTitle ||
       "Final examination";
     const passingScorePercent =
       typeof fe?.passingScorePercent === "number"
         ? fe.passingScorePercent
-        : tutorSection?.examPassingScore ?? 70;
+        : batchPass ?? 70;
 
     if (!examUploadUrl) {
       return NextResponse.json({
@@ -56,8 +94,8 @@ export async function GET(
       moduleTitle: title,
       examLabel: title,
       passingScorePercent,
-      timedExam: fe?.timedExam ?? true,
-      examDurationMinutes: fe?.examDurationMinutes ?? tutorSection?.examMinutes ?? 60,
+      timedExam: fe?.timedExam ?? batchTimed ?? true,
+      examDurationMinutes: fe?.examDurationMinutes ?? batchMinutes ?? 60,
       questions,
     });
   }

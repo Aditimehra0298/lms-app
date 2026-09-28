@@ -135,12 +135,16 @@ export function cloneTutorLedCatalogPattern(input: {
   }
 
   const programs: TutorLedProgramStored[] = [];
+  const enrollSlugByOld = new Map<string, string>();
   page.programs = page.programs.map((card, index) => {
     const level = PATTERN_LEVELS[index] ?? PATTERN_LEVELS[index % PATTERN_LEVELS.length];
     const id = card.id?.trim() || level.id;
+    const previousEnroll = card.enrollSlug?.trim() || "";
     const enrollSlug = uniqueCatalogSlug(`${catalogSlug}-${id}`, taken);
     taken.add(enrollSlug);
-    const fromLive = live.find((p) => p.slug === card.enrollSlug?.trim());
+    if (previousEnroll) enrollSlugByOld.set(previousEnroll, enrollSlug);
+    enrollSlugByOld.set(id, enrollSlug);
+    const fromLive = live.find((p) => p.slug === previousEnroll);
     const fromIso = ISO_22000_TUTOR_LED_TEMPLATES[index] ?? ISO_22000_TUTOR_LED_TEMPLATES[0];
     const title = input.asCopy
       ? card.title
@@ -161,6 +165,20 @@ export function cloneTutorLedCatalogPattern(input: {
       title,
       enrollSlug,
       matchPattern: card.matchPattern || id,
+    };
+  });
+
+  page.batches.rows = page.batches.rows.map((row) => {
+    const byId = page.programs.find((p) => p.id === row.programId);
+    const nextSlug =
+      byId?.enrollSlug ||
+      enrollSlugByOld.get(row.slug?.trim() || "") ||
+      enrollSlugByOld.get(row.programId) ||
+      row.slug;
+    return {
+      ...row,
+      slug: nextSlug,
+      programLabel: byId?.title || row.programLabel,
     };
   });
 

@@ -508,7 +508,14 @@ export default function FoodTutorLedCatalogLanding({ page }: Props) {
 
       <section className="grid gap-8 px-5 py-10 lg:grid-cols-[1.1fr_0.9fr_0.9fr] md:px-10">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-amber-300">{page.batches.eyebrow}</p>
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-amber-300">{page.batches.eyebrow}</p>
+            {page.batches.viewAllHref ? (
+              <a href={page.batches.viewAllHref} className="text-[11px] font-semibold text-amber-200/80 hover:text-amber-100">
+                {page.batches.viewAllLabel || "View all batches"}
+              </a>
+            ) : null}
+          </div>
           <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
             <table className="w-full text-left text-xs">
               <thead className="bg-white/[0.04] text-[10px] uppercase tracking-wider text-zinc-500">
@@ -524,29 +531,40 @@ export default function FoodTutorLedCatalogLanding({ page }: Props) {
                 {page.batches.rows.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-3 py-6 text-zinc-500">
-                      Batch dates appear here after the trainer sets training days and a start date in Admin.
+                      Upcoming batches are set in Admin → Tutor Led → Landing design.
                     </td>
                   </tr>
                 ) : (
-                page.batches.rows.map((row) => {
-                  const slug =
-                    row.slug?.trim() ||
-                    page.programs.find((p) => p.id === row.programId || p.enrollSlug === row.programId)
-                      ?.enrollSlug ||
-                    row.programId;
+                page.batches.rows.map((row, i) => {
+                  const linked = page.programs.find(
+                    (p) => p.id === row.programId || p.enrollSlug === row.programId || p.enrollSlug === row.slug,
+                  );
+                  const slug = row.slug?.trim() || linked?.enrollSlug || row.programId;
+                  const duration = row.durationLabel?.trim() || linked?.durationLabel;
                   return (
-                    <tr key={`${row.programId}-${row.date}`} className="text-zinc-200">
+                    <tr key={`${row.programId}-${row.date}-${i}`} className="text-zinc-200">
                       <td className="px-3 py-3 font-medium">{row.date}</td>
                       <td className="px-3 py-3 text-zinc-400">{row.time}</td>
-                      <td className="px-3 py-3">{row.programLabel}</td>
+                      <td className="px-3 py-3">
+                        <p>{row.programLabel}</p>
+                        {duration ? <p className="mt-0.5 text-[10px] text-zinc-500">{duration}</p> : null}
+                      </td>
                       <td className="px-3 py-3 text-amber-200">{row.seats} Left</td>
                       <td className="px-3 py-3">
-                        <EnrollButton
-                          slug={slug}
-                          className="rounded-lg bg-amber-400 px-2 py-1 text-[10px] font-bold text-black hover:bg-amber-300"
-                        >
-                          Enroll Now
-                        </EnrollButton>
+                        <div className="flex flex-wrap gap-1.5">
+                          <EnrollButton
+                            slug={slug}
+                            className="rounded-lg bg-amber-400 px-2 py-1 text-[10px] font-bold text-black hover:bg-amber-300"
+                          >
+                            Enroll Now
+                          </EnrollButton>
+                          {slug ? (
+                            <DescriptionButton
+                              href={liveTutorCourseHref(slug)}
+                              className="!min-w-0 !flex-none !px-2 !py-1 text-[10px]"
+                            />
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );

@@ -178,6 +178,12 @@ model LmsPurchase {
   courseId     String?
   title        String   @db.VarChar(512)
   createdAt    DateTime @default(now())
+  /// Tutor-led cohort this enrollment belongs to (kept when a new batch starts).
+  batchKey     String?  @db.VarChar(128)
+  batchLabel   String?  @db.VarChar(255)
+  batchDate    String?  @db.VarChar(128)
+  /// Exam paper for this learner's batch (not the latest program exam).
+  examUploadUrl String? @db.VarChar(512)
 
   user   LmsUser?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   course LmsCourse? @relation(fields: [courseId], references: [id], onDelete: SetNull)
@@ -186,6 +192,7 @@ model LmsPurchase {
   @@index([learnerEmail])
   @@index([courseSlug])
   @@index([userId, courseSlug])
+  @@index([courseSlug, batchKey])
   @@map("lms_purchase")
 }
 

@@ -15,6 +15,8 @@ export type TutorLedProgramStored = {
   published: boolean;
   title: string;
   subtitle: string;
+  /** Designed Description page (`/tutor-led/[slug]`) about copy. Empty = template/fallback about. */
+  landingAbout?: string;
   breadcrumb: string[];
   badge: string;
   /** Checkout / marketing sale price (before payment). */
@@ -97,6 +99,8 @@ export type TutorLedProgramStored = {
   durationSource?: "curriculum" | "manual";
   /** Intensive Zoom programs: 1 = one-day class, 5 = five live days. Dashboard and curriculum follow this. */
   trainingDays?: number;
+  /** Closed + active live cohorts. Each batch keeps its own exam paper and student roster stamp. */
+  batches?: import("@/lib/tutor-led-batches").TutorLedBatchRecord[];
   /** Catalog category slug (e.g. food-safety) so the program appears on that category page. */
   category?: string;
   /** Same certificate / badge / transcript uploads as self-paced courses (Admin → Certificate tab). */

@@ -411,11 +411,17 @@ export function tutorLedLandingCopy(program: TutorLedProgramStored): Iso22000Lan
       a: `The next live batch starts ${batchDate}${schedule ? ` · ${schedule}` : ""}. Training length is ${days}. Each day has its own Zoom meeting.`,
     });
   }
+  const customHighlights = (program.highlights ?? []).map((h) => h.trim()).filter(Boolean);
+  const designed = Boolean(program.landingAbout?.trim());
+  const about = program.landingAbout?.trim() || raw.about;
   return {
     ...raw,
     tagline: program.subtitle?.trim() || raw.tagline,
-    about: inject(raw.about),
-    highlights: raw.highlights.map(inject),
+    about: inject(about),
+    learnOutcomes:
+      designed && customHighlights.length ? customHighlights.map(inject) : raw.learnOutcomes.map(inject),
+    highlights:
+      designed && customHighlights.length ? customHighlights.map(inject) : raw.highlights.map(inject),
     requirements: raw.requirements.map(inject),
     faqs,
   };
@@ -428,9 +434,9 @@ export function tutorLedLandingImage(program: {
   category?: string;
 }): string {
   const slug = program.slug.trim();
-  if (UNIQUE_IMAGES[slug]) return UNIQUE_IMAGES[slug];
   const stored = (program.heroSrc || program.learnerHeroSrc || "").trim();
   if (stored && !GENERIC_HERO.has(stored)) return stored;
+  if (UNIQUE_IMAGES[slug]) return UNIQUE_IMAGES[slug];
   if (program.category && CATEGORY_IMAGE[program.category]) return CATEGORY_IMAGE[program.category];
   return "/chatgpt-hero.png";
 }

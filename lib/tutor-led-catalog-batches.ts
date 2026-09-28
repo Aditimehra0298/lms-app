@@ -35,6 +35,7 @@ export function buildLiveCatalogBatchRows(
       programLabel: program.batchLabel?.trim() || program.title,
       seats: typeof program.seatsLeft === "number" ? program.seatsLeft : 0,
       slug: program.slug,
+      durationLabel: catalogDurationLabel(getCurriculumSessionCount(program)),
       sortKey: parsed?.getTime() ?? Number.MAX_SAFE_INTEGER,
     });
   }
@@ -164,7 +165,18 @@ export function mergeCatalogProgramCards(
   });
 }
 
-/** Overlay training days, batch dates, and schedule from Admin Zoom programs onto the public landing. */
+/** True when the catalog landing already has an admin-authored upcoming-batches table. */
+export function catalogHasAdminBatchRows(rows: TutorLedCatalogBatchRow[] | undefined): boolean {
+  return (rows ?? []).some(
+    (row) =>
+      Boolean(row.date?.trim()) ||
+      Boolean(row.time?.trim()) ||
+      Boolean(row.programLabel?.trim()) ||
+      Boolean(row.slug?.trim()),
+  );
+}
+
+/** Overlay prices/titles/duration from Zoom programs. Upcoming batches stay admin-authored when present. */
 export function applyLiveProgramsToCatalogPage(
   page: TutorLedCatalogPageConfig,
   programs: TutorLedProgramStored[],
@@ -175,22 +187,24 @@ export function applyLiveProgramsToCatalogPage(
   const linked = catalogProgramPool(programs, includeDrafts).filter((p) => slugs.has(p.slug));
   const liveBatches = buildLiveCatalogBatchRows(linked);
   const trainerFrom = linked.find((p) => p.trainer?.name?.trim())?.trainer;
+  const adminTrainer = Boolean(page.trainer.name?.trim());
   return {
     ...page,
     programs: cards,
     batches: {
       ...page.batches,
-      rows: liveBatches.length > 0 ? liveBatches : page.batches.rows,
+      rows: catalogHasAdminBatchRows(page.batches.rows) ? page.batches.rows : liveBatches,
     },
-    trainer: trainerFrom
-      ? {
-          ...page.trainer,
-          name: trainerFrom.name || page.trainer.name,
-          role: trainerFrom.role || page.trainer.role,
-          experience: trainerFrom.experience || page.trainer.experience,
-          bio: trainerFrom.bio || page.trainer.bio,
-          photo: trainerFrom.avatar?.trim() || page.trainer.photo,
-        }
-      : page.trainer,
+    trainer:
+      trainerFrom && !adminTrainer
+        ? {
+            ...page.trainer,
+            name: trainerFrom.name || page.trainer.name,
+            role: trainerFrom.role || page.trainer.role,
+            experience: trainerFrom.experience || page.trainer.experience,
+            bio: trainerFrom.bio || page.trainer.bio,
+            photo: trainerFrom.avatar?.trim() || page.trainer.photo,
+          }
+        : page.trainer,
   };
 }

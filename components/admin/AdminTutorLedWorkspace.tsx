@@ -1146,6 +1146,16 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                   className="mt-1 w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
                 />
               </label>
+              <label className="block md:col-span-2">
+                <span className="text-[11px] text-gray-500">Description page — about this batch</span>
+                <textarea
+                  value={draft.landingAbout ?? ""}
+                  onChange={(e) => setDraft({ ...draft, landingAbout: e.target.value })}
+                  rows={5}
+                  placeholder="Shown on /tutor-led/[slug]. Leave empty to use the designed template copy."
+                  className="mt-1 w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none"
+                />
+              </label>
               {isWorkshopAdmin ? (
                 <div className="block">
                   <span className="text-[11px] text-gray-500">Program kind</span>
@@ -1888,7 +1898,7 @@ export default function AdminTutorLedWorkspace({ workspaceKind = "tutor-led" }: 
                 workspaceCourseSlug={draft.slug}
                 canEdit
                 onGoCourseInfo={() => setActiveTab("basics")}
-                batchContext={`${isWorkshopAdmin ? "Workshop" : "Tutor-led"} · ${draft.slug} · ${draft.nextBatchDate || "set next batch date"} · ${draft.seatsLeft} seats left. Add a learner here the same way as a self-paced course — they appear in My Learning for this program.`}
+                batchContext={`${isWorkshopAdmin ? "Workshop" : "Tutor-led"} · ${draft.batchLabel || draft.slug} · ${draft.nextBatchDate || "set batch date"}. All cohort records stay listed. Filter by batch. Each batch uses its own exam.`}
               />
             </div>
             <div className={activeTab === "certificate" ? "space-y-4" : "hidden"}>

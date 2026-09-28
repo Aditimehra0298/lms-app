@@ -55,6 +55,12 @@ type Row = {
 
   amountPaidLabel: string;
 
+  batchKey: string | null;
+
+  batchLabel: string | null;
+
+  batchDate: string | null;
+
 };
 
 
@@ -335,6 +341,12 @@ export async function GET(
         amountPaidLabel:
 
           enrollmentModel === "organization" ? "Company sponsored / pass" : "Tracked in payment gateway",
+
+        batchKey: p.batchKey?.trim() || null,
+
+        batchLabel: p.batchLabel?.trim() || null,
+
+        batchDate: p.batchDate?.trim() || null,
 
       };
 

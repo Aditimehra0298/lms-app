@@ -577,8 +577,10 @@ export type TutorLedCatalogBatchRow = {
   programId: string;
   programLabel: string;
   seats: number;
-  /** Published Zoom program slug — used for Enroll on the catalog landing. */
+  /** Published Zoom program slug — used for Enroll / Description on the catalog landing. */
   slug?: string;
+  /** Optional duration shown on the upcoming-batches table (admin-authored). */
+  durationLabel?: string;
 };
 
 export type TutorLedCatalogPageConfig = {
@@ -929,7 +931,17 @@ export function mergeTutorLedCatalogPageConfig(
     batches: {
       ...d.batches,
       ...(raw.batches ?? {}),
-      rows: Array.isArray(raw.batches?.rows) ? raw.batches!.rows : d.batches.rows,
+      rows: (Array.isArray(raw.batches?.rows) ? raw.batches!.rows : d.batches.rows).map((row) => ({
+        date: String(row?.date ?? ""),
+        time: String(row?.time ?? ""),
+        programId: String(row?.programId ?? ""),
+        programLabel: String(row?.programLabel ?? ""),
+        seats: Number(row?.seats) || 0,
+        ...(typeof row?.slug === "string" && row.slug.trim() ? { slug: row.slug.trim() } : {}),
+        ...(typeof row?.durationLabel === "string" && row.durationLabel.trim()
+          ? { durationLabel: row.durationLabel.trim() }
+          : {}),
+      })),
     },
     trainer: { ...d.trainer, ...(raw.trainer ?? {}) },
     faqsSection: { ...d.faqsSection, ...(raw.faqsSection ?? {}) },

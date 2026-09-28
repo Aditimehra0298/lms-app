@@ -7,6 +7,13 @@ import {
 } from "@/lib/server/enrollment-lookup";
 import { queuePurchaseConfirmationEmails } from "@/lib/server/n8n-purchase-confirmation-service";
 import { queueAdminActivityEmail } from "@/lib/server/admin-activity-email";
+import { getTutorLedProgramBySlug } from "@/lib/server/tutor-led-catalog";
+import {
+  formatTutorLedBatchLabel,
+  getActiveTutorLedBatch,
+  resolveTutorLedBatchExam,
+  syncProgramBatchFromSchedule,
+} from "@/lib/tutor-led-batches";
 
 export type PurchaseCourseInput = { slug: string; title: string };
 
@@ -57,6 +64,11 @@ export async function recordPurchasesForLearner(input: {
       select: { id: true, title: true },
     });
 
+    const tutorLed = await getTutorLedProgramBySlug(course.slug);
+    const stamped = tutorLed ? syncProgramBatchFromSchedule(tutorLed) : null;
+    const activeBatch = stamped ? getActiveTutorLedBatch(stamped) : null;
+    const batchExam = stamped ? resolveTutorLedBatchExam(stamped, activeBatch?.id) : null;
+
     try {
       await prisma.lmsPurchase.create({
         data: {
@@ -65,7 +77,11 @@ export async function recordPurchasesForLearner(input: {
           title: course.title || dbCourse?.title || course.slug,
           courseId: dbCourse?.id ?? null,
           userId: user?.id ?? null,
-        },
+          batchKey: activeBatch?.id ?? null,
+          batchLabel: activeBatch ? formatTutorLedBatchLabel(activeBatch) : null,
+          batchDate: activeBatch?.date?.trim() || null,
+          examUploadUrl: batchExam?.examUploadUrl?.trim() || null,
+        } as Parameters<typeof prisma.lmsPurchase.create>[0]["data"],
       });
       recorded += 1;
       newlyRecorded.push({

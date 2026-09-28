@@ -56,10 +56,11 @@ export function isIso22000TutorLedSlug(slug?: string | null): boolean {
   return key === ISO_22000_CATALOG_SLUG || iso22000Slugs.has(key);
 }
 
-/** Description / catalog click — ISO 22000 levels open the designed food landing. */
+/** Description / catalog click — catalog cards stay on the family landing; each level opens its designed page. */
 export function tutorLedDescriptionHref(slug?: string | null): string {
-  if (isIso22000TutorLedSlug(slug)) return TUTOR_LED_ISO_22000_CATALOG_HREF;
-  return liveTutorCourseHref(slug);
+  const key = slug?.trim() ?? "";
+  if (key === ISO_22000_CATALOG_SLUG) return TUTOR_LED_ISO_22000_CATALOG_HREF;
+  return liveTutorCourseHref(key);
 }
 
 /** Enrolled learner hub: live join, recordings, and cohort materials. */
