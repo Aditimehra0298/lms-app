@@ -31,6 +31,7 @@ import type {
 } from "@/lib/content-schema";
 import { mergeTutorLedCatalogPageConfig } from "@/lib/content-schema";
 import { uploadAdminImageFile } from "@/lib/admin-upload-image";
+import { applyLiveProgramsToCatalogPage } from "@/lib/tutor-led-catalog-batches";
 import { slugifyTutorLedCatalog, tutorLedCatalogPublicHref } from "@/lib/tutor-led-catalog-landings";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { ensureIso22000TutorLedPrograms, ISO_22000_TUTOR_LED_TEMPLATES } from "@/lib/iso-22000-tutor-led-seed";
@@ -427,20 +428,23 @@ export default function AdminTutorLedCatalogLandingEditor({
           {step === "zoom" ? (
             <div className="space-y-3">
               <p className="text-xs text-gray-400">
-                These are Zoom classes. Set training days, then paste a <strong className="text-gray-200">different</strong>{" "}
-                Zoom link on every session. After the last live day, learners take the final exam on their dashboard.
+                <strong className="text-gray-200">1.</strong> Set how many training days.{" "}
+                <strong className="text-gray-200">2.</strong> Set the batch date and class time.{" "}
+                <strong className="text-gray-200">3.</strong> Paste a <strong className="text-gray-200">different</strong>{" "}
+                Zoom link on each day. The public landing (duration, weeks, dates) updates from these fields.
               </p>
               {page.programs.length === 0 ? (
-                <p className="text-sm text-amber-100">Add levels first, then paste a different Zoom link on each.</p>
+                <p className="text-sm text-amber-100">Add levels first, then choose training days and Zoom links.</p>
               ) : (
                 page.programs.map((card, i) => {
                   const live = programForCard(card);
+                  const days = getCurriculumSessionCount(live);
                   return (
-                    <div key={card.id} className="space-y-2 rounded-xl border border-sky-500/25 bg-sky-500/5 p-3">
+                    <div key={card.id} className="space-y-3 rounded-xl border border-sky-500/25 bg-sky-500/5 p-3">
                       <p className="text-sm font-semibold text-white">{card.title || `Level ${i + 1}`}</p>
                       <p className="text-[11px] text-gray-500">{live.slug}</p>
                       <label className="block">
-                        <span className="text-[11px] text-gray-500">Training days (Zoom classes)</span>
+                        <span className="text-[11px] font-semibold text-sky-200">1. How many days of training?</span>
                         <input
                           type="number"
                           min={1}
@@ -449,23 +453,19 @@ export default function AdminTutorLedCatalogLandingEditor({
                           value={
                             live.trainingDays ??
                             parseTrainingDaysLabel(card.durationLabel) ??
-                            getCurriculumSessionCount(live)
+                            days
                           }
                           onChange={(e) =>
                             saveLevelProgram(i, applyTrainingDays(live, Number(e.target.value) || 1))
                           }
                         />
                         <p className="mt-1 text-[10px] text-gray-500">
-                          Learner dashboard lists Day 1–{getCurriculumSessionCount(live)} plus the final exam.
+                          Landing shows {catalogDurationLabel(days)}. Day 1–{days} plus the final exam.
                         </p>
                       </label>
-                      <AdminTutorLedSessionZoomList
-                        program={live}
-                        onChange={(next) => saveLevelProgram(i, next)}
-                      />
                       <div className="grid gap-2 sm:grid-cols-2">
                         <label className="block">
-                          <span className="text-[11px] text-gray-500">Batch date</span>
+                          <span className="text-[11px] text-gray-500">2. Batch start date</span>
                           <input
                             className={inputCls}
                             value={live.nextBatchDate}
@@ -474,6 +474,15 @@ export default function AdminTutorLedCatalogLandingEditor({
                           />
                         </label>
                         <label className="block">
+                          <span className="text-[11px] text-gray-500">Schedule / time</span>
+                          <input
+                            className={inputCls}
+                            value={live.schedule}
+                            onChange={(e) => saveLevelProgram(i, { ...live, schedule: e.target.value })}
+                            placeholder="Mon–Fri (10:00 AM – 5:00 PM IST)"
+                          />
+                        </label>
+                        <label className="block sm:col-span-2">
                           <span className="text-[11px] text-gray-500">Batch name</span>
                           <input
                             className={inputCls}
@@ -481,6 +490,15 @@ export default function AdminTutorLedCatalogLandingEditor({
                             onChange={(e) => saveLevelProgram(i, { ...live, batchLabel: e.target.value })}
                           />
                         </label>
+                      </div>
+                      <div className="rounded-lg border border-sky-500/20 bg-black/20 p-3">
+                        <p className="mb-2 text-[11px] font-semibold text-sky-200">
+                          3. Zoom link for each day (unique — not the same meeting)
+                        </p>
+                        <AdminTutorLedSessionZoomList
+                          program={live}
+                          onChange={(next) => saveLevelProgram(i, next)}
+                        />
                       </div>
                     </div>
                   );
@@ -569,7 +587,7 @@ export default function AdminTutorLedCatalogLandingEditor({
               Close
             </button>
           </div>
-          <FoodTutorLedCatalogLanding page={page} />
+          <FoodTutorLedCatalogLanding page={applyLiveProgramsToCatalogPage(page, programs, true)} />
         </div>
         ) : null}
       </div>
@@ -860,38 +878,41 @@ export default function AdminTutorLedCatalogLandingEditor({
     }
 
     if (id === "batches") {
+      const livePreview = applyLiveProgramsToCatalogPage(page, programs, true);
       return (
         <>
+          <p className="text-xs leading-relaxed text-gray-400">
+            Dates, times, seats, and duration on the public landing come from{" "}
+            <strong className="text-gray-200">Zoom &amp; batch</strong> (training days, start date, schedule).
+            Change them there — this table is a live preview, not a separate list to type twice.
+          </p>
           <input className={inputCls} value={page.batches.eyebrow} onChange={(e) => setPage((p) => ({ ...p, batches: { ...p.batches, eyebrow: e.target.value } }))} />
-          {page.batches.rows.map((row, i) => (
-            <div key={`${row.programId}-${i}`} className={`${itemCls} grid gap-2 md:grid-cols-5`}>
-              <input className={inputCls} value={row.date} onChange={(e) => setBatch(i, { date: e.target.value })} placeholder="Date" />
-              <input className={inputCls} value={row.time} onChange={(e) => setBatch(i, { time: e.target.value })} placeholder="Time" />
-              <input className={inputCls} value={row.programLabel} onChange={(e) => setBatch(i, { programLabel: e.target.value })} placeholder="Program" />
-              <input className={inputCls} value={row.programId} onChange={(e) => setBatch(i, { programId: e.target.value })} placeholder="Level id (basic)" />
-              <div className="flex gap-2">
-                <input className={inputCls} type="number" value={row.seats} onChange={(e) => setBatch(i, { seats: Number(e.target.value) || 0 })} placeholder="Seats" />
-                <button type="button" onClick={() => setPage((p) => ({ ...p, batches: { ...p.batches, rows: p.batches.rows.filter((_, idx) => idx !== i) } }))} className="text-rose-300">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
+          {livePreview.batches.rows.length === 0 ? (
+            <p className="text-sm text-amber-100">Set a batch start date on each level in Zoom &amp; batch to show upcoming dates here.</p>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-white/10 text-xs">
+              <table className="w-full text-left">
+                <thead className="bg-black/40 text-[10px] uppercase tracking-wider text-gray-500">
+                  <tr>
+                    <th className="px-3 py-2">Date</th>
+                    <th className="px-3 py-2">Time</th>
+                    <th className="px-3 py-2">Program</th>
+                    <th className="px-3 py-2">Seats</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/10 text-gray-200">
+                  {livePreview.batches.rows.map((row) => (
+                    <tr key={`${row.programId}-${row.date}`}>
+                      <td className="px-3 py-2">{row.date}</td>
+                      <td className="px-3 py-2 text-gray-400">{row.time}</td>
+                      <td className="px-3 py-2">{row.programLabel}</td>
+                      <td className="px-3 py-2">{row.seats}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-          <button
-            type="button"
-            onClick={() =>
-              setPage((p) => ({
-                ...p,
-                batches: {
-                  ...p.batches,
-                  rows: [...p.batches.rows, { date: "", time: "10:00 AM – 5:00 PM", programId: "basic", programLabel: "Basic", seats: 25 }],
-                },
-              }))
-            }
-            className="inline-flex items-center gap-1 text-xs font-semibold text-amber-200"
-          >
-            <Plus className="h-3.5 w-3.5" /> Add batch
-          </button>
+          )}
         </>
       );
     }
@@ -964,12 +985,6 @@ export default function AdminTutorLedCatalogLandingEditor({
     setPage((p) => ({
       ...p,
       audience: { ...p.audience, items: p.audience.items.map((row, idx) => (idx === i ? { ...row, ...patch } : row)) },
-    }));
-  }
-  function setBatch(i: number, patch: Partial<TutorLedCatalogPageConfig["batches"]["rows"][number]>) {
-    setPage((p) => ({
-      ...p,
-      batches: { ...p.batches, rows: p.batches.rows.map((row, idx) => (idx === i ? { ...row, ...patch } : row)) },
     }));
   }
   function setFaq(i: number, patch: Partial<TutorLedCatalogPageConfig["faqs"][number]>) {

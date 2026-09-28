@@ -31,6 +31,7 @@ import CourseLandingVisit from "@/components/CourseLandingVisit";
 import { CoursePrice } from "@/components/CoursePrice";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { tutorLedLandingCopy, tutorLedLandingImage } from "@/lib/iso-22000-landing-copy";
+import { formatTrainingDuration, getCurriculumSessionCount } from "@/lib/tutor-led-training-schedule";
 import { isIso22000TutorLedSlug, TUTOR_LED_ISO_22000_CATALOG_HREF } from "@/lib/tutor-led-routes";
 import { registerTutorLedFromTemplate } from "@/lib/push-checkout-or-login";
 import { formatSimpleRichTextBlock } from "@/lib/simple-rich-text";
@@ -183,8 +184,8 @@ export default function Iso22000CourseLanding({ program }: Props) {
     (program.regionalPrices?.length ?? 0) > 0
       ? resolveCoursePrices(tutorLedPricingCourse(program), region)
       : null;
-  const duration =
-    program.batchDetails?.find((d) => /duration/i.test(d.label))?.value || "Live cohort";
+  const sessionCount = getCurriculumSessionCount(program);
+  const duration = formatTrainingDuration(sessionCount);
   const mode = program.batchDetails?.find((d) => /mode|platform/i.test(d.label))?.value || "Live on Zoom";
   const iso = isIso22000TutorLedSlug(program.slug);
   const catHref = iso
@@ -269,6 +270,13 @@ export default function Iso22000CourseLanding({ program }: Props) {
                   <Monitor className="h-3.5 w-3.5" />
                   {mode}
                 </span>
+                {program.nextBatchDate?.trim() ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" />
+                    Next batch {program.nextBatchDate}
+                    {program.schedule?.trim() ? ` · ${program.schedule}` : ""}
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -414,7 +422,9 @@ export default function Iso22000CourseLanding({ program }: Props) {
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white">Course content</h2>
                 <p className="mt-2 text-sm text-zinc-400">
-                  Live sessions written only for {program.title} — not shared with other tutor-led programs.
+                  {sessionCount} live Zoom {sessionCount === 1 ? "day" : "days"} for {program.title}
+                  {program.nextBatchDate?.trim() ? ` · starts ${program.nextBatchDate}` : ""}.
+                  Each day has its own meeting link. The final exam unlocks after the last class.
                 </p>
                 <ol className="mt-6 space-y-3">
                   {(program.curriculum ?? []).map((day) => (
@@ -481,7 +491,7 @@ export default function Iso22000CourseLanding({ program }: Props) {
             <TutorLedCourseSidebar
               program={program}
               duration={duration}
-              sessionCount={program.curriculum?.length ?? 0}
+              sessionCount={sessionCount}
             />
           ) : null}
         </div>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import FoodTutorLedCatalogLanding from "@/components/FoodTutorLedCatalogLanding";
-import { findTutorLedCatalog, mergeTutorLedCatalogPages } from "@/lib/tutor-led-catalog-landings";
-import { mergeCatalogProgramCards } from "@/lib/tutor-led-catalog-batches";
+import { mergeTutorLedCatalogPages, findTutorLedCatalog } from "@/lib/tutor-led-catalog-landings";
+import { applyLiveProgramsToCatalogPage } from "@/lib/tutor-led-catalog-batches";
 import { readAdminContentFromDisk } from "@/lib/server/content-store";
 
 export const dynamic = "force-dynamic";
@@ -22,10 +22,10 @@ export default async function Iso22000TutorLedCatalogPage() {
   const page = catalog?.page;
   if (!page) return null;
 
-  const programs = mergeCatalogProgramCards(page.programs, adminContent.tutorLedPrograms ?? []);
+  const programs = applyLiveProgramsToCatalogPage(page, adminContent.tutorLedPrograms ?? []);
   return (
     <div className="min-h-screen bg-[#07090f]">
-      <FoodTutorLedCatalogLanding page={{ ...page, programs }} />
+      <FoodTutorLedCatalogLanding page={programs} />
     </div>
   );
 }

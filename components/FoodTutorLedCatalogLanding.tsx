@@ -69,28 +69,9 @@ function cardCourseTitle(program: TutorLedCatalogProgramCard): string {
   return program.title?.trim() || "Live training";
 }
 
-const CARD_HOVER: Record<string, { about: string; forWho: string }> = {
-  basic: {
-    about:
-      "Start with ISO 22000:2018 language, food-safety principles, and how an FSMS protects people and brands.",
-    forWho: "New joiners, operators, and anyone who needs a clear awareness of the standard.",
-  },
-  implementation: {
-    about:
-      "Turn the standard into a working system: PRPs, documentation, hazard control, and day-to-day FSMS routines.",
-    forWho: "QA officers, supervisors, and teams who will implement ISO 22000 in the plant.",
-  },
-  "internal-auditor": {
-    about:
-      "Plan audits, gather evidence, write non-conformities, and check whether controls really work on the floor.",
-    forWho: "Internal auditors, QA, and staff who will audit the organisation’s own FSMS.",
-  },
-  "lead-auditor": {
-    about:
-      "Lead audit teams, manage certification-style audits, and apply ISO 19011 reporting with confidence.",
-    forWho: "Experienced auditors and professionals on the Lead Auditor certification pathway.",
-  },
-};
+function programEnrollSlug(program: TutorLedCatalogProgramCard): string {
+  return program.enrollSlug?.trim() || program.id;
+}
 
 function ChipIcon({ name }: { name: string }) {
   const Icon = resolveLucideIcon(name) as LucideIcon;
@@ -133,38 +114,29 @@ function CardActions({ slug, enrollClassName }: { slug: string; enrollClassName:
   );
 }
 
-function programEnrollSlug(
-  program: TutorLedCatalogProgramCard,
-  enrollById: Record<string, string>,
-): string {
-  return program.enrollSlug?.trim() || enrollById[program.id] || program.id;
-}
-
 function BuyAllProgramsBanner({
   programs,
-  enrollById,
   selected,
   onToggle,
   onSelectAll,
   onClear,
 }: {
   programs: TutorLedCatalogProgramCard[];
-  enrollById: Record<string, string>;
   selected: Set<string>;
   onToggle: (slug: string) => void;
   onSelectAll: () => void;
   onClear: () => void;
 }) {
   const router = useRouter();
-  const allSlugs = programs.map((p) => programEnrollSlug(p, enrollById)).filter(Boolean);
+  const allSlugs = programs.map((p) => programEnrollSlug(p)).filter(Boolean);
   if (allSlugs.length < 2) return null;
 
-  const picked = programs.filter((p) => selected.has(programEnrollSlug(p, enrollById)));
+  const picked = programs.filter((p) => selected.has(programEnrollSlug(p)));
   const count = picked.length;
   const subtotal = picked.reduce((sum, p) => sum + (Number(p.price) || 0), 0);
   const percent = multiItemBundlePercent(count);
   const bundle = Math.round(subtotal * (1 - multiItemBundleRate(count)));
-  const ctaSlugs = picked.map((p) => programEnrollSlug(p, enrollById));
+  const ctaSlugs = picked.map((p) => programEnrollSlug(p));
 
   const ctaLabel =
     count === 0
@@ -188,7 +160,7 @@ function BuyAllProgramsBanner({
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {programs.map((p) => {
-            const slug = programEnrollSlug(p, enrollById);
+            const slug = programEnrollSlug(p);
             const on = selected.has(slug);
             return (
               <button
@@ -259,12 +231,6 @@ export default function FoodTutorLedCatalogLanding({ page }: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const heroBg = page.hero.backgroundImage?.trim() || "/tutor-led-iso-hero.png";
-  const enrollById: Record<string, string> = {
-    basic: "iso-22000-basic",
-    implementation: "iso-22000-implementation",
-    "internal-auditor": "iso-22000-internal-auditor",
-    "lead-auditor": "iso-22000-lead-auditor",
-  };
 
   const toggleSlug = (slug: string) => {
     setSelected((prev) => {
@@ -354,15 +320,16 @@ export default function FoodTutorLedCatalogLanding({ page }: Props) {
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {page.programs.map((program) => {
             const theme = THEME[program.theme] ?? THEME.gold;
-            const slug = program.enrollSlug || enrollById[program.id] || program.id;
+            const slug = programEnrollSlug(program);
             const courseTitle = cardCourseTitle(program);
-            const extra = /iso\s*22000/i.test(courseTitle)
-              ? CARD_HOVER[program.id]
-              : {
-                  about: program.tagline || program.bullets[0] || "Live Zoom training for this level.",
-                  forWho: program.bullets.filter(Boolean).slice(0, 2).join(" · ") || "Professionals on this pathway.",
-                };
+            const extra = {
+              about: program.tagline || program.bullets[0] || "Live Zoom training for this level.",
+              forWho: program.bullets.filter(Boolean).slice(0, 2).join(" · ") || "Professionals on this pathway.",
+            };
             const thumb = program.thumbnail?.trim() || "/tutor-led-iso-hero.png";
+            const batch = page.batches.rows.find(
+              (row) => row.slug === slug || row.programId === program.id || row.programId === slug,
+            );
             return (
               <article
                 key={program.id}
@@ -413,7 +380,14 @@ export default function FoodTutorLedCatalogLanding({ page }: Props) {
                 <div className="flex flex-1 flex-col p-5">
                   <h3 className={`text-[15px] font-bold leading-snug ${theme.title}`}>{courseTitle}</h3>
                   <p className="mt-1 text-sm font-medium text-white">{program.tagline}</p>
-                  <p className="mt-4 text-[11px] font-medium text-amber-200/90">Own Zoom class &amp; batch</p>
+                  <p className="mt-3 text-xs font-semibold text-amber-200/90">{program.durationLabel}</p>
+                  {batch?.date ? (
+                    <p className="mt-1 text-[11px] text-zinc-400">
+                      Next batch {batch.date}
+                      {batch.time ? ` · ${batch.time}` : ""}
+                    </p>
+                  ) : null}
+                  <p className="mt-2 text-[11px] font-medium text-zinc-500">Own Zoom class each day + final exam</p>
                   <p className={`mt-2 text-2xl font-extrabold ${theme.price}`}>{inr(program.price)}</p>
                   <p className="text-[11px] text-zinc-500">(Incl. of taxes)</p>
                   <p className="mt-4 text-[11px] text-zinc-500 group-hover:hidden group-focus-within:hidden">
@@ -463,13 +437,10 @@ export default function FoodTutorLedCatalogLanding({ page }: Props) {
         {page.programs.length > 1 ? (
           <BuyAllProgramsBanner
             programs={page.programs}
-            enrollById={enrollById}
             selected={selected}
             onToggle={toggleSlug}
             onSelectAll={() =>
-              setSelected(
-                new Set(page.programs.map((p) => programEnrollSlug(p, enrollById)).filter(Boolean)),
-              )
+              setSelected(new Set(page.programs.map((p) => programEnrollSlug(p)).filter(Boolean)))
             }
             onClear={() => setSelected(new Set())}
           />
@@ -550,8 +521,19 @@ export default function FoodTutorLedCatalogLanding({ page }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
-                {page.batches.rows.map((row) => {
-                  const slug = enrollById[row.programId] || row.programId;
+                {page.batches.rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-6 text-zinc-500">
+                      Batch dates appear here after the trainer sets training days and a start date in Admin.
+                    </td>
+                  </tr>
+                ) : (
+                page.batches.rows.map((row) => {
+                  const slug =
+                    row.slug?.trim() ||
+                    page.programs.find((p) => p.id === row.programId || p.enrollSlug === row.programId)
+                      ?.enrollSlug ||
+                    row.programId;
                   return (
                     <tr key={`${row.programId}-${row.date}`} className="text-zinc-200">
                       <td className="px-3 py-3 font-medium">{row.date}</td>
@@ -568,7 +550,8 @@ export default function FoodTutorLedCatalogLanding({ page }: Props) {
                       </td>
                     </tr>
                   );
-                })}
+                })
+                )}
               </tbody>
             </table>
           </div>

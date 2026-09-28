@@ -1,4 +1,5 @@
-/** ChatGPT-style marketing copy for ISO 22000:2018 live program description pages. */
+import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
+import { formatTrainingDuration, getCurriculumSessionCount } from "@/lib/tutor-led-training-schedule";
 
 export type Iso22000LandingCopy = {
   tagline: string;
@@ -390,15 +391,34 @@ function fallbackCopy(program: {
   };
 }
 
-export function tutorLedLandingCopy(program: {
-  slug: string;
-  title: string;
-  subtitle: string;
-  highlights?: string[];
-  features?: { title: string; desc: string }[];
-  faqs?: { q: string; a: string }[];
-}): Iso22000LandingCopy {
-  return iso22000LandingCopy(program.slug) ?? fallbackCopy(program);
+export function tutorLedLandingCopy(program: TutorLedProgramStored): Iso22000LandingCopy {
+  const days = formatTrainingDuration(getCurriculumSessionCount(program));
+  const raw = iso22000LandingCopy(program.slug) ?? fallbackCopy(program);
+  const inject = (s: string) =>
+    s
+      .replace(/\b5-day\b/gi, days.toLowerCase())
+      .replace(/\b5 days\b/gi, days.toLowerCase())
+      .replace(/\bthe 5-day live\b/gi, `the ${days.toLowerCase()} live`);
+  const faqs = (program.faqs?.length ? program.faqs : raw.faqs).map((f) => ({
+    q: f.q,
+    a: inject(f.a),
+  }));
+  const batchDate = program.nextBatchDate?.trim();
+  if (batchDate) {
+    const schedule = program.schedule?.trim();
+    faqs.unshift({
+      q: "When is the next batch?",
+      a: `The next live batch starts ${batchDate}${schedule ? ` · ${schedule}` : ""}. Training length is ${days}. Each day has its own Zoom meeting.`,
+    });
+  }
+  return {
+    ...raw,
+    tagline: program.subtitle?.trim() || raw.tagline,
+    about: inject(raw.about),
+    highlights: raw.highlights.map(inject),
+    requirements: raw.requirements.map(inject),
+    faqs,
+  };
 }
 
 export function tutorLedLandingImage(program: {

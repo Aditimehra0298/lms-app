@@ -577,6 +577,8 @@ export type TutorLedCatalogBatchRow = {
   programId: string;
   programLabel: string;
   seats: number;
+  /** Published Zoom program slug — used for Enroll on the catalog landing. */
+  slug?: string;
 };
 
 export type TutorLedCatalogPageConfig = {

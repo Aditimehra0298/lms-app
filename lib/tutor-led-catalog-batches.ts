@@ -1,11 +1,14 @@
-import { getCurriculumSessionCount, formatTrainingDuration } from "@/lib/tutor-led-training-schedule";
+import {
+  catalogDurationLabel,
+  getCurriculumSessionCount,
+} from "@/lib/tutor-led-training-schedule";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import {
   extractScheduleTime,
   parseFlexibleDate,
   startOfDay,
 } from "@/lib/my-learning-dashboard-events";
-import type { TutorLedCatalogBatchRow, TutorLedCatalogProgramCard } from "@/lib/content-schema";
+import type { TutorLedCatalogBatchRow, TutorLedCatalogPageConfig, TutorLedCatalogProgramCard } from "@/lib/content-schema";
 
 export type LiveCatalogBatchRow = TutorLedCatalogBatchRow & {
   /** Published tutor-led program slug for Zoom enroll / checkout. */
@@ -100,37 +103,42 @@ const THEME_ROTATION: Array<TutorLedCatalogProgramCard["theme"]> = [
  * Catalog marketing cards + live Admin → Tutor Led programs.
  * Overlays price/title from published programs; if Landing has no cards, builds from programs.
  */
+function catalogProgramPool(
+  programs: TutorLedProgramStored[],
+  includeDrafts = false,
+): TutorLedProgramStored[] {
+  return programs.filter(
+    (p) => p.programKind !== "workshop" && (includeDrafts || p.published !== false),
+  );
+}
+
 export function mergeCatalogProgramCards(
   cards: TutorLedCatalogProgramCard[],
   programs: TutorLedProgramStored[],
+  includeDrafts = false,
 ): Array<TutorLedCatalogProgramCard & { resolvedSlug: string | null }> {
-  const live = programs.filter(
-    (p) => p.published && p.programKind !== "workshop",
-  );
+  const live = catalogProgramPool(programs, includeDrafts);
 
   if (!cards.length && live.length > 0) {
-    return live.map((p, i) => {
-      const duration = formatTrainingDuration(getCurriculumSessionCount(p));
-      return {
-        id: p.slug,
-        title: p.title,
-        tagline: p.subtitle || p.badge || "Live tutor-led training",
-        bullets: (p.highlights ?? []).slice(0, 4).filter(Boolean).length
-          ? (p.highlights ?? []).slice(0, 4).filter(Boolean)
-          : (p.features ?? []).slice(0, 4).map((f) => f.title).filter(Boolean),
-        durationLabel: duration,
-        modeLabel: "Live on Zoom",
-        certificateLabel: p.badge?.trim() || "Certificate of completion",
-        price: typeof p.price === "number" ? p.price : 0,
-        theme: THEME_ROTATION[i % THEME_ROTATION.length],
-        popular: i === 0,
-        icon: "Video",
-        thumbnail: p.heroSrc?.trim() || "",
-        enrollSlug: p.slug,
-        matchPattern: "",
-        resolvedSlug: p.slug,
-      };
-    });
+    return live.map((p, i) => ({
+      id: p.slug,
+      title: p.title,
+      tagline: p.subtitle || p.badge || "Live tutor-led training",
+      bullets: (p.highlights ?? []).slice(0, 4).filter(Boolean).length
+        ? (p.highlights ?? []).slice(0, 4).filter(Boolean)
+        : (p.features ?? []).slice(0, 4).map((f) => f.title).filter(Boolean),
+      durationLabel: catalogDurationLabel(getCurriculumSessionCount(p)),
+      modeLabel: "Live on Zoom",
+      certificateLabel: p.badge?.trim() || "Certificate of completion",
+      price: typeof p.price === "number" ? p.price : 0,
+      theme: THEME_ROTATION[i % THEME_ROTATION.length],
+      popular: i === 0,
+      icon: "Video",
+      thumbnail: p.heroSrc?.trim() || "",
+      enrollSlug: p.slug,
+      matchPattern: "",
+      resolvedSlug: p.slug,
+    }));
   }
 
   return cards.map((card) => {
@@ -139,7 +147,6 @@ export function mergeCatalogProgramCards(
     if (!program) {
       return { ...card, resolvedSlug: slug };
     }
-    const duration = formatTrainingDuration(getCurriculumSessionCount(program)) || card.durationLabel;
     return {
       ...card,
       title: program.title?.trim() || card.title,
@@ -150,9 +157,40 @@ export function mergeCatalogProgramCards(
         program.heroSrc?.trim() ||
         program.learnerHeroSrc?.trim() ||
         "",
-      durationLabel: duration,
+      durationLabel: catalogDurationLabel(getCurriculumSessionCount(program)),
       enrollSlug: program.slug,
       resolvedSlug: program.slug,
     };
   });
+}
+
+/** Overlay training days, batch dates, and schedule from Admin Zoom programs onto the public landing. */
+export function applyLiveProgramsToCatalogPage(
+  page: TutorLedCatalogPageConfig,
+  programs: TutorLedProgramStored[],
+  includeDrafts = false,
+): TutorLedCatalogPageConfig {
+  const cards = mergeCatalogProgramCards(page.programs, programs, includeDrafts);
+  const slugs = new Set(cards.map((c) => c.resolvedSlug).filter(Boolean) as string[]);
+  const linked = catalogProgramPool(programs, includeDrafts).filter((p) => slugs.has(p.slug));
+  const liveBatches = buildLiveCatalogBatchRows(linked);
+  const trainerFrom = linked.find((p) => p.trainer?.name?.trim())?.trainer;
+  return {
+    ...page,
+    programs: cards,
+    batches: {
+      ...page.batches,
+      rows: liveBatches.length > 0 ? liveBatches : page.batches.rows,
+    },
+    trainer: trainerFrom
+      ? {
+          ...page.trainer,
+          name: trainerFrom.name || page.trainer.name,
+          role: trainerFrom.role || page.trainer.role,
+          experience: trainerFrom.experience || page.trainer.experience,
+          bio: trainerFrom.bio || page.trainer.bio,
+          photo: trainerFrom.avatar?.trim() || page.trainer.photo,
+        }
+      : page.trainer,
+  };
 }
