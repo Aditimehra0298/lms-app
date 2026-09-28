@@ -69,10 +69,21 @@ echo "==> Ensure data dir for session fallback file"
 mkdir -p data
 chmod 775 data || true
 
-echo "==> Production build"
-npm run build
+echo "==> Stop PM2 before rebuild (serving .next while next build runs yields 500 CSS/JS)"
+if command -v pm2 >/dev/null 2>&1; then
+  pm2 stop "$PM2_NAME" || true
+fi
 
-echo "==> PM2 restart"
+echo "==> Production build"
+rm -rf .next
+npm run build
+if [[ ! -f .next/BUILD_ID ]]; then
+  echo "ERROR: npm run build did not create .next/BUILD_ID"
+  exit 1
+fi
+echo "    BUILD_ID=$(cat .next/BUILD_ID)"
+
+echo "==> PM2 start"
 if command -v pm2 >/dev/null 2>&1; then
   if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
     pm2 restart "$PM2_NAME" --update-env
@@ -93,6 +104,7 @@ echo "  2) Admin one-device lock (only active device can sign out)"
 echo "  3) Signup OTP email (SMTP_* in .env.local)"
 echo "  4) Country prices after login"
 echo "  5) curl -sI https://sftlms.com | head"
+echo "  6) Cloudflare → Caching → Purge Everything (stale HTML points at deleted /_next hashes)"
 echo ""
 echo "Required .env.local keys:"
 echo "  NEXT_PUBLIC_APP_URL=https://sftlms.com"

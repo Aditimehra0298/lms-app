@@ -68,7 +68,9 @@ const nextConfig: NextConfig = {
       ],
     };
     const htmlNoStore = {
-      source: "/:path*",
+      // Do not attach HTML no-store / nosniff to /_next/static — a 500 there is
+      // text/plain, and nosniff makes the browser refuse CSS/JS entirely.
+      source: "/((?!_next/static|_next/image).*)",
       headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }, ...securityHeaders, ...hsts],
     };
     if (process.env.NODE_ENV === "development") {
