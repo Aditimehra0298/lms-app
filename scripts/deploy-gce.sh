@@ -10,6 +10,12 @@ PM2_NAME="${PM2_APP_NAME:-lms}"
 
 cd "$LMS_ROOT"
 
+APP_USER="$(stat -c '%U' "$LMS_ROOT" 2>/dev/null || echo "")"
+if [[ $EUID -eq 0 && -n "$APP_USER" && "$APP_USER" != "root" ]]; then
+  echo "==> Re-running as $APP_USER (root-owned .next makes CSS/JS return 500 text/plain)"
+  exec sudo -u "$APP_USER" -H bash "$LMS_ROOT/scripts/deploy-gce.sh"
+fi
+
 echo "==> LMS deploy in $LMS_ROOT (branch $BRANCH)"
 echo "==> Expected GitHub tip: 4a144a9+ (admin takeover, country pricing, CSRF, OTP, security)"
 
@@ -82,6 +88,10 @@ if [[ ! -f .next/BUILD_ID ]]; then
   exit 1
 fi
 echo "    BUILD_ID=$(cat .next/BUILD_ID)"
+APP_USER_NOW="$(stat -c '%U' "$LMS_ROOT")"
+APP_GROUP_NOW="$(stat -c '%G' "$LMS_ROOT")"
+sudo chown -R "$APP_USER_NOW:$APP_GROUP_NOW" .next 2>/dev/null || chown -R "$APP_USER_NOW:$APP_GROUP_NOW" .next || true
+chmod -R a+rX .next
 
 echo "==> PM2 start"
 if command -v pm2 >/dev/null 2>&1; then

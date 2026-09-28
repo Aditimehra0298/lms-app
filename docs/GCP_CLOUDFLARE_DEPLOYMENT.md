@@ -295,10 +295,16 @@ server {
     client_max_body_size 5120M;
 
     location /_next/static/ {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        alias /var/www/lms/.next/static/;
+        access_log off;
+        expires 1y;
         add_header Cache-Control "public, max-age=31536000, immutable";
+        types {
+            text/css css;
+            application/javascript js;
+            application/javascript mjs;
+            font/woff2 woff2;
+        }
     }
 
     location / {
@@ -419,6 +425,15 @@ bash scripts/fix-broken-css-gce.sh
 ```
 
 If that script is not on the server yet, paste the block in `scripts/fix-broken-css-gce.sh` over SSH, then purge Cloudflare cache.
+
+Run **as the app user** (not `sudo bash`). Root-owned `.next` files make Next return `500` with `Content-Type: text/plain`, which the browser reports as a CSS MIME error.
+
+```bash
+cd /var/www/lms
+APP=$(stat -c %U /var/www/lms)
+sudo chown -R "$APP:$APP" .next .git 2>/dev/null || true
+sudo -u "$APP" -H bash scripts/fix-broken-css-gce.sh
+```
 
 ### View logs
 
