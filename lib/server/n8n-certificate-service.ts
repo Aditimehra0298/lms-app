@@ -956,9 +956,13 @@ export async function listLearnerCertificates(email: string): Promise<Certificat
 
   for (const row of rows) {
     const course = findCertificateProgram(content, row.courseSlug);
-    if (!course) continue;
-    const perms = resolveCertificatePermissions(course);
-    if (!shouldShowOnLearnerDashboard(perms, row)) continue;
+    if (course) {
+      const perms = resolveCertificatePermissions(course);
+      if (!shouldShowOnLearnerDashboard(perms, row)) continue;
+    } else if (row.status !== "ready" && row.status !== "pending") {
+      // Course removed from catalog — still show ready/pending so progress stays 100%.
+      continue;
+    }
     out.push(await toDto(row));
   }
 

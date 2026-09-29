@@ -428,6 +428,7 @@ export default function MyLearningPage() {
   }, [searchParams, pathname, router]);
   const [purchasedCourses, setPurchasedCourses] = useState<LearningCourseRow[]>([]);
   const [learnerCertificates, setLearnerCertificates] = useState<CertificateRowDto[]>([]);
+  const [completionReadySlugs, setCompletionReadySlugs] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     const loadPurchasedCourses = () => {
@@ -473,7 +474,6 @@ export default function MyLearningPage() {
         .then((data) => {
           if (data.ok && data.certificates) {
             setLearnerCertificates(data.certificates);
-            // Cert list can arrive after first paint — refresh progress bars again.
             syncProgressForEnrolled();
             setProgressTick((n) => n + 1);
           }
@@ -482,7 +482,33 @@ export default function MyLearningPage() {
           /* ignore */
         });
 
-      // Immediate attempt for any courses already in localStorage.
+      // MySQL ready certificates → force 100% even if local progress was wiped.
+      void fetch(`/api/learner/completion-status`, { cache: "no-store", credentials: "include" })
+        .then(async (res) =>
+          readJsonResponse(
+            res,
+            {} as { ok?: boolean; completedSlugs?: string[]; percentBySlug?: Record<string, number> },
+          ),
+        )
+        .then((data) => {
+          if (!data.ok || !Array.isArray(data.completedSlugs)) return;
+          const next = new Set(
+            data.completedSlugs.map((s) => canonicalCourseSlug(s) || s.trim()).filter(Boolean),
+          );
+          setCompletionReadySlugs(next);
+          const rows = readPurchasedCoursesFromStorage();
+          for (const slug of next) {
+            const row = rows.find((c) => canonicalCourseSlug(c.slug || "") === slug);
+            const modules = Math.max(1, row?.modules || 5);
+            ensureCompletedModulesForCertificate(slug, modules);
+          }
+          syncProgressForEnrolled();
+          setProgressTick((n) => n + 1);
+        })
+        .catch(() => {
+          /* ignore */
+        });
+
       syncProgressForEnrolled();
     }
     setEarnedBadges(readLearnerBadges());
@@ -563,6 +589,7 @@ export default function MyLearningPage() {
         .map((c) => canonicalCourseSlug(c.courseSlug))
         .filter(Boolean),
     );
+    for (const s of completionReadySlugs) readyCertSlugs.add(s);
     for (const row of rows) {
       const slug = row.slug?.trim();
       if (!slug) continue;
@@ -580,7 +607,7 @@ export default function MyLearningPage() {
         modules || row.modules,
       );
     }
-  }, [effectiveCatalog, progressTick, learnerCertificates]);
+  }, [effectiveCatalog, progressTick, learnerCertificates, completionReadySlugs]);
 
   const courseRowKey = (c: { title: string; slug?: string }) =>
     (c.slug?.trim() || c.title.trim()).toLowerCase();
@@ -594,12 +621,23 @@ export default function MyLearningPage() {
       learnerCertificates,
       catalog,
     );
-    return merged.map((course) =>
-      enrichPurchasedCourse(course, findCatalogCourse(course, catalog)),
-    );
+    return merged.map((course) => {
+      const enriched = enrichPurchasedCourse(course, findCatalogCourse(course, catalog), {
+        certificateReady:
+          course.status?.toLowerCase() === "completed" ||
+          completionReadySlugs.has(canonicalCourseSlug(course.slug || "")) ||
+          learnerCertificates.some(
+            (c) =>
+              c.status === "ready" &&
+              canonicalCourseSlug(c.courseSlug) === canonicalCourseSlug(course.slug || ""),
+          ),
+      });
+      return enriched;
+    });
   }, [
     purchasedCourses,
     learnerCertificates,
+    completionReadySlugs,
     effectiveCatalog,
     adminContent.managedCourses,
     progressTick,
@@ -1408,6 +1446,7 @@ export default function MyLearningPage() {
                   const certificateReady =
                     course.status?.toLowerCase() === "completed" ||
                     course.action === "View Certificate" ||
+                    completionReadySlugs.has(canonicalCourseSlug(course.slug || "")) ||
                     learnerCertificates.some(
                       (c) =>
                         c.status === "ready" &&
