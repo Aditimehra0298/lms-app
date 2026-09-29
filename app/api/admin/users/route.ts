@@ -177,6 +177,12 @@ function buildCourseProgress(
       examEntries.length > 0
         ? examEntries.reduce((best, e) => (e.percent > best ? e.percent : best), 0)
         : null;
+    const allExamsPassed = examAttemptCount > 0 && examPassedCount >= examAttemptCount;
+    const nearlyComplete =
+      totalModules > 0 &&
+      completedModules >= totalModules - 1 &&
+      completedModules < totalModules &&
+      allExamsPassed;
     const percent =
       totalModules > 0
         ? Math.min(100, Math.round((completedModules / totalModules) * 100))
@@ -184,7 +190,9 @@ function buildCourseProgress(
           ? 100
           : 0;
     const status =
-      cert?.status === "ready" || (totalModules > 0 && completedModules >= totalModules)
+      cert?.status === "ready" ||
+      (totalModules > 0 && completedModules >= totalModules) ||
+      nearlyComplete
         ? "Completed"
         : deriveStatus(completedModules, totalModules);
 
@@ -196,9 +204,9 @@ function buildCourseProgress(
         titleBySlug.get(slug) ||
         slug,
       enrolledAt: purchase?.createdAt.toISOString() ?? null,
-      completedModules,
+      completedModules: status === "Completed" && totalModules > 0 ? totalModules : completedModules,
       totalModules,
-      percent: status === "Completed" && percent < 100 && totalModules > 0 ? 100 : percent,
+      percent: status === "Completed" && totalModules > 0 ? 100 : percent,
       status,
       examPassedCount,
       examAttemptCount,
