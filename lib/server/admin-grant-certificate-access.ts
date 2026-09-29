@@ -71,6 +71,7 @@ export async function grantLearnerCertificateDownloadAccess(input: {
   let scorePercent: number | null = null;
   const notes: string[] = [];
 
+  // Always try n8n first when the webhook is configured.
   if (isCertificateApiProvider(perms)) {
     try {
       const apiResult = await requestCourseCertificate({
@@ -82,11 +83,38 @@ export async function grantLearnerCertificateDownloadAccess(input: {
       if (apiResult.ok) {
         certificateId = apiResult.certificate.id;
         scorePercent = apiResult.certificate.scorePercent ?? null;
+
+        const { triggerCertificateGeneration } = await import(
+          "@/lib/server/n8n-certificate-service"
+        );
+        const generated = await triggerCertificateGeneration({
+          certificateId,
+          learnerEmail,
+          forceRegenerate: true,
+        });
+        if (generated.ok) {
+          await prisma.lmsCertificate.update({
+            where: { id: certificateId },
+            data: { status: "ready", visibleToLearner: true },
+          });
+          await ensureProgressForReadyCertificate({
+            learnerEmail,
+            courseSlug,
+            scorePercent,
+          });
+          return {
+            ok: true,
+            granted: true,
+            message: generated.message || "Certificate generated via n8n and download enabled.",
+            certificateId,
+          };
+        }
+        notes.push(generated.message);
       } else {
         notes.push(apiResult.message);
       }
     } catch (err) {
-      notes.push(err instanceof Error ? err.message : "Certificate API request failed");
+      notes.push(err instanceof Error ? err.message : "n8n certificate request failed");
     }
   }
 
@@ -112,7 +140,7 @@ export async function grantLearnerCertificateDownloadAccess(input: {
     }
   }
 
-  // Always produce a downloadable PDF on disk so the learner is not stuck on pending/n8n.
+  // Safety net only if n8n did not return a usable PDF.
   const localOk = await ensureLocalCertificatePdf(certificateId).catch(() => false);
   await prisma.lmsCertificate.update({
     where: { id: certificateId },
@@ -123,6 +151,8 @@ export async function grantLearnerCertificateDownloadAccess(input: {
   });
   if (!localOk) {
     notes.push("Local PDF overlay could not be built; status forced ready for visibility.");
+  } else {
+    notes.push("Served local PDF fallback because n8n did not return a PDF yet.");
   }
 
   await ensureProgressForReadyCertificate({
