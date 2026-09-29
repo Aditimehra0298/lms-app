@@ -64,12 +64,24 @@ export async function POST(request: Request, { params }: Params) {
     });
 
     if (!prepared.ok) {
-      return NextResponse.json(prepared, {
-        status: prepared.status === "awaiting_approval" ? 403 : 409,
-      });
+      // Last-resort local PDF so learners are not stuck on 409 while n8n hangs.
+      const { ensureLocalCertificatePdf } = await import("@/lib/server/local-certificate-fallback");
+      const localOk = await ensureLocalCertificatePdf(certificateId).catch(() => false);
+      if (!localOk) {
+        return NextResponse.json(prepared, {
+          status: prepared.status === "awaiting_approval" ? 403 : 409,
+        });
+      }
     }
 
-    const minBytes = row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
+    // Prefer a small min size for local overlays; n8n multi-page PDFs are larger.
+    const fresh = await prisma.lmsCertificate.findUnique({
+      where: { id: certificateId },
+      select: { issuedVia: true, certificateNumber: true },
+    });
+    const via = fresh?.issuedVia ?? row.issuedVia;
+    const minBytes =
+      via === "n8n" || via === "api" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
 
     let buffer = await readCertificatePdfBuffer(certificateId, { minBytes });
 
@@ -79,19 +91,25 @@ export async function POST(request: Request, { params }: Params) {
     }
 
     if (!buffer) {
+      // Local overlay may be under the n8n size floor — accept any valid PDF bytes.
+      buffer = await readCertificatePdfBuffer(certificateId, { minBytes: 128 });
+    }
+
+    if (!buffer) {
       return NextResponse.json(
         {
           ok: false,
           message:
-            prepared.message ??
-            "Could not save your certificate PDF. Ensure n8n Respond to Webhook returns the full temporary PDF URL as plain text.",
-          n8nCalled: prepared.n8nCalled,
+            prepared.ok === false
+              ? prepared.message
+              : "Could not save your certificate PDF. Try Download again, or ask admin to re-issue.",
+          n8nCalled: prepared.ok ? prepared.n8nCalled : false,
         },
         { status: 404 },
       );
     }
 
-    const filename = `${(row.certificateNumber ?? certificateId).replace(/[^\w.-]+/g, "_")}.pdf`;
+    const filename = `${(fresh?.certificateNumber ?? row.certificateNumber ?? certificateId).replace(/[^\w.-]+/g, "_")}.pdf`;
 
     return new Response(new Uint8Array(buffer), {
       status: 200,

@@ -22,12 +22,14 @@ export function isN8nCertificateProvider(perms: CertificatePermissionSettings): 
   return isN8nCertificateProviderConfigured() && perms.provider !== "builtin";
 }
 
-/** Local PDF overlay when n8n is unavailable (dev / offline). */
+/** Local PDF overlay when n8n is unavailable or still pending (learner must never be stuck on 409). */
 export function mayUseLocalCertificateFallback(n8nConfigured: boolean): boolean {
   const override = process.env.CERTIFICATE_LOCAL_FALLBACK?.trim().toLowerCase();
   if (override === "true") return true;
   if (override === "false") return false;
-  return !n8nConfigured;
+  // Prefer n8n when configured, but always allow local PDF as a download safety net.
+  void n8nConfigured;
+  return true;
 }
 
 export type CourseCertificateAssets = ResolvedGlobalCertificateAssets & {

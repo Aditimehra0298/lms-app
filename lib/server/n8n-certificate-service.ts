@@ -698,11 +698,8 @@ export async function ensureCertificatePdfReady(input: {
       where: { id },
       data: { pdfUrl: null, status: "pending" },
     });
-  } else if (
-    row.status === "ready" &&
-    !apiConfigured &&
-    (await ensureLocalCertificatePdf(id))
-  ) {
+  } else if (row.status === "ready" && (await ensureLocalCertificatePdf(id))) {
+    // Ready but no archived file yet (or n8n PDF missing) — build local overlay and serve.
     return {
       ok: true,
       downloadUrl: certificatePdfServePath(id),
@@ -724,7 +721,7 @@ export async function ensureCertificatePdfReady(input: {
     }
   }
 
-  // n8n already triggered — wait for callback instead of posting again.
+  // n8n already triggered — wait briefly, then fall back to local PDF so download never 409s forever.
   if (
     !forceRegenerate &&
     row.status === "pending" &&
@@ -745,6 +742,17 @@ export async function ensureCertificatePdfReady(input: {
       if (archived) {
         return { ok: true, downloadUrl: archived, status: "ready", cached: true, n8nCalled: false };
       }
+    }
+    if (mayUseLocal && (await ensureLocalCertificatePdf(id))) {
+      console.info("[certificate] prepare: n8n pending — served local PDF fallback", id);
+      return {
+        ok: true,
+        downloadUrl: certificatePdfServePath(id),
+        status: "ready",
+        cached: false,
+        n8nCalled: false,
+        message: "Certificate PDF generated locally while n8n was still pending.",
+      };
     }
     return {
       ok: false,
