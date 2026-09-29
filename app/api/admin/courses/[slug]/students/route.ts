@@ -354,6 +354,20 @@ export async function GET(
 
 
 
+    // Keep learner dashboards in sync: admin "Completed" means cert ready → fill progress store.
+    void Promise.all(
+      rows
+        .filter((r) => r.completed)
+        .map((r) =>
+          import("@/lib/server/learner-course-progress-store").then(({ ensureProgressForReadyCertificate }) =>
+            ensureProgressForReadyCertificate({
+              learnerEmail: r.learnerEmail,
+              courseSlug,
+            }),
+          ),
+        ),
+    ).catch(() => undefined);
+
     return NextResponse.json({ ok: true, students: rows });
 
   } catch (err) {
