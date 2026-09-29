@@ -81,6 +81,7 @@ import {
   syncLearnerProfileFromServer,
 } from "@/lib/learner-session-client";
 import type { CertificateRowDto } from "@/lib/certificate-types";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import {
   COURSE_PROGRESS_UPDATED_EVENT,
   countLearnerCurriculumModules,
@@ -542,15 +543,26 @@ export default function MyLearningPage() {
     if (!effectiveCatalog.length) return;
     const rows = readPurchasedCoursesFromStorage();
     if (rows.length === 0) return;
+    const readyCertSlugs = new Set(
+      learnerCertificates
+        .filter((c) => c.status === "ready")
+        .map((c) => canonicalCourseSlug(c.courseSlug))
+        .filter(Boolean),
+    );
     for (const row of rows) {
       const slug = row.slug?.trim();
       if (!slug) continue;
       const catalog = findCatalogCourse(row, effectiveCatalog);
       const modules = catalog ? countLearnerCurriculumModules(catalog.curriculum) : row.modules;
-      clearUnverifiedFullCompletion(slug, catalog?.curriculum);
-      syncPurchasedCourseProgress(slug, trustedCompletedModules(slug, catalog?.curriculum).length, modules || row.modules);
+      const certificateReady = readyCertSlugs.has(canonicalCourseSlug(slug));
+      clearUnverifiedFullCompletion(slug, catalog?.curriculum, { certificateReady });
+      syncPurchasedCourseProgress(
+        slug,
+        trustedCompletedModules(slug, catalog?.curriculum, { certificateReady }).length,
+        modules || row.modules,
+      );
     }
-  }, [effectiveCatalog, progressTick]);
+  }, [effectiveCatalog, progressTick, learnerCertificates]);
 
   const courseRowKey = (c: { title: string; slug?: string }) =>
     (c.slug?.trim() || c.title.trim()).toLowerCase();
@@ -1375,13 +1387,25 @@ export default function MyLearningPage() {
                       ? countLearnerCurriculumModules(catalogCourse.curriculum)
                       : course.modules || 1,
                   );
+                  const certificateReady =
+                    course.status === "Completed" ||
+                    learnerCertificates.some(
+                      (c) =>
+                        c.status === "ready" &&
+                        canonicalCourseSlug(c.courseSlug) === canonicalCourseSlug(course.slug || ""),
+                    );
                   // Real per-module completion (not “first N modules”), so progress stays accurate
                   // when learners open modules out of order.
                   const doneSet = new Set(
                     course.slug
-                      ? trustedCompletedModules(course.slug, catalogCourse?.curriculum)
+                      ? trustedCompletedModules(course.slug, catalogCourse?.curriculum, {
+                          certificateReady,
+                        })
                       : [],
                   );
+                  if (certificateReady) {
+                    for (let i = 1; i <= safeModules; i++) doneSet.add(i);
+                  }
                   const doneCount = Array.from({ length: safeModules }).filter((_, idx) =>
                     doneSet.has(idx + 1),
                   ).length;

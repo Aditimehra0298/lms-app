@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -66,17 +66,17 @@ type CourseStep =
   | "batch-landing";
 
 const COURSE_STEPS: { id: CourseStep; label: string }[] = [
-  { id: "course", label: "Course" },
-  { id: "levels", label: "Levels" },
-  { id: "zoom", label: "Zoom & batch" },
-  { id: "batches", label: "Upcoming batches" },
-  { id: "pricing", label: "Pricing" },
-  { id: "assessment", label: "Final assessment" },
-  { id: "students", label: "Students" },
-  { id: "certificate", label: "Certificate" },
-  { id: "publish", label: "Publish" },
-  { id: "landing", label: "Landing design" },
-  { id: "batch-landing", label: "Batch landing" },
+  { id: "course", label: "1. Setup" },
+  { id: "levels", label: "2. Levels" },
+  { id: "zoom", label: "3. Zoom" },
+  { id: "batches", label: "4. Batches" },
+  { id: "batch-landing", label: "5. Level pages" },
+  { id: "pricing", label: "6. Price" },
+  { id: "assessment", label: "7. Exam" },
+  { id: "students", label: "8. Students" },
+  { id: "certificate", label: "9. Certificate" },
+  { id: "landing", label: "10. Catalog look" },
+  { id: "publish", label: "11. Publish" },
 ];
 
 type Props = {
@@ -213,6 +213,7 @@ export default function AdminTutorLedCatalogLandingEditor({
   const designedProgram = selectedCard ? selectedProgram ?? programForCard(selectedCard) : null;
 
   const saveLevelProgram = (cardIndex: number, next: TutorLedProgramStored) => {
+    if (cardIndex < 0) return;
     const durationLabel = catalogDurationLabel(getCurriculumSessionCount(next));
     const withBatch = syncProgramBatchFromSchedule(next);
     const list = programs.some((p) => p.slug === withBatch.slug)
@@ -228,6 +229,58 @@ export default function AdminTutorLedCatalogLandingEditor({
       ),
     }));
   };
+
+  /** Link the selected catalog level to a Zoom program so Students / Level pages work. */
+  useEffect(() => {
+    const needsLink =
+      step === "students" ||
+      step === "pricing" ||
+      step === "assessment" ||
+      step === "certificate" ||
+      step === "batch-landing" ||
+      step === "zoom";
+    if (!needsLink || !selectedCard) return;
+    const idx = page.programs.findIndex((p) => p.id === selectedCard.id);
+    if (idx < 0) return;
+    const live = programForCard(selectedCard);
+    if (!selectedCard.enrollSlug?.trim() || !programs.some((p) => p.slug === live.slug)) {
+      saveLevelProgram(idx, live);
+    }
+    // Only re-link when step or selected level changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: avoid loop on programs rewrite
+  }, [step, levelIndex, selectedCard?.id, selectedCard?.enrollSlug]);
+
+  const LevelPicker = ({ hint }: { hint?: string }) => (
+    <div className="space-y-2">
+      {hint ? <p className="text-xs text-gray-400">{hint}</p> : null}
+      {page.programs.length === 0 ? (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-100">
+          First go to <strong>2. Levels</strong> and add Basic / Implementer / Internal / Lead.
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {page.programs.map((card, i) => (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => {
+                setLevelIndex(i);
+                const live = programForCard(card);
+                if (!card.enrollSlug?.trim() || !programs.some((p) => p.slug === live.slug)) {
+                  saveLevelProgram(i, live);
+                }
+              }}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+                i === levelIndex ? "bg-violet-600 text-white" : "border border-white/15 text-gray-300 hover:bg-white/5"
+              }`}
+            >
+              {card.title || `Level ${i + 1}`}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   const updateProgram = (next: TutorLedProgramStored) => {
     const withBatch = syncProgramBatchFromSchedule(next);
@@ -475,14 +528,14 @@ export default function AdminTutorLedCatalogLandingEditor({
             key={tab.id}
             type="button"
             onClick={() => {
-              setStep(tab.id);
-              if (tab.id === "students" || tab.id === "zoom") setPreviewOpen(false);
-              if (tab.id === "batches") {
+              const next = tab.id;
+              setStep(next);
+              if (next === "students" || next === "zoom") setPreviewOpen(false);
+              if (next === "batches") {
                 setOpen("batches");
                 setPreviewOpen(true);
               }
-              if (tab.id === "batch-landing") setPreviewOpen(true);
-              if (tab.id === "landing") setOpen("batches");
+              if (next === "batch-landing" || next === "landing") setPreviewOpen(true);
             }}
             className={`shrink-0 rounded-lg px-3 py-2.5 text-[11px] font-semibold transition sm:px-4 ${
               step === tab.id
@@ -490,7 +543,7 @@ export default function AdminTutorLedCatalogLandingEditor({
                 : "text-gray-500 hover:bg-white/[0.04] hover:text-gray-200"
             }`}
           >
-            {tab.id === "course" ? "Course" : tab.id === "levels" ? "Content" : tab.label}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -626,10 +679,9 @@ export default function AdminTutorLedCatalogLandingEditor({
           ) : null}
           {step === "batches" ? (
             <div className="space-y-3">
-              <p className="text-xs text-gray-400">
-                Edit the <strong className="text-gray-200">Upcoming batches</strong> table on the catalog
-                landing (date, time, program, seats). Each row can open that level&apos;s designed Description
-                page (<strong className="text-gray-200">Batch landing</strong> step).
+              <p className="text-sm text-gray-300">
+                Fill the dates students see on the catalog page. Use <strong className="text-white">Add batch</strong> or
+                Load from Zoom dates.
               </p>
               {renderSection("batches")}
             </div>
@@ -637,24 +689,18 @@ export default function AdminTutorLedCatalogLandingEditor({
           {step === "pricing" || step === "assessment" || step === "students" || step === "certificate" ? (
             <div className="space-y-3">
               {step === "students" ? (
-                <div className="flex flex-wrap gap-2">
-                  {page.programs.map((card, i) => (
-                    <button
-                      key={card.id}
-                      type="button"
-                      onClick={() => setLevelIndex(i)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                        i === levelIndex ? "bg-violet-600 text-white" : "border border-white/15 text-gray-300"
-                      }`}
-                    >
-                      {card.title || `Level ${i + 1}`}
-                    </button>
-                  ))}
+                <div className="rounded-xl border border-sky-500/25 bg-sky-500/10 px-3 py-3 text-sm text-sky-50">
+                  <p className="font-semibold">Who enrolled on this level</p>
+                  <p className="mt-1 text-xs text-sky-100/85">
+                    Pick Basic / Implementer / Internal / Lead above. The list shows learners for that level only.
+                    If the list is empty, nobody has enrolled yet — that is normal.
+                  </p>
                 </div>
               ) : null}
+              <LevelPicker hint="Choose which level this applies to:" />
               <AdminTutorLedLevelSteps
                 step={step}
-                program={selectedProgram}
+                program={designedProgram}
                 onChange={updateProgram}
               />
             </div>
@@ -678,21 +724,21 @@ export default function AdminTutorLedCatalogLandingEditor({
           {step === "landing" ? (
             <div className="space-y-3">
               <p className="text-xs text-gray-400">
-                Catalog page sections. For the batches table use the{" "}
+                Extra sections on the main catalog page. Batch dates are on{" "}
                 <button
                   type="button"
                   className="font-semibold text-amber-200 underline"
                   onClick={() => setStep("batches")}
                 >
-                  Upcoming batches
-                </button>{" "}
-                step; for each level Description page use{" "}
+                  4. Batches
+                </button>
+                . Each level&apos;s Description page is on{" "}
                 <button
                   type="button"
                   className="font-semibold text-amber-200 underline"
                   onClick={() => setStep("batch-landing")}
                 >
-                  Batch landing
+                  5. Level pages
                 </button>
                 .
               </p>
@@ -723,218 +769,227 @@ export default function AdminTutorLedCatalogLandingEditor({
           ) : null}
           {step === "batch-landing" ? (
             <div className="space-y-4">
-              <p className="text-xs leading-relaxed text-gray-400">
-                Design the Description page for each level at{" "}
-                <code className="rounded bg-black/40 px-1 font-mono text-[11px] text-violet-200">/tutor-led/[slug]</code>.
-                Pick a level, then edit hero, about, outcomes, FAQs, and the next batch shown on that page.
-              </p>
-              {page.programs.length === 0 ? (
-                <p className="text-sm text-amber-100">Add levels first, then design each batch landing.</p>
+              <div className="rounded-xl border border-violet-500/25 bg-violet-500/10 px-3 py-3 text-sm text-violet-50">
+                <p className="font-semibold">Level Description page</p>
+                <p className="mt-1 text-xs text-violet-100/85">
+                  This is what students see when they click <strong>Description</strong> on a level. Pick a level,
+                  change the text and photo, then click Save course.
+                </p>
+              </div>
+              <LevelPicker hint="Which level page are you editing?" />
+              {!designedProgram ? (
+                <p className="text-sm text-amber-100">Add levels on step 2 first.</p>
               ) : (
-                <>
-                  <div className="flex flex-wrap gap-2">
-                    {page.programs.map((card, i) => (
-                      <button
-                        key={card.id}
-                        type="button"
-                        onClick={() => setLevelIndex(i)}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                          i === levelIndex ? "bg-violet-600 text-white" : "border border-white/15 text-gray-300"
-                        }`}
-                      >
-                        {card.title || `Level ${i + 1}`}
-                      </button>
-                    ))}
-                  </div>
-                  {designedProgram ? (
-                    <div className="space-y-3">
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <label className="block sm:col-span-2">
-                          <span className={labelCls}>Title</span>
-                          <input
-                            className={inputCls}
-                            value={designedProgram.title}
-                            onChange={(e) => updateProgram({ ...designedProgram, title: e.target.value })}
-                          />
-                        </label>
-                        <label className="block sm:col-span-2">
-                          <span className={labelCls}>Tagline</span>
-                          <input
-                            className={inputCls}
-                            value={designedProgram.subtitle}
-                            onChange={(e) => updateProgram({ ...designedProgram, subtitle: e.target.value })}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className={labelCls}>Badge</span>
-                          <input
-                            className={inputCls}
-                            value={designedProgram.badge}
-                            onChange={(e) => updateProgram({ ...designedProgram, badge: e.target.value })}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className={labelCls}>Next batch date</span>
-                          <input
-                            className={inputCls}
-                            value={designedProgram.nextBatchDate}
-                            onChange={(e) => updateProgram({ ...designedProgram, nextBatchDate: e.target.value })}
-                            placeholder="12 Oct 2026"
-                          />
-                        </label>
-                        <label className="block">
-                          <span className={labelCls}>Schedule / time</span>
-                          <input
-                            className={inputCls}
-                            value={designedProgram.schedule}
-                            onChange={(e) => updateProgram({ ...designedProgram, schedule: e.target.value })}
-                            placeholder="Mon–Fri (10:00 AM – 5:00 PM IST)"
-                          />
-                        </label>
-                        <label className="block">
-                          <span className={labelCls}>Seats left</span>
-                          <input
-                            type="number"
-                            min={0}
-                            className={inputCls}
-                            value={designedProgram.seatsLeft}
-                            onChange={(e) =>
-                              updateProgram({ ...designedProgram, seatsLeft: Number(e.target.value) || 0 })
-                            }
-                          />
-                        </label>
-                      </div>
-                      <AdminImageUrlUpload
-                        label="Description hero image"
-                        value={designedProgram.heroSrc ?? ""}
-                        onChange={(url) => updateProgram({ ...designedProgram, heroSrc: url, learnerHeroSrc: url })}
-                        uploading={uploading === "batch-hero"}
-                        onUploadFile={(file) =>
-                          upload("batch-hero", file, (url) =>
-                            updateProgram({ ...designedProgram, heroSrc: url, learnerHeroSrc: url }),
-                          )
-                        }
-                      />
-                      <label className="block">
-                        <span className={labelCls}>About this batch</span>
-                        <textarea
-                          className={inputCls}
-                          rows={6}
-                          value={designedProgram.landingAbout ?? tutorLedLandingCopy(designedProgram).about}
-                          onChange={(e) => updateProgram({ ...designedProgram, landingAbout: e.target.value })}
-                        />
-                      </label>
-                      <label className="block">
-                        <span className={labelCls}>What you will learn (one per line)</span>
-                        <textarea
-                          className={inputCls}
-                          rows={4}
-                          value={(designedProgram.landingAbout?.trim() && designedProgram.highlights?.length
-                            ? designedProgram.highlights
-                            : tutorLedLandingCopy(designedProgram).highlights
-                          ).join("\n")}
-                          onChange={(e) =>
-                            updateProgram({
-                              ...designedProgram,
-                              landingAbout: designedProgram.landingAbout ?? tutorLedLandingCopy(designedProgram).about,
-                              highlights: e.target.value.split("\n").map((line) => line.trim()).filter(Boolean),
-                            })
-                          }
-                        />
-                      </label>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <input
-                          className={inputCls}
-                          value={designedProgram.trainer.name}
-                          onChange={(e) =>
-                            updateProgram({
-                              ...designedProgram,
-                              trainer: { ...designedProgram.trainer, name: e.target.value },
-                            })
-                          }
-                          placeholder="Trainer name"
-                        />
-                        <input
-                          className={inputCls}
-                          value={designedProgram.trainer.role}
-                          onChange={(e) =>
-                            updateProgram({
-                              ...designedProgram,
-                              trainer: { ...designedProgram.trainer, role: e.target.value },
-                            })
-                          }
-                          placeholder="Trainer role"
-                        />
-                      </div>
-                      <textarea
+                <div className="space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="block sm:col-span-2">
+                      <span className={labelCls}>Title students see</span>
+                      <input
                         className={inputCls}
-                        rows={3}
-                        value={designedProgram.trainer.bio}
-                        onChange={(e) =>
-                          updateProgram({
-                            ...designedProgram,
-                            trainer: { ...designedProgram.trainer, bio: e.target.value },
-                          })
-                        }
-                        placeholder="Trainer bio"
+                        value={designedProgram.title}
+                        onChange={(e) => updateProgram({ ...designedProgram, title: e.target.value })}
                       />
-                      <div className="space-y-2">
-                        <p className={labelCls}>FAQs on this landing</p>
-                        {landingFaqsFor(designedProgram).map((faq, i) => (
-                          <div key={`${faq.q}-${i}`} className={`${itemCls} space-y-2`}>
-                            <input
-                              className={inputCls}
-                              value={faq.q}
-                              onChange={(e) =>
-                                updateProgram({
-                                  ...designedProgram,
-                                  faqs: landingFaqsFor(designedProgram).map((row, idx) =>
-                                    idx === i ? { ...row, q: e.target.value } : row,
-                                  ),
-                                })
-                              }
-                              placeholder="Question"
-                            />
-                            <textarea
-                              className={inputCls}
-                              rows={2}
-                              value={faq.a}
-                              onChange={(e) =>
-                                updateProgram({
-                                  ...designedProgram,
-                                  faqs: landingFaqsFor(designedProgram).map((row, idx) =>
-                                    idx === i ? { ...row, a: e.target.value } : row,
-                                  ),
-                                })
-                              }
-                              placeholder="Answer"
-                            />
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() =>
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className={labelCls}>Short line under the title</span>
+                      <input
+                        className={inputCls}
+                        value={designedProgram.subtitle}
+                        onChange={(e) => updateProgram({ ...designedProgram, subtitle: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={labelCls}>Badge (e.g. AWARENESS)</span>
+                      <input
+                        className={inputCls}
+                        value={designedProgram.badge}
+                        onChange={(e) => updateProgram({ ...designedProgram, badge: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={labelCls}>Next batch date</span>
+                      <input
+                        className={inputCls}
+                        value={designedProgram.nextBatchDate}
+                        onChange={(e) => updateProgram({ ...designedProgram, nextBatchDate: e.target.value })}
+                        placeholder="12 Oct 2026"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={labelCls}>Class time</span>
+                      <input
+                        className={inputCls}
+                        value={designedProgram.schedule}
+                        onChange={(e) => updateProgram({ ...designedProgram, schedule: e.target.value })}
+                        placeholder="Mon–Fri (10:00 AM – 5:00 PM IST)"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={labelCls}>Seats left</span>
+                      <input
+                        type="number"
+                        min={0}
+                        className={inputCls}
+                        value={designedProgram.seatsLeft}
+                        onChange={(e) =>
+                          updateProgram({ ...designedProgram, seatsLeft: Number(e.target.value) || 0 })
+                        }
+                      />
+                    </label>
+                  </div>
+                  <AdminImageUrlUpload
+                    label="Big photo on this level page"
+                    value={designedProgram.heroSrc ?? ""}
+                    onChange={(url) => updateProgram({ ...designedProgram, heroSrc: url, learnerHeroSrc: url })}
+                    uploading={uploading === "batch-hero"}
+                    onUploadFile={(file) =>
+                      upload("batch-hero", file, (url) =>
+                        updateProgram({ ...designedProgram, heroSrc: url, learnerHeroSrc: url }),
+                      )
+                    }
+                  />
+                  <label className="block">
+                    <span className={labelCls}>About this level (paragraph)</span>
+                    <textarea
+                      className={inputCls}
+                      rows={5}
+                      value={designedProgram.landingAbout ?? tutorLedLandingCopy(designedProgram).about}
+                      onChange={(e) => updateProgram({ ...designedProgram, landingAbout: e.target.value })}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className={labelCls}>What you will learn (one line each)</span>
+                    <textarea
+                      className={inputCls}
+                      rows={4}
+                      value={(designedProgram.landingAbout?.trim() && designedProgram.highlights?.length
+                        ? designedProgram.highlights
+                        : tutorLedLandingCopy(designedProgram).highlights
+                      ).join("\n")}
+                      onChange={(e) =>
+                        updateProgram({
+                          ...designedProgram,
+                          landingAbout: designedProgram.landingAbout ?? tutorLedLandingCopy(designedProgram).about,
+                          highlights: e.target.value.split("\n").map((line) => line.trim()).filter(Boolean),
+                        })
+                      }
+                    />
+                  </label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <input
+                      className={inputCls}
+                      value={designedProgram.trainer?.name ?? ""}
+                      onChange={(e) =>
+                        updateProgram({
+                          ...designedProgram,
+                          trainer: {
+                            name: e.target.value,
+                            role: designedProgram.trainer?.role ?? "",
+                            experience: designedProgram.trainer?.experience ?? "",
+                            bio: designedProgram.trainer?.bio ?? "",
+                            certifications: designedProgram.trainer?.certifications ?? [],
+                            workedWith: designedProgram.trainer?.workedWith ?? [],
+                            avatar: designedProgram.trainer?.avatar,
+                          },
+                        })
+                      }
+                      placeholder="Trainer name"
+                    />
+                    <input
+                      className={inputCls}
+                      value={designedProgram.trainer?.role ?? ""}
+                      onChange={(e) =>
+                        updateProgram({
+                          ...designedProgram,
+                          trainer: {
+                            name: designedProgram.trainer?.name ?? "",
+                            role: e.target.value,
+                            experience: designedProgram.trainer?.experience ?? "",
+                            bio: designedProgram.trainer?.bio ?? "",
+                            certifications: designedProgram.trainer?.certifications ?? [],
+                            workedWith: designedProgram.trainer?.workedWith ?? [],
+                            avatar: designedProgram.trainer?.avatar,
+                          },
+                        })
+                      }
+                      placeholder="Trainer role"
+                    />
+                  </div>
+                  <textarea
+                    className={inputCls}
+                    rows={2}
+                    value={designedProgram.trainer?.bio ?? ""}
+                    onChange={(e) =>
+                      updateProgram({
+                        ...designedProgram,
+                        trainer: {
+                          name: designedProgram.trainer?.name ?? "",
+                          role: designedProgram.trainer?.role ?? "",
+                          experience: designedProgram.trainer?.experience ?? "",
+                          bio: e.target.value,
+                          certifications: designedProgram.trainer?.certifications ?? [],
+                          workedWith: designedProgram.trainer?.workedWith ?? [],
+                          avatar: designedProgram.trainer?.avatar,
+                        },
+                      })
+                    }
+                    placeholder="Short trainer bio"
+                  />
+                  <div className="space-y-2">
+                    <p className={labelCls}>Questions students ask (FAQ)</p>
+                    {landingFaqsFor(designedProgram).map((faq, i) => (
+                      <div key={`${faq.q}-${i}`} className={`${itemCls} space-y-2`}>
+                        <input
+                          className={inputCls}
+                          value={faq.q}
+                          onChange={(e) =>
                             updateProgram({
                               ...designedProgram,
-                              faqs: [...landingFaqsFor(designedProgram), { q: "New question?", a: "" }],
+                              faqs: landingFaqsFor(designedProgram).map((row, idx) =>
+                                idx === i ? { ...row, q: e.target.value } : row,
+                              ),
                             })
                           }
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber-200"
-                        >
-                          <Plus className="h-3.5 w-3.5" /> Add FAQ
-                        </button>
+                          placeholder="Question"
+                        />
+                        <textarea
+                          className={inputCls}
+                          rows={2}
+                          value={faq.a}
+                          onChange={(e) =>
+                            updateProgram({
+                              ...designedProgram,
+                              faqs: landingFaqsFor(designedProgram).map((row, idx) =>
+                                idx === i ? { ...row, a: e.target.value } : row,
+                              ),
+                            })
+                          }
+                          placeholder="Answer"
+                        />
                       </div>
-                      <Link
-                        href={`${liveTutorCourseHref(designedProgram.slug)}?preview=1`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-200 hover:text-white"
-                      >
-                        Open public Description page <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
-                    </div>
-                  ) : null}
-                </>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateProgram({
+                          ...designedProgram,
+                          faqs: [...landingFaqsFor(designedProgram), { q: "New question?", a: "" }],
+                        })
+                      }
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-amber-200"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add question
+                    </button>
+                  </div>
+                  <Link
+                    href={`${liveTutorCourseHref(designedProgram.slug)}?preview=1`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-200 hover:text-white"
+                  >
+                    Preview this level page <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
               )}
             </div>
           ) : null}
@@ -944,7 +999,7 @@ export default function AdminTutorLedCatalogLandingEditor({
         <div className="sticky top-4 min-w-0 overflow-hidden rounded-xl border border-amber-400/25 bg-black xl:max-h-[calc(100vh-6rem)] xl:overflow-auto">
           <div className="flex items-center justify-between gap-2 border-b border-white/10 bg-[#0b1224] px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-300">
-              {step === "batch-landing" ? "Batch landing preview" : "Landing preview"}
+              {step === "batch-landing" ? "Level page preview" : "Catalog preview"}
             </p>
             <button
               type="button"

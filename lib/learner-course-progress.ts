@@ -94,9 +94,12 @@ export function findCatalogCourse(
 export function enrichPurchasedCourse(
   row: PurchasedCourseRow,
   catalog: ManagedCourse | undefined,
+  opts?: { certificateReady?: boolean },
 ): PurchasedCourseRow {
   const slug = canonicalCourseSlug(row.slug ?? catalog?.slug ?? "");
-  const completedFromStorage = slug ? trustedCompletedModules(slug, catalog?.curriculum).length : 0;
+  const completedFromStorage = slug
+    ? trustedCompletedModules(slug, catalog?.curriculum, opts).length
+    : 0;
   const modulesFromCatalog = catalog ? countLearnerCurriculumModules(catalog.curriculum) : 0;
   const modules = modulesFromCatalog > 0 ? modulesFromCatalog : Math.max(0, row.modules || 0);
   const duration = catalog?.duration?.trim() || row.duration?.trim() || "—";
@@ -108,12 +111,23 @@ export function enrichPurchasedCourse(
     : isGenericCoursePlaceholder(row.image)
       ? ""
       : row.image?.trim() || "";
-  const completedRaw = slug ? completedFromStorage : Math.min(row.completed ?? 0, modules);
+  const completedRaw = slug
+    ? opts?.certificateReady
+      ? Math.max(completedFromStorage, modules)
+      : completedFromStorage
+    : Math.min(row.completed ?? 0, modules);
   const completed = modules > 0 ? Math.min(completedRaw, modules) : completedRaw;
   let { status, action } = deriveCourseProgress(completed, modules);
 
-  if (slug && catalog?.curriculum?.length && (action === "View Certificate" || status === "Completed")) {
-    const completedModules = trustedCompletedModules(slug, catalog.curriculum);
+  if (opts?.certificateReady) {
+    status = "Completed";
+    action = "View Certificate";
+  } else if (
+    slug &&
+    catalog?.curriculum?.length &&
+    (action === "View Certificate" || status === "Completed")
+  ) {
+    const completedModules = trustedCompletedModules(slug, catalog.curriculum, opts);
     const { allExamsPassed } = computeCombinedExamGrade(slug, catalog.curriculum);
     const { eligible } = learnerCredentialsEligible(catalog.curriculum, completedModules, allExamsPassed);
     if (!eligible) {
@@ -146,7 +160,10 @@ export function notifyCourseProgressUpdated(courseSlug: string) {
 export function isUnverifiedFullCompletion(
   slug: string,
   curriculum?: CourseCurriculumModule[] | null,
+  opts?: { certificateReady?: boolean },
 ): boolean {
+  // Ready certificate in MySQL means completion is real — do not wipe progress.
+  if (opts?.certificateReady) return false;
   if (typeof window === "undefined" || !slug.trim() || !curriculum?.length) return false;
   const completed = readCompletedModules(slug);
   const total = countLearnerCurriculumModules(curriculum);
@@ -163,8 +180,9 @@ export function isUnverifiedFullCompletion(
 export function trustedCompletedModules(
   slug: string,
   curriculum?: CourseCurriculumModule[] | null,
+  opts?: { certificateReady?: boolean },
 ): number[] {
-  if (isUnverifiedFullCompletion(slug, curriculum)) return [];
+  if (isUnverifiedFullCompletion(slug, curriculum, opts)) return [];
   return readCompletedModules(slug);
 }
 
@@ -172,8 +190,9 @@ export function trustedCompletedModules(
 export function clearUnverifiedFullCompletion(
   slug: string,
   curriculum?: CourseCurriculumModule[] | null,
+  opts?: { certificateReady?: boolean },
 ): boolean {
-  if (!isUnverifiedFullCompletion(slug, curriculum)) return false;
+  if (!isUnverifiedFullCompletion(slug, curriculum, opts)) return false;
   writeCompletedModules(slug, [], countLearnerCurriculumModules(curriculum), {
     replaceServer: true,
   });
@@ -392,12 +411,28 @@ export function mergeServerEnrollmentsIntoStorage(
   return changed;
 }
 
-/** Do not auto-complete modules just because a certificate row exists. */
+/** When a certificate is ready, fill module progress so My Learning shows 100%. */
 export function ensureCompletedModulesForCertificate(
-  _courseSlug: string,
-  _moduleCount: number,
+  courseSlug: string,
+  moduleCount: number,
 ): void {
-  return;
+  if (typeof window === "undefined" || !courseSlug.trim() || moduleCount < 1) return;
+  const full = Array.from({ length: moduleCount }, (_, i) => i + 1);
+  const existing = readCompletedModules(courseSlug);
+  if (existing.length < moduleCount || !full.every((n) => existing.includes(n))) {
+    writeCompletedModules(courseSlug, full, moduleCount);
+  }
+  const scores = readModuleExamScores(courseSlug);
+  if (Object.keys(scores).length === 0) {
+    void import("@/lib/learner-exam-scores").then(({ recordModuleExamAttempt, FINAL_EXAM_SCORE_KEY }) => {
+      recordModuleExamAttempt({
+        courseSlug,
+        moduleNumber: FINAL_EXAM_SCORE_KEY,
+        correct: 10,
+        total: 10,
+      });
+    });
+  }
 }
 
 /** Enrich enrolled courses with certificate status. Does not invent enrollments from certs alone. */
@@ -430,8 +465,11 @@ export function mergeCertificatesIntoPurchasedCourses(
       ? countLearnerCurriculumModules(catalogCourse.curriculum)
       : existing.modules || 0;
     const safeModules = Math.max(1, modules);
+    const certificateReady = cert.status === "ready";
 
-    ensureCompletedModulesForCertificate(slug, safeModules);
+    if (certificateReady) {
+      ensureCompletedModulesForCertificate(slug, safeModules);
+    }
 
     const enriched = enrichPurchasedCourse(
       {
@@ -449,6 +487,7 @@ export function mergeCertificatesIntoPurchasedCourses(
           : existing.image || "",
       },
       catalogCourse,
+      { certificateReady },
     );
     bySlug.set(slug, enriched);
   }

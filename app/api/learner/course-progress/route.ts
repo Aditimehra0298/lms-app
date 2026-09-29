@@ -3,6 +3,7 @@ import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import {
   getLearnerCourseProgressFromStore,
   upsertLearnerCourseProgressInStore,
+  syncProgressFromReadyCertificateIfNeeded,
   type StoredModuleExamScore,
 } from "@/lib/server/learner-course-progress-store";
 import { findExistingEnrollment } from "@/lib/server/enrollment-lookup";
@@ -76,7 +77,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const progress = await getLearnerCourseProgressFromStore(email, slug);
+    const progress =
+      (await syncProgressFromReadyCertificateIfNeeded(email, slug)) ??
+      (await getLearnerCourseProgressFromStore(email, slug));
     return NextResponse.json(
       { ok: true, progress },
       { headers: { "Cache-Control": "no-store" } },

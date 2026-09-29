@@ -26,8 +26,8 @@ export function AdminTutorLedLevelSteps({ step, program, onChange }: Props) {
   if (!program) {
     return (
       <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-6 text-sm text-amber-100">
-        Pick a level on the <strong>Levels</strong> step first (Basic, Implementer, Internal, or Lead).
-        Each session has its own Zoom link. The final exam is on the Assessment tab.
+        Choose a level button above (Basic, Implementer, Internal, or Lead).
+        If you have no levels yet, open <strong>2. Levels</strong> and add them first.
       </div>
     );
   }
@@ -122,8 +122,9 @@ export function AdminTutorLedLevelSteps({ step, program, onChange }: Props) {
         courseTitle={program.title}
         workspaceCourseSlug={program.slug}
         canEdit
+        embedded
         onGoCourseInfo={() => undefined}
-        batchContext={`${program.batchLabel || "Batch"} · ${program.nextBatchDate || "set batch date"}. Roster lists every cohort. Filter by batch. Each batch has its own exam (Assessment tab).`}
+        batchContext={`Showing students for “${program.title}”. Filter by batch if needed. Exams differ by batch (Exam step).`}
       />
     );
   }

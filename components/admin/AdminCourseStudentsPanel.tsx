@@ -197,17 +197,27 @@ export default function AdminCourseStudentsPanel({
     return (
       <div className="rounded-xl border border-white/10 bg-[#0b1224] px-4 py-8 text-center">
         <Users className="mx-auto h-10 w-10 text-violet-400/80" aria-hidden />
-        <p className="mt-3 text-sm font-medium text-gray-200">Course URL slug required</p>
-        <p className="mx-auto mt-2 max-w-md text-xs text-gray-500">
-          Add a <strong className="text-gray-400">slug</strong> on the Course tab so checkout enrollments match this course.
+        <p className="mt-3 text-sm font-medium text-gray-200">
+          {embedded ? "Pick a level above first" : "Course URL slug required"}
         </p>
-        <button
-          type="button"
-          onClick={onGoCourseInfo}
-          className="mt-4 rounded-lg border border-white/15 bg-black/30 px-4 py-2 text-xs font-semibold text-gray-200 hover:bg-white/5"
-        >
-          Edit Course
-        </button>
+        <p className="mx-auto mt-2 max-w-md text-xs text-gray-500">
+          {embedded
+            ? "Open 2. Levels, add Basic / Implementer / Internal / Lead, then come back here."
+            : (
+              <>
+                Add a <strong className="text-gray-400">slug</strong> on the Course tab so checkout enrollments match this course.
+              </>
+            )}
+        </p>
+        {!embedded ? (
+          <button
+            type="button"
+            onClick={onGoCourseInfo}
+            className="mt-4 rounded-lg border border-white/15 bg-black/30 px-4 py-2 text-xs font-semibold text-gray-200 hover:bg-white/5"
+          >
+            Edit Course
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -243,10 +253,12 @@ export default function AdminCourseStudentsPanel({
           </select>
         </label>
       </div>
-      {loadingDb ? <p className="text-xs text-gray-500">Loading MySQL student data…</p> : null}
+      {loadingDb ? <p className="text-xs text-gray-500">Loading student list…</p> : null}
       {dbError ? (
-        <p className="text-xs text-rose-300">
-          MySQL unavailable — start the database and run migrations. {dbError}
+        <p className={`text-xs ${embedded ? "text-amber-200" : "text-rose-300"}`}>
+          {embedded
+            ? "Could not load students right now. Refresh the page, or ask your admin to check the database."
+            : `MySQL unavailable — start the database and run migrations. ${dbError}`}
         </p>
       ) : null}
       {actionMsg ? (

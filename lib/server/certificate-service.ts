@@ -82,6 +82,16 @@ export async function issueCourseCertificate(input: {
     where: { learnerEmail: email, courseSlug: slug },
   });
   if (existing) {
+    if (existing.status === "ready") {
+      const { ensureProgressForReadyCertificate } = await import(
+        "@/lib/server/learner-course-progress-store"
+      );
+      await ensureProgressForReadyCertificate({
+        learnerEmail: email,
+        courseSlug: slug,
+        scorePercent: existing.scorePercent,
+      }).catch(() => undefined);
+    }
     return { ok: true, certificate: await enrichCertificate(serializeCertificate(existing)) };
   }
 
@@ -211,6 +221,16 @@ export async function issueEmployeeCourseCertificate(input: {
     where: { learnerEmail: employeeEmail, courseSlug: slug },
   });
   if (existing) {
+    if (existing.status === "ready") {
+      const { ensureProgressForReadyCertificate } = await import(
+        "@/lib/server/learner-course-progress-store"
+      );
+      await ensureProgressForReadyCertificate({
+        learnerEmail: employeeEmail,
+        courseSlug: slug,
+        scorePercent: existing.scorePercent,
+      }).catch(() => undefined);
+    }
     return { ok: true, certificate: await enrichCertificate(serializeCertificate(existing)) };
   }
 

@@ -187,6 +187,13 @@ export default function Iso22000CourseLanding({ program }: Props) {
   const sessionCount = getCurriculumSessionCount(program);
   const duration = formatTrainingDuration(sessionCount);
   const mode = program.batchDetails?.find((d) => /mode|platform/i.test(d.label))?.value || "Live on Zoom";
+  const trainer = program.trainer ?? {
+    name: "Trainer",
+    role: "",
+    bio: "",
+    experience: "",
+    certifications: [] as string[],
+  };
   const iso = isIso22000TutorLedSlug(program.slug);
   const catHref = iso
     ? TUTOR_LED_ISO_22000_CATALOG_HREF
@@ -255,7 +262,7 @@ export default function Iso22000CourseLanding({ program }: Props) {
                 </span>
               </div>
               <p className="mt-4 text-sm text-zinc-400">
-                Created by <span className="font-medium text-violet-300">{program.trainer.name}</span>
+                Created by <span className="font-medium text-violet-300">{trainer.name}</span>
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-zinc-500">
                 <span className="inline-flex items-center gap-1.5">
@@ -445,14 +452,15 @@ export default function Iso22000CourseLanding({ program }: Props) {
 
             {tab === "instructor" ? (
               <div className="rounded-2xl border border-white/10 bg-[#141414] p-6">
-                <h2 className="text-2xl font-bold tracking-tight text-white">{program.trainer.name}</h2>
+                <h2 className="text-2xl font-bold tracking-tight text-white">{trainer.name}</h2>
                 <p className="mt-1 text-sm text-violet-300">
-                  {program.trainer.role} · {program.trainer.experience}
+                  {trainer.role}
+                  {trainer.experience ? ` · ${trainer.experience}` : ""}
                 </p>
-                <p className="mt-4 text-sm leading-relaxed text-zinc-300">{program.trainer.bio}</p>
-                {program.trainer.certifications?.length ? (
+                <p className="mt-4 text-sm leading-relaxed text-zinc-300">{trainer.bio}</p>
+                {trainer.certifications?.length ? (
                   <ul className="mt-4 flex flex-wrap gap-2">
-                    {program.trainer.certifications.map((c) => (
+                    {trainer.certifications.map((c) => (
                       <li key={c} className="rounded-full border border-white/10 px-3 py-1 text-[11px] text-zinc-300">
                         {c}
                       </li>

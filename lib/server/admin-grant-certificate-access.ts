@@ -6,6 +6,7 @@ import { readAdminContent } from "@/lib/server/content-store";
 import { isCertificateApiProvider } from "@/lib/server/certificate-generation-policy";
 import { resolveCertificatePermissions } from "@/lib/server/certificate-permissions";
 import { requestCourseCertificate } from "@/lib/server/n8n-certificate-service";
+import { ensureProgressForReadyCertificate } from "@/lib/server/learner-course-progress-store";
 
 export type GrantCertificateDownloadResult =
   | { ok: true; granted: false; message: string }
@@ -48,6 +49,11 @@ export async function grantLearnerCertificateDownloadAccess(input: {
       where: { id: apiResult.certificate.id },
       data: { visibleToLearner: true },
     });
+    await ensureProgressForReadyCertificate({
+      learnerEmail,
+      courseSlug,
+      scorePercent: apiResult.certificate.scorePercent,
+    });
     return {
       ok: true,
       granted: true,
@@ -59,7 +65,7 @@ export async function grantLearnerCertificateDownloadAccess(input: {
   let cert = await prisma.lmsCertificate.findFirst({
     where: { learnerEmail, courseSlug },
     orderBy: { issuedAt: "desc" },
-    select: { id: true },
+    select: { id: true, scorePercent: true },
   });
 
   if (!cert) {
@@ -67,7 +73,7 @@ export async function grantLearnerCertificateDownloadAccess(input: {
     if (!issued.ok) {
       return { ok: false, message: issued.message };
     }
-    cert = { id: issued.certificate.id };
+    cert = { id: issued.certificate.id, scorePercent: issued.certificate.scorePercent ?? null };
   }
 
   await prisma.lmsCertificate.update({
@@ -80,6 +86,11 @@ export async function grantLearnerCertificateDownloadAccess(input: {
 
   const { ensureLocalCertificatePdf } = await import("@/lib/server/local-certificate-fallback");
   await ensureLocalCertificatePdf(cert.id);
+  await ensureProgressForReadyCertificate({
+    learnerEmail,
+    courseSlug,
+    scorePercent: cert.scorePercent,
+  });
 
   return {
     ok: true,

@@ -23,6 +23,18 @@ type ProgressFile = {
 
 const storePath = path.join(process.cwd(), "data", "learner-course-progress.json");
 
+/** Serialize all store mutations so concurrent PUTs cannot truncate/corrupt the JSON file. */
+let writeChain: Promise<void> = Promise.resolve();
+
+function enqueueStoreWrite<T>(fn: () => Promise<T>): Promise<T> {
+  const run = writeChain.then(fn, fn);
+  writeChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 async function ensureStoreFile(): Promise<void> {
   const dir = path.dirname(storePath);
   await fs.mkdir(dir, { recursive: true });
@@ -30,24 +42,100 @@ async function ensureStoreFile(): Promise<void> {
     await fs.access(storePath);
   } catch {
     const empty: ProgressFile = { learners: {} };
-    await fs.writeFile(storePath, JSON.stringify(empty, null, 2), "utf8");
+    await atomicWriteJson(storePath, empty);
   }
+}
+
+async function atomicWriteJson(filePath: string, data: ProgressFile): Promise<void> {
+  const dir = path.dirname(filePath);
+  await fs.mkdir(dir, { recursive: true });
+  const tmp = path.join(dir, `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`);
+  const payload = JSON.stringify(data, null, 2);
+  await fs.writeFile(tmp, payload, "utf8");
+  await fs.rename(tmp, filePath);
 }
 
 async function readStore(): Promise<ProgressFile> {
   await ensureStoreFile();
   const raw = await fs.readFile(storePath, "utf8");
-  try {
-    const parsed = JSON.parse(raw) as ProgressFile;
-    return { learners: parsed.learners && typeof parsed.learners === "object" ? parsed.learners : {} };
-  } catch {
+  const parsed = parseProgressFileRaw(raw);
+  if (!parsed.ok) {
+    console.error("[learner-course-progress-store] unreadable progress file — refusing to wipe");
+    // Return empty for this request only. Do not rewrite the file here (avoids data loss).
     return { learners: {} };
   }
+  if (parsed.repaired) {
+    try {
+      await enqueueStoreWrite(() => atomicWriteJson(storePath, parsed.data));
+      console.warn("[learner-course-progress-store] repaired corrupted progress JSON");
+    } catch (err) {
+      console.warn("[learner-course-progress-store] repair rewrite failed:", err);
+    }
+  }
+  return parsed.data;
+}
+
+/** Recover when a bad write left trailing garbage after a valid JSON object. */
+function parseProgressFileRaw(
+  raw: string,
+): { ok: true; data: ProgressFile; repaired: boolean } | { ok: false } {
+  const trimmed = raw.trim();
+  if (!trimmed) return { ok: true, data: { learners: {} }, repaired: false };
+
+  try {
+    const parsed = JSON.parse(trimmed) as ProgressFile;
+    return {
+      ok: true,
+      data: { learners: parsed.learners && typeof parsed.learners === "object" ? parsed.learners : {} },
+      repaired: false,
+    };
+  } catch {
+    // Fall through and try to salvage the first complete object.
+  }
+
+  const start = trimmed.indexOf("{");
+  if (start < 0) return { ok: false };
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < trimmed.length; i++) {
+    const ch = trimmed[i];
+    if (inString) {
+      if (escape) escape = false;
+      else if (ch === "\\") escape = true;
+      else if (ch === "\"") inString = false;
+      continue;
+    }
+    if (ch === "\"") {
+      inString = true;
+      continue;
+    }
+    if (ch === "{") depth += 1;
+    else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        try {
+          const parsed = JSON.parse(trimmed.slice(start, i + 1)) as ProgressFile;
+          return {
+            ok: true,
+            data: {
+              learners:
+                parsed.learners && typeof parsed.learners === "object" ? parsed.learners : {},
+            },
+            repaired: true,
+          };
+        } catch {
+          return { ok: false };
+        }
+      }
+    }
+  }
+  return { ok: false };
 }
 
 async function writeStore(data: ProgressFile): Promise<void> {
   await ensureStoreFile();
-  await fs.writeFile(storePath, JSON.stringify(data, null, 2), "utf8");
+  await atomicWriteJson(storePath, data);
 }
 
 export async function getLearnerCourseProgressFromStore(
@@ -100,11 +188,125 @@ export async function upsertLearnerCourseProgressInStore(input: {
     updatedAt: new Date().toISOString(),
   };
 
-  const store = await readStore();
-  if (!store.learners[email]) store.learners[email] = {};
-  store.learners[email][slug] = row;
-  await writeStore(store);
-  return row;
+  return enqueueStoreWrite(async () => {
+    // Re-read inside the lock so concurrent writers do not clobber each other.
+    const store = await readStore();
+    if (!store.learners[email]) store.learners[email] = {};
+    const prev = store.learners[email][slug];
+    store.learners[email][slug] = {
+      ...row,
+      examScores: { ...(prev?.examScores ?? {}), ...row.examScores },
+    };
+    await writeStore(store);
+    return store.learners[email][slug];
+  });
+}
+
+/**
+ * If MySQL already has a ready certificate but progress is missing/incomplete,
+ * write full module completion so My Learning shows 100% for that learner.
+ */
+export async function ensureProgressForReadyCertificate(input: {
+  learnerEmail: string;
+  courseSlug: string;
+  moduleCount?: number;
+  scorePercent?: number | null;
+}): Promise<StoredLearnerCourseProgress | null> {
+  const email = normalizeLearnerEmail(input.learnerEmail);
+  const slug = canonicalCourseSlug(input.courseSlug);
+  if (!email || !slug) return null;
+
+  let moduleCount = Math.max(0, Math.round(Number(input.moduleCount) || 0));
+  if (moduleCount <= 0) {
+    try {
+      const { getManagedCourses } = await import("@/lib/server/course-catalog");
+      const { countLearnerCurriculumModules } = await import("@/lib/curriculum-learner-filter");
+      const courses = await getManagedCourses();
+      const course = courses.find((c) => canonicalCourseSlug(c.slug) === slug);
+      moduleCount = course ? countLearnerCurriculumModules(course.curriculum) : 0;
+    } catch {
+      moduleCount = 0;
+    }
+  }
+  if (moduleCount <= 0) moduleCount = 5;
+
+  const existing = await getLearnerCourseProgressFromStore(email, slug);
+  const needsModules =
+    !existing ||
+    existing.completedModules.length < moduleCount ||
+    !Array.from({ length: moduleCount }, (_, i) => i + 1).every((n) =>
+      existing.completedModules.includes(n),
+    );
+  const needsExam = !existing || Object.keys(existing.examScores ?? {}).length === 0;
+  if (!needsModules && !needsExam) return existing;
+
+  const completedModules = Array.from({ length: moduleCount }, (_, i) => i + 1);
+  const examScores: Record<string, StoredModuleExamScore> = {
+    ...(existing?.examScores ?? {}),
+  };
+  if (Object.keys(examScores).length === 0) {
+    const percent = Math.max(0, Math.min(100, Math.round(Number(input.scorePercent) || 100)));
+    examScores.final = {
+      correct: Math.round((percent / 100) * 10),
+      total: 10,
+      percent,
+      passed: true,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  return upsertLearnerCourseProgressInStore({
+    learnerEmail: email,
+    courseSlug: slug,
+    completedModules: needsModules
+      ? completedModules
+      : existing?.completedModules ?? completedModules,
+    examScores,
+  });
+}
+
+/**
+ * Auto-heal: if this learner has a ready certificate for the course but no/weak progress,
+ * fill progress from the certificate so dashboards stay correct for every user.
+ */
+export async function syncProgressFromReadyCertificateIfNeeded(
+  learnerEmail: string,
+  courseSlug: string,
+): Promise<StoredLearnerCourseProgress | null> {
+  const email = normalizeLearnerEmail(learnerEmail);
+  const slug = canonicalCourseSlug(courseSlug);
+  if (!email || !slug) return null;
+
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const cert = await prisma.lmsCertificate.findFirst({
+      where: {
+        learnerEmail: email,
+        status: "ready",
+        OR: [{ courseSlug: slug }, { courseSlug: courseSlug.trim() }],
+      },
+      orderBy: { issuedAt: "desc" },
+      select: { scorePercent: true, courseSlug: true },
+    });
+    if (!cert) {
+      return getLearnerCourseProgressFromStore(email, slug);
+    }
+    // Confirm slug match after canonicalization (OR may over-match rare aliases).
+    if (
+      canonicalCourseSlug(cert.courseSlug) !== slug &&
+      cert.courseSlug.trim().toLowerCase() !== slug
+    ) {
+      return getLearnerCourseProgressFromStore(email, slug);
+    }
+    return ensureProgressForReadyCertificate({
+      learnerEmail: email,
+      courseSlug: slug,
+      scorePercent: cert.scorePercent,
+    });
+  } catch (err) {
+    console.warn("[learner-course-progress-store] cert sync skipped:", err);
+    return getLearnerCourseProgressFromStore(email, slug);
+  }
 }
 
 /** Remove all stored course progress for one learner (unenroll / revoke-all). */
@@ -113,10 +315,12 @@ export async function clearAllLearnerCourseProgressFromStore(
 ): Promise<number> {
   const email = normalizeLearnerEmail(learnerEmail);
   if (!email) return 0;
-  const store = await readStore();
-  const count = Object.keys(store.learners[email] ?? {}).length;
-  if (count === 0) return 0;
-  delete store.learners[email];
-  await writeStore(store);
-  return count;
+  return enqueueStoreWrite(async () => {
+    const store = await readStore();
+    const count = Object.keys(store.learners[email] ?? {}).length;
+    if (count === 0) return 0;
+    delete store.learners[email];
+    await writeStore(store);
+    return count;
+  });
 }
