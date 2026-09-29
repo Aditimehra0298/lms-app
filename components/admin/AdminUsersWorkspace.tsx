@@ -308,6 +308,31 @@ export default function AdminUsersWorkspace() {
     }
   };
 
+  const issueCertificate = async (row: AdminUserListRow, courseSlug: string, courseTitle: string) => {
+    const ok = window.confirm(
+      `Issue certificate for ${row.name?.trim() || row.email}?\n\nCourse: ${courseTitle}\n(${courseSlug})`,
+    );
+    if (!ok) return;
+    setBusyEmail(row.email);
+    setSaveNotice(null);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/admin/users/issue-certificate", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ learnerEmail: row.email, courseSlug }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) throw new Error(data.message ?? "Could not issue certificate");
+      setSaveNotice(data.message ?? `Certificate issued for ${courseTitle}`);
+      await load();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not issue certificate");
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0c1428] via-[#0a101c] to-[#070b14]">
@@ -841,6 +866,18 @@ export default function AdminUsersWorkspace() {
                                               ) : (
                                                 "—"
                                               )}
+                                              {c.certificateStatus !== "ready" ? (
+                                                <button
+                                                  type="button"
+                                                  disabled={busyEmail === row.email}
+                                                  onClick={() =>
+                                                    void issueCertificate(row, c.courseSlug, c.title)
+                                                  }
+                                                  className="mt-1 block rounded border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-100 hover:bg-amber-500/25 disabled:opacity-50"
+                                                >
+                                                  Issue certificate
+                                                </button>
+                                              ) : null}
                                             </td>
                                             <td className="px-2 py-2 text-gray-500">
                                               {c.updatedAt ? formatWhen(c.updatedAt, true) : "—"}

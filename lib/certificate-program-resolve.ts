@@ -1,4 +1,5 @@
 import type { AdminContent, ManagedCourse } from "@/lib/content-schema";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 
 /** Unified certificate policy source — self-paced course or tutor-led program. */
 export type CertificateProgramRef = {
@@ -14,6 +15,12 @@ export type CertificateProgramRef = {
   hero?: ManagedCourse["hero"];
 };
 
+function slugMatches(a: string, b: string): boolean {
+  const left = canonicalCourseSlug(a) || a.trim().toLowerCase();
+  const right = canonicalCourseSlug(b) || b.trim().toLowerCase();
+  return Boolean(left && right && left === right);
+}
+
 export function findCertificateProgram(
   content: AdminContent,
   courseSlug: string,
@@ -21,7 +28,7 @@ export function findCertificateProgram(
   const slug = courseSlug.trim();
   if (!slug) return undefined;
 
-  const course = content.managedCourses?.find((c) => c.slug === slug);
+  const course = content.managedCourses?.find((c) => slugMatches(c.slug, slug));
   if (course) {
     return {
       slug: course.slug,
@@ -37,18 +44,19 @@ export function findCertificateProgram(
     };
   }
 
-  const program = content.tutorLedPrograms?.find((p) => p.slug === slug);
+  const program = content.tutorLedPrograms?.find((p) => slugMatches(p.slug, slug));
   if (program) {
     return {
       slug: program.slug,
       title: program.title,
-      subtitle: program.subtitle,
+      subtitle: program.subtitle ?? "",
       category: "Tutor-led",
       level: "Professional",
       duration: program.schedule?.trim() || program.batchLabel?.trim() || "",
       published: program.published,
       learningFormat: "live",
       certificateConfig: program.certificateConfig,
+      hero: undefined,
     };
   }
 
