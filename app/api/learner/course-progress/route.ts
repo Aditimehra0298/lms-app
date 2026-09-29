@@ -178,23 +178,44 @@ export async function PUT(request: Request) {
     const sanitizedIncoming = incomingModules
       .map((n) => Math.round(Number(n)))
       .filter((n) => Number.isFinite(n) && n > 0 && n <= MAX_MODULE_INDEX);
-    const mergedModules = body.replaceCompletedModules
-      ? Array.from(new Set(sanitizedIncoming)).sort((a, b) => a - b)
-      : Array.from(
-          new Set([...(existing?.completedModules ?? []), ...sanitizedIncoming]),
-        ).sort((a, b) => a - b);
+
+    // Never let a client wipe progress when MySQL already has a ready certificate.
+    let blockEmptyReplace = false;
+    if (body.replaceCompletedModules && sanitizedIncoming.length === 0) {
+      try {
+        const { prisma } = await import("@/lib/prisma");
+        const ready = await prisma.lmsCertificate.findFirst({
+          where: { learnerEmail: email, courseSlug: slug, status: "ready" },
+          select: { id: true },
+        });
+        blockEmptyReplace = Boolean(ready);
+      } catch {
+        blockEmptyReplace = false;
+      }
+    }
+
+    const mergedModules =
+      body.replaceCompletedModules && !blockEmptyReplace
+        ? Array.from(new Set(sanitizedIncoming)).sort((a, b) => a - b)
+        : Array.from(
+            new Set([...(existing?.completedModules ?? []), ...sanitizedIncoming]),
+          ).sort((a, b) => a - b);
 
     const examScores = sanitizeExamScores(
       body.examScores as Record<string, unknown> | undefined,
       existing?.examScores ?? {},
     );
 
-    const progress = await upsertLearnerCourseProgressInStore({
+    let progress = await upsertLearnerCourseProgressInStore({
       learnerEmail: email,
       courseSlug: slug,
       completedModules: mergedModules,
       examScores,
     });
+
+    // If cert is ready but progress is still short, heal to 100%.
+    const healed = await syncProgressFromReadyCertificateIfNeeded(email, slug);
+    if (healed) progress = healed;
 
     queueCourseProgressReportCheck({
       learnerEmail: email,

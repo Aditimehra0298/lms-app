@@ -10,6 +10,7 @@ import { readModuleWatchedSeconds } from "@/lib/learner-preview-gate";
 import {
   computeCombinedExamGrade,
   examModuleNumbers,
+  examScoresStorageKey,
   learnerCredentialsEligible,
   readModuleExamScores,
 } from "@/lib/learner-exam-scores";
@@ -182,11 +183,17 @@ export function trustedCompletedModules(
   curriculum?: CourseCurriculumModule[] | null,
   opts?: { certificateReady?: boolean },
 ): number[] {
+  if (opts?.certificateReady) {
+    const total = countLearnerCurriculumModules(curriculum);
+    if (total > 0) return Array.from({ length: total }, (_, i) => i + 1);
+    const existing = readCompletedModules(slug);
+    return existing.length > 0 ? existing : [];
+  }
   if (isUnverifiedFullCompletion(slug, curriculum, opts)) return [];
   return readCompletedModules(slug);
 }
 
-/** Clear fake 100% progress and save that to the server. */
+/** Clear fake 100% progress. Never wipe the server copy — that destroyed real certificate completions. */
 export function clearUnverifiedFullCompletion(
   slug: string,
   curriculum?: CourseCurriculumModule[] | null,
@@ -194,7 +201,7 @@ export function clearUnverifiedFullCompletion(
 ): boolean {
   if (!isUnverifiedFullCompletion(slug, curriculum, opts)) return false;
   writeCompletedModules(slug, [], countLearnerCurriculumModules(curriculum), {
-    replaceServer: true,
+    skipServerPush: true,
   });
   return true;
 }
@@ -422,16 +429,30 @@ export function ensureCompletedModulesForCertificate(
   if (existing.length < moduleCount || !full.every((n) => existing.includes(n))) {
     writeCompletedModules(courseSlug, full, moduleCount);
   }
-  const scores = readModuleExamScores(courseSlug);
-  if (Object.keys(scores).length === 0) {
-    void import("@/lib/learner-exam-scores").then(({ recordModuleExamAttempt, FINAL_EXAM_SCORE_KEY }) => {
-      recordModuleExamAttempt({
-        courseSlug,
-        moduleNumber: FINAL_EXAM_SCORE_KEY,
+  // Write exam pass synchronously so anti-cheat does not wipe modules before async import lands.
+  try {
+    const scores = readModuleExamScores(courseSlug);
+    if (Object.keys(scores).length === 0) {
+      const entry = {
         correct: 10,
         total: 10,
+        percent: 100,
+        passed: true,
+        updatedAt: new Date().toISOString(),
+      };
+      window.localStorage.setItem(
+        examScoresStorageKey(courseSlug),
+        JSON.stringify({ final: entry }),
+      );
+      window.dispatchEvent(
+        new CustomEvent("sft-exam-scores-updated", { detail: { courseSlug } }),
+      );
+      void import("@/lib/learner-progress-sync-client").then((m) => {
+        m.pushLearnerCourseProgressToServer(courseSlug);
       });
-    });
+    }
+  } catch {
+    // Ignore storage failures.
   }
 }
 

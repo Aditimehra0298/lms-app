@@ -86,10 +86,10 @@ import {
   COURSE_PROGRESS_UPDATED_EVENT,
   countLearnerCurriculumModules,
   enrichPurchasedCourse,
+  ensureCompletedModulesForCertificate,
   findCatalogCourse,
   mergeCertificatesIntoPurchasedCourses,
   trustedCompletedModules,
-  clearUnverifiedFullCompletion,
   readPurchasedCoursesFromStorage,
   syncPurchasedCourseProgress,
   type PurchasedCourseRow,
@@ -569,10 +569,14 @@ export default function MyLearningPage() {
       const catalog = findCatalogCourse(row, effectiveCatalog);
       const modules = catalog ? countLearnerCurriculumModules(catalog.curriculum) : row.modules;
       const certificateReady = readyCertSlugs.has(canonicalCourseSlug(slug));
-      clearUnverifiedFullCompletion(slug, catalog?.curriculum, { certificateReady });
+      if (certificateReady) {
+        const total = Math.max(1, modules || row.modules || 1);
+        ensureCompletedModulesForCertificate(slug, total);
+      }
       syncPurchasedCourseProgress(
         slug,
-        trustedCompletedModules(slug, catalog?.curriculum, { certificateReady }).length,
+        trustedCompletedModules(slug, catalog?.curriculum, { certificateReady }).length ||
+          (certificateReady ? modules || 0 : 0),
         modules || row.modules,
       );
     }
@@ -1402,7 +1406,8 @@ export default function MyLearningPage() {
                       : course.modules || 1,
                   );
                   const certificateReady =
-                    course.status === "Completed" ||
+                    course.status?.toLowerCase() === "completed" ||
+                    course.action === "View Certificate" ||
                     learnerCertificates.some(
                       (c) =>
                         c.status === "ready" &&
@@ -1420,9 +1425,11 @@ export default function MyLearningPage() {
                   if (certificateReady) {
                     for (let i = 1; i <= safeModules; i++) doneSet.add(i);
                   }
-                  const doneCount = Array.from({ length: safeModules }).filter((_, idx) =>
-                    doneSet.has(idx + 1),
-                  ).length;
+                  const doneCount = certificateReady
+                    ? safeModules
+                    : Array.from({ length: safeModules }).filter((_, idx) =>
+                        doneSet.has(idx + 1),
+                      ).length;
                   const firstIncomplete =
                     Array.from({ length: safeModules }, (_, idx) => idx + 1).find(
                       (n) => !doneSet.has(n),
