@@ -20,11 +20,21 @@ export default function AdminTutorLedHub() {
         value={view}
         onChange={(id) => setView(id as "programs" | "catalog")}
         options={[
-          { id: "catalog", label: "Course steps" },
-          { id: "programs", label: "Live programs" },
+          { id: "catalog", label: "Catalog landings" },
+          { id: "programs", label: "Live Zoom programs" },
         ]}
       />
-      {view === "catalog" ? <AdminTutorLedCatalogLandingsWorkspace /> : <AdminTutorLedWorkspace />}
+      {view === "catalog" ? (
+        <div className="space-y-2">
+          <p className="text-xs text-gray-400">
+            Open a catalog → use <strong className="text-gray-200">Upcoming batches</strong> for the table
+            and <strong className="text-gray-200">Batch landing</strong> for each level&apos;s Description page.
+          </p>
+          <AdminTutorLedCatalogLandingsWorkspace />
+        </div>
+      ) : (
+        <AdminTutorLedWorkspace />
+      )}
     </div>
   );
 }

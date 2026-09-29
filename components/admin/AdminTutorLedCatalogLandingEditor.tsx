@@ -56,12 +56,20 @@ import {
 
 type SectionKey = "hero" | "programs" | "why" | "audience" | "batches" | "trainer" | "faqs" | "cta" | "basics";
 
-type CourseStep = "course" | "levels" | TutorLedLevelStep | "publish" | "landing" | "batch-landing";
+type CourseStep =
+  | "course"
+  | "levels"
+  | TutorLedLevelStep
+  | "batches"
+  | "publish"
+  | "landing"
+  | "batch-landing";
 
 const COURSE_STEPS: { id: CourseStep; label: string }[] = [
   { id: "course", label: "Course" },
   { id: "levels", label: "Levels" },
   { id: "zoom", label: "Zoom & batch" },
+  { id: "batches", label: "Upcoming batches" },
   { id: "pricing", label: "Pricing" },
   { id: "assessment", label: "Final assessment" },
   { id: "students", label: "Students" },
@@ -469,6 +477,12 @@ export default function AdminTutorLedCatalogLandingEditor({
             onClick={() => {
               setStep(tab.id);
               if (tab.id === "students" || tab.id === "zoom") setPreviewOpen(false);
+              if (tab.id === "batches") {
+                setOpen("batches");
+                setPreviewOpen(true);
+              }
+              if (tab.id === "batch-landing") setPreviewOpen(true);
+              if (tab.id === "landing") setOpen("batches");
             }}
             className={`shrink-0 rounded-lg px-3 py-2.5 text-[11px] font-semibold transition sm:px-4 ${
               step === tab.id
@@ -535,7 +549,7 @@ export default function AdminTutorLedCatalogLandingEditor({
                 <strong className="text-gray-200">2.</strong> Set the batch date and class time.{" "}
                 <strong className="text-gray-200">3.</strong> Paste a <strong className="text-gray-200">different</strong>{" "}
                 Zoom link on each day. Catalog card duration follows training days. Upcoming batch dates, times,
-                and seats on the public landing are edited in <strong className="text-gray-200">Landing design → Upcoming batches</strong>.
+                and seats on the public landing are edited in the <strong className="text-gray-200">Upcoming batches</strong> step.
               </p>
               {page.programs.length === 0 ? (
                 <p className="text-sm text-amber-100">Add levels first, then choose training days and Zoom links.</p>
@@ -610,6 +624,16 @@ export default function AdminTutorLedCatalogLandingEditor({
               )}
             </div>
           ) : null}
+          {step === "batches" ? (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-400">
+                Edit the <strong className="text-gray-200">Upcoming batches</strong> table on the catalog
+                landing (date, time, program, seats). Each row can open that level&apos;s designed Description
+                page (<strong className="text-gray-200">Batch landing</strong> step).
+              </p>
+              {renderSection("batches")}
+            </div>
+          ) : null}
           {step === "pricing" || step === "assessment" || step === "students" || step === "certificate" ? (
             <div className="space-y-3">
               {step === "students" ? (
@@ -653,7 +677,29 @@ export default function AdminTutorLedCatalogLandingEditor({
           ) : null}
           {step === "landing" ? (
             <div className="space-y-3">
-              {SECTIONS.filter((section) => section.id !== "basics" && section.id !== "programs").map((section) => {
+              <p className="text-xs text-gray-400">
+                Catalog page sections. For the batches table use the{" "}
+                <button
+                  type="button"
+                  className="font-semibold text-amber-200 underline"
+                  onClick={() => setStep("batches")}
+                >
+                  Upcoming batches
+                </button>{" "}
+                step; for each level Description page use{" "}
+                <button
+                  type="button"
+                  className="font-semibold text-amber-200 underline"
+                  onClick={() => setStep("batch-landing")}
+                >
+                  Batch landing
+                </button>
+                .
+              </p>
+              {SECTIONS.filter(
+                (section) =>
+                  section.id !== "basics" && section.id !== "programs" && section.id !== "batches",
+              ).map((section) => {
                 const Icon = section.icon;
                 const expanded = open === section.id;
                 return (
