@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import { countLearnerCurriculumModules } from "@/lib/curriculum-learner-filter";
 import { prisma } from "@/lib/prisma";
+import { grantLearnerCertificateDownloadAccess } from "@/lib/server/admin-grant-certificate-access";
 import { getManagedCourses } from "@/lib/server/course-catalog";
 import { findExistingEnrollment } from "@/lib/server/enrollment-lookup";
 import {
@@ -150,6 +151,26 @@ export async function GET(request: Request) {
       if (percent >= 100) {
         completedSlugs.push(slug);
         percent = 100;
+        // Course is done but no MySQL certificate row yet (e.g. one module short then healed).
+        // Issue + unlock so My Certificates / View Certificate appear without a manual admin step.
+        if (!readyCert) {
+          try {
+            const issued = await grantLearnerCertificateDownloadAccess({
+              learnerEmail: email,
+              courseSlug: slug,
+            });
+            if (issued.ok && issued.granted) {
+              // Re-sync progress from the new ready certificate.
+              await ensureProgressForReadyCertificate({
+                learnerEmail: email,
+                courseSlug: slug,
+                moduleCount: total || undefined,
+              });
+            }
+          } catch (err) {
+            console.error("[api/learner/completion-status] auto-issue certificate", slug, err);
+          }
+        }
       }
       percentBySlug[slug] = percent;
       modulesBySlug[slug] = { completed, total: safeTotal || total };
