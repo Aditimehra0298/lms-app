@@ -18,6 +18,7 @@ type Props = {
   onGoCourseInfo: () => void;
   onGoContent: () => void;
   finalExam?: CourseFinalExam;
+  onPersistAssets?: (course: ManagedCourse) => void | Promise<void>;
 };
 
 export default function AdminCourseCertificatePanel({
@@ -29,6 +30,7 @@ export default function AdminCourseCertificatePanel({
   onGoCourseInfo,
   onGoContent,
   finalExam,
+  onPersistAssets,
 }: Props) {
   if (!canEdit) {
     return <AdminCourseSelectPrompt tabName="Certificate" onGoCourseInfo={onGoCourseInfo} />;
@@ -77,6 +79,7 @@ export default function AdminCourseCertificatePanel({
         setDraft={setDraft}
         finalExam={finalExam}
         onGoContent={onGoContent}
+        onPersistAssets={onPersistAssets}
       />
     </AdminCourseTabShell>
   );

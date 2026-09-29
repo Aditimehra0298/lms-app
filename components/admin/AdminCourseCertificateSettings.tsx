@@ -9,6 +9,8 @@ type Props = {
   setDraft: React.Dispatch<React.SetStateAction<ManagedCourse>>;
   finalExam?: CourseFinalExam;
   onGoContent: () => void;
+  /** Persist badge/template immediately after upload (pass the updated course). */
+  onPersistAssets?: (course: ManagedCourse) => void | Promise<void>;
 };
 
 function updateHero(
@@ -23,6 +25,7 @@ export default function AdminCourseCertificateSettings({
   setDraft,
   finalExam,
   onGoContent,
+  onPersistAssets,
 }: Props) {
   const hero = draft.hero ?? {};
   const cfg = draft.certificateConfig ?? {};
@@ -39,7 +42,15 @@ export default function AdminCourseCertificateSettings({
         );
       }}
       config={cfg}
-      onPatch={(patch) => setDraft((d) => patchCertificateConfig(d, patch))}
+      onPatch={(patch) => {
+        setDraft((d) => {
+          const next = patchCertificateConfig(d, patch);
+          if (onPersistAssets && (patch.badgeImage || patch.templateImage || patch.transcriptFile)) {
+            void onPersistAssets(next);
+          }
+          return next;
+        });
+      }}
       finalExamPassScore={finalExam?.passingScorePercent}
       onGoContent={onGoContent}
     />

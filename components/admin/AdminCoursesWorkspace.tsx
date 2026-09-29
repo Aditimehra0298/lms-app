@@ -403,7 +403,8 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
   const putAdminContent = useCallback(async (payload: Partial<AdminContent> & { removedCourseSlugs?: string[] }) => {
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 30_000);
+    // Full catalog + MySQL sync can exceed 30s on large courses — match curriculum save budget.
+    const timeoutId = window.setTimeout(() => controller.abort(), 180_000);
     try {
       const put = await fetch("/api/admin/content", {
         method: "PUT",
@@ -422,7 +423,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       return errBody;
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
-        throw new Error("Save timed out. Check the dev server and try again.");
+        throw new Error("Save timed out. The server is still busy — wait a moment and try again.");
       }
       throw e;
     } finally {
@@ -517,16 +518,28 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
 
   const persistManagedCourses = async (
     nextCourses: ManagedCourse[],
-    opts?: { removedCourseSlugs?: string[] },
+    opts?: { removedCourseSlugs?: string[]; lightPatchSlug?: string },
   ): Promise<boolean> => {
     if (!content) return false;
     setSavingCatalog(true);
     setLoadError(null);
     setSaveNotice(null);
     try {
+      // Certificate / settings saves: send only the edited course and omit curriculum so
+      // the PUT stays small and disk curriculum is preserved server-side.
+      const lightSlug = opts?.lightPatchSlug?.trim();
+      const payloadCourses = lightSlug
+        ? nextCourses
+            .filter((c) => c.slug?.trim() === lightSlug)
+            .map((c) => {
+              const { curriculum: _curriculum, ...rest } = c;
+              return rest as ManagedCourse;
+            })
+        : nextCourses;
+
       // Partial PUT — never echo the full document (wipes category renames / page images).
       const saved = await putAdminContent({
-        managedCourses: nextCourses,
+        managedCourses: payloadCourses.length > 0 ? payloadCourses : nextCourses,
         ...(opts?.removedCourseSlugs?.length ? { removedCourseSlugs: opts.removedCourseSlugs } : {}),
       });
       const courses = Array.isArray(saved?.managedCourses)
@@ -547,8 +560,7 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
             : d,
         );
       }
-      setSaveNotice("Course saved.");
-      void load();
+      setSaveNotice(lightSlug ? "Certificate assets saved." : "Course saved.");
       return true;
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Save failed. Try again.");
@@ -593,7 +605,25 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     setWorkspaceTab(isLessonsMode ? "Content" : "Course");
   };
 
-  const saveCatalogDraft = async (opts?: { goToCurriculumAfter?: boolean }) => {
+  /** Fast save for certificate badge/template — uses the course object passed in (avoids stale draft). */
+  const saveCertificateAssetsNow = async (course: ManagedCourse) => {
+    const slug = slugify((course.slug || course.title || "").trim());
+    if (!slug || !content) return;
+    const normalized = sanitizeManagedCourse({
+      ...course,
+      slug,
+      learningFormat: "self-paced",
+      faqs: (course.faqs ?? []).filter((f) => f.q.trim() && f.a.trim()),
+      finalExam: undefined,
+    });
+    await persistManagedCourses([normalized], { lightPatchSlug: slug });
+  };
+
+  const saveCatalogDraft = async (opts?: {
+    goToCurriculumAfter?: boolean;
+    /** Certificate / badge / settings — small PUT, keep curriculum on disk. */
+    lightCertificatePatch?: boolean;
+  }) => {
     if (!content) return;
     const previousSlug = editingSlug;
     const slug = slugify((draft.slug || draft.title || "").trim());
@@ -617,8 +647,15 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
     const editingThisCourse =
       Boolean(selectedSlug) &&
       (selectedSlug === slug || selectedSlug === previousSlug || selectedSlug === existingCourse?.slug);
-    const preservedCurriculum =
-      editingThisCourse && modules.length > 0
+    const useLightPatch =
+      opts?.lightCertificatePatch === true ||
+      workspaceTab === "Certificate" ||
+      workspaceTab === "Settings" ||
+      workspaceTab === "SEO" ||
+      workspaceTab === "Learning Tools";
+    const preservedCurriculum = useLightPatch
+      ? undefined
+      : editingThisCourse && modules.length > 0
         ? cloneMods(modules)
         : Array.isArray(existingCourse?.curriculum) && existingCourse!.curriculum!.length > 0
           ? cloneMods(existingCourse!.curriculum!)
@@ -631,11 +668,18 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
       learningFormat: "self-paced",
       faqs: (draft.faqs ?? []).filter((f) => f.q.trim() && f.a.trim()),
       finalExam: undefined,
-      curriculum: preservedCurriculum,
+      ...(useLightPatch ? {} : { curriculum: preservedCurriculum }),
     });
-    const ok = await persistManagedCourses([...others, normalized]);
+    const ok = await persistManagedCourses(
+      useLightPatch ? [normalized] : [...others, normalized],
+      useLightPatch ? { lightPatchSlug: slug } : undefined,
+    );
     if (!ok) return;
-    setDraft(normalized);
+    setDraft((d) => ({
+      ...normalized,
+      // Keep in-memory modules when light-saving certificate so Content tab stays intact.
+      curriculum: useLightPatch ? d.curriculum ?? modules : normalized.curriculum,
+    }));
     setIsCreating(false);
     setEditingSlug(slug);
     setSelectedSlug(slug);
@@ -3017,7 +3061,8 @@ export default function AdminCoursesWorkspace({ mode = "full" }: AdminCoursesWor
           setDraft={setDraft}
           canEdit={canEditPricing}
           saving={savingCatalog}
-          onSave={() => void saveCatalogDraft()}
+          onSave={() => void saveCatalogDraft({ lightCertificatePatch: true })}
+          onPersistAssets={(course) => void saveCertificateAssetsNow(course)}
           onGoCourseInfo={() => setWorkspaceTab("Course")}
           onGoContent={() => setWorkspaceTab("Content")}
           finalExam={finalExamDraft}
