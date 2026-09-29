@@ -453,14 +453,23 @@ export function mergeCertificatesIntoPurchasedCourses(
   }
 
   for (const cert of certificates) {
-    const slug = cert.courseSlug?.trim();
+    const slug = canonicalCourseSlug(cert.courseSlug?.trim() ?? "") || cert.courseSlug?.trim();
     if (!slug) continue;
     if (cert.status !== "ready" && cert.status !== "pending") continue;
-    // Only attach to courses the learner is actually enrolled in.
-    if (!bySlug.has(slug)) continue;
+
+    // Match enrolled row by canonical slug (aliases / casing).
+    let existing = bySlug.get(slug);
+    if (!existing) {
+      for (const [key, row] of bySlug) {
+        if (canonicalCourseSlug(key) === slug) {
+          existing = row;
+          break;
+        }
+      }
+    }
+    if (!existing) continue;
 
     const catalogCourse = findCatalogCourse({ slug, title: cert.courseTitle }, catalog);
-    const existing = bySlug.get(slug)!;
     const modules = catalogCourse
       ? countLearnerCurriculumModules(catalogCourse.curriculum)
       : existing.modules || 0;
@@ -474,7 +483,7 @@ export function mergeCertificatesIntoPurchasedCourses(
     const enriched = enrichPurchasedCourse(
       {
         ...existing,
-        slug,
+        slug: existing.slug || slug,
         title: cert.courseTitle || existing.title,
         modules: safeModules,
         duration: catalogCourse?.duration?.trim() || existing.duration || "—",
@@ -489,7 +498,7 @@ export function mergeCertificatesIntoPurchasedCourses(
       catalogCourse,
       { certificateReady },
     );
-    bySlug.set(slug, enriched);
+    bySlug.set(existing.slug?.trim() || slug, enriched);
   }
 
   return Array.from(bySlug.values());

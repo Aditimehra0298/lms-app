@@ -34,7 +34,9 @@ export function shouldShowOnLearnerDashboard(
   row: { status: string; visibleToLearner: boolean },
 ): boolean {
   if (!perms.showInLearnerDashboard) return false;
-  if (row.status === "ready" && row.visibleToLearner) return true;
+  // Ready certificates must reach My Learning for progress bars even when download is still blocked.
+  if (row.status === "ready") return true;
   if (row.status === "pending") return true;
+  void row.visibleToLearner;
   return false;
 }

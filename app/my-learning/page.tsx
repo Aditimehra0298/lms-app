@@ -439,11 +439,26 @@ export default function MyLearningPage() {
         return parsed;
       });
     };
+    const syncProgressForEnrolled = () => {
+      const slugs = readPurchasedCoursesFromStorage()
+        .map((c) => c.slug?.trim() ?? "")
+        .filter(Boolean);
+      if (slugs.length === 0) return;
+      void syncAllLearnerCourseProgressFromServer(slugs).then(() => {
+        loadPurchasedCourses();
+        setProgressTick((n) => n + 1);
+      });
+    };
+
     const syncFromServer = () => {
       const email = getLearnerEmail();
       if (!email) return;
       void syncEnrollmentsFromServer(email).then((result) => {
-        if (result.ok) loadPurchasedCourses();
+        if (result.ok) {
+          loadPurchasedCourses();
+          // Progress sync must run AFTER enrollments land (otherwise slug list is empty).
+          syncProgressForEnrolled();
+        }
       });
     };
 
@@ -456,20 +471,19 @@ export default function MyLearningPage() {
           readJsonResponse(res, {} as { ok?: boolean; certificates?: CertificateRowDto[] }),
         )
         .then((data) => {
-          if (data.ok && data.certificates) setLearnerCertificates(data.certificates);
+          if (data.ok && data.certificates) {
+            setLearnerCertificates(data.certificates);
+            // Cert list can arrive after first paint — refresh progress bars again.
+            syncProgressForEnrolled();
+            setProgressTick((n) => n + 1);
+          }
         })
         .catch(() => {
           /* ignore */
         });
 
-      // Pull real module progress for every enrolled course, then refresh UI.
-      const slugs = readPurchasedCoursesFromStorage()
-        .map((c) => c.slug?.trim() ?? "")
-        .filter(Boolean);
-      void syncAllLearnerCourseProgressFromServer(slugs).then(() => {
-        loadPurchasedCourses();
-        setProgressTick((n) => n + 1);
-      });
+      // Immediate attempt for any courses already in localStorage.
+      syncProgressForEnrolled();
     }
     setEarnedBadges(readLearnerBadges());
     window.addEventListener("storage", loadPurchasedCourses);

@@ -52,7 +52,11 @@ function cardStats(course: PurchasedCourseRow, catalog?: ManagedCourse[]) {
   const modulesFromCatalog = cat ? countLearnerCurriculumModules(cat.curriculum) : 0;
   const modules = Math.max(1, modulesFromCatalog || course.modules || 1);
   const doneList = slug ? readCompletedModules(slug) : [];
-  const completed = doneList.filter((n) => n >= 1 && n <= modules).length;
+  const fromStorage = doneList.filter((n) => n >= 1 && n <= modules).length;
+  const completed =
+    course.status.toLowerCase() === "completed"
+      ? modules
+      : Math.max(fromStorage, Math.min(modules, Number(course.completed) || 0));
   const image = (cat ? resolveCourseListThumbnail(cat) : "") || course.image?.trim() || "";
   const duration = formatCardDuration(cat?.duration || course.duration);
   return { modules, completed, image, duration, slug };
