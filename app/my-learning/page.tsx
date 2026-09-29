@@ -429,6 +429,7 @@ export default function MyLearningPage() {
   const [purchasedCourses, setPurchasedCourses] = useState<LearningCourseRow[]>([]);
   const [learnerCertificates, setLearnerCertificates] = useState<CertificateRowDto[]>([]);
   const [completionReadySlugs, setCompletionReadySlugs] = useState<Set<string>>(() => new Set());
+  const [serverProgressPercent, setServerProgressPercent] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const loadPurchasedCourses = () => {
@@ -482,25 +483,49 @@ export default function MyLearningPage() {
           /* ignore */
         });
 
-      // MySQL ready certificates → force 100% even if local progress was wiped.
+      // Server progress (Admin Users panel numbers) → force same % on this dashboard.
       void fetch(`/api/learner/completion-status`, { cache: "no-store", credentials: "include" })
         .then(async (res) =>
           readJsonResponse(
             res,
-            {} as { ok?: boolean; completedSlugs?: string[]; percentBySlug?: Record<string, number> },
+            {} as {
+              ok?: boolean;
+              completedSlugs?: string[];
+              percentBySlug?: Record<string, number>;
+              modulesBySlug?: Record<string, { completed: number; total: number }>;
+            },
           ),
         )
         .then((data) => {
-          if (!data.ok || !Array.isArray(data.completedSlugs)) return;
+          if (!data.ok) return;
+          const percents = data.percentBySlug ?? {};
+          const normalized: Record<string, number> = {};
+          for (const [slug, pct] of Object.entries(percents)) {
+            const key = canonicalCourseSlug(slug) || slug;
+            if (key) normalized[key] = Math.max(0, Math.min(100, Number(pct) || 0));
+          }
+          setServerProgressPercent(normalized);
+
           const next = new Set(
-            data.completedSlugs.map((s) => canonicalCourseSlug(s) || s.trim()).filter(Boolean),
+            (data.completedSlugs ?? [])
+              .map((s) => canonicalCourseSlug(s) || s.trim())
+              .filter(Boolean),
           );
+          for (const [slug, pct] of Object.entries(normalized)) {
+            if (pct >= 100) next.add(slug);
+          }
           setCompletionReadySlugs(next);
+
           const rows = readPurchasedCoursesFromStorage();
-          for (const slug of next) {
+          for (const [slug, pct] of Object.entries(normalized)) {
+            if (pct < 100) continue;
             const row = rows.find((c) => canonicalCourseSlug(c.slug || "") === slug);
-            const modules = Math.max(1, row?.modules || 5);
+            const modules = Math.max(
+              1,
+              data.modulesBySlug?.[slug]?.total || row?.modules || 5,
+            );
             ensureCompletedModulesForCertificate(slug, modules);
+            syncPurchasedCourseProgress(slug, modules, modules);
           }
           syncProgressForEnrolled();
           setProgressTick((n) => n + 1);
@@ -622,22 +647,37 @@ export default function MyLearningPage() {
       catalog,
     );
     return merged.map((course) => {
+      const slugKey = canonicalCourseSlug(course.slug || "");
+      const serverPct = slugKey ? serverProgressPercent[slugKey] : undefined;
+      const certificateReady =
+        course.status?.toLowerCase() === "completed" ||
+        completionReadySlugs.has(slugKey) ||
+        (serverPct != null && serverPct >= 100) ||
+        learnerCertificates.some(
+          (c) =>
+            c.status === "ready" &&
+            canonicalCourseSlug(c.courseSlug) === slugKey,
+        );
       const enriched = enrichPurchasedCourse(course, findCatalogCourse(course, catalog), {
-        certificateReady:
-          course.status?.toLowerCase() === "completed" ||
-          completionReadySlugs.has(canonicalCourseSlug(course.slug || "")) ||
-          learnerCertificates.some(
-            (c) =>
-              c.status === "ready" &&
-              canonicalCourseSlug(c.courseSlug) === canonicalCourseSlug(course.slug || ""),
-          ),
+        certificateReady,
       });
+      if (serverPct != null && serverPct > 0 && !certificateReady) {
+        const modules = Math.max(1, enriched.modules || 1);
+        const completed = Math.round((serverPct / 100) * modules);
+        return {
+          ...enriched,
+          completed,
+          status: serverPct >= 100 ? "Completed" : completed > 0 ? "In Progress" : enriched.status,
+          action: serverPct >= 100 ? "View Certificate" : completed > 0 ? "Continue" : enriched.action,
+        };
+      }
       return enriched;
     });
   }, [
     purchasedCourses,
     learnerCertificates,
     completionReadySlugs,
+    serverProgressPercent,
     effectiveCatalog,
     adminContent.managedCourses,
     progressTick,
@@ -1443,14 +1483,17 @@ export default function MyLearningPage() {
                       ? countLearnerCurriculumModules(catalogCourse.curriculum)
                       : course.modules || 1,
                   );
+                  const slugKey = canonicalCourseSlug(course.slug || "");
+                  const serverPct = slugKey ? serverProgressPercent[slugKey] : undefined;
                   const certificateReady =
                     course.status?.toLowerCase() === "completed" ||
                     course.action === "View Certificate" ||
-                    completionReadySlugs.has(canonicalCourseSlug(course.slug || "")) ||
+                    completionReadySlugs.has(slugKey) ||
+                    (serverPct != null && serverPct >= 100) ||
                     learnerCertificates.some(
                       (c) =>
                         c.status === "ready" &&
-                        canonicalCourseSlug(c.courseSlug) === canonicalCourseSlug(course.slug || ""),
+                        canonicalCourseSlug(c.courseSlug) === slugKey,
                     );
                   // Real per-module completion (not “first N modules”), so progress stays accurate
                   // when learners open modules out of order.
@@ -1463,12 +1506,20 @@ export default function MyLearningPage() {
                   );
                   if (certificateReady) {
                     for (let i = 1; i <= safeModules; i++) doneSet.add(i);
+                  } else if (serverPct != null && serverPct > 0) {
+                    const n = Math.round((serverPct / 100) * safeModules);
+                    for (let i = 1; i <= n; i++) doneSet.add(i);
                   }
                   const doneCount = certificateReady
                     ? safeModules
                     : Array.from({ length: safeModules }).filter((_, idx) =>
                         doneSet.has(idx + 1),
                       ).length;
+                  const percentage = certificateReady
+                    ? 100
+                    : serverPct != null
+                      ? serverPct
+                      : Math.round((doneCount / safeModules) * 100);
                   const firstIncomplete =
                     Array.from({ length: safeModules }, (_, idx) => idx + 1).find(
                       (n) => !doneSet.has(n),
