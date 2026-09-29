@@ -1524,9 +1524,11 @@ export default function MyLearningPage() {
                     Array.from({ length: safeModules }, (_, idx) => idx + 1).find(
                       (n) => !doneSet.has(n),
                     ) ?? null;
-                  const percentage = Math.round((doneCount / safeModules) * 100);
                   const courseDone =
-                    course.status === "Completed" || doneCount >= safeModules;
+                    course.status === "Completed" ||
+                    certificateReady ||
+                    doneCount >= safeModules ||
+                    percentage >= 100;
                   const posterImage =
                     (catalogCourse ? resolveCourseListThumbnail(catalogCourse) : "") ||
                     course.image ||
