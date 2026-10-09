@@ -21,6 +21,7 @@ import {
   type OrgTeamCourseAssignment,
   type OrgTeamMemberCourseProgress,
 } from "@/lib/organization-team-progress";
+import { useOrgTeamDataTick } from "@/lib/hooks/useOrgTeamDataTick";
 
 type Props = {
   courses: ManagedCourse[];
@@ -189,6 +190,7 @@ export function MyLearningOrganizationTeamProgress({
   tutorExplore = [],
   companySize,
 }: Props) {
+  useOrgTeamDataTick();
   const assignments = buildOrganizationTeamProgress(courses, companySize);
   const tutorAssignments = buildOrganizationTeamTutorProgress(
     tutorEnrollments,
@@ -233,9 +235,11 @@ export function MyLearningOrganizationTeamProgress({
       {assignments.length === 0 ? (
         <article className={`p-6 text-center ${surface}`}>
           <CircleDot size={28} className="mx-auto text-zinc-600" />
-          <p className="mt-3 text-sm text-zinc-400">No team courses assigned yet.</p>
+          <p className="mt-3 text-sm text-zinc-400">
+            No team courses assigned yet. Invite employees, then assign them courses.
+          </p>
           <Link
-            href="/my-learning?tab=org-courses"
+            href="/my-learning?tab=assign-courses"
             className="mt-4 inline-flex rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400"
           >
             Assign team courses
@@ -266,6 +270,11 @@ export function MyLearningOrganizationTeamProgress({
             <span>{tutorSummary.examsUnlocked} exams unlocked</span>
           </div>
         </div>
+        {tutorAssignments.length === 0 ? (
+          <p className={`p-5 text-center text-sm text-zinc-500 ${surface}`}>
+            No tutor-led programs assigned to your team yet.
+          </p>
+        ) : null}
         <div className="space-y-4">
           {tutorAssignments.map((assignment) => (
             <OrgTutorLedTeamRoster
@@ -278,8 +287,8 @@ export function MyLearningOrganizationTeamProgress({
       </div>
 
       <p className="text-[11px] text-zinc-600">
-        Team progress mirrors individual self-paced and tutor-led views. Employee roster API will
-        replace demo data when connected.
+        Shows your invited employees on the courses you assigned. Modules, scores and status update
+        as employees learn.
       </p>
     </section>
   );

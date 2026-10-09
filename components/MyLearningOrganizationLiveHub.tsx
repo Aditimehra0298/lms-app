@@ -16,6 +16,7 @@ import {
   buildOrganizationTeamTutorProgress,
   summarizeTeamTutorProgress,
 } from "@/lib/organization-team-progress";
+import { useOrgTeamDataTick } from "@/lib/hooks/useOrgTeamDataTick";
 
 type Props = {
   enrollments: TutorLedLiveHubRow[];
@@ -31,10 +32,12 @@ export function MyLearningOrganizationLiveHub({
   companySize,
 }: Props) {
   const [courseFilter, setCourseFilter] = useState<"all" | "in-progress" | "completed" | "not-started">("all");
+  const teamTick = useOrgTeamDataTick();
 
   const assignments = useMemo(
     () => buildOrganizationTeamTutorProgress(enrollments, exploreCourses, companySize),
-    [enrollments, exploreCourses, companySize],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- teamTick re-reads cached team roster
+    [enrollments, exploreCourses, companySize, teamTick],
   );
 
   const summary = useMemo(() => summarizeTeamTutorProgress(assignments), [assignments]);
@@ -107,7 +110,9 @@ export function MyLearningOrganizationLiveHub({
         <div className="space-y-4">
           {filtered.length === 0 ? (
             <p className="rounded-xl border border-dashed border-white/15 bg-black/20 p-6 text-center text-sm text-gray-400">
-              No team tutor-led programs match this filter.
+              {assignments.length === 0
+                ? "No tutor-led programs assigned to your team yet."
+                : "No team tutor-led programs match this filter."}
             </p>
           ) : (
             filtered.map((assignment) => (

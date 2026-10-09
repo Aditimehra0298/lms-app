@@ -246,7 +246,7 @@ export function MyLearningOrganizationInviteEmployees({
 
       <p className="text-center text-xs text-zinc-500">
         <UserPlus className="mr-1 inline h-3.5 w-3.5" aria-hidden />
-        Roster saved on this device until your employee API is connected. Next:{" "}
+        Your team list is saved to your organisation account. Next:{" "}
         <Link href="/my-learning?tab=assign-courses" className="text-amber-200 hover:underline">
           Assign courses
         </Link>

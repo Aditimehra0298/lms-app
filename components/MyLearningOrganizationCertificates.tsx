@@ -9,9 +9,9 @@ import {
   buildOrganizationTeamCertificates,
   buildOrganizationTeamProgress,
   buildOrganizationTeamTutorProgress,
-  mergeOrganizationTeamCertificates,
   type OrgTeamCertificateRow,
 } from "@/lib/organization-team-progress";
+import { useOrgTeamDataTick } from "@/lib/hooks/useOrgTeamDataTick";
 
 type Props = {
   courses: ManagedCourse[];
@@ -52,13 +52,14 @@ export function MyLearningOrganizationCertificates({
   companySize,
 }: Props) {
   const [query, setQuery] = useState("");
+  const teamTick = useOrgTeamDataTick();
 
   const certificates = useMemo(() => {
     const selfPaced = buildOrganizationTeamProgress(courses, companySize);
     const tutorLed = buildOrganizationTeamTutorProgress(tutorEnrollments, tutorExplore, companySize);
-    const fromProgress = buildOrganizationTeamCertificates(selfPaced, tutorLed);
-    return mergeOrganizationTeamCertificates(fromProgress, true);
-  }, [courses, tutorEnrollments, tutorExplore, companySize]);
+    return buildOrganizationTeamCertificates(selfPaced, tutorLed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- teamTick re-reads cached team roster
+  }, [courses, tutorEnrollments, tutorExplore, companySize, teamTick]);
 
   const filtered = certificates.filter((c) => {
     if (!query.trim()) return true;
@@ -111,15 +112,6 @@ export function MyLearningOrganizationCertificates({
             </article>
           );
         })}
-      </div>
-
-      <div className="rounded-xl border border-violet-500/25 bg-violet-500/10 px-4 py-3 text-sm text-violet-100/90">
-        <span className="font-semibold text-violet-200">Sample preview</span>
-        <span className="text-violet-200/80">
-          {" "}
-          — table below shows example team certificate records (ready + pending) so you can review the
-          layout before live employee data is connected.
-        </span>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -229,8 +221,8 @@ export function MyLearningOrganizationCertificates({
       )}
 
       <p className="text-center text-xs text-gray-500">
-        Demo roster data until org employee API is connected. Each completed employee receives their
-        own certificate record — same pattern as{" "}
+        Each employee who completes an assigned program receives their own certificate record — same
+        pattern as{" "}
         <Link href="/my-learning?tab=certificates" className="text-amber-200 hover:underline">
           individual certificates
         </Link>

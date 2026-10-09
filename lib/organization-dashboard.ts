@@ -5,6 +5,7 @@ import {
   readOrgPremiumPlanState,
   resolveOrgSeatLimit,
 } from "@/lib/organization-premium-plans";
+import { isDemoRosterEntry } from "@/lib/organization-team-config";
 import { getCachedOrganizationTeamRecord } from "@/lib/organization-team-sync-client";
 
 /** Helpers for organisation learner dashboard (seats, plan labels). */
@@ -56,18 +57,20 @@ export type OrgPlanDetailField = {
 /** Plan details as professional prose for the subscription card. */
 export function formatPlanDetailsParagraph(details: OrgPlanDetailField[]): string {
   const m = Object.fromEntries(details.map((d) => [d.label, d.value]));
-  const validUntil = m["Valid until"] ?? "—";
+  const validUntil = m["Valid until"];
   const seats = m["Seats"] ?? "—";
   const teamSize = m["Team size"] ?? "your team";
   const billing = (m["Billing"] ?? "Annual").toLowerCase();
   const access = (m["Course access"] ?? "full catalog access").toLowerCase();
   const certificates = (m["Certificates"] ?? "certificate tracking").toLowerCase();
   const support = (m["Support"] ?? "standard support").toLowerCase();
-  const renewal = m["Renewal"] ?? "Renewal details are available in your plan settings.";
+  const renewal = m["Renewal"];
 
   return (
-    `Your Professional Plan is valid until ${validUntil}. Seat usage is ${seats}, covering a ${teamSize.toLowerCase()}, with ${billing} billing. ` +
-    `Your organisation includes ${access}, ${certificates}, and ${support}. ${renewal.endsWith(".") ? renewal : `${renewal}.`}`
+    (validUntil ? `Your plan is valid until ${validUntil}. ` : "") +
+    `Seat usage is ${seats}, covering a ${teamSize.toLowerCase()}, with ${billing} billing. ` +
+    `Your organisation includes ${access}, ${certificates}, and ${support}.` +
+    (renewal ? ` ${renewal.endsWith(".") ? renewal : `${renewal}.`}` : "")
   );
 }
 
@@ -81,7 +84,8 @@ export type OrganizationDashboardSnapshot = {
   seatsTotal: number;
   activeLearners: number;
   activeLearnersDelta: number;
-  complianceScore: number;
+  /** null until employees have real completion data. */
+  complianceScore: number | null;
   complianceScoreDelta: number;
   complianceEarned: number;
   complianceEarnedDelta: number;
@@ -108,60 +112,6 @@ export function formatOrgEmployeeUserId(employeeId: string): string {
   return `EMP-${digits.padStart(4, "0")}`;
 }
 
-export function demoOrgEmployeeEmail(employee: Pick<OrgEmployeeProgress, "name" | "id">): string {
-  const local = employee.name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ".")
-    .replace(/^\.+|\.+$/g, "");
-  return `${local || `user${employee.id}`}@team.demo`;
-}
-
-/** Starter employee list — replace with API when org roster is wired. */
-export function defaultOrgEmployeeProgress(): OrgEmployeeProgress[] {
-  return [
-    {
-      id: "1",
-      name: "John Smith",
-      progressPercent: 100,
-      avatarUrl: "https://randomuser.me/api/portraits/men/32.jpg",
-    },
-    {
-      id: "2",
-      name: "Sarah Johnson",
-      progressPercent: 100,
-      avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
-    },
-    {
-      id: "3",
-      name: "Michael Brown",
-      progressPercent: 100,
-      avatarUrl: "https://randomuser.me/api/portraits/men/75.jpg",
-    },
-    {
-      id: "4",
-      name: "Emily Davis",
-      progressPercent: 68,
-      avatarUrl: "https://randomuser.me/api/portraits/women/68.jpg",
-    },
-    {
-      id: "5",
-      name: "David Wilson",
-      progressPercent: 82,
-      avatarUrl: "https://randomuser.me/api/portraits/men/41.jpg",
-    },
-  ];
-}
-
-export function defaultOrgComplianceRows(): OrgComplianceRow[] {
-  return [
-    { id: "food", label: "Food Safety", percent: 92, tone: "rose" },
-    { id: "cyber", label: "Cyber Security", percent: 75, tone: "sky" },
-    { id: "esg", label: "ESG Compliance", percent: 81, tone: "emerald" },
-    { id: "iso", label: "ISO 27001", percent: 67, tone: "violet" },
-  ];
-}
-
 export function buildOrganizationDashboardSnapshot(input: {
   companyName?: string | null;
   companySize?: string | null;
@@ -174,12 +124,10 @@ export function buildOrganizationDashboardSnapshot(input: {
     typeof window !== "undefined"
       ? resolveOrgSeatLimit(planState)
       : seatsTotalFromCompanySize(input.companySize);
-  const invitedCount =
+  const invited =
     typeof window !== "undefined"
-      ? (getCachedOrganizationTeamRecord()?.roster.filter((r) => r.invited).length ?? 0)
-      : 0;
-  const complianceEarned = input.certificateCount ?? 35;
-  const activeLearners = invitedCount > 0 ? invitedCount : Math.min(seatsTotal, Math.max(1, Math.round(seatsTotal * 0.7)));
+      ? (getCachedOrganizationTeamRecord()?.roster.filter((r) => r.invited && !isDemoRosterEntry(r)) ?? [])
+      : [];
 
   const companyLabel = input.companyName?.trim() || "Your Organisation";
   const sizeLabel = input.companySize?.trim() || `${seatsTotal} employees`;
@@ -188,9 +136,8 @@ export function buildOrganizationDashboardSnapshot(input: {
     companyName: companyLabel,
     planName: activePlan.name,
     planTier: activePlan.billingLabel,
-    planValidUntil: "12 May 2026",
+    planValidUntil: "",
     planDetails: [
-      { label: "Valid until", value: "12 May 2026" },
       { label: "Seats", value: `${seatsTotal} learner seats` },
       { label: "Team size", value: sizeLabel },
       { label: "Billing", value: activePlan.billingLabel },
@@ -198,17 +145,21 @@ export function buildOrganizationDashboardSnapshot(input: {
       { label: "Learning rule", value: orgPremiumPlanLearningRule(activePlan) },
       { label: "Certificates", value: "Team tracking enabled" },
       { label: "Support", value: "Priority email" },
-      { label: "Renewal", value: "Auto-renew · 12 May 2026" },
     ],
-    seatsUsed: invitedCount > 0 ? invitedCount : activeLearners,
+    seatsUsed: invited.length,
     seatsTotal,
-    activeLearners,
-    activeLearnersDelta: 2,
-    complianceScore: 82,
-    complianceScoreDelta: 6,
-    complianceEarned,
-    complianceEarnedDelta: 5,
-    employees: defaultOrgEmployeeProgress(),
-    complianceRows: defaultOrgComplianceRows(),
+    activeLearners: invited.length,
+    activeLearnersDelta: 0,
+    complianceScore: null,
+    complianceScoreDelta: 0,
+    complianceEarned: input.certificateCount ?? 0,
+    complianceEarnedDelta: 0,
+    employees: invited.map((r) => ({
+      id: r.id,
+      name: r.name,
+      avatarUrl: r.avatarUrl,
+      progressPercent: 0,
+    })),
+    complianceRows: [],
   };
 }

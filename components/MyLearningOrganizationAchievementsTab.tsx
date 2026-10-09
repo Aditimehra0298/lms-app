@@ -18,13 +18,13 @@ import {
 } from "lucide-react";
 import { CommunityFileUploadZone } from "@/components/CommunityFileUploadZone";
 import type { ManagedCourse } from "@/lib/content-schema";
-import { defaultOrgEmployeeProgress, formatOrgEmployeeUserId } from "@/lib/organization-dashboard";
+import { formatOrgEmployeeUserId } from "@/lib/organization-dashboard";
+import { useOrgTeamDataTick } from "@/lib/hooks/useOrgTeamDataTick";
 import {
   addOrgCompanyBadge,
   addOrgEmployeeCredential,
   isOrgCredentialPdf,
   ORG_BRANDING_EVENT,
-  organizationBrandingSamples,
   readOrgCompanyBranding,
   readOrgEmployeeCredentials,
   saveOrgCompanyLogo,
@@ -36,7 +36,7 @@ import {
   buildOrganizationTeamCertificates,
   buildOrganizationTeamProgress,
   buildOrganizationTeamTutorProgress,
-  mergeOrganizationTeamCertificates,
+  readInvitedOrgTeamMembers,
   summarizeTeamProgress,
   type OrgTeamCertificateRow,
 } from "@/lib/organization-team-progress";
@@ -180,9 +180,11 @@ export function MyLearningOrganizationAchievementsTab({
   const [empCredUrl, setEmpCredUrl] = useState("");
   const [empCredName, setEmpCredName] = useState("");
   const [empCredStory, setEmpCredStory] = useState("");
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState("1");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const teamTick = useOrgTeamDataTick();
 
-  const employees = useMemo(() => defaultOrgEmployeeProgress(), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- teamTick re-reads cached team roster
+  const employees = useMemo(() => readInvitedOrgTeamMembers(), [teamTick]);
   const displayCompany = companyName?.trim() || "Your organisation";
 
   const refresh = useCallback(() => {
@@ -203,21 +205,17 @@ export function MyLearningOrganizationAchievementsTab({
   const teamCerts = useMemo(() => {
     const selfPaced = buildOrganizationTeamProgress(courses, companySize);
     const tutorLed = buildOrganizationTeamTutorProgress(tutorEnrollments, tutorExplore, companySize);
-    return mergeOrganizationTeamCertificates(
-      buildOrganizationTeamCertificates(selfPaced, tutorLed),
-      true,
-    ).filter((c) => c.status === "ready");
-  }, [courses, tutorEnrollments, tutorExplore, companySize]);
+    return buildOrganizationTeamCertificates(selfPaced, tutorLed).filter((c) => c.status === "ready");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- teamTick re-reads cached team roster
+  }, [courses, tutorEnrollments, tutorExplore, companySize, teamTick]);
 
   const progressSummary = useMemo(
     () => summarizeTeamProgress(buildOrganizationTeamProgress(courses, companySize)),
-    [courses, companySize],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- teamTick re-reads cached team roster
+    [courses, companySize, teamTick],
   );
 
-  const companyBadges: OrgCompanyBadge[] =
-    branding.badges.length > 0 ? branding.badges : organizationBrandingSamples();
-
-  const usingSampleBadges = branding.badges.length === 0;
+  const companyBadges: OrgCompanyBadge[] = branding.badges;
 
   const overallPercent = Math.min(
     100,
@@ -310,7 +308,7 @@ export function MyLearningOrganizationAchievementsTab({
               <FameFrame
                 key={badge.id}
                 frameTone="violet"
-                label={usingSampleBadges ? "Sample badge" : "Company badge"}
+                label="Company badge"
                 labelTone="violet"
                 title={badge.name}
                 subtitle={displayCompany}
@@ -417,10 +415,12 @@ export function MyLearningOrganizationAchievementsTab({
               </p>
               <div className="mt-3 space-y-2">
                 <select
-                  value={selectedEmployeeId}
+                  value={selectedEmployee?.id ?? ""}
                   onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                  className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
+                  disabled={employees.length === 0}
+                  className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white disabled:opacity-60"
                 >
+                  {employees.length === 0 ? <option value="">Invite employees first</option> : null}
                   {employees.map((emp) => (
                     <option key={emp.id} value={emp.id}>
                       {emp.name} · {formatOrgEmployeeUserId(emp.id)}
@@ -484,9 +484,7 @@ export function MyLearningOrganizationAchievementsTab({
           {branding.logoUrl ? " · Company logo active" : ""}
           {branding.badges.length > 0
             ? ` · ${branding.badges.length} custom badge${branding.badges.length === 1 ? "" : "s"}`
-            : usingSampleBadges
-              ? " · Sample badges shown until you upload"
-              : ""}
+            : ""}
           {employeeCreds.length > 0
             ? ` · ${employeeCreds.length} employee upload${employeeCreds.length === 1 ? "" : "s"}`
             : ""}

@@ -966,7 +966,8 @@ export default function MyLearningPage() {
         tutorExplore: tutorLedExploreCourses,
         companySize: learnerProfile.companySize,
       }),
-    [effectiveCatalog, tutorLedCoursesForHub, tutorLedExploreCourses, learnerProfile.companySize],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- orgPlanTick re-reads cached team roster
+    [effectiveCatalog, tutorLedCoursesForHub, tutorLedExploreCourses, learnerProfile.companySize, orgPlanTick],
   );
 
   const enrolledExamTasks = useMemo(

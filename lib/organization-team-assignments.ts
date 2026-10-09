@@ -1,10 +1,6 @@
 import type { ManagedCourse } from "@/lib/content-schema";
 import type { TutorLedExploreCard, TutorLedLiveHubRow } from "@/lib/tutor-led-live-hub-enrich";
-import {
-  demoOrgEmployeeEmail,
-  formatOrgEmployeeUserId,
-  type OrgEmployeeProgress,
-} from "@/lib/organization-dashboard";
+import { formatOrgEmployeeUserId } from "@/lib/organization-dashboard";
 import {
   buildOrganizationTeamProgress,
   buildOrganizationTeamTutorProgress,
@@ -147,12 +143,6 @@ export function buildOrganizationTeamAssignments(input: {
     const examLinks = course ? examLinksFromManagedCourse(course) : [];
 
     for (const member of assignment.members) {
-      const employee: OrgEmployeeProgress = {
-        id: member.employeeId,
-        name: member.name,
-        avatarUrl: member.avatarUrl,
-        progressPercent: member.progressPercent,
-      };
       const selfPaced = selfPacedPhaseFromModules(
         member.modulesCompleted,
         member.modulesTotal,
@@ -197,7 +187,7 @@ export function buildOrganizationTeamAssignments(input: {
           employeeId: member.employeeId,
           employeeUserId: formatOrgEmployeeUserId(member.employeeId),
           employeeName: member.name,
-          employeeEmail: demoOrgEmployeeEmail(employee),
+          employeeEmail: member.email,
           courseTitle: assignment.courseTitle,
           courseSlug: assignment.courseSlug,
           assessment: link.label,
@@ -215,12 +205,6 @@ export function buildOrganizationTeamAssignments(input: {
 
   for (const program of tutorAssignments) {
     for (const member of program.members) {
-      const employee: OrgEmployeeProgress = {
-        id: member.employeeId,
-        name: member.name,
-        avatarUrl: member.avatarUrl,
-        progressPercent: member.progressPercent,
-      };
       const selfPaced = selfPacedPhaseFromModules(
         member.trainingDaysCompleted,
         member.trainingDaysTotal,
@@ -242,7 +226,7 @@ export function buildOrganizationTeamAssignments(input: {
         employeeId: member.employeeId,
         employeeUserId: formatOrgEmployeeUserId(member.employeeId),
         employeeName: member.name,
-        employeeEmail: demoOrgEmployeeEmail(employee),
+        employeeEmail: member.email,
         courseTitle: program.programTitle,
         courseSlug: program.programSlug,
         assessment: "Final certification exam",

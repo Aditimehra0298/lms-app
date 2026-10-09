@@ -126,6 +126,24 @@ function PanelHeader({ title, href, linkLabel }: { title: string; href: string; 
   );
 }
 
+function MetricDelta({ delta, suffix = "", empty }: { delta: number; suffix?: string; empty: string }) {
+  if (delta <= 0) return <p className="text-xs text-zinc-600">{empty}</p>;
+  return (
+    <p className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500/90">
+      <TrendingUp size={13} />+{delta}
+      {suffix} this month
+    </p>
+  );
+}
+
+function EmptyPanel({ children }: { children: ReactNode }) {
+  return (
+    <p className="rounded-lg bg-black/20 px-4 py-6 text-center text-sm text-zinc-500 ring-1 ring-white/[0.05]">
+      {children}
+    </p>
+  );
+}
+
 export function MyLearningOrganizationDashboard({
   snapshot,
   adminDisplayName,
@@ -269,7 +287,9 @@ export function MyLearningOrganizationDashboard({
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                     Active
                   </span>
-                  <span className="text-xs text-zinc-600">Renews {snapshot.planValidUntil}</span>
+                  {snapshot.planValidUntil ? (
+                    <span className="text-xs text-zinc-600">Renews {snapshot.planValidUntil}</span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -311,34 +331,25 @@ export function MyLearningOrganizationDashboard({
           icon={GraduationCap}
           label="Active learners"
           value={snapshot.activeLearners}
-          footer={
-            <p className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500/90">
-              <TrendingUp size={13} />
-              +{snapshot.activeLearnersDelta} this month
-            </p>
-          }
+          footer={<MetricDelta delta={snapshot.activeLearnersDelta} empty="Invited employees" />}
         />
         <MetricCard
           icon={ShieldCheck}
           label="Compliance score"
-          value={`${snapshot.complianceScore}%`}
+          value={snapshot.complianceScore === null ? "—" : `${snapshot.complianceScore}%`}
           footer={
-            <p className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500/90">
-              <TrendingUp size={13} />
-              +{snapshot.complianceScoreDelta}% this month
-            </p>
+            <MetricDelta
+              delta={snapshot.complianceScoreDelta}
+              suffix="%"
+              empty="Shown once employees complete courses"
+            />
           }
         />
         <MetricCard
           icon={Award}
           label="Compliance earned"
           value={snapshot.complianceEarned}
-          footer={
-            <p className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500/90">
-              <TrendingUp size={13} />
-              +{snapshot.complianceEarnedDelta} this month
-            </p>
-          }
+          footer={<MetricDelta delta={snapshot.complianceEarnedDelta} empty="Certificates issued" />}
         />
       </div>
 
@@ -395,6 +406,15 @@ export function MyLearningOrganizationDashboard({
       <div className="grid gap-5 lg:grid-cols-2">
         <article className={`p-5 md:p-6 ${surface}`}>
           <PanelHeader title="Employee progress" href="/my-learning?tab=learning" linkLabel="View all" />
+          {snapshot.employees.length === 0 ? (
+            <EmptyPanel>
+              No employees yet.{" "}
+              <Link href="/my-learning?tab=invite-employees" className="text-amber-300 hover:text-amber-200">
+                Invite your team
+              </Link>{" "}
+              to see their progress here.
+            </EmptyPanel>
+          ) : null}
           <ul className="space-y-4">
             {snapshot.employees.map((emp) => (
               <li key={emp.id} className="flex items-center gap-3">
@@ -428,6 +448,11 @@ export function MyLearningOrganizationDashboard({
 
         <article className={`p-5 md:p-6 ${surface}`}>
           <PanelHeader title="Compliance overview" href="/my-learning?tab=org-report" linkLabel="Download report" />
+          {snapshot.complianceRows.length === 0 ? (
+            <EmptyPanel>
+              Compliance by area appears here once your employees complete assigned courses.
+            </EmptyPanel>
+          ) : null}
           <ul className="space-y-4">
             {snapshot.complianceRows.map((row) => (
               <li key={row.id} className="flex items-center gap-3">

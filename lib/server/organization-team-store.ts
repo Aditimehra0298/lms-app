@@ -1,9 +1,11 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { defaultOrgEmployeeProgress } from "@/lib/organization-dashboard";
 import {
   defaultOrganizationTeamAdminConfig,
+  emptyRosterSlot,
+  isDemoRosterEntry,
   mergeOrganizationTeamAdminConfig,
+  stripDemoTeamData,
   resolveSeatLimitForOrg,
   type OrgPremiumPlanId,
   type OrganizationTeamAdminConfig,
@@ -49,35 +51,8 @@ export async function readOrganizationTeamAdminConfig(): Promise<OrganizationTea
   return mergeOrganizationTeamAdminConfig(content.organizationTeam);
 }
 
-function seedRosterEntry(slot: number, seatTotal: number): Partial<OrgTeamRosterEntry> {
-  const demo = defaultOrgEmployeeProgress();
-  const emp = demo[slot - 1];
-  if (!emp || slot > seatTotal) return {};
-  return {
-    id: emp.id,
-    name: emp.name,
-    email: `${emp.name.toLowerCase().replace(/\s+/g, ".")}@team.demo`,
-    position: slot === 1 ? "Operations Lead" : slot === 2 ? "Quality Manager" : "Team Member",
-    avatarUrl: emp.avatarUrl,
-    invited: true,
-  };
-}
-
 export function buildEmptyOrgRoster(seatTotal: number): OrgTeamRosterEntry[] {
-  const safe = Math.max(1, seatTotal);
-  return Array.from({ length: safe }, (_, i) => {
-    const slot = i + 1;
-    const seed = seedRosterEntry(slot, safe);
-    return {
-      slot,
-      id: seed.id ?? `slot-${slot}`,
-      name: seed.name ?? "",
-      email: seed.email ?? "",
-      position: seed.position ?? "",
-      avatarUrl: seed.avatarUrl,
-      invited: Boolean(seed.invited && seed.name),
-    };
-  });
+  return Array.from({ length: Math.max(1, seatTotal) }, (_, i) => emptyRosterSlot(i + 1));
 }
 
 export function normalizeOrganizationTeamRecord(
@@ -92,7 +67,7 @@ export function normalizeOrganizationTeamRecord(
 
   for (const row of incoming) {
     const idx = row.slot - 1;
-    if (idx < 0 || idx >= base.length) continue;
+    if (idx < 0 || idx >= base.length || isDemoRosterEntry(row)) continue;
     base[idx] = {
       ...base[idx],
       ...row,
@@ -101,11 +76,12 @@ export function normalizeOrganizationTeamRecord(
     };
   }
 
+  const rosterIds = new Set(base.map((r) => r.id));
   const courseAssignments: Record<string, string[]> = {};
   if (input.courseAssignments && typeof input.courseAssignments === "object") {
     for (const [slug, ids] of Object.entries(input.courseAssignments)) {
       if (!slug || !Array.isArray(ids)) continue;
-      courseAssignments[slug] = [...new Set(ids.filter(Boolean))];
+      courseAssignments[slug] = [...new Set(ids.filter((id) => id && rosterIds.has(id)))];
     }
   }
 
@@ -126,12 +102,15 @@ export async function readOrganizationTeam(
   const email = workEmail.trim().toLowerCase();
   if (!email) return null;
   const file = await readTeamsFile();
-  return file.teams[email] ?? null;
+  const team = file.teams[email];
+  return team ? stripDemoTeamData(team) : null;
 }
 
 export async function readAllOrganizationTeams(): Promise<OrganizationTeamRecord[]> {
   const file = await readTeamsFile();
-  return Object.values(file.teams).sort((a, b) => a.workEmail.localeCompare(b.workEmail));
+  return Object.values(file.teams)
+    .map(stripDemoTeamData)
+    .sort((a, b) => a.workEmail.localeCompare(b.workEmail));
 }
 
 export async function ensureOrganizationTeam(input: {

@@ -140,21 +140,3 @@ export function addOrgEmployeeCredential(input: {
 export function isOrgCredentialPdf(name: string, url: string): boolean {
   return /\.pdf$/i.test(name) || /\.pdf($|\?)/i.test(url);
 }
-
-/** Preview badges shown until the org uploads their own (premium branding demo). */
-export function organizationBrandingSamples(): OrgCompanyBadge[] {
-  return [
-    {
-      id: "sample-badge-excellence",
-      url: "https://res.cloudinary.com/dwnnakrrh/image/upload/v1781164540/ChatGPT_Image_Jun_11_2026_01_25_11_PM_s4a0fx.png",
-      name: "Team Excellence Badge",
-      uploadedAt: new Date().toISOString(),
-    },
-    {
-      id: "sample-badge-compliance",
-      url: "https://res.cloudinary.com/dwnnakrrh/image/upload/v1781164540/ChatGPT_Image_Jun_11_2026_01_25_11_PM_s4a0fx.png",
-      name: "Compliance Champion",
-      uploadedAt: new Date().toISOString(),
-    },
-  ];
-}

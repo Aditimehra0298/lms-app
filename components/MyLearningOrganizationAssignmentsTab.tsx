@@ -184,7 +184,7 @@ export function MyLearningOrganizationAssignmentsTab({ rows }: Props) {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-4 py-3">
         <p className="inline-flex items-center gap-2 text-xs text-gray-400">
           <Users className="h-3.5 w-3.5 text-amber-300" aria-hidden />
-          Demo roster until employee API is connected — each row shows name, user ID, and email.
+          Your invited employees on assigned courses — each row shows name, user ID, and email.
         </p>
         <Link
           href="/my-learning?tab=learning"

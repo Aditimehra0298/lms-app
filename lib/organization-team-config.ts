@@ -37,6 +37,32 @@ export type OrgTeamRosterEntry = {
   invited: boolean;
 };
 
+/** Placeholder employees seeded by older builds (john.smith@team.demo etc.). */
+export function isDemoRosterEntry(row: Pick<OrgTeamRosterEntry, "email">): boolean {
+  return /@team\.demo$/i.test(row.email?.trim() ?? "");
+}
+
+export function emptyRosterSlot(slot: number): OrgTeamRosterEntry {
+  return { slot, id: `slot-${slot}`, name: "", email: "", position: "", avatarUrl: undefined, invited: false };
+}
+
+/** Clears demo seats and drops their ids from course assignments. */
+export function stripDemoTeamData<T extends { roster: OrgTeamRosterEntry[]; courseAssignments: Record<string, string[]> }>(
+  record: T,
+): T {
+  const demoIds = new Set(record.roster.filter(isDemoRosterEntry).map((r) => r.id));
+  if (demoIds.size === 0) return record;
+  const courseAssignments: Record<string, string[]> = {};
+  for (const [slug, ids] of Object.entries(record.courseAssignments ?? {})) {
+    courseAssignments[slug] = ids.filter((id) => !demoIds.has(id));
+  }
+  return {
+    ...record,
+    roster: record.roster.map((r) => (isDemoRosterEntry(r) ? emptyRosterSlot(r.slot) : r)),
+    courseAssignments,
+  };
+}
+
 export type OrganizationTeamRecord = {
   workEmail: string;
   companyName?: string;
