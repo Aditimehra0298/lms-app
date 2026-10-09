@@ -24,10 +24,10 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
 
   if (isAdmin) {
     return (
-      <>
+      <PricingProvider>
         <ApiStatusBanner />
         {children}
-      </>
+      </PricingProvider>
     );
   }
 
