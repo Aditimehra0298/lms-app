@@ -12,6 +12,8 @@ import { readAdminContent } from "@/lib/server/content-store";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
+import { mergeTutorLedCatalogPages } from "@/lib/tutor-led-catalog-landings";
+import { buildFeaturedCourseOptions, findFeaturedOption } from "@/lib/courses-page-featured";
 import { defaultCoursesPageConfig } from "@/lib/content-schema";
 import type { CoursesPageConfig } from "@/lib/content-schema";
 import {
@@ -264,7 +266,16 @@ export default async function CoursesPage({
     if (!key) continue;
     courseCountByCategory.set(key, (courseCountByCategory.get(key) ?? 0) + 1);
   }
-  const tutorLedSlugs = new Set((await getPublishedTutorLedPrograms()).map((p) => p.slug));
+  const publishedPrograms = await getPublishedTutorLedPrograms();
+  const tutorLedSlugs = new Set(publishedPrograms.map((p) => p.slug));
+  const featuredOptions = buildFeaturedCourseOptions({
+    courses: allCourses,
+    programs: publishedPrograms,
+    catalogs: mergeTutorLedCatalogPages(adminContent.tutorLedCatalogPages, adminContent.tutorLedCatalogPage),
+  });
+  const heroFeatured = findFeaturedOption(featuredOptions, cpConfig.hero.featured);
+  const heroHref = heroFeatured?.href ?? liveTutorCourseHref();
+  const heroImage = cpConfig.hero.backgroundImage || heroFeatured?.image || "";
   const visibleCourses = showAllCourses ? allCourses : allCourses.slice(0, cpConfig.defaultVisibleCourses);
   const recommendedCourses = [...allCourses]
     .sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0))
@@ -293,13 +304,15 @@ export default async function CoursesPage({
         <section className="grid gap-4 lg:grid-cols-[1.9fr_1fr]">
           <article className="courses-hero-card relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
             <div className="relative min-h-[360px] p-6 md:p-8">
-              <Image
-                src={cpConfig.hero.backgroundImage}
-                alt="Hero background"
-                fill
-                unoptimized
-                className="object-cover opacity-35"
-              />
+              {heroImage ? (
+                <Image
+                  src={heroImage}
+                  alt={heroFeatured?.title || "Hero background"}
+                  fill
+                  unoptimized
+                  className="object-cover opacity-35"
+                />
+              ) : null}
               <div className="courses-hero-overlay absolute inset-0 bg-linear-to-r from-[#091224] via-[#091224]/70 to-transparent" />
               <div className="relative z-10 max-w-md">
                 <p className="courses-hero-badge inline-flex rounded-full border border-amber-300/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-amber-200">
@@ -313,13 +326,13 @@ export default async function CoursesPage({
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Link
-                    href={liveTutorCourseHref()}
+                    href={heroHref}
                     className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-black"
                   >
                     {cpConfig.hero.ctaPrimary}
                   </Link>
                   <Link
-                    href={liveTutorCourseHref()}
+                    href={heroHref}
                     className="courses-secondary-btn rounded-full border border-white/25 bg-black/40 px-5 py-2.5 text-sm font-semibold"
                   >
                     {cpConfig.hero.ctaSecondary}
@@ -335,9 +348,9 @@ export default async function CoursesPage({
               <button className="text-xs font-semibold text-amber-200">View All</button>
             </div>
             <div className="space-y-3">
-              {cpConfig.tutorLed.map((session) => (
+              {cpConfig.tutorLed.map((session, idx) => (
                 <div
-                  key={session.title}
+                  key={`${session.title}-${idx}`}
                   className="courses-inner-card flex items-start justify-between rounded-xl border border-white/10 bg-black/25 p-3"
                 >
                   <div>
@@ -346,7 +359,7 @@ export default async function CoursesPage({
                     <p className="text-xs text-gray-400">{session.time}</p>
                   </div>
                   <Link
-                    href={liveTutorCourseHref()}
+                    href={findFeaturedOption(featuredOptions, session.featured)?.href ?? liveTutorCourseHref()}
                     className="rounded-full border border-blue-300/40 px-3 py-1 text-xs text-blue-200"
                   >
                     Join

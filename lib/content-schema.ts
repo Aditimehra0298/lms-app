@@ -394,6 +394,12 @@ export type CategoryPageEditorConfig = {
   whyLearn: CategoryPageWhyItem[];
 };
 
+/** Course advertised on `/courses`; drives hero CTA links and session Join links. */
+export type CoursesPageFeaturedRef = {
+  kind: "course" | "tutor-led" | "catalog";
+  slug: string;
+};
+
 export type CoursesPageHero = {
   badgeText: string;
   title: string;
@@ -402,12 +408,16 @@ export type CoursesPageHero = {
   ctaPrimary: string;
   ctaSecondary: string;
   backgroundImage: string;
+  /** When set, hero buttons open this course (and empty image falls back to its cover). */
+  featured?: CoursesPageFeaturedRef | null;
 };
 
 export type CoursesPageTutorLed = {
   date: string;
   title: string;
   time: string;
+  /** Join button target; empty = tutor-led catalog. */
+  featured?: CoursesPageFeaturedRef | null;
 };
 
 export type CoursesPageRecentUpdate = {

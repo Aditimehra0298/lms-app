@@ -45,7 +45,49 @@ import type {
   CoursesPageUpcoming,
 } from "@/lib/content-schema";
 import { defaultCoursesPageConfig } from "@/lib/content-schema";
+import {
+  buildFeaturedCourseOptions,
+  featuredRefKey,
+  findFeaturedOption,
+  parseFeaturedRefKey,
+  type FeaturedCourseOption,
+} from "@/lib/courses-page-featured";
+import { mergeTutorLedCatalogPages } from "@/lib/tutor-led-catalog-landings";
 import Link from "next/link";
+
+function FeaturedCourseSelect({
+  options,
+  value,
+  onChange,
+  emptyLabel,
+  className,
+}: {
+  options: FeaturedCourseOption[];
+  value: string;
+  onChange: (key: string) => void;
+  emptyLabel: string;
+  className: string;
+}) {
+  const groups = Array.from(new Set(options.map((o) => o.group)));
+  const known = !value || options.some((o) => featuredRefKey(o) === value);
+  return (
+    <select className={className} value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{emptyLabel}</option>
+      {!known ? <option value={value}>{value} (not published)</option> : null}
+      {groups.map((group) => (
+        <optgroup key={group} label={group}>
+          {options
+            .filter((o) => o.group === group)
+            .map((o) => (
+              <option key={featuredRefKey(o)} value={featuredRefKey(o)}>
+                {o.title}
+              </option>
+            ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
 
 type SectionKey =
   | "hero"
@@ -450,6 +492,7 @@ export default function AdminCoursesPageEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [featuredOptions, setFeaturedOptions] = useState<FeaturedCourseOption[]>([]);
   const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({
     hero: true, tutorLed: false, recentUpdates: false, upcoming: false,
     featured: false, faqs: false, cta: false, display: false,
@@ -462,6 +505,13 @@ export default function AdminCoursesPageEditor() {
         if (res.ok) {
           const data = (await res.json()) as AdminContent;
           if (data.coursesPage) setConfig({ ...defaultCoursesPageConfig, ...data.coursesPage });
+          setFeaturedOptions(
+            buildFeaturedCourseOptions({
+              courses: Array.isArray(data.managedCourses) ? data.managedCourses : [],
+              programs: Array.isArray(data.tutorLedPrograms) ? data.tutorLedPrograms : [],
+              catalogs: mergeTutorLedCatalogPages(data.tutorLedCatalogPages, data.tutorLedCatalogPage),
+            }),
+          );
         }
       } catch { /* use defaults */ } finally { setLoading(false); }
     })();
@@ -485,12 +535,32 @@ export default function AdminCoursesPageEditor() {
   const toggle = (key: SectionKey) => setExpanded((p) => ({ ...p, [key]: !p[key] }));
 
   const updateHero = (patch: Partial<CoursesPageHero>) => setConfig((p) => ({ ...p, hero: { ...p.hero, ...patch } }));
+  const fillHeroFromCourse = (opt: FeaturedCourseOption) =>
+    updateHero({
+      featured: { kind: opt.kind, slug: opt.slug },
+      title: opt.title,
+      highlightWord: "",
+      subtitle: opt.subtitle,
+      backgroundImage: opt.image || config.hero.backgroundImage,
+    });
+  const selectHeroFeatured = (key: string) => {
+    const ref = parseFeaturedRefKey(key);
+    const opt = findFeaturedOption(featuredOptions, ref);
+    if (opt) fillHeroFromCourse(opt);
+    else updateHero({ featured: ref });
+  };
+  const heroFeatured = findFeaturedOption(featuredOptions, config.hero.featured);
   const updateCta = (patch: Partial<CoursesPageCta>) => setConfig((p) => ({ ...p, cta: { ...p.cta, ...patch } }));
 
   const setTutorLed = (idx: number, patch: Partial<CoursesPageTutorLed>) =>
     setConfig((p) => ({ ...p, tutorLed: p.tutorLed.map((s, i) => (i === idx ? { ...s, ...patch } : s)) }));
   const addTutorLed = () =>
     setConfig((p) => ({ ...p, tutorLed: [...p.tutorLed, { date: "JUN 01", title: "New Session", time: "10:00 AM - 11:00 AM" }] }));
+  const selectTutorLedFeatured = (idx: number, key: string) => {
+    const ref = parseFeaturedRefKey(key);
+    const opt = findFeaturedOption(featuredOptions, ref);
+    setTutorLed(idx, opt ? { featured: ref, title: opt.title } : { featured: ref });
+  };
   const removeTutorLed = (idx: number) =>
     setConfig((p) => ({ ...p, tutorLed: p.tutorLed.filter((_, i) => i !== idx) }));
 
@@ -607,6 +677,43 @@ export default function AdminCoursesPageEditor() {
         <SectionHeader sectionKey="hero" />
         {expanded.hero && (
           <div className="mt-4 space-y-4">
+            <div className="rounded-xl border border-[#f59e0b]/25 bg-[#f59e0b]/5 p-3">
+              <label className={labelCls}>Featured course (advertised in this banner)</label>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="min-w-[240px] flex-1">
+                  <FeaturedCourseSelect
+                    options={featuredOptions}
+                    value={featuredRefKey(config.hero.featured)}
+                    onChange={selectHeroFeatured}
+                    emptyLabel="None — buttons open the tutor-led catalog"
+                    className={inputCls}
+                  />
+                </div>
+                {heroFeatured ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => fillHeroFromCourse(heroFeatured)}
+                      className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10"
+                    >
+                      Refill text &amp; image from course
+                    </button>
+                    <Link
+                      href={heroFeatured.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10"
+                    >
+                      Open course page
+                    </Link>
+                  </>
+                ) : null}
+              </div>
+              <p className="mt-2 text-[11px] text-gray-400">
+                Choosing a course fills the title, subtitle and background below (you can still edit them). Both banner buttons link to{" "}
+                <code className="rounded bg-white/5 px-1 text-[#f59e0b]">{heroFeatured?.href ?? "/tutor-led"}</code>.
+              </p>
+            </div>
             <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
               <div className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -656,7 +763,17 @@ export default function AdminCoursesPageEditor() {
             {config.tutorLed.map((session, idx) => (
               <div key={idx} className={`flex items-start gap-3 ${itemCls}`}>
                 <GripVertical size={14} className="mt-2.5 shrink-0 text-gray-600 cursor-grab" />
-                <div className="grid flex-1 gap-2 sm:grid-cols-3">
+                <div className="grid flex-1 gap-2 sm:grid-cols-4">
+                  <div>
+                    <label className={labelCls}>Join opens</label>
+                    <FeaturedCourseSelect
+                      options={featuredOptions}
+                      value={featuredRefKey(session.featured)}
+                      onChange={(key) => selectTutorLedFeatured(idx, key)}
+                      emptyLabel="Tutor-led catalog"
+                      className={inputCls}
+                    />
+                  </div>
                   <div>
                     <label className={labelCls}>Date</label>
                     <input className={inputCls} value={session.date} onChange={(e) => setTutorLed(idx, { date: e.target.value })} />
