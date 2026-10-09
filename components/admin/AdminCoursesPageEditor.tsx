@@ -4,11 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Cropper from "react-easy-crop";
 import type { Area, Point } from "react-easy-crop";
 import {
+  ArrowDown,
+  ArrowUp,
   Check,
   ChevronDown,
   ChevronUp,
   Crop,
   Eye,
+  EyeOff,
   FlipHorizontal2,
   Globe,
   GripVertical,
@@ -45,13 +48,29 @@ import type {
   CoursesPageUpcoming,
 } from "@/lib/content-schema";
 import { defaultCoursesPageConfig } from "@/lib/content-schema";
+import type { CoursesPageHeroPromoType, CoursesPageHeroSlide } from "@/lib/content-schema";
 import {
+  applyCourseToSlide,
   buildFeaturedCourseOptions,
+  createHeroSlide,
+  discountLabelFromPrices,
   featuredRefKey,
   findFeaturedOption,
+  HERO_PROMO_PRESETS,
+  HERO_PROMO_TYPES,
+  heroSlidesFromConfig,
   parseFeaturedRefKey,
   type FeaturedCourseOption,
 } from "@/lib/courses-page-featured";
+
+const PROMO_COLORS: Record<CoursesPageHeroPromoType, string> = {
+  featured: "#f59e0b",
+  free: "#10b981",
+  discount: "#f43f5e",
+  live: "#ef4444",
+  announcement: "#0ea5e9",
+  "new-tutor": "#8b5cf6",
+};
 import { mergeTutorLedCatalogPages } from "@/lib/tutor-led-catalog-landings";
 import Link from "next/link";
 
@@ -493,6 +512,7 @@ export default function AdminCoursesPageEditor() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [featuredOptions, setFeaturedOptions] = useState<FeaturedCourseOption[]>([]);
+  const [activeSlideId, setActiveSlideId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({
     hero: true, tutorLed: false, recentUpdates: false, upcoming: false,
     featured: false, faqs: false, cta: false, display: false,
@@ -513,7 +533,10 @@ export default function AdminCoursesPageEditor() {
             }),
           );
         }
-      } catch { /* use defaults */ } finally { setLoading(false); }
+      } catch { /* use defaults */ } finally {
+        setConfig((p) => ({ ...p, hero: { ...p.hero, slides: heroSlidesFromConfig(p.hero) } }));
+        setLoading(false);
+      }
     })();
   }, []);
 
@@ -535,21 +558,43 @@ export default function AdminCoursesPageEditor() {
   const toggle = (key: SectionKey) => setExpanded((p) => ({ ...p, [key]: !p[key] }));
 
   const updateHero = (patch: Partial<CoursesPageHero>) => setConfig((p) => ({ ...p, hero: { ...p.hero, ...patch } }));
-  const fillHeroFromCourse = (opt: FeaturedCourseOption) =>
-    updateHero({
-      featured: { kind: opt.kind, slug: opt.slug },
-      title: opt.title,
-      highlightWord: "",
-      subtitle: opt.subtitle,
-      backgroundImage: opt.image || config.hero.backgroundImage,
+  const slides = config.hero.slides ?? [];
+  const setSlides = (fn: (list: CoursesPageHeroSlide[]) => CoursesPageHeroSlide[]) =>
+    setConfig((p) => ({ ...p, hero: { ...p.hero, slides: fn(p.hero.slides ?? []) } }));
+  const updateSlide = (id: string, patch: Partial<CoursesPageHeroSlide>) =>
+    setSlides((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const addSlide = (type: CoursesPageHeroPromoType) => {
+    const slide = createHeroSlide(type);
+    setSlides((list) => [...list, slide]);
+    setActiveSlideId(slide.id);
+  };
+  const removeSlide = (id: string) => setSlides((list) => list.filter((s) => s.id !== id));
+  const moveSlide = (id: string, dir: -1 | 1) =>
+    setSlides((list) => {
+      const i = list.findIndex((s) => s.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= list.length) return list;
+      const next = [...list];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
     });
-  const selectHeroFeatured = (key: string) => {
+  const changeSlideType = (slide: CoursesPageHeroSlide, type: CoursesPageHeroPromoType) => {
+    const prev = HERO_PROMO_PRESETS[slide.promoType];
+    const preset = HERO_PROMO_PRESETS[type];
+    updateSlide(slide.id, {
+      promoType: type,
+      badgeText: !slide.badgeText || slide.badgeText === prev.badgeText ? preset.badgeText : slide.badgeText,
+      ctaPrimary: !slide.ctaPrimary || slide.ctaPrimary === prev.ctaPrimary ? preset.ctaPrimary : slide.ctaPrimary,
+      ctaSecondary:
+        !slide.ctaSecondary || slide.ctaSecondary === prev.ctaSecondary ? preset.ctaSecondary : slide.ctaSecondary,
+    });
+  };
+  const selectSlideCourse = (slide: CoursesPageHeroSlide, key: string) => {
     const ref = parseFeaturedRefKey(key);
     const opt = findFeaturedOption(featuredOptions, ref);
-    if (opt) fillHeroFromCourse(opt);
-    else updateHero({ featured: ref });
+    if (opt) setSlides((list) => list.map((s) => (s.id === slide.id ? applyCourseToSlide(s, opt) : s)));
+    else updateSlide(slide.id, { featured: ref });
   };
-  const heroFeatured = findFeaturedOption(featuredOptions, config.hero.featured);
   const updateCta = (patch: Partial<CoursesPageCta>) => setConfig((p) => ({ ...p, cta: { ...p.cta, ...patch } }));
 
   const setTutorLed = (idx: number, patch: Partial<CoursesPageTutorLed>) =>
@@ -677,79 +722,252 @@ export default function AdminCoursesPageEditor() {
         <SectionHeader sectionKey="hero" />
         {expanded.hero && (
           <div className="mt-4 space-y-4">
-            <div className="rounded-xl border border-[#f59e0b]/25 bg-[#f59e0b]/5 p-3">
-              <label className={labelCls}>Featured course (advertised in this banner)</label>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="min-w-[240px] flex-1">
-                  <FeaturedCourseSelect
-                    options={featuredOptions}
-                    value={featuredRefKey(config.hero.featured)}
-                    onChange={selectHeroFeatured}
-                    emptyLabel="None — buttons open the tutor-led catalog"
-                    className={inputCls}
-                  />
-                </div>
-                {heroFeatured ? (
-                  <>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <p className="max-w-xl text-[11px] text-gray-400">
+                The banner rotates through these slides. Pick a slide type, then choose a course. Its title, image, prices,
+                tutor and start date are filled in for you, and you can still edit everything.
+              </p>
+              <div className="w-40">
+                <label className={labelCls}>Rotate every (sec)</label>
+                <input
+                  type="number"
+                  min={3}
+                  max={60}
+                  className={inputCls}
+                  value={config.hero.autoRotateSeconds ?? 6}
+                  onChange={(e) => updateHero({ autoRotateSeconds: Math.max(3, Number(e.target.value) || 6) })}
+                />
+              </div>
+            </div>
+
+            {slides.map((slide, idx) => {
+              const color = PROMO_COLORS[slide.promoType] ?? "#f59e0b";
+              const open = activeSlideId === slide.id || (activeSlideId === null && idx === 0);
+              const course = findFeaturedOption(featuredOptions, slide.featured);
+              const showPrice = slide.promoType === "free" || slide.promoType === "discount" || slide.promoType === "featured";
+              const showEvent = slide.promoType === "live" || slide.promoType === "announcement";
+              const showTutor = slide.promoType === "live" || slide.promoType === "new-tutor";
+              const autoDiscount = discountLabelFromPrices(slide.priceText, slide.oldPriceText);
+              return (
+                <div key={slide.id} className={`${itemCls} ${slide.enabled === false ? "opacity-60" : ""}`}>
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => fillHeroFromCourse(heroFeatured)}
-                      className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10"
+                      onClick={() => setActiveSlideId(open ? "" : slide.id)}
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
                     >
-                      Refill text &amp; image from course
+                      <span
+                        className="shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                        style={{ backgroundColor: `${color}22`, color }}
+                      >
+                        {idx + 1}. {HERO_PROMO_PRESETS[slide.promoType]?.label ?? slide.promoType}
+                      </span>
+                      <span className="truncate text-sm font-semibold">{slide.title || "Untitled slide"}</span>
+                      {open ? <ChevronUp size={14} className="shrink-0" /> : <ChevronDown size={14} className="shrink-0" />}
                     </button>
-                    <Link
-                      href={heroFeatured.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10"
+                    <button
+                      type="button"
+                      title={slide.enabled === false ? "Hidden — click to show" : "Visible — click to hide"}
+                      onClick={() => updateSlide(slide.id, { enabled: slide.enabled === false })}
+                      className="rounded-lg border border-white/10 bg-white/5 p-2 text-gray-300 hover:bg-white/10"
                     >
-                      Open course page
-                    </Link>
-                  </>
-                ) : null}
+                      {slide.enabled === false ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                    <button
+                      type="button"
+                      title="Move up"
+                      disabled={idx === 0}
+                      onClick={() => moveSlide(slide.id, -1)}
+                      className="rounded-lg border border-white/10 bg-white/5 p-2 text-gray-300 hover:bg-white/10 disabled:opacity-30"
+                    >
+                      <ArrowUp size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Move down"
+                      disabled={idx === slides.length - 1}
+                      onClick={() => moveSlide(slide.id, 1)}
+                      className="rounded-lg border border-white/10 bg-white/5 p-2 text-gray-300 hover:bg-white/10 disabled:opacity-30"
+                    >
+                      <ArrowDown size={13} />
+                    </button>
+                    <button type="button" onClick={() => removeSlide(slide.id)} className={btnDanger}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+
+                  {open ? (
+                    <div className="mt-3 grid gap-4 lg:grid-cols-[1fr_280px]">
+                      <div className="space-y-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <label className={labelCls}>Slide type</label>
+                            <select
+                              className={inputCls}
+                              value={slide.promoType}
+                              onChange={(e) => changeSlideType(slide, e.target.value as CoursesPageHeroPromoType)}
+                            >
+                              {HERO_PROMO_TYPES.map((t) => (
+                                <option key={t} value={t}>
+                                  {HERO_PROMO_PRESETS[t].label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className={labelCls}>Course advertised</label>
+                            <FeaturedCourseSelect
+                              options={featuredOptions}
+                              value={featuredRefKey(slide.featured)}
+                              onChange={(key) => selectSlideCourse(slide, key)}
+                              emptyLabel="None — buttons open tutor-led catalog"
+                              className={inputCls}
+                            />
+                          </div>
+                        </div>
+                        {course ? (
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
+                            Buttons open <code className="rounded bg-white/5 px-1 text-[#f59e0b]">{course.href}</code>
+                            <button
+                              type="button"
+                              onClick={() => setSlides((list) => list.map((s) => (s.id === slide.id ? applyCourseToSlide(s, course) : s)))}
+                              className="rounded-md border border-white/15 bg-white/5 px-2 py-1 font-medium text-gray-200 hover:bg-white/10"
+                            >
+                              Refill from course
+                            </button>
+                            <Link
+                              href={course.href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-md border border-white/15 bg-white/5 px-2 py-1 font-medium text-gray-200 hover:bg-white/10"
+                            >
+                              Open course
+                            </Link>
+                          </div>
+                        ) : null}
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <label className={labelCls}>Badge text</label>
+                            <input className={inputCls} value={slide.badgeText} onChange={(e) => updateSlide(slide.id, { badgeText: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Coloured word (part of title)</label>
+                            <input className={inputCls} value={slide.highlightWord} onChange={(e) => updateSlide(slide.id, { highlightWord: e.target.value })} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className={labelCls}>Title</label>
+                          <input className={inputCls} value={slide.title} onChange={(e) => updateSlide(slide.id, { title: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Subtitle</label>
+                          <textarea className={inputCls} rows={2} value={slide.subtitle} onChange={(e) => updateSlide(slide.id, { subtitle: e.target.value })} />
+                        </div>
+
+                        {showPrice ? (
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            <div>
+                              <label className={labelCls}>{slide.promoType === "free" ? "Price (shown as FREE)" : "Offer price"}</label>
+                              <input
+                                className={inputCls}
+                                value={slide.priceText ?? ""}
+                                disabled={slide.promoType === "free"}
+                                placeholder="$29.00"
+                                onChange={(e) => updateSlide(slide.id, { priceText: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <label className={labelCls}>Original price (struck out)</label>
+                              <input className={inputCls} value={slide.oldPriceText ?? ""} placeholder="$79.00" onChange={(e) => updateSlide(slide.id, { oldPriceText: e.target.value })} />
+                            </div>
+                            {slide.promoType === "discount" ? (
+                              <div>
+                                <label className={labelCls}>Discount tag</label>
+                                <input
+                                  className={inputCls}
+                                  value={slide.discountLabel ?? ""}
+                                  placeholder={autoDiscount || "40% OFF"}
+                                  onChange={(e) => updateSlide(slide.id, { discountLabel: e.target.value })}
+                                />
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        {showEvent ? (
+                          <div className="sm:w-1/2">
+                            <label className={labelCls}>{slide.promoType === "live" ? "Live session starts" : "Course start date"}</label>
+                            <input
+                              type="datetime-local"
+                              className={inputCls}
+                              value={slide.eventAt ?? ""}
+                              onChange={(e) => updateSlide(slide.id, { eventAt: e.target.value })}
+                            />
+                            <p className="mt-1 text-[10px] text-gray-500">
+                              Shows a countdown before the start, then {slide.promoType === "live" ? "“LIVE NOW” for 3 hours" : "“Started …”"}.
+                            </p>
+                          </div>
+                        ) : null}
+
+                        {showTutor ? (
+                          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_160px]">
+                            <div>
+                              <label className={labelCls}>Tutor name</label>
+                              <input className={inputCls} value={slide.tutorName ?? ""} onChange={(e) => updateSlide(slide.id, { tutorName: e.target.value })} />
+                            </div>
+                            <div>
+                              <label className={labelCls}>Tutor role</label>
+                              <input className={inputCls} value={slide.tutorRole ?? ""} placeholder="Lead Auditor, 12 yrs" onChange={(e) => updateSlide(slide.id, { tutorRole: e.target.value })} />
+                            </div>
+                            <ImageUploader
+                              key={`${slide.id}-tutor`}
+                              compact
+                              aspect={1}
+                              label="Tutor photo"
+                              value={slide.tutorPhoto ?? ""}
+                              onChange={(v) => updateSlide(slide.id, { tutorPhoto: v })}
+                            />
+                          </div>
+                        ) : null}
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <label className={labelCls}>Primary button</label>
+                            <input className={inputCls} value={slide.ctaPrimary} onChange={(e) => updateSlide(slide.id, { ctaPrimary: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Secondary button</label>
+                            <input className={inputCls} value={slide.ctaSecondary} onChange={(e) => updateSlide(slide.id, { ctaSecondary: e.target.value })} />
+                          </div>
+                        </div>
+                      </div>
+                      <ImageUploader
+                        key={`${slide.id}-bg`}
+                        label="Slide background"
+                        value={slide.backgroundImage}
+                        onChange={(v) => updateSlide(slide.id, { backgroundImage: v })}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+
+            <div>
+              <p className={labelCls}>Add slide</p>
+              <div className="flex flex-wrap gap-2">
+                {HERO_PROMO_TYPES.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => addSlide(t)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-dashed px-3 py-2 text-xs font-medium transition hover:bg-white/5"
+                    style={{ borderColor: `${PROMO_COLORS[t]}66`, color: PROMO_COLORS[t] }}
+                  >
+                    <Plus size={13} /> {HERO_PROMO_PRESETS[t].label}
+                  </button>
+                ))}
               </div>
-              <p className="mt-2 text-[11px] text-gray-400">
-                Choosing a course fills the title, subtitle and background below (you can still edit them). Both banner buttons link to{" "}
-                <code className="rounded bg-white/5 px-1 text-[#f59e0b]">{heroFeatured?.href ?? "/tutor-led"}</code>.
-              </p>
-            </div>
-            <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-              <div className="space-y-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className={labelCls}>Badge Text</label>
-                    <input className={inputCls} value={config.hero.badgeText} onChange={(e) => updateHero({ badgeText: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Highlight Word</label>
-                    <input className={inputCls} value={config.hero.highlightWord} onChange={(e) => updateHero({ highlightWord: e.target.value })} />
-                  </div>
-                </div>
-                <div>
-                  <label className={labelCls}>Title (use &#123;highlight&#125; for colored word)</label>
-                  <input className={inputCls} value={config.hero.title} onChange={(e) => updateHero({ title: e.target.value })} />
-                </div>
-                <div>
-                  <label className={labelCls}>Subtitle</label>
-                  <textarea className={inputCls} rows={2} value={config.hero.subtitle} onChange={(e) => updateHero({ subtitle: e.target.value })} />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className={labelCls}>Primary CTA</label>
-                    <input className={inputCls} value={config.hero.ctaPrimary} onChange={(e) => updateHero({ ctaPrimary: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Secondary CTA</label>
-                    <input className={inputCls} value={config.hero.ctaSecondary} onChange={(e) => updateHero({ ctaSecondary: e.target.value })} />
-                  </div>
-                </div>
-              </div>
-              <ImageUploader
-                label="Hero Background"
-                value={config.hero.backgroundImage}
-                onChange={(v) => updateHero({ backgroundImage: v })}
-              />
             </div>
           </div>
         )}

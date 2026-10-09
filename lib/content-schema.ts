@@ -400,6 +400,39 @@ export type CoursesPageFeaturedRef = {
   slug: string;
 };
 
+export type CoursesPageHeroPromoType =
+  | "featured"
+  | "free"
+  | "discount"
+  | "live"
+  | "announcement"
+  | "new-tutor";
+
+/** One rotating slide in the `/courses` hero banner. */
+export type CoursesPageHeroSlide = {
+  id: string;
+  enabled: boolean;
+  promoType: CoursesPageHeroPromoType;
+  badgeText: string;
+  title: string;
+  /** Coloured part of the title; must appear inside `title` to be highlighted. */
+  highlightWord: string;
+  subtitle: string;
+  ctaPrimary: string;
+  ctaSecondary: string;
+  backgroundImage: string;
+  featured?: CoursesPageFeaturedRef | null;
+  priceText?: string;
+  oldPriceText?: string;
+  /** e.g. "40% OFF"; empty = calculated from prices. */
+  discountLabel?: string;
+  /** ISO date-time for live / start countdown. */
+  eventAt?: string;
+  tutorName?: string;
+  tutorRole?: string;
+  tutorPhoto?: string;
+};
+
 export type CoursesPageHero = {
   badgeText: string;
   title: string;
@@ -410,6 +443,10 @@ export type CoursesPageHero = {
   backgroundImage: string;
   /** When set, hero buttons open this course (and empty image falls back to its cover). */
   featured?: CoursesPageFeaturedRef | null;
+  /** Rotating promo slides; empty = single slide from the fields above. */
+  slides?: CoursesPageHeroSlide[];
+  /** Seconds between slides. */
+  autoRotateSeconds?: number;
 };
 
 export type CoursesPageTutorLed = {

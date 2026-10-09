@@ -13,7 +13,8 @@ import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import { mergeTutorLedCatalogPages } from "@/lib/tutor-led-catalog-landings";
-import { buildFeaturedCourseOptions, findFeaturedOption } from "@/lib/courses-page-featured";
+import { buildFeaturedCourseOptions, findFeaturedOption, resolveHeroSlides } from "@/lib/courses-page-featured";
+import CoursesHeroBanner from "@/components/CoursesHeroBanner";
 import { defaultCoursesPageConfig } from "@/lib/content-schema";
 import type { CoursesPageConfig } from "@/lib/content-schema";
 import {
@@ -273,9 +274,7 @@ export default async function CoursesPage({
     programs: publishedPrograms,
     catalogs: mergeTutorLedCatalogPages(adminContent.tutorLedCatalogPages, adminContent.tutorLedCatalogPage),
   });
-  const heroFeatured = findFeaturedOption(featuredOptions, cpConfig.hero.featured);
-  const heroHref = heroFeatured?.href ?? liveTutorCourseHref();
-  const heroImage = cpConfig.hero.backgroundImage || heroFeatured?.image || "";
+  const heroSlides = resolveHeroSlides(cpConfig.hero, featuredOptions, liveTutorCourseHref());
   const visibleCourses = showAllCourses ? allCourses : allCourses.slice(0, cpConfig.defaultVisibleCourses);
   const recommendedCourses = [...allCourses]
     .sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0))
@@ -284,8 +283,6 @@ export default async function CoursesPage({
     ? recommendedCourses
     : recommendedCourses.slice(0, 3);
   const featuredExperts = cpConfig.featuredExperts;
-
-  const heroTitleParts = cpConfig.hero.title.split("{highlight}");
   const iconColorMap: Record<string, { tone: string; bg: string; border: string }> = {
     rose: { tone: "text-rose-300", bg: "bg-rose-500/20", border: "border-rose-300/45" },
     sky: { tone: "text-sky-300", bg: "bg-sky-500/20", border: "border-sky-300/45" },
@@ -302,45 +299,7 @@ export default async function CoursesPage({
     <div className="courses-page min-h-screen bg-[#0a0a0a] text-white">
       <main className="mx-auto max-w-[1760px] px-4 py-6 md:px-6 xl:px-8">
         <section className="grid gap-4 lg:grid-cols-[1.9fr_1fr]">
-          <article className="courses-hero-card relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-            <div className="relative min-h-[360px] p-6 md:p-8">
-              {heroImage ? (
-                <Image
-                  src={heroImage}
-                  alt={heroFeatured?.title || "Hero background"}
-                  fill
-                  unoptimized
-                  className="object-cover opacity-35"
-                />
-              ) : null}
-              <div className="courses-hero-overlay absolute inset-0 bg-linear-to-r from-[#091224] via-[#091224]/70 to-transparent" />
-              <div className="relative z-10 max-w-md">
-                <p className="courses-hero-badge inline-flex rounded-full border border-amber-300/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-amber-200">
-                  {cpConfig.hero.badgeText}
-                </p>
-                <h1 className="mt-4 text-4xl font-bold leading-tight md:text-5xl">
-                  {heroTitleParts[0]}<span className="text-amber-300">{cpConfig.hero.highlightWord}</span>{heroTitleParts[1] || ""}
-                </h1>
-                <p className="mt-4 text-sm text-gray-200">
-                  {cpConfig.hero.subtitle}
-                </p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Link
-                    href={heroHref}
-                    className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-black"
-                  >
-                    {cpConfig.hero.ctaPrimary}
-                  </Link>
-                  <Link
-                    href={heroHref}
-                    className="courses-secondary-btn rounded-full border border-white/25 bg-black/40 px-5 py-2.5 text-sm font-semibold"
-                  >
-                    {cpConfig.hero.ctaSecondary}
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </article>
+          <CoursesHeroBanner slides={heroSlides} autoRotateSeconds={cpConfig.hero.autoRotateSeconds ?? 6} />
 
           <article className="courses-surface rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <div className="mb-4 flex items-center justify-between">
