@@ -13,6 +13,11 @@ type Props = {
   countryCode: string;
   onCountryChange: (code: string) => void;
   onPhoneChange?: (fullPhone: string) => void;
+  /** Prefill / controlled national digits (no country dial). */
+  nationalNumber?: string;
+  onNationalNumberChange?: (national: string) => void;
+  disabled?: boolean;
+  hideLabel?: boolean;
   className?: string;
 };
 
@@ -20,10 +25,19 @@ export default function PhoneWithCountryCode({
   countryCode,
   onCountryChange,
   onPhoneChange,
+  nationalNumber: controlledNational,
+  onNationalNumberChange,
+  disabled = false,
+  hideLabel = false,
   className = "",
 }: Props) {
   const options = useMemo(() => listPhoneCountryOptions(), []);
-  const [nationalNumber, setNationalNumber] = useState("");
+  const [internalNational, setInternalNational] = useState("");
+  const nationalNumber = controlledNational ?? internalNational;
+  const setNationalNumber = (value: string) => {
+    if (controlledNational === undefined) setInternalNational(value);
+    onNationalNumberChange?.(value);
+  };
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 144 });
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -57,7 +71,8 @@ export default function PhoneWithCountryCode({
     const close = (e: MouseEvent) => {
       const target = e.target as Node;
       if (pickerRef.current?.contains(target)) return;
-      if ((target as Element).closest?.("[data-country-menu]")) return;
+      const el = target instanceof Element ? target : target.parentElement;
+      if (el?.closest?.("[data-country-menu]")) return;
       setOpen(false);
     };
     const reposition = () => {
@@ -75,14 +90,23 @@ export default function PhoneWithCountryCode({
     };
   }, [open]);
 
+  // Must sit above account auth modal (z-index 100000) and other overlays.
+  const MENU_Z = 200000;
+
   const countryMenu =
     open && typeof document !== "undefined"
       ? createPortal(
           <ul
             data-country-menu
             role="listbox"
-            style={{ position: "fixed", top: menuPos.top, left: menuPos.left, width: menuPos.width }}
-            className="z-[9999] max-h-52 overflow-y-auto rounded-lg border border-white/20 bg-zinc-900 py-1 shadow-2xl"
+            style={{
+              position: "fixed",
+              top: menuPos.top,
+              left: menuPos.left,
+              width: Math.max(menuPos.width, 168),
+              zIndex: MENU_Z,
+            }}
+            className="max-h-52 overflow-y-auto rounded-lg border border-white/20 bg-zinc-900 py-1 shadow-2xl"
           >
             {options.map((o) => {
               const active = o.code === countryCode;
@@ -90,7 +114,10 @@ export default function PhoneWithCountryCode({
                 <li key={o.code} role="option" aria-selected={active}>
                   <button
                     type="button"
-                    onClick={() => {
+                    onMouseDown={(e) => {
+                      // Prefer mousedown so selection wins before document close handlers.
+                      e.preventDefault();
+                      e.stopPropagation();
                       onCountryChange(o.code);
                       setOpen(false);
                     }}
@@ -113,16 +140,25 @@ export default function PhoneWithCountryCode({
   return (
     <div className={className}>
       <label className="block">
-        <span className="mb-1 block text-xs text-gray-400">Mobile number</span>
-        <div className="flex rounded-xl border border-white/15 bg-black/40 focus-within:border-amber-400/50">
+        {!hideLabel ? (
+          <span className="mb-1 block text-xs text-gray-400">Mobile number</span>
+        ) : null}
+        <div
+          className={`flex rounded-xl border border-white/15 bg-black/40 focus-within:border-amber-400/50 ${
+            disabled ? "opacity-60" : ""
+          }`}
+        >
           <div ref={pickerRef} className="relative shrink-0 border-r border-white/15">
             <button
               type="button"
               aria-expanded={open}
               aria-haspopup="listbox"
               aria-label="Country code"
-              onClick={() => setOpen((v) => !v)}
-              className="flex h-full min-w-[5.25rem] items-center gap-1.5 bg-zinc-900 py-3 pl-2.5 pr-2 text-sm font-medium text-amber-100 hover:bg-zinc-800"
+              disabled={disabled}
+              onClick={() => {
+                if (!disabled) setOpen((v) => !v);
+              }}
+              className="flex h-full min-w-[5.25rem] items-center gap-1.5 bg-zinc-900 py-3 pl-2.5 pr-2 text-sm font-medium text-amber-100 hover:bg-zinc-800 disabled:cursor-not-allowed"
             >
               <CountryFlagImg code={countryCode} />
               <span className="tracking-wide">{countryCode || "—"}</span>
@@ -144,8 +180,9 @@ export default function PhoneWithCountryCode({
                 : "Phone number"
             }
             value={nationalNumber}
+            disabled={disabled}
             onChange={(e) => setNationalNumber(e.target.value.replace(/[^\d\s-]/g, ""))}
-            className="min-w-0 flex-1 rounded-r-xl border-0 bg-transparent px-4 py-3 placeholder:text-gray-500 focus:outline-none"
+            className="min-w-0 flex-1 rounded-r-xl border-0 bg-transparent px-4 py-3 placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed"
           />
         </div>
       </label>

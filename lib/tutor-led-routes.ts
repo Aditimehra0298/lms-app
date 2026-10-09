@@ -9,7 +9,7 @@ import { hasPublishedWorkshopProgram, workshopLandingHref } from "@/lib/workshop
  */
 export const DEFAULT_TUTOR_LED_SLUG = "advanced-cyber-security-professional";
 
-/** Public catalog landing — Admin → Tutor-Led Landing + live programs from Tutor Led. */
+/** Public catalog landing — Admin → Course Management → Tutor Led (course editor) + live programs from Tutor Led. */
 export const TUTOR_LED_CATALOG_HREF = "/tutor-led";
 
 /** Designed ISO 22000 food tutor-led catalog (opens from Food category thumbnails). */

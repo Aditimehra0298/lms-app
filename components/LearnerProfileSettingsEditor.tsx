@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Building2, Save, Sparkles, UserRound } from "lucide-react";
+import PhoneWithCountryCode from "@/components/PhoneWithCountryCode";
 import type { LearnerAuthProfile } from "@/lib/auth-profile";
 import { cacheLearnerProfile, learnerProfileFromDb } from "@/lib/auth-profile";
 import { getLearnerEmail } from "@/lib/learner-session-client";
@@ -24,6 +25,7 @@ import {
 } from "@/lib/learner-profile-form";
 import { profileSummaryLine } from "@/lib/learner-profile-recommendation-signals";
 import type { LmsUserProfilePayload } from "@/lib/lms-user-types";
+import { parseStoredPhone } from "@/lib/phone-dial-codes";
 import { readJsonResponse } from "@/lib/safe-json";
 
 type Props = {
@@ -39,6 +41,8 @@ export function LearnerProfileSettingsEditor({ initialProfile, compact = false, 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phoneCountryCode, setPhoneCountryCode] = useState("IN");
+  const [phoneNational, setPhoneNational] = useState("");
 
   const accountType = initialProfile?.accountType ?? "individual";
   const isIndividual = accountType === "individual";
@@ -47,7 +51,15 @@ export function LearnerProfileSettingsEditor({ initialProfile, compact = false, 
 
   useEffect(() => {
     if (initialProfile) {
-      setForm(profileFormFromPayload(initialProfile));
+      const next = profileFormFromPayload(initialProfile);
+      setForm(next);
+      const parsed = parseStoredPhone(next.phone);
+      if (parsed) {
+        setPhoneCountryCode(parsed.countryCode);
+        setPhoneNational(parsed.nationalNumber);
+      } else {
+        setPhoneNational(next.phone.replace(/\D/g, ""));
+      }
     }
     const prefs = readLearningPreferences();
     setInterests(prefs.interests);
@@ -169,16 +181,17 @@ export function LearnerProfileSettingsEditor({ initialProfile, compact = false, 
               className={profileFieldClass}
             />
           </label>
-          <label className="block">
+          <div>
             <span className={profileLabelClass}>Mobile number</span>
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={(e) => patch("phone", e.target.value)}
-              placeholder="+27 …"
-              className={profileFieldClass}
+            <PhoneWithCountryCode
+              countryCode={phoneCountryCode}
+              onCountryChange={setPhoneCountryCode}
+              nationalNumber={phoneNational}
+              onNationalNumberChange={setPhoneNational}
+              onPhoneChange={(full) => patch("phone", full)}
+              hideLabel
             />
-          </label>
+          </div>
           {isOrganisation ? (
             <label className="block">
               <span className={profileLabelClass}>Personal email</span>

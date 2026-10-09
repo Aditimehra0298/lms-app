@@ -453,6 +453,19 @@ export default function AdminTutorLedCatalogLandingEditor({
     setLevelIndex(0);
   };
 
+  const goToStep = (next: CourseStep) => {
+    setStep(next);
+    if (next === "students" || next === "zoom") setPreviewOpen(false);
+    if (next === "batches") {
+      setOpen("batches");
+      setPreviewOpen(true);
+    }
+    if (next === "batch-landing" || next === "landing") setPreviewOpen(true);
+  };
+  const stepIndex = COURSE_STEPS.findIndex((s) => s.id === step);
+  const prevStep = stepIndex > 0 ? COURSE_STEPS[stepIndex - 1] : null;
+  const nextStep = stepIndex >= 0 && stepIndex < COURSE_STEPS.length - 1 ? COURSE_STEPS[stepIndex + 1] : null;
+
   return (
     <div className="space-y-4">
       <section className="overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-b from-[#101a32] via-[#0d1528] to-[#0a0f1c] shadow-[0_20px_60px_rgba(0,0,0,0.5)] ring-1 ring-violet-500/10">
@@ -527,16 +540,7 @@ export default function AdminTutorLedCatalogLandingEditor({
           <button
             key={tab.id}
             type="button"
-            onClick={() => {
-              const next = tab.id;
-              setStep(next);
-              if (next === "students" || next === "zoom") setPreviewOpen(false);
-              if (next === "batches") {
-                setOpen("batches");
-                setPreviewOpen(true);
-              }
-              if (next === "batch-landing" || next === "landing") setPreviewOpen(true);
-            }}
+            onClick={() => goToStep(tab.id)}
             className={`shrink-0 rounded-lg px-3 py-2.5 text-[11px] font-semibold transition sm:px-4 ${
               step === tab.id
                 ? "bg-violet-600 text-white shadow-[0_4px_20px_rgba(111,85,255,0.35)]"
@@ -993,6 +997,28 @@ export default function AdminTutorLedCatalogLandingEditor({
               )}
             </div>
           ) : null}
+          <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-3">
+            {prevStep ? (
+              <button
+                type="button"
+                onClick={() => goToStep(prevStep.id)}
+                className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-white/5"
+              >
+                ← {prevStep.label}
+              </button>
+            ) : (
+              <span />
+            )}
+            {nextStep ? (
+              <button
+                type="button"
+                onClick={() => goToStep(nextStep.id)}
+                className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500"
+              >
+                Next: {nextStep.label} →
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {previewOpen ? (

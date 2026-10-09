@@ -69,7 +69,14 @@ npm install
 
 echo "==> Prisma generate + db push (users blockedAt, admin active session table)"
 npx prisma generate
-npx prisma db push
+# db push refuses (without changing anything) when it would drop data; additive columns are ensured below.
+npx prisma db push || echo "WARNING: prisma db push skipped (data-loss warning). Continuing with additive column script."
+
+echo "==> Ensure lms_purchase batch columns + lms_email_otp.attemptCount (admin Students list)"
+ENV_FILE=".env.local"
+[[ -f "$ENV_FILE" ]] || ENV_FILE=".env"
+node --env-file="$ENV_FILE" scripts/ensure-purchase-batch-columns.mjs \
+  || echo "WARNING: ensure-purchase-batch-columns failed — run it manually and check DATABASE_URL"
 
 echo "==> Ensure data dir for session fallback file"
 mkdir -p data

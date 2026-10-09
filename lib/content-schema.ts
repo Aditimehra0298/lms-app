@@ -1485,7 +1485,7 @@ export type AdminContent = {
   coursesPage?: CoursesPageConfig;
   homePage?: HomePageConfig;
   aboutPage?: AboutPageConfig;
-  /** Public `/tutor-led` ISO catalog landing — Admin → Tutor-Led Landing. */
+  /** Public `/tutor-led` ISO catalog landing — Admin → Course Management → Tutor Led (course editor). */
   tutorLedCatalogPage?: TutorLedCatalogPageConfig;
   /** Designed tutor-led catalog landings (one thumbnail each on the category page). */
   tutorLedCatalogPages?: TutorLedCatalogLandingStored[];

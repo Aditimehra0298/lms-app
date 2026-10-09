@@ -1109,7 +1109,7 @@ export default function AccountPage() {
                 <>
                   <RegisterSection
                     title="Account details"
-                    description="Your login email must be verified with OTP before you can register."
+                    description="Your login email must be verified with OTP before you can register. You can change the mobile country code anytime."
                   />
                   <label className="block">
                     <span className={profileLabelClass}>Full name</span>
@@ -1121,6 +1121,7 @@ export default function AccountPage() {
                       countryCode={registerCountryCode}
                       onCountryChange={setRegisterCountryCode}
                       onPhoneChange={setRegisterPhone}
+                      hideLabel
                     />
                   </div>
                   <div className="col-span-full">
@@ -1179,7 +1180,7 @@ export default function AccountPage() {
                 <>
                   <RegisterSection
                     title="Account details"
-                    description="Organisation accounts manage team training. Work email must be verified with OTP."
+                    description="Organisation accounts manage team training. Work email must be verified with OTP. You can change the mobile country code anytime."
                   />
                   <label className="block">
                     <span className={profileLabelClass}>Contact name</span>
@@ -1191,6 +1192,7 @@ export default function AccountPage() {
                       countryCode={registerCountryCode}
                       onCountryChange={setRegisterCountryCode}
                       onPhoneChange={setRegisterPhone}
+                      hideLabel
                     />
                   </div>
                   <label className="block col-span-full">

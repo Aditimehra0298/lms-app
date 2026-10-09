@@ -52,3 +52,30 @@ export function formatStoredPhone(countryCode: string, nationalNumber: string): 
   if (!digits) return "";
   return `${formatDialPrefix(countryCode)} ${digits}`;
 }
+
+/** Normalize for OTP matching / uniqueness: +digits only. */
+export function normalizePhoneKey(phone: string): string {
+  const trimmed = phone.trim();
+  if (!trimmed) return "";
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return "";
+  return hasPlus || trimmed.includes("+") ? `+${digits}` : `+${digits}`;
+}
+
+/** Split stored `+91 987…` into country ISO + national digits when possible. */
+export function parseStoredPhone(stored: string): {
+  countryCode: string;
+  nationalNumber: string;
+} | null {
+  const key = normalizePhoneKey(stored);
+  if (!key.startsWith("+")) return null;
+  const digits = key.slice(1);
+  const options = listPhoneCountryOptions().sort((a, b) => b.dial.length - a.dial.length);
+  for (const o of options) {
+    if (digits.startsWith(o.dial) && digits.length > o.dial.length) {
+      return { countryCode: o.code, nationalNumber: digits.slice(o.dial.length) };
+    }
+  }
+  return null;
+}

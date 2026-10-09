@@ -54,6 +54,7 @@ export default function AdminCourseStudentsPanel({
   const [batchFilter, setBatchFilter] = useState("all");
   const [syncBusy, setSyncBusy] = useState(false);
   const [cleanupBusy, setCleanupBusy] = useState(false);
+  const [manualEmail, setManualEmail] = useState("");
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   const loadStudents = useMemo(
@@ -339,10 +340,10 @@ export default function AdminCourseStudentsPanel({
         </label>
         <button
           type="submit"
-          disabled={!manualEmail.trim() || rowBusyKey === "manual-enroll"}
+          disabled={!manualEmail.trim() || rowBusyKey === `${manualEmail.trim()}:bypass-access`}
           className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-50"
         >
-          {rowBusyKey === "manual-enroll" ? "Adding…" : "Add to roster"}
+          {rowBusyKey === `${manualEmail.trim()}:bypass-access` ? "Adding…" : "Add to roster"}
         </button>
       </form>
       <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3">

@@ -12,6 +12,8 @@ type Props = {
   verified: boolean;
   onVerifiedChange: (verified: boolean) => void;
   onStatusMessage?: (message: string, type: "error" | "success" | "info") => void;
+  /** stack = vertical (use beside phone OTP column). grid = two columns (default). */
+  layout?: "grid" | "stack";
   className?: string;
 };
 
@@ -25,6 +27,7 @@ export default function EmailOtpField({
   verified,
   onVerifiedChange,
   onStatusMessage,
+  layout = "grid",
   className = "",
 }: Props) {
   const [otpCode, setOtpCode] = useState("");
@@ -154,9 +157,16 @@ export default function EmailOtpField({
         ? "text-emerald-300"
         : "text-amber-100";
 
+  const rowClass = layout === "stack" ? "grid gap-3" : "grid gap-3 md:grid-cols-2";
+
   return (
-    <div className={`md:col-span-2 space-y-3 ${className}`}>
-      <div className="grid gap-3 md:grid-cols-2">
+    <div className={`${layout === "grid" ? "md:col-span-2 " : ""}space-y-3 ${className}`}>
+      {layout === "stack" ? (
+        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-amber-200/90">
+          Email address
+        </span>
+      ) : null}
+      <div className={rowClass}>
         {verified && <input type="hidden" name={emailInputName} value={email} />}
         <input
           name={verified ? undefined : emailInputName}
@@ -179,7 +189,7 @@ export default function EmailOtpField({
         </button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className={rowClass}>
         <input
           name="email_otp"
           type="text"
