@@ -39,6 +39,7 @@ import {
   Shield,
   BarChart3,
   FileBarChart,
+  FolderDown,
 } from "lucide-react";
 import AdminCoursesWorkspace from "@/components/admin/AdminCoursesWorkspace";
 import AdminCertificatesWorkspace from "@/components/admin/AdminCertificatesWorkspace";
@@ -49,6 +50,7 @@ import AdminTutorLedHub from "@/components/admin/AdminTutorLedHub";
 import AdminWorkshopsWorkspace from "@/components/admin/AdminWorkshopsWorkspace";
 import AdminLessonsWorkspace from "@/components/admin/AdminLessonsWorkspace";
 import AdminBatchesWorkspace from "@/components/admin/AdminBatchesWorkspace";
+import AdminVideoLibrary from "@/components/admin/AdminVideoLibrary";
 import AdminUsersWorkspace from "@/components/admin/AdminUsersWorkspace";
 import AdminPaymentsWorkspace from "@/components/admin/AdminPaymentsWorkspace";
 import AdminOrdersWorkspace from "@/components/admin/AdminOrdersWorkspace";
@@ -107,6 +109,7 @@ const menuSections = [
       "Self-paced courses",
       "Course Q&A",
       "Lessons",
+      "Video Library",
       "Tutor Led",
       "Workshops",
       "Batches",
@@ -141,6 +144,7 @@ const menuIcons: Record<string, typeof Home> = {
   "Self-paced courses": BookOpen,
   "Course Q&A": MessageSquare,
   Lessons: Video,
+  "Video Library": FolderDown,
   "Tutor Led": Video,
   Workshops: Calendar,
   Batches: Users,
@@ -168,6 +172,7 @@ type AdminAccessState = {
 const MENU_PANEL_QUERY: Record<string, string> = {
   "Self-paced courses": "self-paced",
   Lessons: "lessons",
+  "Video Library": "video-library",
   "Course Q&A": "course-qa",
   Batches: "batches",
   "Tutor Led": "tutor-led",
@@ -482,6 +487,7 @@ function AdminPageInner() {
   const showHomePageEditor = activeMenu === "Home Page";
   const showAboutPageEditor = activeMenu === "About Page";
   const showTutorLedHub = activeMenu === "Tutor Led";
+  const showVideoLibrary = activeMenu === "Video Library";
   const showWorkshopsWorkspace = activeMenu === "Workshops";
   const showSupportTickets = activeMenu === "Support Tickets";
   const showFormSubmissions = activeMenu === "Website Form Data";
@@ -509,6 +515,7 @@ function AdminPageInner() {
     showHomePageEditor ||
     showAboutPageEditor ||
     showTutorLedHub ||
+    showVideoLibrary ||
     showWorkshopsWorkspace ||
     showSupportTickets ||
     showFormSubmissions ||
@@ -784,6 +791,8 @@ function AdminPageInner() {
           {showCourseQAModeration && <AdminCourseQAModeration />}
 
           {showBatchesWorkspace && <AdminBatchesWorkspace />}
+
+          {showVideoLibrary && <AdminVideoLibrary />}
 
           {showTutorLedHub && <AdminTutorLedHub />}
 
