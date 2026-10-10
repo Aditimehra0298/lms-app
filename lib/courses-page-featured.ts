@@ -1,4 +1,5 @@
 import type {
+  CoursesPageAnnouncementKind,
   CoursesPageFeaturedRef,
   CoursesPageHero,
   CoursesPageHeroPromoType,
@@ -152,6 +153,18 @@ export function findFeaturedOption(
   if (!key) return undefined;
   return options.find((o) => featuredRefKey(o) === key);
 }
+
+export const ANNOUNCEMENT_KIND_META: Record<
+  CoursesPageAnnouncementKind,
+  { label: string; buttonText: string }
+> = {
+  live: { label: "Live session", buttonText: "Join" },
+  workshop: { label: "Workshop", buttonText: "Register" },
+  course: { label: "Course launch", buttonText: "Enroll" },
+  notice: { label: "Notice", buttonText: "View" },
+};
+
+export const ANNOUNCEMENT_KINDS = Object.keys(ANNOUNCEMENT_KIND_META) as CoursesPageAnnouncementKind[];
 
 export const HERO_PROMO_PRESETS: Record<
   CoursesPageHeroPromoType,

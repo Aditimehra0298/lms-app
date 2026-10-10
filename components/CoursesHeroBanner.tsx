@@ -15,7 +15,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import type { CoursesPageHeroPromoType } from "@/lib/content-schema";
-import type { ResolvedHeroSlide } from "@/lib/courses-page-featured";
+import { isFreePriceText, type ResolvedHeroSlide } from "@/lib/courses-page-featured";
 
 const THEMES: Record<
   CoursesPageHeroPromoType,
@@ -175,7 +175,8 @@ function EventStrip({ slide, now }: { slide: ResolvedHeroSlide; now: number | nu
 
 function PriceRow({ slide }: { slide: ResolvedHeroSlide }) {
   const price = slide.priceText?.trim() ?? "";
-  const old = slide.oldPriceText?.trim() ?? "";
+  const rawOld = slide.oldPriceText?.trim() ?? "";
+  const old = rawOld && !isFreePriceText(rawOld) ? rawOld : "";
   if (slide.promoType === "free") {
     return (
       <div className="mt-4 flex items-baseline gap-3">
@@ -277,10 +278,10 @@ export default function CoursesHeroBanner({
                   fill
                   unoptimized
                   priority={i === 0}
-                  className="object-cover opacity-35"
+                  className="object-cover opacity-80"
                 />
               ) : null}
-              <div className="courses-hero-overlay absolute inset-0 bg-linear-to-r from-[#091224] via-[#091224]/75 to-transparent" />
+              <div className="courses-hero-overlay absolute inset-0 bg-linear-to-r from-[#091224]/95 via-[#091224]/55 via-45% to-transparent" />
               <div className={`absolute -left-16 -top-16 h-56 w-56 rounded-full bg-radial ${theme.glow} to-transparent blur-2xl`} />
 
               {slide.promoType === "discount" && slide.discountLabel ? (
@@ -309,10 +310,12 @@ export default function CoursesHeroBanner({
                   )}
                   {slide.badgeText}
                 </p>
-                <h1 className="mt-4 text-4xl font-bold leading-tight md:text-5xl">
+                <h1 className="mt-4 text-4xl font-bold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] md:text-5xl">
                   <SlideTitle title={slide.title} highlight={slide.highlightWord} accent={theme.accent} />
                 </h1>
-                {slide.subtitle ? <p className="mt-4 line-clamp-3 text-sm text-gray-200">{slide.subtitle}</p> : null}
+                {slide.subtitle ? (
+                  <p className="mt-4 line-clamp-3 text-sm text-gray-100 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{slide.subtitle}</p>
+                ) : null}
                 <PriceRow slide={slide} />
                 <EventStrip slide={slide} now={now} />
                 <div className="mt-6 flex flex-wrap gap-3">

@@ -48,8 +48,14 @@ import type {
   CoursesPageUpcoming,
 } from "@/lib/content-schema";
 import { defaultCoursesPageConfig } from "@/lib/content-schema";
-import type { CoursesPageHeroPromoType, CoursesPageHeroSlide } from "@/lib/content-schema";
+import type {
+  CoursesPageAnnouncementKind,
+  CoursesPageHeroPromoType,
+  CoursesPageHeroSlide,
+} from "@/lib/content-schema";
 import {
+  ANNOUNCEMENT_KIND_META,
+  ANNOUNCEMENT_KINDS,
   applyCourseToSlide,
   buildFeaturedCourseOptions,
   createHeroSlide,
@@ -120,7 +126,7 @@ type SectionKey =
 
 const sectionMeta: Record<SectionKey, { label: string; icon: typeof Rocket; color: string }> = {
   hero: { label: "Hero Section", icon: Rocket, color: "#f59e0b" },
-  tutorLed: { label: "Tutor-Led Sessions", icon: Zap, color: "#3b82f6" },
+  tutorLed: { label: "Announcements (live sessions, workshops, notices)", icon: Zap, color: "#3b82f6" },
   recentUpdates: { label: "Recent Updates", icon: Layers, color: "#8b5cf6" },
   upcoming: { label: "Upcoming (Future)", icon: Globe, color: "#10b981" },
   featured: { label: "Featured Courses", icon: Sparkles, color: "#f59e0b" },
@@ -599,12 +605,34 @@ export default function AdminCoursesPageEditor() {
 
   const setTutorLed = (idx: number, patch: Partial<CoursesPageTutorLed>) =>
     setConfig((p) => ({ ...p, tutorLed: p.tutorLed.map((s, i) => (i === idx ? { ...s, ...patch } : s)) }));
-  const addTutorLed = () =>
-    setConfig((p) => ({ ...p, tutorLed: [...p.tutorLed, { date: "JUN 01", title: "New Session", time: "10:00 AM - 11:00 AM" }] }));
+  const addTutorLed = (kind: CoursesPageAnnouncementKind) =>
+    setConfig((p) => ({
+      ...p,
+      tutorLed: [{ kind, enabled: true, date: "", title: "", time: "", note: "" }, ...p.tutorLed],
+    }));
+  const moveTutorLed = (idx: number, dir: -1 | 1) =>
+    setConfig((p) => {
+      const j = idx + dir;
+      if (j < 0 || j >= p.tutorLed.length) return p;
+      const next = [...p.tutorLed];
+      [next[idx], next[j]] = [next[j], next[idx]];
+      return { ...p, tutorLed: next };
+    });
   const selectTutorLedFeatured = (idx: number, key: string) => {
     const ref = parseFeaturedRefKey(key);
     const opt = findFeaturedOption(featuredOptions, ref);
-    setTutorLed(idx, opt ? { featured: ref, title: opt.title } : { featured: ref });
+    const current = config.tutorLed[idx];
+    setTutorLed(
+      idx,
+      opt
+        ? {
+            featured: ref,
+            title: opt.title,
+            date: current?.date || opt.startText,
+            note: current?.note || (opt.tutorName ? `With ${opt.tutorName}` : ""),
+          }
+        : { featured: ref },
+    );
   };
   const removeTutorLed = (idx: number) =>
     setConfig((p) => ({ ...p, tutorLed: p.tutorLed.filter((_, i) => i !== idx) }));
@@ -973,42 +1001,120 @@ export default function AdminCoursesPageEditor() {
         )}
       </div>
 
-      {/* ── Tutor-Led Sessions ── */}
+      {/* ── Announcements (stored as tutorLed) ── */}
       <div className={cardCls}>
         <SectionHeader sectionKey="tutorLed" />
         {expanded.tutorLed && (
           <div className="mt-4 space-y-3">
-            {config.tutorLed.map((session, idx) => (
-              <div key={idx} className={`flex items-start gap-3 ${itemCls}`}>
-                <GripVertical size={14} className="mt-2.5 shrink-0 text-gray-600 cursor-grab" />
-                <div className="grid flex-1 gap-2 sm:grid-cols-4">
-                  <div>
-                    <label className={labelCls}>Join opens</label>
-                    <FeaturedCourseSelect
-                      options={featuredOptions}
-                      value={featuredRefKey(session.featured)}
-                      onChange={(key) => selectTutorLedFeatured(idx, key)}
-                      emptyLabel="Tutor-led catalog"
-                      className={inputCls}
-                    />
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="w-64">
+                <label className={labelCls}>Box heading</label>
+                <input
+                  className={inputCls}
+                  value={config.announcementsTitle ?? ""}
+                  placeholder="Announcements"
+                  onChange={(e) => setConfig((p) => ({ ...p, announcementsTitle: e.target.value }))}
+                />
+              </div>
+              <p className="flex-1 text-[11px] text-gray-400">
+                Shown beside the banner on /courses. Post upcoming live sessions, workshops, new course launches or any notice.
+                The newest item goes on top; hide old items with the eye icon.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ANNOUNCEMENT_KINDS.map((k) => (
+                <button key={k} type="button" onClick={() => addTutorLed(k)} className={btnAdd}>
+                  <Plus size={14} /> {ANNOUNCEMENT_KIND_META[k].label}
+                </button>
+              ))}
+            </div>
+            {config.tutorLed.map((item, idx) => {
+              const kind = item.kind ?? "live";
+              return (
+                <div key={idx} className={`${itemCls} ${item.enabled === false ? "opacity-60" : ""}`}>
+                  <div className="grid gap-2 sm:grid-cols-[150px_1fr_1fr]">
+                    <div>
+                      <label className={labelCls}>Type</label>
+                      <select
+                        className={inputCls}
+                        value={kind}
+                        onChange={(e) => setTutorLed(idx, { kind: e.target.value as CoursesPageAnnouncementKind })}
+                      >
+                        {ANNOUNCEMENT_KINDS.map((k) => (
+                          <option key={k} value={k}>
+                            {ANNOUNCEMENT_KIND_META[k].label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelCls}>Course / program (button opens it)</label>
+                      <FeaturedCourseSelect
+                        options={featuredOptions}
+                        value={featuredRefKey(item.featured)}
+                        onChange={(key) => selectTutorLedFeatured(idx, key)}
+                        emptyLabel="None — use custom link"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Custom link (if no course)</label>
+                      <input
+                        className={inputCls}
+                        value={item.href ?? ""}
+                        placeholder="/workshops or https://…"
+                        disabled={Boolean(item.featured?.slug)}
+                        onChange={(e) => setTutorLed(idx, { href: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelCls}>Date</label>
-                    <input className={inputCls} value={session.date} onChange={(e) => setTutorLed(idx, { date: e.target.value })} />
+                  <div className="mt-2 grid gap-2 sm:grid-cols-[1.4fr_0.8fr_0.8fr_0.6fr]">
+                    <div>
+                      <label className={labelCls}>Title</label>
+                      <input className={inputCls} value={item.title} placeholder="ISO 22000 Lead Auditor — new batch" onChange={(e) => setTutorLed(idx, { title: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Date</label>
+                      <input className={inputCls} value={item.date} placeholder="MAY 24" onChange={(e) => setTutorLed(idx, { date: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Time</label>
+                      <input className={inputCls} value={item.time} placeholder="10:00 AM - 11:30 AM" onChange={(e) => setTutorLed(idx, { time: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Button</label>
+                      <input
+                        className={inputCls}
+                        value={item.buttonText ?? ""}
+                        placeholder={ANNOUNCEMENT_KIND_META[kind].buttonText}
+                        onChange={(e) => setTutorLed(idx, { buttonText: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelCls}>Title</label>
-                    <input className={inputCls} value={session.title} onChange={(e) => setTutorLed(idx, { title: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Time</label>
-                    <input className={inputCls} value={session.time} onChange={(e) => setTutorLed(idx, { time: e.target.value })} />
+                  <div className="mt-2 flex items-end gap-2">
+                    <div className="flex-1">
+                      <label className={labelCls}>Short note (optional)</label>
+                      <input className={inputCls} value={item.note ?? ""} placeholder="Limited seats · With Dr. Sharma" onChange={(e) => setTutorLed(idx, { note: e.target.value })} />
+                    </div>
+                    <button
+                      type="button"
+                      title={item.enabled === false ? "Hidden — click to show" : "Visible — click to hide"}
+                      onClick={() => setTutorLed(idx, { enabled: item.enabled === false })}
+                      className="rounded-lg border border-white/10 bg-white/5 p-2 text-gray-300 hover:bg-white/10"
+                    >
+                      {item.enabled === false ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                    <button type="button" title="Move up" disabled={idx === 0} onClick={() => moveTutorLed(idx, -1)} className="rounded-lg border border-white/10 bg-white/5 p-2 text-gray-300 hover:bg-white/10 disabled:opacity-30">
+                      <ArrowUp size={13} />
+                    </button>
+                    <button type="button" title="Move down" disabled={idx === config.tutorLed.length - 1} onClick={() => moveTutorLed(idx, 1)} className="rounded-lg border border-white/10 bg-white/5 p-2 text-gray-300 hover:bg-white/10 disabled:opacity-30">
+                      <ArrowDown size={13} />
+                    </button>
+                    <button type="button" onClick={() => removeTutorLed(idx)} className={btnDanger}><Trash2 size={13} /></button>
                   </div>
                 </div>
-                <button type="button" onClick={() => removeTutorLed(idx)} className={btnDanger}><Trash2 size={13} /></button>
-              </div>
-            ))}
-            <button type="button" onClick={addTutorLed} className={btnAdd}><Plus size={14} /> Add Session</button>
+              );
+            })}
           </div>
         )}
       </div>

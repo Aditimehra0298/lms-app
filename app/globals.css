@@ -689,15 +689,15 @@ body.tutor-led-marketing-body {
 :root[data-theme="light"] .courses-page .courses-hero-overlay {
   background: linear-gradient(
     90deg,
-    rgba(248, 244, 236, 0.9) 0%,
-    rgba(195, 178, 145, 0.55) 38%,
-    rgba(75, 62, 42, 0.38) 72%,
-    rgba(40, 32, 22, 0.22) 100%
+    rgba(248, 244, 236, 0.88) 0%,
+    rgba(195, 178, 145, 0.45) 38%,
+    rgba(75, 62, 42, 0.12) 72%,
+    rgba(40, 32, 22, 0) 100%
   ) !important;
 }
 
 :root[data-theme="light"] .courses-page .courses-hero-card img.object-cover {
-  opacity: 0.58 !important;
+  opacity: 0.85 !important;
 }
 
 :root[data-theme="light"] .courses-page .courses-hero-badge {

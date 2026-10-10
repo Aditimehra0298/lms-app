@@ -13,10 +13,15 @@ import { catalogCourseLandingHref } from "@/lib/course-landing";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import { liveTutorCourseHref } from "@/lib/tutor-led-routes";
 import { mergeTutorLedCatalogPages } from "@/lib/tutor-led-catalog-landings";
-import { buildFeaturedCourseOptions, findFeaturedOption, resolveHeroSlides } from "@/lib/courses-page-featured";
+import {
+  ANNOUNCEMENT_KIND_META,
+  buildFeaturedCourseOptions,
+  findFeaturedOption,
+  resolveHeroSlides,
+} from "@/lib/courses-page-featured";
 import CoursesHeroBanner from "@/components/CoursesHeroBanner";
 import { defaultCoursesPageConfig } from "@/lib/content-schema";
-import type { CoursesPageConfig } from "@/lib/content-schema";
+import type { CoursesPageAnnouncementKind, CoursesPageConfig } from "@/lib/content-schema";
 import {
   BadgeCheck,
   BellRing,
@@ -28,7 +33,9 @@ import {
   Gavel,
   Leaf,
   Lock,
+  Megaphone,
   Microscope,
+  Radio,
   Salad,
   ScanSearch,
   ShieldCheck,
@@ -275,6 +282,16 @@ export default async function CoursesPage({
     catalogs: mergeTutorLedCatalogPages(adminContent.tutorLedCatalogPages, adminContent.tutorLedCatalogPage),
   });
   const heroSlides = resolveHeroSlides(cpConfig.hero, featuredOptions, liveTutorCourseHref());
+  const announcements = cpConfig.tutorLed.filter((item) => item.enabled !== false && item.title?.trim());
+  const announcementStyles: Record<
+    CoursesPageAnnouncementKind,
+    { Icon: typeof Radio; tone: string; iconBg: string; button: string }
+  > = {
+    live: { Icon: Radio, tone: "text-red-300", iconBg: "bg-red-500/15", button: "border-red-300/40 text-red-200" },
+    workshop: { Icon: Wrench, tone: "text-violet-300", iconBg: "bg-violet-500/15", button: "border-violet-300/40 text-violet-200" },
+    course: { Icon: Rocket, tone: "text-emerald-300", iconBg: "bg-emerald-500/15", button: "border-emerald-300/40 text-emerald-200" },
+    notice: { Icon: Megaphone, tone: "text-sky-300", iconBg: "bg-sky-500/15", button: "border-sky-300/40 text-sky-200" },
+  };
   const visibleCourses = showAllCourses ? allCourses : allCourses.slice(0, cpConfig.defaultVisibleCourses);
   const recommendedCourses = [...allCourses]
     .sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0))
@@ -301,34 +318,72 @@ export default async function CoursesPage({
         <section className="grid gap-4 lg:grid-cols-[1.9fr_1fr]">
           <CoursesHeroBanner slides={heroSlides} autoRotateSeconds={cpConfig.hero.autoRotateSeconds ?? 6} />
 
-          <article className="courses-surface rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <article className="courses-surface flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold">Tutor-Led Sessions</h2>
-              <button className="text-xs font-semibold text-amber-200">View All</button>
+              <h2 className="inline-flex items-center gap-2 text-lg font-bold">
+                <BellRing size={17} className="text-amber-300" />
+                {cpConfig.announcementsTitle?.trim() || "Announcements"}
+              </h2>
+              {announcements.length > 0 ? (
+                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-200">
+                  {announcements.length} new
+                </span>
+              ) : null}
             </div>
-            <div className="space-y-3">
-              {cpConfig.tutorLed.map((session, idx) => (
-                <div
-                  key={`${session.title}-${idx}`}
-                  className="courses-inner-card flex items-start justify-between rounded-xl border border-white/10 bg-black/25 p-3"
-                >
-                  <div>
-                    <p className="text-[10px] font-bold tracking-wide text-amber-300">{session.date}</p>
-                    <p className="text-sm font-semibold">{session.title}</p>
-                    <p className="text-xs text-gray-400">{session.time}</p>
-                  </div>
-                  <Link
-                    href={findFeaturedOption(featuredOptions, session.featured)?.href ?? liveTutorCourseHref()}
-                    className="rounded-full border border-blue-300/40 px-3 py-1 text-xs text-blue-200"
-                  >
-                    Join
-                  </Link>
-                </div>
-              ))}
+            <div className="max-h-[300px] flex-1 space-y-2.5 overflow-y-auto pr-1">
+              {announcements.length === 0 ? (
+                <p className="py-8 text-center text-xs text-gray-400">No announcements right now. Check back soon.</p>
+              ) : (
+                announcements.map((item, idx) => {
+                  const kind = item.kind ?? "live";
+                  const style = announcementStyles[kind];
+                  const KindIcon = style.Icon;
+                  const href =
+                    findFeaturedOption(featuredOptions, item.featured)?.href ||
+                    item.href?.trim() ||
+                    liveTutorCourseHref();
+                  return (
+                    <div
+                      key={`${item.title}-${idx}`}
+                      className="courses-inner-card flex items-start gap-3 rounded-xl border border-white/10 bg-black/25 p-3"
+                    >
+                      <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${style.iconBg}`}>
+                        <KindIcon size={15} className={style.tone} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="flex flex-wrap items-center gap-x-2 text-[10px] font-bold uppercase tracking-wide">
+                          <span className={style.tone}>{ANNOUNCEMENT_KIND_META[kind].label}</span>
+                          {item.date ? <span className="text-gray-400">· {item.date}</span> : null}
+                        </p>
+                        <p className="text-sm font-semibold leading-snug">{item.title}</p>
+                        {item.time ? <p className="text-xs text-gray-400">{item.time}</p> : null}
+                        {item.note ? <p className="mt-0.5 line-clamp-2 text-xs text-gray-300">{item.note}</p> : null}
+                      </div>
+                      <Link
+                        href={href}
+                        className={`shrink-0 self-center rounded-full border px-3 py-1 text-xs font-medium ${style.button}`}
+                      >
+                        {item.buttonText?.trim() || ANNOUNCEMENT_KIND_META[kind].buttonText}
+                      </Link>
+                    </div>
+                  );
+                })
+              )}
             </div>
-            <button className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300/25 bg-amber-500/10 py-2 text-xs font-semibold text-amber-200">
-              <CalendarDays size={14} /> View Full Calendar
-            </button>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Link
+                href={liveTutorCourseHref()}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-300/25 bg-amber-500/10 py-2 text-xs font-semibold text-amber-200"
+              >
+                <CalendarDays size={14} /> Live programs
+              </Link>
+              <Link
+                href="/workshops"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-violet-300/25 bg-violet-500/10 py-2 text-xs font-semibold text-violet-200"
+              >
+                <Wrench size={14} /> Workshops
+              </Link>
+            </div>
           </article>
         </section>
 

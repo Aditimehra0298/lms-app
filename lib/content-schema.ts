@@ -449,12 +449,22 @@ export type CoursesPageHero = {
   autoRotateSeconds?: number;
 };
 
+export type CoursesPageAnnouncementKind = "live" | "workshop" | "course" | "notice";
+
+/** Row in the `/courses` Announcements box (stored under `tutorLed` for older data). */
 export type CoursesPageTutorLed = {
   date: string;
   title: string;
   time: string;
-  /** Join button target; empty = tutor-led catalog. */
+  /** Missing = "live" (older rows were all live sessions). */
+  kind?: CoursesPageAnnouncementKind;
+  note?: string;
+  /** Button target; empty = tutor-led catalog. */
   featured?: CoursesPageFeaturedRef | null;
+  /** Custom link, used when no course is picked. */
+  href?: string;
+  buttonText?: string;
+  enabled?: boolean;
 };
 
 export type CoursesPageRecentUpdate = {
@@ -490,6 +500,8 @@ export type CoursesPageCta = {
 
 export type CoursesPageConfig = {
   hero: CoursesPageHero;
+  /** Heading of the box beside the hero; default "Announcements". */
+  announcementsTitle?: string;
   tutorLed: CoursesPageTutorLed[];
   recentUpdates: CoursesPageRecentUpdate[];
   upcomingItems: CoursesPageUpcoming[];
