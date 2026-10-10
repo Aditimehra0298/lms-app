@@ -165,15 +165,11 @@ export default function SelfPacedCourseHero({ course }: Props) {
 
                 {(() => {
                   const thumb = resolveCourseListThumbnail(course);
-                  if (!thumb) {
-                    return (
-                      <div className="flex h-full w-full items-center justify-center bg-zinc-900" aria-hidden />
-                    );
-                  }
                   return (
                     <CatalogMediaImage
                       storedSrc={thumb}
                       courseSlug={course.slug}
+                      category={course.category || ""}
                       alt={course.title}
                       fill
                       className="object-cover"

@@ -453,15 +453,11 @@ export default async function CoursesPage({
                   <div className="courses-thumb-frame relative h-32 overflow-hidden rounded-lg border border-white/15 bg-black/35">
                     {(() => {
                       const thumb = resolveCourseListThumbnail(course);
-                      if (!thumb) {
-                        return (
-                          <div className="flex h-full w-full items-center justify-center bg-black/40" aria-hidden />
-                        );
-                      }
                       return (
                         <CatalogMediaImage
                           storedSrc={thumb}
                           courseSlug={course.slug}
+                          category={course.category || ""}
                           alt={course.title}
                           fill
                           className="object-cover"
@@ -639,15 +635,11 @@ export default async function CoursesPage({
                   <div className="relative h-24 w-full overflow-hidden">
                     {(() => {
                       const thumb = resolveCourseListThumbnail(course);
-                      if (!thumb) {
-                        return (
-                          <div className="flex h-full w-full items-center justify-center bg-black/40" aria-hidden />
-                        );
-                      }
                       return (
                         <CatalogMediaImage
                           storedSrc={thumb}
                           courseSlug={course.slug}
+                          category={course.category || ""}
                           alt={course.title}
                           fill
                           className="object-cover"

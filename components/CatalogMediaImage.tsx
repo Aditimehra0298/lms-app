@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useCatalogMediaUrl } from "@/lib/hooks/useCatalogMediaUrl";
-import { catalogCoverFallbackUrls } from "@/lib/course-thumbnail";
+import { catalogCoverFallbackUrls, categoryCatalogFallbackImage } from "@/lib/course-thumbnail";
+import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 
 type Props = {
   storedSrc: string;
@@ -13,16 +14,23 @@ type Props = {
   sizes?: string;
   /** Tried after the stored cover 404s (category photo, etc.). */
   extraFallback?: string;
+  /** Course category; its stock photo is the last fallback so cards are never blank. */
+  category?: string;
+  /** Accepted for next/image call-site parity; native img ignores them. */
+  priority?: boolean;
+  width?: number;
+  height?: number;
 };
 
 /** Course card / landing image — native img so covers load without Next optimizer 404/500. */
-export function CatalogMediaImage({ storedSrc, courseSlug, alt, className, fill, extraFallback }: Props) {
+export function CatalogMediaImage({ storedSrc, courseSlug, alt, className, fill, extraFallback, category }: Props) {
   const signed = useCatalogMediaUrl(storedSrc, courseSlug);
   const fallbacks = useMemo(() => {
     const list = catalogCoverFallbackUrls(storedSrc);
     if (extraFallback?.trim()) list.push(extraFallback.trim());
+    if (category !== undefined) list.push(categoryCatalogFallbackImage(canonicalCategorySlug(category)));
     return list;
-  }, [storedSrc, extraFallback]);
+  }, [storedSrc, extraFallback, category]);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {

@@ -197,15 +197,11 @@ export default function SelfPacedPostHeroSections({ course, openFaq, setOpenFaq 
               <div className="overflow-hidden rounded-2xl border border-white/10">
                 {(() => {
                   const thumb = resolveCourseListThumbnail(course);
-                  if (!thumb) {
-                    return (
-                      <div className="flex aspect-video w-full items-center justify-center bg-zinc-900" aria-hidden />
-                    );
-                  }
                   return (
                     <CatalogMediaImage
                       storedSrc={thumb}
                       courseSlug={course.slug}
+                      category={course.category || ""}
                       alt=""
                       width={720}
                       height={480}
