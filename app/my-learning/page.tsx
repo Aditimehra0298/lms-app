@@ -11,6 +11,7 @@ import {
   BadgeCheck,
   Bell,
   BookOpen,
+  Building2,
   CalendarDays,
   CheckCircle2,
   Clock3,
@@ -1087,6 +1088,12 @@ export default function MyLearningPage() {
                     <>{timeOfDayGreeting()}! 👋</>
                   )}
                 </p>
+                {learnerProfile.companyName?.trim() ? (
+                  <p className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-100">
+                    <Building2 className="h-3.5 w-3.5 shrink-0 text-amber-300" aria-hidden />
+                    <span className="truncate">{learnerProfile.companyName.trim()}</span>
+                  </p>
+                ) : null}
                 <p className="mt-1 text-sm text-amber-200">{formatDashboardDate(dashboardNow)}</p>
                 <h2 className="mt-3 text-2xl font-bold">
                   Welcome to <span className="sf-trainings-green">SF Trainings</span>

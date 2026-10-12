@@ -11,6 +11,14 @@ import {
   requireLearnerMutationAuth,
   requireLearnerSessionEmail,
 } from "@/lib/server/learner-session";
+import {
+  mergeClientRosterWithServerFields,
+  organisationOwnedCourseSlugs,
+  requireOrganisationOwner,
+  revokeRemovedEmployees,
+  syncOrganisationEnrollments,
+  type OrgEnrollmentSyncResult,
+} from "@/lib/server/organization-employee-accounts";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +43,10 @@ export async function GET(request: Request) {
     if (!team) {
       team = await ensureOrganizationTeam({ workEmail: email });
     }
-    return NextResponse.json({ ok: true, team, adminConfig }, { headers: noStoreJson });
+    const ownedCourseSlugs = (await requireOrganisationOwner(email))
+      ? [...(await organisationOwnedCourseSlugs(email))]
+      : [];
+    return NextResponse.json({ ok: true, team, adminConfig, ownedCourseSlugs }, { headers: noStoreJson });
   } catch (err) {
     console.error("[api/organization/team GET]", err);
     return NextResponse.json(
@@ -66,7 +77,9 @@ export async function POST(request: Request) {
       companyName: body.companyName,
       planId: body.planId,
       seatLimit: body.seatLimit,
-      roster: body.roster,
+      roster: body.roster
+        ? mergeClientRosterWithServerFields(body.roster, existing?.roster ?? [])
+        : undefined,
       courseAssignments: body.courseAssignments,
     });
     const adminConfig = await readOrganizationTeamAdminConfig();
@@ -93,18 +106,34 @@ export async function PUT(request: Request) {
       workEmail: email,
       companyName: body.companyName,
     });
-    const team = await writeOrganizationTeam({
+    const roster = body.roster
+      ? mergeClientRosterWithServerFields(body.roster, existing.roster)
+      : existing.roster;
+    let team = await writeOrganizationTeam({
       ...existing,
       workEmail: email,
       companyName: body.companyName ?? existing.companyName,
       planId: body.planId ?? existing.planId,
       seatLimit: body.seatLimit ?? existing.seatLimit,
-      roster: body.roster ?? existing.roster,
+      roster,
       courseAssignments: body.courseAssignments ?? existing.courseAssignments,
       updatedAt: new Date().toISOString(),
     });
+
+    let enrollment: OrgEnrollmentSyncResult | undefined;
+    let ownedCourseSlugs: string[] = [];
+    if (await requireOrganisationOwner(email)) {
+      await revokeRemovedEmployees(existing.roster, team.roster);
+      const synced = await syncOrganisationEnrollments(email);
+      if (synced.team) team = synced.team;
+      enrollment = synced.result;
+      ownedCourseSlugs = [...(await organisationOwnedCourseSlugs(email))];
+    }
     const adminConfig = await readOrganizationTeamAdminConfig();
-    return NextResponse.json({ ok: true, team, adminConfig }, { headers: noStoreJson });
+    return NextResponse.json(
+      { ok: true, team, adminConfig, enrollment, ownedCourseSlugs },
+      { headers: noStoreJson },
+    );
   } catch (err) {
     console.error("[api/organization/team PUT]", err);
     return NextResponse.json(

@@ -35,7 +35,19 @@ export type OrgTeamRosterEntry = {
   position: string;
   avatarUrl?: string;
   invited: boolean;
+  /** Server-only: when this org created the employee's login (email + password). */
+  loginCreatedAt?: string;
+  /** Server-only: email already had an account; linked instead of creating one. */
+  loginLinkedAt?: string;
+  /** Server-only: course slugs this org enrolled the employee in (removed on unassign). */
+  orgEnrolledSlugs?: string[];
 };
+
+export const ORG_ROSTER_SERVER_FIELDS = ["loginCreatedAt", "loginLinkedAt", "orgEnrolledSlugs"] as const;
+
+export function rosterEntryHasLogin(row: Pick<OrgTeamRosterEntry, "loginCreatedAt" | "loginLinkedAt">): boolean {
+  return Boolean(row.loginCreatedAt || row.loginLinkedAt);
+}
 
 /** Placeholder employees seeded by older builds (john.smith@team.demo etc.). */
 export function isDemoRosterEntry(row: Pick<OrgTeamRosterEntry, "email">): boolean {

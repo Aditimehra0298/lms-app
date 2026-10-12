@@ -20,6 +20,9 @@ import {
   type OrgPurchasedCourse,
 } from "@/lib/organization-course-assignments-store";
 import { ORG_EMPLOYEE_ROSTER_EVENT } from "@/lib/organization-employee-roster";
+import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
+import { rosterEntryHasLogin } from "@/lib/organization-team-config";
+import { getOrganizationOwnedCourseSlugs } from "@/lib/organization-team-sync-client";
 import {
   getActiveOrgPremiumPlan,
   orgPremiumPlanLearningRule,
@@ -43,12 +46,15 @@ export function MyLearningOrganizationAssignCourses({
   const [employees, setEmployees] = useState<OrgEmployeeRosterEntry[]>([]);
   const [activeCourse, setActiveCourse] = useState<string>("");
   const [saved, setSaved] = useState(false);
+  const [ownedSlugs, setOwnedSlugs] = useState<Set<string> | null>(null);
 
   const seatTotal = activePlan.seatLimit;
 
   const refresh = useCallback(() => {
     const plan = getActiveOrgPremiumPlan();
     const total = plan.seatLimit;
+    const owned = getOrganizationOwnedCourseSlugs();
+    setOwnedSlugs(owned ? new Set(owned.map((s) => canonicalCourseSlug(s))) : null);
     setActivePlan(plan);
     setPurchased(seedOrgPurchasedCoursesFromCatalog(courses));
     setAssignments(readOrgCourseAssignments());
@@ -94,6 +100,8 @@ export function MyLearningOrganizationAssignCourses({
   };
 
   const activePurchased = purchased.find((c) => c.slug === activeCourse);
+  const isOwned = (slug: string) => (ownedSlugs ? ownedSlugs.has(canonicalCourseSlug(slug)) : true);
+  const activeOwned = activeCourse ? isOwned(activeCourse) : true;
 
   return (
     <section className="space-y-5">
@@ -169,6 +177,15 @@ export function MyLearningOrganizationAssignCourses({
                     <p className="mt-1 text-[10px] font-medium text-amber-200/90">
                       {count} employee{count === 1 ? "" : "s"} assigned
                     </p>
+                    {ownedSlugs ? (
+                      isOwned(course.slug) ? (
+                        <p className="mt-1 text-[10px] font-semibold text-emerald-300">
+                          Included — employees get access
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-[10px] text-zinc-500">Not included yet</p>
+                      )
+                    ) : null}
                   </button>
                 </li>
               );
@@ -186,6 +203,20 @@ export function MyLearningOrganizationAssignCourses({
               Selecting for: <span className="text-amber-200">{activePurchased.title}</span>
             </p>
           ) : null}
+          {activePurchased && !activeOwned ? (
+            <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
+              Your organisation doesn&apos;t own this course yet, so assigned employees won&apos;t see it
+              until it&apos;s purchased or granted to your organisation by the admin.
+            </p>
+          ) : null}
+          <p className="mt-2 text-[11px] text-zinc-500">
+            Employees with a login get assigned courses on their own dashboard automatically. Create
+            logins in{" "}
+            <Link href="/my-learning?tab=invite-employees" className="text-amber-200 hover:underline">
+              Invite Employees
+            </Link>
+            .
+          </p>
 
           {invitedEmployees.length === 0 ? (
             <div className="mt-4 rounded-xl border border-dashed border-white/15 p-6 text-center text-sm text-zinc-500">
@@ -220,6 +251,9 @@ export function MyLearningOrganizationAssignCourses({
                         <span className="block text-[10px] text-zinc-500">
                           {formatOrgEmployeeUserId(emp.id)} · {emp.position || "—"} · {emp.email}
                         </span>
+                        {!rosterEntryHasLogin(emp) ? (
+                          <span className="mt-0.5 block text-[10px] text-rose-300/80">No login yet</span>
+                        ) : null}
                         {courseCount > 0 ? (
                           <span className="mt-0.5 block text-[10px] text-amber-200/80">
                             {courseCount} course{courseCount === 1 ? "" : "s"} assigned total

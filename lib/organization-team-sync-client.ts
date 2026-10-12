@@ -18,6 +18,30 @@ const LEGACY_ASSIGNMENTS_KEY = "sft_org_course_assignments";
 
 let cachedRecord: OrganizationTeamRecord | null = null;
 let cachedAdminConfig: OrganizationTeamAdminConfig = mergeOrganizationTeamAdminConfig();
+let cachedOwnedCourseSlugs: string[] | null = null;
+
+/** Courses the organisation account owns (null until the server has answered). */
+export function getOrganizationOwnedCourseSlugs(): string[] | null {
+  return cachedOwnedCourseSlugs;
+}
+
+function applyServerPayload(data: {
+  team?: OrganizationTeamRecord;
+  adminConfig?: OrganizationTeamAdminConfig;
+  ownedCourseSlugs?: string[];
+}) {
+  if (data.adminConfig) {
+    cachedAdminConfig = mergeOrganizationTeamAdminConfig(data.adminConfig);
+  }
+  if (Array.isArray(data.ownedCourseSlugs)) {
+    cachedOwnedCourseSlugs = data.ownedCourseSlugs;
+  }
+  if (data.team) {
+    cachedRecord = data.team;
+    mirrorToLegacyStorage(data.team);
+  }
+  emit();
+}
 
 function emit() {
   if (typeof window === "undefined") return;
@@ -125,6 +149,7 @@ export async function syncOrganizationTeamFromServer(
       ok?: boolean;
       team?: OrganizationTeamRecord;
       adminConfig?: OrganizationTeamAdminConfig;
+      ownedCourseSlugs?: string[];
       message?: string;
     });
 
@@ -132,13 +157,7 @@ export async function syncOrganizationTeamFromServer(
       return { ok: false, message: data.message ?? "Could not load organisation team data" };
     }
 
-    if (data.adminConfig) {
-      cachedAdminConfig = mergeOrganizationTeamAdminConfig(data.adminConfig);
-    }
-
-    cachedRecord = data.team;
-    mirrorToLegacyStorage(data.team);
-    emit();
+    applyServerPayload(data);
     return { ok: true, record: data.team };
   } catch {
     return { ok: false, message: "Network error loading organisation team" };
@@ -155,6 +174,12 @@ export async function saveOrganizationTeamToServer(patch: {
   const email = normalizeLearnerEmail(patch.email ?? getLearnerEmail() ?? "");
   if (!email) return { ok: false, message: "Not signed in" };
 
+  if (cachedRecord) {
+    const { email: _ignored, ...rest } = patch;
+    void _ignored;
+    cachedRecord = { ...cachedRecord, ...rest };
+  }
+
   try {
     const res = await fetch("/api/organization/team", { credentials: "include",
       method: "PUT",
@@ -165,19 +190,44 @@ export async function saveOrganizationTeamToServer(patch: {
       ok?: boolean;
       team?: OrganizationTeamRecord;
       adminConfig?: OrganizationTeamAdminConfig;
+      ownedCourseSlugs?: string[];
       message?: string;
     });
     if (!res.ok || !data.ok || !data.team) {
       return { ok: false, message: data.message ?? "Save failed" };
     }
-    if (data.adminConfig) {
-      cachedAdminConfig = mergeOrganizationTeamAdminConfig(data.adminConfig);
-    }
-    cachedRecord = data.team;
-    mirrorToLegacyStorage(data.team);
-    emit();
+    applyServerPayload(data);
     return { ok: true, record: data.team };
   } catch {
     return { ok: false, message: "Network error saving organisation team" };
+  }
+}
+
+/** Create or reset an employee's learner login; the server emails the login details. */
+export async function createOrganizationEmployeeLogin(input: {
+  slot: number;
+  password?: string;
+}): Promise<{ ok: boolean; message: string }> {
+  try {
+    const res = await fetch("/api/organization/employees/login", {
+      credentials: "include",
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = await readJsonResponse(res, {} as {
+      ok?: boolean;
+      team?: OrganizationTeamRecord;
+      adminConfig?: OrganizationTeamAdminConfig;
+      ownedCourseSlugs?: string[];
+      message?: string;
+    });
+    if (!res.ok || !data.ok) {
+      return { ok: false, message: data.message ?? "Could not create the login" };
+    }
+    applyServerPayload(data);
+    return { ok: true, message: data.message ?? "Login created." };
+  } catch {
+    return { ok: false, message: "Network error creating the login" };
   }
 }
