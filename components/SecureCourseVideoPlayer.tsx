@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { resolveProtectedMediaUrl } from "@/lib/media-client";
 import { formatVideoClock } from "@/lib/learner-video-resume";
 
-const REFRESH_MS = 2 * 60 * 1000;
+/** Max automatic re-authorisations per lesson (expired token on seek / network drop). */
+const MAX_RECOVERIES = 5;
 /** Offer resume when learner left past this many seconds. */
 const RESUME_MIN_SECONDS = 5;
 /** Treat near-end as finished (no resume prompt). */
@@ -23,14 +24,6 @@ type Props = {
   onResumeChoice?: (choice: "continue" | "restart", atSeconds: number) => void;
 };
 
-function tokenFromPlayUrl(url: string): string | null {
-  try {
-    return new URL(url, window.location.origin).searchParams.get("t");
-  } catch {
-    return null;
-  }
-}
-
 /** Hardened learner video — short-lived signed URLs, resume prompt, no download UI. */
 export function SecureCourseVideoPlayer({
   storedUrl,
@@ -43,11 +36,15 @@ export function SecureCourseVideoPlayer({
   onResumeChoice,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const playUrlRef = useRef("");
   const onErrorRef = useRef(onError);
+  const recoveringRef = useRef(false);
+  const recoveriesRef = useRef(0);
+  const pendingSeekRef = useRef<{ at: number; play: boolean } | null>(null);
   const resumeOfferedForUrl = useRef("");
-  const [playUrl, setPlayUrl] = useState("");
-  const [loading, setLoading] = useState(true);
+  const mediaKey = `${courseSlug}|${storedUrl.trim()}`;
+  const [media, setMedia] = useState<{ key: string; url: string } | null>(null);
+  const playUrl = media?.key === mediaKey ? media.url : "";
+  const loading = Boolean(storedUrl.trim()) && media?.key !== mediaKey;
   const [resumePrompt, setResumePrompt] = useState<{ at: number } | null>(null);
 
   useEffect(() => {
@@ -60,63 +57,67 @@ export function SecureCourseVideoPlayer({
     resumeOfferedForUrl.current = "";
   }, [storedUrl, resumeAtSeconds]);
 
-  const applyPlayUrl = useCallback((nextUrl: string) => {
-    const video = videoRef.current;
-    const prevUrl = playUrlRef.current;
-    playUrlRef.current = nextUrl;
-
-    if (video && prevUrl && nextUrl && tokenFromPlayUrl(prevUrl) !== tokenFromPlayUrl(nextUrl)) {
-      const resumeAt = video.currentTime;
-      const wasPlaying = !video.paused && !video.ended;
-      video.src = nextUrl;
-      video.currentTime = resumeAt;
-      if (wasPlaying) void video.play().catch(() => {});
-    }
-
-    setPlayUrl(nextUrl);
-  }, []);
-
-  const fetchPlayUrl = useCallback(
-    async (opts?: { showLoading?: boolean }) => {
-      const trimmed = storedUrl.trim();
-      if (!trimmed) {
-        applyPlayUrl("");
-        if (opts?.showLoading) setLoading(false);
-        return;
-      }
-      if (opts?.showLoading) setLoading(true);
-      try {
-        const url = await resolveProtectedMediaUrl(trimmed, {
-          courseSlug,
-          scope: "learner",
-        });
-        if (!url) {
-          onErrorRef.current?.("This video must be uploaded to protected course storage.");
-          applyPlayUrl("");
-          return;
-        }
-        applyPlayUrl(url);
-      } catch {
-        onErrorRef.current?.("Could not authorize video playback.");
-        applyPlayUrl("");
-      } finally {
-        if (opts?.showLoading) setLoading(false);
-      }
-    },
-    [storedUrl, courseSlug, applyPlayUrl],
+  const requestPlayUrl = useCallback(
+    () => resolveProtectedMediaUrl(storedUrl.trim(), { courseSlug, scope: "learner" }),
+    [storedUrl, courseSlug],
   );
 
+  // Tokens are only checked when a request opens; swapping `src` early would discard the buffer,
+  // so a fresh URL is fetched only after a request fails (expired token on seek, network drop).
   useEffect(() => {
-    playUrlRef.current = "";
-    setPlayUrl("");
-    void fetchPlayUrl({ showLoading: true });
+    let cancelled = false;
+    recoveriesRef.current = 0;
+    pendingSeekRef.current = null;
+    if (!storedUrl.trim()) return;
+    requestPlayUrl()
+      .then((url) => {
+        if (cancelled) return;
+        if (!url) onErrorRef.current?.("This video must be uploaded to protected course storage.");
+        setMedia({ key: mediaKey, url: url || "" });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        onErrorRef.current?.("Could not authorize video playback.");
+        setMedia({ key: mediaKey, url: "" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storedUrl, mediaKey, requestPlayUrl]);
 
-    const interval = window.setInterval(() => {
-      void fetchPlayUrl({ showLoading: false });
-    }, REFRESH_MS);
+  const recoverPlayback = async () => {
+    const video = videoRef.current;
+    if (!video || recoveringRef.current || recoveriesRef.current >= MAX_RECOVERIES) {
+      if (!recoveringRef.current) onErrorRef.current?.("Video could not load. Please refresh and try again.");
+      return;
+    }
+    recoveringRef.current = true;
+    recoveriesRef.current += 1;
+    pendingSeekRef.current = { at: video.currentTime, play: !video.ended };
+    try {
+      const url = await requestPlayUrl();
+      if (!url) throw new Error("no url");
+      setMedia({ key: mediaKey, url });
+    } catch {
+      pendingSeekRef.current = null;
+      onErrorRef.current?.("Video could not load. Please refresh and try again.");
+    } finally {
+      recoveringRef.current = false;
+    }
+  };
 
-    return () => window.clearInterval(interval);
-  }, [fetchPlayUrl]);
+  const applyPendingSeek = () => {
+    const video = videoRef.current;
+    const pending = pendingSeekRef.current;
+    if (!video || !pending) return;
+    pendingSeekRef.current = null;
+    try {
+      video.currentTime = pending.at;
+    } catch {
+      /* ignore */
+    }
+    if (pending.play) void video.play().catch(() => {});
+  };
 
   useEffect(() => {
     const blockSaveKeys = (event: KeyboardEvent) => {
@@ -229,12 +230,13 @@ export function SecureCourseVideoPlayer({
           preload="metadata"
           draggable={false}
           onContextMenu={(e) => e.preventDefault()}
-          onLoadedMetadata={() => maybeOfferResume()}
+          onLoadedMetadata={() => {
+            if (pendingSeekRef.current) applyPendingSeek();
+            else maybeOfferResume();
+          }}
           onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget)}
           onEnded={() => onEnded?.()}
-          onError={() => {
-            onErrorRef.current?.("Video could not load. Please refresh and try again.");
-          }}
+          onError={() => void recoverPlayback()}
           className={`${className}${showPlaceholder ? " hidden" : ""}`}
         />
       ) : !showPlaceholder ? (
