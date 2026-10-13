@@ -46,6 +46,7 @@ export const MY_LEARNING_SIDEBAR_NAV: MyLearningNavItem[] = [
 
 /** Organisation learners — team-focused tabs (no public /courses catalog link). */
 export const MY_LEARNING_ORG_NAV: MyLearningNavItem[] = [
+  { label: "🏠 Home", href: "/" },
   {
     label: "🏢 Organization",
     href: "/my-learning?tab=dashboard",
