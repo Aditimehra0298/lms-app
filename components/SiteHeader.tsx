@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, Globe, Menu, Moon, Search, ShoppingCart, Sun, X } from "lucide-react";
+import { Bell, Globe, Menu, Moon, ShoppingCart, Sun, X } from "lucide-react";
+import { HeaderSearch } from "@/components/HeaderSearch";
 import sfWhiteLogo from "@/SF-WHITE-LOGO.png";
 import sfLightLogo from "@/Untitled design (4).png";
 import {
@@ -317,27 +318,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
 
           <div className="hidden max-w-[860px] grow items-center gap-2.5 md:flex">
             <HeaderExploreMenu isLight={isLight} />
-            <div className="relative flex-1">
-              <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-                <Search className={`h-4 w-4 ${isLight ? "text-slate-500" : "text-amber-300/70"}`} />
-              </div>
-              <input
-                type="search"
-                placeholder="What do you want to learn?"
-                className={`w-full rounded-full border py-2.5 pl-10 pr-4 text-[14px] transition-all focus:outline-none ${
-                  isLight
-                    ? "border-[#b4965a]/45 bg-[#f6efe3] text-slate-800 placeholder:text-slate-500 focus:border-[#9a7222] focus:shadow-[0_0_0_3px_rgba(212,160,23,0.2)]"
-                    : "border-amber-500/40 bg-black/40 text-gray-100 placeholder:text-gray-500 focus:border-amber-400/70"
-                }`}
-              />
-            </div>
-            <button
-              type="button"
-              aria-label="Search courses"
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-full text-black transition-all hover:brightness-110 ${goldGradient}`}
-            >
-              <Search className="h-4 w-4" />
-            </button>
+            <HeaderSearch variant="desktop" isLight={isLight} goldGradient={goldGradient} />
           </div>
 
           <div className="flex shrink-0 flex-nowrap items-center gap-2 text-[14px] font-bold">
@@ -603,14 +584,7 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
             </button>
           </div>
           <div className="space-y-6 overflow-y-auto p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-amber-500" />
-              <input
-                type="search"
-                placeholder="Search courses and resources"
-                className="w-full rounded-md border border-white/10 bg-white/5 py-3 pl-10 pr-4"
-              />
-            </div>
+            <HeaderSearch variant="mobile" onNavigate={() => setIsMenuOpen(false)} />
             <div className="relative z-[70]">
               <HeaderExploreMenu isLight={false} />
             </div>
