@@ -68,6 +68,41 @@ fi
 sudo systemctl reload nginx
 echo "==> nginx reloaded"
 
+# 3) gzip for JSON/CSS/JS/SVG (Ubuntu's default only compresses text/html).
+GZIP_CONF=/etc/nginx/conf.d/lms-gzip.conf
+if [[ ! -f "$GZIP_CONF" ]]; then
+  sudo tee "$GZIP_CONF" >/dev/null <<'NGX'
+gzip_types text/plain text/css text/xml application/json application/javascript application/xml image/svg+xml font/woff2;
+gzip_min_length 1024;
+gzip_comp_level 5;
+gzip_proxied any;
+gzip_vary on;
+NGX
+  if sudo nginx -t 2>/dev/null; then
+    sudo systemctl reload nginx
+    echo "==> gzip enabled for JSON/CSS/JS"
+  else
+    sudo rm -f "$GZIP_CONF"
+    echo "==> gzip settings already defined elsewhere — skipped"
+  fi
+fi
+
+# 4) HTTP/2 on the HTTPS listeners (many parallel requests over one connection).
+mapfile -t SSL_FILES < <(sudo grep -lE 'listen\s+(\[::\]:)?443\s+ssl' /etc/nginx/sites-available/* /etc/nginx/conf.d/*.conf 2>/dev/null || true)
+for file in "${SSL_FILES[@]}"; do
+  [[ -f "$file" ]] || continue
+  sudo grep -qE 'listen[^;]*443[^;]*http2|^\s*http2\s+on' "$file" && continue
+  sudo cp -a "$file" "$file.bak-http2"
+  sudo sed -i -E 's/(listen\s+(\[::\]:)?443\s+ssl)([ ;])/\1 http2\3/' "$file"
+  if sudo nginx -t 2>/dev/null; then
+    sudo systemctl reload nginx
+    echo "==> HTTP/2 enabled in $file"
+  else
+    sudo cp -a "$file.bak-http2" "$file"
+    echo "==> HTTP/2 not supported by this nginx config — left unchanged ($file)"
+  fi
+done
+
 ENV_FILE="$ROOT/.env.local"
 [[ -f "$ENV_FILE" ]] || ENV_FILE="$ROOT/.env"
 if grep -q '^MEDIA_X_ACCEL=' "$ENV_FILE" 2>/dev/null; then
