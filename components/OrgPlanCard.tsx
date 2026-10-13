@@ -37,7 +37,7 @@ export function OrgPlanCard({ plan, goldGradient, busy, disabled, onBuy }: Props
     <article className="lh-plan-card flex h-full flex-col rounded-2xl border border-amber-500/40 bg-linear-to-b from-[#1b1306] via-[#120d07] to-[#0a0808] p-6 shadow-[0_0_30px_rgba(249,177,77,0.2)] transition-all hover:-translate-y-0.5 hover:border-amber-300/75 hover:shadow-[0_0_42px_rgba(249,177,77,0.3)]">
       <p className="text-sm font-semibold text-amber-300">{plan.title}</p>
       <p className="mt-1 text-sm text-gray-300">{plan.tagline}</p>
-      <p className="mt-4 text-sm leading-relaxed text-gray-400">{plan.desc}</p>
+      <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-gray-400">{plan.desc}</p>
 
       {tiers.length > 0 && tier ? (
         <>
