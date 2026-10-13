@@ -7,7 +7,7 @@ import {
 } from "@/lib/learner-course-progress";
 import type { ModuleExamScore } from "@/lib/learner-exam-scores";
 import { examScoresStorageKey, readModuleExamScores } from "@/lib/learner-exam-scores";
-import { readApiResult } from "@/lib/safe-json";
+import { readApiResult, readJsonResponse } from "@/lib/safe-json";
 import type { StoredLearnerCourseProgress } from "@/lib/server/learner-course-progress-store";
 
 const pushTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -86,62 +86,101 @@ export async function syncLearnerCourseProgressFromServer(
       // Do not upload this browser's leftover progress onto a learner who has none yet.
       return null;
     }
-
-    const { completedModules, examScores } = data.progress;
-    let changed = false;
-
-    if (completedModules.length > 0) {
-      const existing = new Set(readCompletedModules(slug));
-      const merged = Array.from(new Set([...existing, ...completedModules])).sort((a, b) => a - b);
-      if (merged.length !== existing.size || merged.some((n) => !existing.has(n))) {
-        writeCompletedModules(slug, merged, merged.length, { skipServerPush: true });
-        changed = true;
-      }
-    }
-
-    if (examScores && Object.keys(examScores).length > 0) {
-      const local = readModuleExamScores(slug);
-      const next: Record<string, ModuleExamScore> = { ...local };
-      for (const [key, score] of Object.entries(examScores)) {
-        const prev = next[key];
-        if (!prev?.passed && score.passed) {
-          next[key] = score;
-          changed = true;
-        } else if (!prev) {
-          next[key] = score;
-          changed = true;
-        } else if ((score.percent ?? 0) > (prev.percent ?? 0)) {
-          next[key] = { ...score, passed: score.passed || prev.passed };
-          changed = true;
-        }
-      }
-      if (changed) {
-        window.localStorage.setItem(examScoresStorageKey(slug), JSON.stringify(next));
-        window.dispatchEvent(
-          new CustomEvent("sft-exam-scores-updated", { detail: { courseSlug: slug } }),
-        );
-      }
-    }
-
-    // Always push merged local+server state so neither side loses progress.
-    pushLearnerCourseProgressToServer(slug);
-
-    if (changed) {
-      notifyCourseProgressUpdated(slug);
-    }
-
+    applyServerProgress(slug, data.progress);
     return data.progress;
   } catch {
     return null;
   }
 }
 
-/** Pull server progress for every enrolled course (My Learning dashboard). */
-export async function syncAllLearnerCourseProgressFromServer(
-  courseSlugs: string[],
-): Promise<void> {
-  const unique = Array.from(
-    new Set(courseSlugs.map((s) => canonicalCourseSlug(s)).filter(Boolean)),
-  );
-  await Promise.all(unique.map((slug) => syncLearnerCourseProgressFromServer(slug)));
+/**
+ * Merge one course's server progress into localStorage. Pushes back to the server only when this
+ * browser has progress the server is missing — a push per course on every dashboard visit used
+ * up the per-learner save rate limit and blocked real lesson saves.
+ */
+function applyServerProgress(slug: string, progress: StoredLearnerCourseProgress): void {
+  const { completedModules, examScores } = progress;
+  let changed = false;
+
+  const local = new Set(readCompletedModules(slug));
+  const server = new Set(completedModules ?? []);
+  let localAhead = Array.from(local).some((n) => !server.has(n));
+
+  if (server.size > 0) {
+    const merged = Array.from(new Set([...local, ...server])).sort((a, b) => a - b);
+    if (merged.length !== local.size || merged.some((n) => !local.has(n))) {
+      writeCompletedModules(slug, merged, merged.length, { skipServerPush: true });
+      changed = true;
+    }
+  }
+
+  const localScores = readModuleExamScores(slug);
+  const serverScores = examScores ?? {};
+  for (const [key, score] of Object.entries(localScores)) {
+    const remote = serverScores[key];
+    if (!remote || (score.passed && !remote.passed) || (score.percent ?? 0) > (remote.percent ?? 0)) {
+      localAhead = true;
+    }
+  }
+
+  if (Object.keys(serverScores).length > 0) {
+    const next: Record<string, ModuleExamScore> = { ...localScores };
+    let scoresChanged = false;
+    for (const [key, score] of Object.entries(serverScores)) {
+      const prev = next[key];
+      if (!prev || (!prev.passed && score.passed)) {
+        next[key] = score;
+        scoresChanged = true;
+      } else if ((score.percent ?? 0) > (prev.percent ?? 0)) {
+        next[key] = { ...score, passed: score.passed || prev.passed };
+        scoresChanged = true;
+      }
+    }
+    if (scoresChanged) {
+      changed = true;
+      window.localStorage.setItem(examScoresStorageKey(slug), JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent("sft-exam-scores-updated", { detail: { courseSlug: slug } }));
+    }
+  }
+
+  if (localAhead) pushLearnerCourseProgressToServer(slug);
+  if (changed) notifyCourseProgressUpdated(slug);
+}
+
+const SYNC_ALL_MIN_GAP_MS = 15_000;
+let syncAllInFlight: Promise<void> | null = null;
+let syncAllLast = { key: "", at: 0 };
+
+/** Pull server progress for every enrolled course in one request (My Learning dashboard). */
+export function syncAllLearnerCourseProgressFromServer(courseSlugs: string[]): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  const unique = Array.from(new Set(courseSlugs.map((s) => canonicalCourseSlug(s)).filter(Boolean))).sort();
+  if (unique.length === 0 || !getLearnerEmail()?.trim()) return Promise.resolve();
+
+  const key = unique.join(",");
+  if (syncAllInFlight) return syncAllInFlight;
+  if (syncAllLast.key === key && Date.now() - syncAllLast.at < SYNC_ALL_MIN_GAP_MS) return Promise.resolve();
+
+  syncAllInFlight = (async () => {
+    try {
+      const res = await fetch(`/api/learner/course-progress?slugs=${encodeURIComponent(key)}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const data = await readJsonResponse(res, {} as {
+        ok?: boolean;
+        progressBySlug?: Record<string, StoredLearnerCourseProgress | null>;
+      });
+      if (!res.ok || !data.ok || !data.progressBySlug) return;
+      for (const [slug, progress] of Object.entries(data.progressBySlug)) {
+        if (progress) applyServerProgress(slug, progress);
+      }
+      syncAllLast = { key, at: Date.now() };
+    } catch {
+      /* offline — keep local progress */
+    } finally {
+      syncAllInFlight = null;
+    }
+  })();
+  return syncAllInFlight;
 }

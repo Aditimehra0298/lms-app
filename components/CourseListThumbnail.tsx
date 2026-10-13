@@ -35,6 +35,10 @@ export function CourseListThumbnail({
     raw && !isGenericCoursePlaceholder(raw) && !isProtectedMediaUrl(raw) ? raw : "",
   );
   const [attempt, setAttempt] = useState(0);
+  // Cover images are also served by the cacheable public /api/covers route — try that before
+  // spending two token round-trips per thumbnail.
+  const publicCover = /\.(jpe?g|png|webp|gif)(\?|$)/i.test(raw) && isProtectedMediaUrl(raw) ? fallbacks[0] ?? "" : "";
+  const [useToken, setUseToken] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +50,10 @@ export function CourseListThumbnail({
     }
     if (!isProtectedMediaUrl(next)) {
       setSrc(resolveCourseImageSrc(next) || next);
+      return;
+    }
+    if (publicCover && !useToken) {
+      setSrc(publicCover);
       return;
     }
     setSrc("");
@@ -78,7 +86,7 @@ export function CourseListThumbnail({
     return () => {
       cancelled = true;
     };
-  }, [raw, courseSlug, fallbacks]);
+  }, [raw, courseSlug, fallbacks, publicCover, useToken]);
 
   const box =
     className ??
@@ -107,6 +115,10 @@ export function CourseListThumbnail({
             : "h-full w-full object-cover object-center"
         }
         onError={() => {
+          if (src === publicCover && !useToken) {
+            setUseToken(true);
+            return;
+          }
           const tried = new Set([src, ...fallbacks.slice(0, attempt + 1)]);
           const next = fallbacks.find((u) => !tried.has(u));
           if (next) {

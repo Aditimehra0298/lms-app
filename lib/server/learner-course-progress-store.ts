@@ -136,6 +136,33 @@ function parseProgressFileRaw(
 async function writeStore(data: ProgressFile): Promise<void> {
   await ensureStoreFile();
   await atomicWriteJson(storePath, data);
+  readCache = null;
+}
+
+/** Parsed file reused across read-only requests until the file changes on disk. */
+let readCache: { mtimeMs: number; size: number; data: ProgressFile } | null = null;
+
+async function readStoreCached(): Promise<ProgressFile> {
+  try {
+    const info = await fs.stat(storePath);
+    if (readCache && readCache.mtimeMs === info.mtimeMs && readCache.size === info.size) {
+      return readCache.data;
+    }
+    const data = await readStore();
+    readCache = { mtimeMs: info.mtimeMs, size: info.size, data };
+    return data;
+  } catch {
+    return readStore();
+  }
+}
+
+function copyProgress(row: StoredLearnerCourseProgress | undefined): StoredLearnerCourseProgress | null {
+  if (!row) return null;
+  return {
+    completedModules: [...(row.completedModules ?? [])],
+    examScores: { ...(row.examScores ?? {}) },
+    updatedAt: row.updatedAt,
+  };
 }
 
 export async function getLearnerCourseProgressFromStore(
@@ -145,8 +172,8 @@ export async function getLearnerCourseProgressFromStore(
   const email = normalizeLearnerEmail(learnerEmail);
   const slug = canonicalCourseSlug(courseSlug);
   if (!email || !slug) return null;
-  const store = await readStore();
-  return store.learners[email]?.[slug] ?? null;
+  const store = await readStoreCached();
+  return copyProgress(store.learners[email]?.[slug]);
 }
 
 /** All course progress rows for one learner (email key in the JSON store). */
@@ -155,9 +182,15 @@ export async function listLearnerCourseProgressFromStore(
 ): Promise<Record<string, StoredLearnerCourseProgress>> {
   const email = normalizeLearnerEmail(learnerEmail);
   if (!email) return {};
-  const store = await readStore();
+  const store = await readStoreCached();
   const bySlug = store.learners[email];
-  return bySlug && typeof bySlug === "object" ? { ...bySlug } : {};
+  if (!bySlug || typeof bySlug !== "object") return {};
+  const out: Record<string, StoredLearnerCourseProgress> = {};
+  for (const [slug, row] of Object.entries(bySlug)) {
+    const copy = copyProgress(row);
+    if (copy) out[slug] = copy;
+  }
+  return out;
 }
 
 /** Full progress file map: email → courseSlug → progress (one disk read). */
@@ -166,6 +199,46 @@ export async function readAllLearnerCourseProgressStore(): Promise<
 > {
   const store = await readStore();
   return store.learners ?? {};
+}
+
+/**
+ * Progress for many courses of one learner in one pass (My Learning dashboard), healing courses
+ * that already have a ready certificate the same way the single-course GET does.
+ */
+export async function getLearnerProgressForSlugs(
+  learnerEmail: string,
+  courseSlugs: string[],
+): Promise<Record<string, StoredLearnerCourseProgress | null>> {
+  const email = normalizeLearnerEmail(learnerEmail);
+  const slugs = Array.from(new Set(courseSlugs.map((s) => canonicalCourseSlug(s)).filter(Boolean)));
+  const out: Record<string, StoredLearnerCourseProgress | null> = {};
+  if (!email || slugs.length === 0) return out;
+
+  const stored = await listLearnerCourseProgressFromStore(email);
+  for (const slug of slugs) out[slug] = stored[slug] ?? null;
+
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const certs = await prisma.lmsCertificate.findMany({
+      where: { learnerEmail: email, status: "ready" },
+      orderBy: { issuedAt: "desc" },
+      select: { scorePercent: true, courseSlug: true },
+    });
+    const seen = new Set<string>();
+    for (const cert of certs) {
+      const slug = canonicalCourseSlug(cert.courseSlug) || cert.courseSlug.trim().toLowerCase();
+      if (!slug || seen.has(slug) || !(slug in out)) continue;
+      seen.add(slug);
+      out[slug] = await ensureProgressForReadyCertificate({
+        learnerEmail: email,
+        courseSlug: slug,
+        scorePercent: cert.scorePercent,
+      });
+    }
+  } catch (err) {
+    console.warn("[learner-course-progress-store] batch cert sync skipped:", err);
+  }
+  return out;
 }
 
 export async function upsertLearnerCourseProgressInStore(input: {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
 import {
   getLearnerCourseProgressFromStore,
+  getLearnerProgressForSlugs,
   upsertLearnerCourseProgressInStore,
   syncProgressFromReadyCertificateIfNeeded,
   type StoredModuleExamScore,
@@ -21,6 +22,7 @@ import { DEFAULT_MODULE_EXAM_PASS_PERCENT } from "@/lib/learner-exam-scores";
 export const dynamic = "force-dynamic";
 
 const MAX_MODULE_INDEX = 200;
+const MAX_BATCH_SLUGS = 300;
 const EXAM_KEY_RE = /^(final|\d{1,3})$/i;
 
 function sanitizeExamScores(
@@ -71,6 +73,23 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   // Ignore ?email= — session identity only (POC-D-07 / POC-C-04).
   void url.searchParams.get("email");
+
+  const slugList = url.searchParams.get("slugs");
+  if (slugList !== null) {
+    const slugs = slugList
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, MAX_BATCH_SLUGS);
+    try {
+      const progressBySlug = await getLearnerProgressForSlugs(email, slugs);
+      return NextResponse.json({ ok: true, progressBySlug }, { headers: { "Cache-Control": "no-store" } });
+    } catch (err) {
+      console.error("[api/learner/course-progress GET batch]", err);
+      return NextResponse.json({ ok: false, message: "Could not load progress." }, { status: 503 });
+    }
+  }
+
   const slug = canonicalCourseSlug(url.searchParams.get("slug")?.trim() ?? "");
   if (!slug) {
     return NextResponse.json({ ok: false, message: "slug query required" }, { status: 400 });

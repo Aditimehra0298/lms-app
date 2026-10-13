@@ -78,8 +78,12 @@ const nextConfig: NextConfig = {
       source: "/:file([^/]+\\.(?:png|jpe?g|webp|gif|svg|ico|avif|mp4|webm|woff2?))",
       headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" }],
     };
+    const coverCache = {
+      source: "/:prefix(api|uploads)/covers/:path*",
+      headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
+    };
     if (process.env.NODE_ENV === "development") {
-      return [coverHeaders, htmlNoStore];
+      return [coverHeaders, htmlNoStore, coverCache];
     }
     return [
       {
@@ -89,6 +93,7 @@ const nextConfig: NextConfig = {
       coverHeaders,
       htmlNoStore,
       publicAssets,
+      coverCache,
     ];
   },
   webpack: (config, { dev }) => {
