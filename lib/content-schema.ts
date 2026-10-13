@@ -1089,6 +1089,8 @@ export type HomePageOrgPlan = {
   note: string;
   features: string[];
   cta: string;
+  /** Where the button goes (e.g. /contact). */
+  href?: string;
 };
 
 export type HomePageFaq = {
@@ -1122,10 +1124,10 @@ export type HomePageConfig = {
   whyFeatures: HomePageWhyFeature[];
   testimonials: HomePageTestimonial[];
   individualPlans: HomePagePlan[];
-  /** Annual team plan (shown second). */
+  /** Legacy single team plan — superseded by `orgPlans`. */
   orgPlan: HomePageOrgPlan;
-  /** Monthly team plan (shown first); falls back to `defaultOrgMonthlyPlan`. */
-  orgPlanMonthly?: HomePageOrgPlan;
+  /** Organisation pricing cards; falls back to `defaultOrgPlans`. */
+  orgPlans?: HomePageOrgPlan[];
   faqs: HomePageFaq[];
   newsletter: HomePageNewsletter;
   unlock: HomePageUnlock;
@@ -1139,20 +1141,38 @@ export type HomePageConfig = {
   testimonialsPage: HomePageSectionMeta;
 };
 
-export const defaultOrgMonthlyPlan: HomePageOrgPlan = {
-  title: "Most Popular · Sustainable Futures for Teams Monthly",
-  tagline: "Flexible team training, billed monthly",
-  desc: "Give your employees access to professional learning programs with the flexibility to add or remove learners every month.",
-  price: "₹2,999 / month",
-  note: "Per user per month · Cancel anytime",
-  features: [
-    "Upskill up to 125 employees",
-    "Unlimited access to the full course catalog",
-    "Assign courses and track team progress",
-    "Team reports and certificates",
-  ],
-  cta: "Get Started for Teams",
-};
+export const defaultOrgPlans: HomePageOrgPlan[] = [
+  {
+    title: "Most Popular · Teams Annual All-Access",
+    tagline: "Every self-paced course for your team, for 1 year",
+    desc: "One yearly subscription that gives up to 20 employees unlimited access to the complete self-paced course library.",
+    price: "₹2,50,000 / year",
+    note: "20 employee seats · 12 months access",
+    features: [
+      "20 employee seats included",
+      "All self-paced courses in the LMS",
+      "Assign any number of courses to each employee",
+      "Team dashboard, progress reports and certificates",
+    ],
+    cta: "Get Started for Teams",
+    href: "/account?mode=register",
+  },
+  {
+    title: "Custom Plan",
+    tagline: "Built around your organisation's requirements",
+    desc: "Need more seats, specific courses, tutor-led or onsite training? We'll create a plan that fits your team and budget.",
+    price: "Custom pricing",
+    note: "Tailored seats, courses and duration",
+    features: [
+      "Choose the number of employee seats",
+      "Pick self-paced, tutor-led or onsite courses",
+      "Flexible duration and billing",
+      "Dedicated support for setup and reporting",
+    ],
+    cta: "Contact Sales",
+    href: "/contact",
+  },
+];
 
 export const defaultHomePageConfig: HomePageConfig = {
   hero: {
@@ -1272,20 +1292,20 @@ export const defaultHomePageConfig: HomePageConfig = {
     },
   ],
   orgPlan: {
-    title: "Sustainable Futures for Teams Annual",
-    tagline: "One year of every self-paced course for your team",
-    desc: "A 1-year subscription to all self-paced courses on the LMS. Add up to 20 employees and assign each of them as many courses as they need.",
+    title: "Sustainable Futures for Teams",
+    tagline: "Accelerate team performance",
+    desc: "Help employees master new skills and reach their goals with access to world-class learning programs built for modern teams.",
     price: "₹24,019.74 / year",
-    note: "12-month subscription · 20 employee seats",
+    note: "Per user for 12 months · 14-day money-back guarantee",
     features: [
-      "All self-paced courses included for 1 year",
-      "20 employee seats with their own logins",
-      "Unlimited courses per employee",
-      "Assign courses, track progress, and download team reports",
+      "Upskill up to 125 employees",
+      "Unlimited access to 8,500 learning opportunities",
+      "Program setup and launch tools",
+      "Analytics and benchmarking dashboard",
     ],
     cta: "Get Started for Teams",
   },
-  orgPlanMonthly: defaultOrgMonthlyPlan,
+  orgPlans: defaultOrgPlans,
   faqs: [
     { q: "What is Sustainable Futures Trainings?", a: "Sustainable Futures Trainings is a professional learning platform offering industry-focused courses, live workshops, tutor-led training, and certification programs for individuals and organizations." },
     { q: "What types of learning programs do you offer?", a: "We provide self-paced courses, tutor-led live training, interactive workshops, corporate training, and certification-focused learning programs." },

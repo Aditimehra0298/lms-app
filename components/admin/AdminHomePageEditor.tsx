@@ -55,7 +55,7 @@ import type {
   HomePageUnlock,
   HomePageWhyFeature,
 } from "@/lib/content-schema";
-import { defaultHomePageConfig, defaultOrgMonthlyPlan } from "@/lib/content-schema";
+import { defaultHomePageConfig, defaultOrgPlans } from "@/lib/content-schema";
 import Link from "next/link";
 import AdminTestimonialPhotoField from "@/components/admin/AdminTestimonialPhotoField";
 
@@ -297,10 +297,10 @@ export default function AdminHomePageEditor() {
   const updateHero = (patch: Partial<HomePageHero>) => setConfig((p) => ({ ...p, hero: { ...p.hero, ...patch } }));
   const updateNewsletter = (patch: Partial<HomePageNewsletter>) => setConfig((p) => ({ ...p, newsletter: { ...p.newsletter, ...patch } }));
   const updateUnlock = (patch: Partial<HomePageUnlock>) => setConfig((p) => ({ ...p, unlock: { ...p.unlock, ...patch } }));
-  const updateOrgPlan = (patch: Partial<HomePageOrgPlan>) => setConfig((p) => ({ ...p, orgPlan: { ...p.orgPlan, ...patch } }));
-  const orgMonthly = config.orgPlanMonthly ?? defaultOrgMonthlyPlan;
-  const updateOrgMonthly = (patch: Partial<HomePageOrgPlan>) =>
-    setConfig((p) => ({ ...p, orgPlanMonthly: { ...(p.orgPlanMonthly ?? defaultOrgMonthlyPlan), ...patch } }));
+  const orgPlans = config.orgPlans?.length ? config.orgPlans : defaultOrgPlans;
+  const setOrgPlans = (next: HomePageOrgPlan[]) => setConfig((p) => ({ ...p, orgPlans: next }));
+  const setOrgPlanAt = (i: number, patch: Partial<HomePageOrgPlan>) =>
+    setOrgPlans(orgPlans.map((pl, idx) => (idx === i ? { ...pl, ...patch } : pl)));
 
   const setStat = (i: number, patch: Partial<HomePageStat>) => setConfig((p) => ({ ...p, stats: p.stats.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) }));
   const addStat = () => setConfig((p) => ({ ...p, stats: [...p.stats, { value: "0", label: "New Stat" }] }));
@@ -468,27 +468,21 @@ export default function AdminHomePageEditor() {
             <div><label className={labelCls}>Features (one per line)</label><textarea className={inputCls} rows={3} value={plan.features.join("\n")} onChange={(e) => setIndPlan(idx, { features: e.target.value.split("\n") })} /></div>
           </div>))}
 
-          <p className="text-xs font-semibold text-gray-300 pt-2">Organisation Plan — Monthly (shown first)</p>
-          <div className={itemCls}>
-            <div className="space-y-2">
-              <div className="grid gap-2 sm:grid-cols-2"><div><label className={labelCls}>Title</label><input className={inputCls} value={orgMonthly.title} onChange={(e) => updateOrgMonthly({ title: e.target.value })} /></div><div><label className={labelCls}>Price</label><input className={inputCls} value={orgMonthly.price} onChange={(e) => updateOrgMonthly({ price: e.target.value })} /></div></div>
-              <div><label className={labelCls}>Tagline</label><input className={inputCls} value={orgMonthly.tagline} onChange={(e) => updateOrgMonthly({ tagline: e.target.value })} /></div>
-              <div><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={orgMonthly.desc} onChange={(e) => updateOrgMonthly({ desc: e.target.value })} /></div>
-              <div className="grid gap-2 sm:grid-cols-2"><div><label className={labelCls}>Note</label><input className={inputCls} value={orgMonthly.note} onChange={(e) => updateOrgMonthly({ note: e.target.value })} /></div><div><label className={labelCls}>CTA</label><input className={inputCls} value={orgMonthly.cta} onChange={(e) => updateOrgMonthly({ cta: e.target.value })} /></div></div>
-              <div><label className={labelCls}>Features (one per line)</label><textarea className={inputCls} rows={3} value={orgMonthly.features.join("\n")} onChange={(e) => updateOrgMonthly({ features: e.target.value.split("\n") })} /></div>
+          <p className="text-xs font-semibold text-gray-300 pt-2">Organisation Plans</p>
+          {orgPlans.map((plan, idx) => (
+            <div key={idx} className={`space-y-2 ${itemCls}`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-amber-200">Plan {idx + 1}</span>
+                <button type="button" onClick={() => setOrgPlans(orgPlans.filter((_, i) => i !== idx))} className={btnDanger} disabled={orgPlans.length <= 1}><Trash2 size={13} /></button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2"><div><label className={labelCls}>Title</label><input className={inputCls} value={plan.title} onChange={(e) => setOrgPlanAt(idx, { title: e.target.value })} /></div><div><label className={labelCls}>Price (e.g. ₹2,50,000 / year or Custom pricing)</label><input className={inputCls} value={plan.price} onChange={(e) => setOrgPlanAt(idx, { price: e.target.value })} /></div></div>
+              <div><label className={labelCls}>Tagline</label><input className={inputCls} value={plan.tagline} onChange={(e) => setOrgPlanAt(idx, { tagline: e.target.value })} /></div>
+              <div><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={plan.desc} onChange={(e) => setOrgPlanAt(idx, { desc: e.target.value })} /></div>
+              <div className="grid gap-2 sm:grid-cols-3"><div><label className={labelCls}>Note</label><input className={inputCls} value={plan.note} onChange={(e) => setOrgPlanAt(idx, { note: e.target.value })} /></div><div><label className={labelCls}>Button text</label><input className={inputCls} value={plan.cta} onChange={(e) => setOrgPlanAt(idx, { cta: e.target.value })} /></div><div><label className={labelCls}>Button link</label><input className={inputCls} value={plan.href ?? ""} placeholder="/contact" onChange={(e) => setOrgPlanAt(idx, { href: e.target.value })} /></div></div>
+              <div><label className={labelCls}>Features (one per line)</label><textarea className={inputCls} rows={3} value={plan.features.join("\n")} onChange={(e) => setOrgPlanAt(idx, { features: e.target.value.split("\n") })} /></div>
             </div>
-          </div>
-
-          <p className="text-xs font-semibold text-gray-300 pt-2">Organisation Plan — Annual</p>
-          <div className={itemCls}>
-            <div className="space-y-2">
-              <div className="grid gap-2 sm:grid-cols-2"><div><label className={labelCls}>Title</label><input className={inputCls} value={config.orgPlan.title} onChange={(e) => updateOrgPlan({ title: e.target.value })} /></div><div><label className={labelCls}>Price</label><input className={inputCls} value={config.orgPlan.price} onChange={(e) => updateOrgPlan({ price: e.target.value })} /></div></div>
-              <div><label className={labelCls}>Tagline</label><input className={inputCls} value={config.orgPlan.tagline} onChange={(e) => updateOrgPlan({ tagline: e.target.value })} /></div>
-              <div><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={config.orgPlan.desc} onChange={(e) => updateOrgPlan({ desc: e.target.value })} /></div>
-              <div className="grid gap-2 sm:grid-cols-2"><div><label className={labelCls}>Note</label><input className={inputCls} value={config.orgPlan.note} onChange={(e) => updateOrgPlan({ note: e.target.value })} /></div><div><label className={labelCls}>CTA</label><input className={inputCls} value={config.orgPlan.cta} onChange={(e) => updateOrgPlan({ cta: e.target.value })} /></div></div>
-              <div><label className={labelCls}>Features (one per line)</label><textarea className={inputCls} rows={3} value={config.orgPlan.features.join("\n")} onChange={(e) => updateOrgPlan({ features: e.target.value.split("\n") })} /></div>
-            </div>
-          </div>
+          ))}
+          <button type="button" onClick={() => setOrgPlans([...orgPlans, { title: "New plan", tagline: "", desc: "", price: "", note: "", features: [], cta: "Contact Sales", href: "/contact" }])} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:border-amber-400/50">+ Add organisation plan</button>
         </div>
       )}</div>
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HomePageConfig, ManagedCategory, ManagedCourse, TutorLedCatalogLandingStored } from "@/lib/content-schema";
-import { defaultHomePageConfig, defaultOrgMonthlyPlan } from "@/lib/content-schema";
+import { defaultHomePageConfig, defaultOrgPlans } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
@@ -680,8 +680,8 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   }));
   const liveFaqs = homeConfig.faqs;
   const liveIndividualPlans = homeConfig.individualPlans;
-  const liveOrgPlans = [homeConfig.orgPlanMonthly ?? defaultOrgMonthlyPlan, homeConfig.orgPlan].filter(
-    (plan): plan is NonNullable<typeof plan> => Boolean(plan?.title),
+  const liveOrgPlans = (homeConfig.orgPlans?.length ? homeConfig.orgPlans : defaultOrgPlans).filter((plan) =>
+    Boolean(plan?.title?.trim()),
   );
   const liveExploreProgramImages = homeConfig.exploreProgramImages.length > 0 ? homeConfig.exploreProgramImages : exploreProgramImages;
   const liveAccreditationLogos =
@@ -1673,7 +1673,11 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                     <p className="text-sm font-semibold text-amber-300">{plan.title}</p>
                     <p className="mt-1 text-sm text-gray-300">{plan.tagline}</p>
                     <p className="mt-4 text-sm leading-relaxed text-gray-400">{plan.desc}</p>
-                    <CoursePrice label={plan.price ?? ""} className="mt-5 block text-2xl font-bold text-white" />
+                    {/\d/.test(plan.price ?? "") ? (
+                      <CoursePrice label={plan.price} className="mt-5 block text-2xl font-bold text-white" />
+                    ) : (
+                      <p className="mt-5 text-2xl font-bold text-white">{plan.price}</p>
+                    )}
                     {plan.note ? <p className="mt-1 text-xs text-amber-100/90">{plan.note}</p> : null}
                     <ul className="mt-5 space-y-2 text-sm text-gray-200">
                       {(plan.features ?? []).filter(Boolean).map((feature) => (
@@ -1683,12 +1687,14 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                         </li>
                       ))}
                     </ul>
-                    <button
-                      type="button"
-                      className={`mt-6 inline-flex w-fit items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
-                    >
-                      {plan.cta} <ChevronRight size={16} />
-                    </button>
+                    <div className="mt-auto pt-6">
+                      <Link
+                        href={plan.href?.trim() || "/contact"}
+                        className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
+                      >
+                        {plan.cta} <ChevronRight size={16} />
+                      </Link>
+                    </div>
                   </article>
                 ))}
               </div>
