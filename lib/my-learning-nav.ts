@@ -68,11 +68,6 @@ export const MY_LEARNING_ORG_NAV: MyLearningNavItem[] = [
     match: { tab: "org-report" },
   },
   {
-    label: "📚 Team Courses",
-    href: "/my-learning?tab=org-courses",
-    match: { tab: "org-courses" },
-  },
-  {
     label: "📖 Team Progress",
     href: "/my-learning?tab=learning",
     match: { tab: ["learning", "progress"] },

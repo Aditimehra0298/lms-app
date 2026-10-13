@@ -89,7 +89,7 @@ export function MyLearningOrganizationAssignmentsTab({ rows }: Props) {
       <div className="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-black/30">
         {visible.length === 0 ? (
           <p className="p-8 text-center text-sm text-gray-400">
-            No team exams are set up yet. Assign courses from Team Courses and check back once
+            No team exams are set up yet. Assign courses from Assign Courses and check back once
             employees begin self-paced lessons or live training.
           </p>
         ) : (

@@ -145,8 +145,8 @@ export function MyLearningOrganizationAssignCourses({
           </h2>
           <p className="mt-1 text-xs text-zinc-500">
             Buy more from{" "}
-            <Link href="/my-learning?tab=org-courses" className="text-amber-200 hover:underline">
-              Team Courses
+            <Link href="/courses" className="text-amber-200 hover:underline">
+              Courses
             </Link>{" "}
             or{" "}
             <Link href="/my-learning?tab=subscriptions" className="text-amber-200 hover:underline">
