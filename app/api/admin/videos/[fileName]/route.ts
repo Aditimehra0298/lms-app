@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { assertMainAdmin } from "@/lib/server/admin-api-auth";
 import { isVideoFileName } from "@/lib/server/admin-video-library";
 import { parseByteRange } from "@/lib/server/media-request-guard";
+import { xAccelEnabled, xAccelResponse } from "@/lib/server/media-x-accel";
 import { mimeFromFileName, resolveMediaFilePath } from "@/lib/server/private-media-storage";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +40,6 @@ export async function GET(request: Request, { params }: Params) {
   const requested = new URL(request.url).searchParams.get("name")?.trim();
   const downloadName = requested && !/[\\/]/.test(requested) ? requested.slice(0, 255) : fileName;
 
-  const info = await stat(filePath);
   const headers: Record<string, string> = {
     "Content-Type": mimeFromFileName(fileName),
     "Content-Disposition": attachment(downloadName),
@@ -47,6 +47,12 @@ export async function GET(request: Request, { params }: Params) {
     "Accept-Ranges": "bytes",
     "X-Content-Type-Options": "nosniff",
   };
+  if (xAccelEnabled()) {
+    const accel = xAccelResponse(filePath, headers);
+    if (accel) return accel;
+  }
+
+  const info = await stat(filePath);
 
   const range = parseByteRange(request.headers.get("range"), info.size);
   if (range) {

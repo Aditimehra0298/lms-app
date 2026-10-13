@@ -7,6 +7,7 @@ import { verifyMediaAccessToken } from "@/lib/server/media-access-token";
 import { learnerMediaStreamAllowed, parseByteRange } from "@/lib/server/media-request-guard";
 import { readAdminSessionEmail } from "@/lib/server/admin-session";
 import { readLearnerSessionEmail } from "@/lib/server/learner-session";
+import { xAccelEnabled, xAccelResponse } from "@/lib/server/media-x-accel";
 import {
   mimeFromFileName,
   resolveMediaFilePath,
@@ -119,8 +120,16 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const info = await stat(filePath);
   const mime = mimeEarly;
+  if (xAccelEnabled()) {
+    const accel = xAccelResponse(
+      filePath,
+      mediaHeaders(mime, fileName, forceDownload, { "Content-Type": mime }),
+    );
+    if (accel) return accel;
+  }
+
+  const info = await stat(filePath);
   const range = parseByteRange(request.headers.get("range"), info.size);
 
   if (range) {
