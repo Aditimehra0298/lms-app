@@ -38,6 +38,10 @@ export function OrganizationSeatPricingBlock({
     () => resolveOrganizationCoursePriceBySeatCount(course, region, numericSeats),
     [course, region, numericSeats],
   );
+  const singleSeat = useMemo(
+    () => resolveOrganizationCoursePriceBySeatCount(course, region, 1),
+    [course, region],
+  );
 
   return (
     <div className={isPurchaseCard ? "space-y-3" : "space-y-4"}>
@@ -77,7 +81,19 @@ export function OrganizationSeatPricingBlock({
       ) : !showPrices || !region ? (
         <p className="text-xs text-gray-500">Sign in to see team pricing.</p>
       ) : !numericSeats ? (
-        <p className="text-xs text-zinc-400">Enter the number of employees to see your team price.</p>
+        <div>
+          {singleSeat.ready ? (
+            <div className="flex flex-wrap items-end gap-2">
+              <CoursePrice
+                label={singleSeat.price}
+                exactLabel
+                className={isPurchaseCard ? "text-2xl font-extrabold text-white" : "text-2xl font-bold text-amber-200"}
+              />
+              <span className="pb-0.5 text-xs text-zinc-400">for 1 employee</span>
+            </div>
+          ) : null}
+          <p className="mt-1 text-xs text-zinc-400">Enter the number of employees to see your team price.</p>
+        </div>
       ) : resolved.ready ? (
         <div>
           {isPurchaseCard ? (

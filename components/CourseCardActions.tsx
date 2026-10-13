@@ -4,6 +4,7 @@ import { type MouseEvent, type ReactNode } from "react";
 import { CoursePrice } from "@/components/CoursePrice";
 import { PriceDescriptionButtonRow } from "@/components/CourseActionButtons";
 import { useLearnerPricing } from "@/lib/hooks/useLearnerPricing";
+import { useIsOrganisationLearner } from "@/lib/hooks/useIsOrganisationLearner";
 
 function stopBubble(e: MouseEvent) {
   e.stopPropagation();
@@ -46,6 +47,7 @@ export default function CourseCardActions({
   trailing,
 }: Props) {
   const { ready } = useLearnerPricing();
+  const isOrganisation = useIsOrganisationLearner();
   const hasCatalogPrice = priceLabel != null && priceLabel !== "";
   const hasInrPrice = priceInr != null;
   const isMultiBatch = Boolean(priceNote?.trim());
@@ -88,6 +90,11 @@ export default function CourseCardActions({
             <span className="ml-1 rounded bg-violet-600/90 px-1.5 py-0.5 text-[10px] font-bold text-white">
               {discountPercent}% OFF
             </span>
+          ) : null}
+          {isOrganisation ? (
+            <p className="mt-0.5 text-[10px] text-zinc-400">
+              For 1 employee · team price on the course page
+            </p>
           ) : null}
         </div>
       ) : (
