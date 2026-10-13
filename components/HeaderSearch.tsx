@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { BookOpen, Layers, Loader2, Radio, Search, Wrench } from "lucide-react";
 
 type Result = { kind: string; title: string; href: string; meta?: string };
@@ -29,6 +29,7 @@ export function HeaderSearch({ variant, isLight = false, goldGradient = "", onNa
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const boxRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
 
   useEffect(() => {
     const q = query.trim();
@@ -113,6 +114,7 @@ export function HeaderSearch({ variant, isLight = false, goldGradient = "", onNa
           placeholder={desktop ? "What do you want to learn?" : "Search courses and resources"}
           aria-label="Search courses"
           role="combobox"
+          aria-controls={listId}
           aria-autocomplete="list"
           aria-expanded={showDropdown}
           className={
@@ -139,6 +141,7 @@ export function HeaderSearch({ variant, isLight = false, goldGradient = "", onNa
 
       {showDropdown ? (
         <div
+          id={listId}
           role="listbox"
           className={`absolute left-0 top-full z-80 mt-2 max-h-[70vh] overflow-y-auto rounded-xl border shadow-2xl ${
             desktop ? "right-12" : "right-0"
