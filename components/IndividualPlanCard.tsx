@@ -7,6 +7,8 @@ import type { HomePagePlan } from "@/lib/content-schema";
 type Props = {
   plan: HomePagePlan;
   categories: { slug: string; title: string; courseCount: number }[];
+  /** Every published self-paced course — what the all-courses plan unlocks. */
+  totalCourses: number;
   goldGradient: string;
   busy: boolean;
   disabled: boolean;
@@ -14,7 +16,7 @@ type Props = {
   onBuy: (planKey: string, categorySlug?: string) => void;
 };
 
-export function IndividualPlanCard({ plan, categories, goldGradient, busy, disabled, initialCategory, onBuy }: Props) {
+export function IndividualPlanCard({ plan, categories, totalCourses, goldGradient, busy, disabled, initialCategory, onBuy }: Props) {
   const needsCategory = plan.scope === "category";
   const [category, setCategory] = useState(
     initialCategory && categories.some((c) => c.slug === initialCategory) ? initialCategory : "",
@@ -72,7 +74,7 @@ export function IndividualPlanCard({ plan, categories, goldGradient, busy, disab
           </div>
         ) : (
           <p className="mt-2 text-xs text-emerald-300">
-            {categories.reduce((n, c) => n + c.courseCount, 0)} self-paced courses across {categories.length} categories
+            All {totalCourses} self-paced courses across {categories.length} categories — plus any added during the year
           </p>
         )}
       </div>

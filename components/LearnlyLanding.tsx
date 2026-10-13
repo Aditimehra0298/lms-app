@@ -798,16 +798,14 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
 
   const catalogForPills = (liveCategories ?? []).filter((c) => c.isActive);
 
+  const selfPacedCourses = catalogCourses.filter(
+    (course) => course.published !== false && (course.learningFormat?.trim() || "self-paced") === "self-paced",
+  );
   const planCategories = catalogForPills
     .map((c) => ({
       slug: c.slug,
       title: c.title,
-      courseCount: catalogCourses.filter(
-        (course) =>
-          course.published !== false &&
-          (course.learningFormat?.trim() || "self-paced") === "self-paced" &&
-          course.category?.toLowerCase() === c.slug.toLowerCase(),
-      ).length,
+      courseCount: selfPacedCourses.filter((course) => course.category?.toLowerCase() === c.slug.toLowerCase()).length,
     }))
     .filter((c) => c.courseCount > 0);
 
@@ -1723,6 +1721,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                     key={plan.badge}
                     plan={plan}
                     categories={planCategories}
+                    totalCourses={selfPacedCourses.length}
                     goldGradient={goldGradient}
                     busy={planCheckoutBusy === plan.checkoutKey}
                     disabled={planCheckoutBusy !== null}
