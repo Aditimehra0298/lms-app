@@ -1673,11 +1673,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                     <p className="text-sm font-semibold text-amber-300">{plan.title}</p>
                     <p className="mt-1 text-sm text-gray-300">{plan.tagline}</p>
                     <p className="mt-4 text-sm leading-relaxed text-gray-400">{plan.desc}</p>
-                    {/\d/.test(plan.price ?? "") ? (
-                      <CoursePrice label={plan.price} className="mt-5 block text-2xl font-bold text-white" />
-                    ) : (
-                      <p className="mt-5 text-2xl font-bold text-white">{plan.price}</p>
-                    )}
+                    {plan.price?.trim() ? (
+                      <p className="mt-5 text-3xl font-extrabold text-white">{plan.price}</p>
+                    ) : null}
                     {plan.note ? <p className="mt-1 text-xs text-amber-100/90">{plan.note}</p> : null}
                     <ul className="mt-5 space-y-2 text-sm text-gray-200">
                       {(plan.features ?? []).filter(Boolean).map((feature) => (
