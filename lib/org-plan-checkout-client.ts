@@ -32,9 +32,9 @@ export function startIndividualPlanCheckout(planKey: string, categorySlug?: stri
 export const IND_PLAN_CHECKOUT_PARAM = "planCheckout";
 export const IND_PLAN_CATEGORY_PARAM = "planCategory";
 
-export function individualPlanLoginHref(planKey: string, categorySlug?: string): string {
+export function individualPlanLoginHref(planKey: string, categorySlug?: string, returnPath = "/"): string {
   const cat = categorySlug ? `&${IND_PLAN_CATEGORY_PARAM}=${encodeURIComponent(categorySlug)}` : "";
-  const next = `/?${IND_PLAN_CHECKOUT_PARAM}=${encodeURIComponent(planKey)}${cat}#pricing`;
+  const next = `${returnPath}?${IND_PLAN_CHECKOUT_PARAM}=${encodeURIComponent(planKey)}${cat}#pricing`;
   return `/account?mode=login&next=${encodeURIComponent(next)}`;
 }
 
@@ -105,9 +105,11 @@ async function runOrgCheckout(
   return { status: "paid" };
 }
 
-export function orgPlanLoginHref(planKey: string, seats?: number): string {
+export function orgPlanLoginHref(planKey: string, seats?: number, returnPath = "/"): string {
   const seatsPart = seats ? `&${ORG_PLAN_SEATS_PARAM}=${seats}` : "";
-  return organisationLoginHref(`/?${ORG_PLAN_CHECKOUT_PARAM}=${encodeURIComponent(planKey)}${seatsPart}#pricing`);
+  return organisationLoginHref(
+    `${returnPath}?${ORG_PLAN_CHECKOUT_PARAM}=${encodeURIComponent(planKey)}${seatsPart}#pricing`,
+  );
 }
 
 export function organisationLoginHref(next: string): string {

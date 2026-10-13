@@ -78,8 +78,9 @@ export default function SiteHeader({ forceDarkChrome = false }: { forceDarkChrom
   ];
   const navLinks = [
     { label: "Home", href: "/" },
-    { label: "Courses", href: "/courses" },
-    { label: "About", href: "/about" },
+  { label: "Courses", href: "/courses" },
+  { label: "Subscriptions", href: "/subscriptions" },
+  { label: "About", href: "/about" },
     { label: "Contact", href: "/contact" },
   ] as const;
   const audienceTabs = AUDIENCE_TABS;
