@@ -504,7 +504,7 @@ export default function AdminHomePageEditor() {
                     </div>
                   );
                 })}
-                <button type="button" onClick={() => { const last = plan.tiers?.[plan.tiers.length - 1]; setOrgPlanAt(idx, { tiers: [...(plan.tiers ?? []), { minSeats: (last?.maxSeats ?? 0) + 1, maxSeats: (last?.maxSeats ?? 0) + 50, pricePerSeat: 999 }] }); }} className="rounded-lg border border-white/15 px-3 py-1 text-[11px] font-semibold text-gray-200 hover:border-amber-400/50">+ Add tier</button>
+                <button type="button" onClick={() => { const last = plan.tiers?.[plan.tiers.length - 1]; setOrgPlanAt(idx, { tiers: [...(plan.tiers ?? []), { minSeats: 1, maxSeats: (last?.maxSeats ?? 0) + 50, pricePerSeat: 999 }] }); }} className="rounded-lg border border-white/15 px-3 py-1 text-[11px] font-semibold text-gray-200 hover:border-amber-400/50">+ Add tier</button>
               </div>
             </div>
           ))}

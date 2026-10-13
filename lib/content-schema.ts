@@ -1187,9 +1187,9 @@ export const defaultOrgPlans: HomePageOrgPlan[] = [
     renewalPercent: 50,
     tiers: [
       { minSeats: 1, maxSeats: 20, pricePerSeat: 9999 },
-      { minSeats: 21, maxSeats: 50, pricePerSeat: 4999 },
-      { minSeats: 51, maxSeats: 100, pricePerSeat: 2999 },
-      { minSeats: 101, maxSeats: 200, pricePerSeat: 1999 },
+      { minSeats: 1, maxSeats: 50, pricePerSeat: 4999 },
+      { minSeats: 1, maxSeats: 100, pricePerSeat: 2999 },
+      { minSeats: 1, maxSeats: 200, pricePerSeat: 1999 },
     ],
   },
   {
