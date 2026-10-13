@@ -1122,7 +1122,10 @@ export type HomePageConfig = {
   whyFeatures: HomePageWhyFeature[];
   testimonials: HomePageTestimonial[];
   individualPlans: HomePagePlan[];
+  /** Annual team plan (shown second). */
   orgPlan: HomePageOrgPlan;
+  /** Monthly team plan (shown first); falls back to `defaultOrgMonthlyPlan`. */
+  orgPlanMonthly?: HomePageOrgPlan;
   faqs: HomePageFaq[];
   newsletter: HomePageNewsletter;
   unlock: HomePageUnlock;
@@ -1134,6 +1137,21 @@ export type HomePageConfig = {
   faqPage: HomePageSectionMeta;
   /** Dedicated /testimonials page copy (home page section uses same testimonial list). */
   testimonialsPage: HomePageSectionMeta;
+};
+
+export const defaultOrgMonthlyPlan: HomePageOrgPlan = {
+  title: "Most Popular · Sustainable Futures for Teams Monthly",
+  tagline: "Flexible team training, billed monthly",
+  desc: "Give your employees access to professional learning programs with the flexibility to add or remove learners every month.",
+  price: "₹2,999 / month",
+  note: "Per user per month · Cancel anytime",
+  features: [
+    "Upskill up to 125 employees",
+    "Unlimited access to the full course catalog",
+    "Assign courses and track team progress",
+    "Team reports and certificates",
+  ],
+  cta: "Get Started for Teams",
 };
 
 export const defaultHomePageConfig: HomePageConfig = {
@@ -1267,6 +1285,7 @@ export const defaultHomePageConfig: HomePageConfig = {
     ],
     cta: "Get Started for Teams",
   },
+  orgPlanMonthly: defaultOrgMonthlyPlan,
   faqs: [
     { q: "What is Sustainable Futures Trainings?", a: "Sustainable Futures Trainings is a professional learning platform offering industry-focused courses, live workshops, tutor-led training, and certification programs for individuals and organizations." },
     { q: "What types of learning programs do you offer?", a: "We provide self-paced courses, tutor-led live training, interactive workshops, corporate training, and certification-focused learning programs." },

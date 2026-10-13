@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HomePageConfig, ManagedCategory, ManagedCourse, TutorLedCatalogLandingStored } from "@/lib/content-schema";
-import { defaultHomePageConfig } from "@/lib/content-schema";
+import { defaultHomePageConfig, defaultOrgMonthlyPlan } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
@@ -680,7 +680,9 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   }));
   const liveFaqs = homeConfig.faqs;
   const liveIndividualPlans = homeConfig.individualPlans;
-  const liveOrgPlan = homeConfig.orgPlan;
+  const liveOrgPlans = [homeConfig.orgPlanMonthly ?? defaultOrgMonthlyPlan, homeConfig.orgPlan].filter(
+    (plan): plan is NonNullable<typeof plan> => Boolean(plan?.title),
+  );
   const liveExploreProgramImages = homeConfig.exploreProgramImages.length > 0 ? homeConfig.exploreProgramImages : exploreProgramImages;
   const liveAccreditationLogos =
     (homeConfig.accreditationLogos?.length ?? 0) > 0
@@ -1661,28 +1663,35 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
               </div>
             </>
           ) : (
-            <div className="mx-auto mt-10 max-w-4xl">
-              <article className="lh-plan-card flex h-full flex-col rounded-2xl border border-amber-500/40 bg-linear-to-b from-[#1b1306] via-[#120d07] to-[#0a0808] p-6 shadow-[0_0_30px_rgba(249,177,77,0.2)] transition-all hover:-translate-y-0.5 hover:border-amber-300/75 hover:shadow-[0_0_42px_rgba(249,177,77,0.3)]">
-                <p className="text-sm font-semibold text-amber-300">{liveOrgPlan?.title}</p>
-                <p className="mt-1 text-sm text-gray-300">{liveOrgPlan?.tagline}</p>
-                <p className="mt-4 text-sm leading-relaxed text-gray-400">{liveOrgPlan?.desc}</p>
-                <CoursePrice label={liveOrgPlan?.price ?? ""} className="mt-5 block text-2xl font-bold text-white" />
-                <p className="mt-1 text-xs text-amber-100/90">{liveOrgPlan?.note}</p>
-                <ul className="mt-5 space-y-2 text-sm text-gray-200">
-                  {(liveOrgPlan?.features ?? []).map((feature) => (
-                    <li key={feature} className="flex items-start gap-2">
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-400" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
-                >
-                  {liveOrgPlan?.cta} <ChevronRight size={16} />
-                </button>
-              </article>
+            <div className="mx-auto mt-10 max-w-6xl">
+              <div className="grid gap-6 md:grid-cols-2">
+                {liveOrgPlans.map((plan) => (
+                  <article
+                    key={plan.title}
+                    className="lh-plan-card flex h-full flex-col rounded-2xl border border-amber-500/40 bg-linear-to-b from-[#1b1306] via-[#120d07] to-[#0a0808] p-6 shadow-[0_0_30px_rgba(249,177,77,0.2)] transition-all hover:-translate-y-0.5 hover:border-amber-300/75 hover:shadow-[0_0_42px_rgba(249,177,77,0.3)]"
+                  >
+                    <p className="text-sm font-semibold text-amber-300">{plan.title}</p>
+                    <p className="mt-1 text-sm text-gray-300">{plan.tagline}</p>
+                    <p className="mt-4 text-sm leading-relaxed text-gray-400">{plan.desc}</p>
+                    <CoursePrice label={plan.price ?? ""} className="mt-5 block text-2xl font-bold text-white" />
+                    {plan.note ? <p className="mt-1 text-xs text-amber-100/90">{plan.note}</p> : null}
+                    <ul className="mt-5 space-y-2 text-sm text-gray-200">
+                      {(plan.features ?? []).filter(Boolean).map((feature) => (
+                        <li key={feature} className="flex items-start gap-2">
+                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-400" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      className={`mt-6 inline-flex w-fit items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
+                    >
+                      {plan.cta} <ChevronRight size={16} />
+                    </button>
+                  </article>
+                ))}
+              </div>
               <div className="lh-help-card mt-6 rounded-2xl border border-amber-500/45 bg-linear-to-r from-amber-500/16 via-amber-400/10 to-amber-500/16 p-5">
                 <div className="flex flex-col items-center gap-3 text-center">
                   <span className="lh-symbol-chip inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-300/70 bg-amber-400/20 text-amber-100 shadow-[0_0_20px_rgba(249,177,77,0.35)]">

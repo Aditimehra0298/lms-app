@@ -55,7 +55,7 @@ import type {
   HomePageUnlock,
   HomePageWhyFeature,
 } from "@/lib/content-schema";
-import { defaultHomePageConfig } from "@/lib/content-schema";
+import { defaultHomePageConfig, defaultOrgMonthlyPlan } from "@/lib/content-schema";
 import Link from "next/link";
 import AdminTestimonialPhotoField from "@/components/admin/AdminTestimonialPhotoField";
 
@@ -298,6 +298,9 @@ export default function AdminHomePageEditor() {
   const updateNewsletter = (patch: Partial<HomePageNewsletter>) => setConfig((p) => ({ ...p, newsletter: { ...p.newsletter, ...patch } }));
   const updateUnlock = (patch: Partial<HomePageUnlock>) => setConfig((p) => ({ ...p, unlock: { ...p.unlock, ...patch } }));
   const updateOrgPlan = (patch: Partial<HomePageOrgPlan>) => setConfig((p) => ({ ...p, orgPlan: { ...p.orgPlan, ...patch } }));
+  const orgMonthly = config.orgPlanMonthly ?? defaultOrgMonthlyPlan;
+  const updateOrgMonthly = (patch: Partial<HomePageOrgPlan>) =>
+    setConfig((p) => ({ ...p, orgPlanMonthly: { ...(p.orgPlanMonthly ?? defaultOrgMonthlyPlan), ...patch } }));
 
   const setStat = (i: number, patch: Partial<HomePageStat>) => setConfig((p) => ({ ...p, stats: p.stats.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) }));
   const addStat = () => setConfig((p) => ({ ...p, stats: [...p.stats, { value: "0", label: "New Stat" }] }));
@@ -465,7 +468,18 @@ export default function AdminHomePageEditor() {
             <div><label className={labelCls}>Features (one per line)</label><textarea className={inputCls} rows={3} value={plan.features.join("\n")} onChange={(e) => setIndPlan(idx, { features: e.target.value.split("\n") })} /></div>
           </div>))}
 
-          <p className="text-xs font-semibold text-gray-300 pt-2">Organisation Plan</p>
+          <p className="text-xs font-semibold text-gray-300 pt-2">Organisation Plan — Monthly (shown first)</p>
+          <div className={itemCls}>
+            <div className="space-y-2">
+              <div className="grid gap-2 sm:grid-cols-2"><div><label className={labelCls}>Title</label><input className={inputCls} value={orgMonthly.title} onChange={(e) => updateOrgMonthly({ title: e.target.value })} /></div><div><label className={labelCls}>Price</label><input className={inputCls} value={orgMonthly.price} onChange={(e) => updateOrgMonthly({ price: e.target.value })} /></div></div>
+              <div><label className={labelCls}>Tagline</label><input className={inputCls} value={orgMonthly.tagline} onChange={(e) => updateOrgMonthly({ tagline: e.target.value })} /></div>
+              <div><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={orgMonthly.desc} onChange={(e) => updateOrgMonthly({ desc: e.target.value })} /></div>
+              <div className="grid gap-2 sm:grid-cols-2"><div><label className={labelCls}>Note</label><input className={inputCls} value={orgMonthly.note} onChange={(e) => updateOrgMonthly({ note: e.target.value })} /></div><div><label className={labelCls}>CTA</label><input className={inputCls} value={orgMonthly.cta} onChange={(e) => updateOrgMonthly({ cta: e.target.value })} /></div></div>
+              <div><label className={labelCls}>Features (one per line)</label><textarea className={inputCls} rows={3} value={orgMonthly.features.join("\n")} onChange={(e) => updateOrgMonthly({ features: e.target.value.split("\n") })} /></div>
+            </div>
+          </div>
+
+          <p className="text-xs font-semibold text-gray-300 pt-2">Organisation Plan — Annual</p>
           <div className={itemCls}>
             <div className="space-y-2">
               <div className="grid gap-2 sm:grid-cols-2"><div><label className={labelCls}>Title</label><input className={inputCls} value={config.orgPlan.title} onChange={(e) => updateOrgPlan({ title: e.target.value })} /></div><div><label className={labelCls}>Price</label><input className={inputCls} value={config.orgPlan.price} onChange={(e) => updateOrgPlan({ price: e.target.value })} /></div></div>
