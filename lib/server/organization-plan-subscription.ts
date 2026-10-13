@@ -1,5 +1,5 @@
 import type { HomePageOrgPlan } from "@/lib/content-schema";
-import { defaultOrgPlans } from "@/lib/content-schema";
+import { defaultOrgPlans, orgTierRenewal, orgTierTotal } from "@/lib/content-schema";
 import { normalizeLearnerEmail } from "@/lib/learner-email";
 import { isOrgAllAccessActive } from "@/lib/organization-team-config";
 import { resolveHomePageConfig } from "@/lib/server/resolve-home-page";
@@ -11,7 +11,10 @@ export const ORG_PLAN_NOTE_PREFIX = "org_plan:";
 export type OrgCheckoutPlan = {
   key: string;
   title: string;
+  /** Full (first-year) fee for the chosen seats. */
   amountInr: number;
+  /** Fee when renewing the same seat tier. */
+  renewalAmountInr: number;
   seats: number;
   durationMonths: number;
 };
@@ -22,37 +25,71 @@ function amountFromPriceLabel(price: string): number | null {
 }
 
 /** Plan definitions come from admin home-page pricing — the browser never supplies the price. */
-export async function resolveOrgCheckoutPlan(key: string): Promise<OrgCheckoutPlan | null> {
+export async function resolveOrgCheckoutPlan(key: string, seats?: number): Promise<OrgCheckoutPlan | null> {
   const wanted = key.trim();
   if (!wanted) return null;
   const home = await resolveHomePageConfig().catch(() => null);
   const plans: HomePageOrgPlan[] = home?.orgPlans?.length ? home.orgPlans : defaultOrgPlans;
   const plan = plans.find((p) => p.checkoutKey?.trim() === wanted);
   if (!plan) return null;
+  const title = plan.title.replace(/^Most Popular\s*·\s*/i, "").trim() || wanted;
+  const durationMonths = Math.max(1, Math.round(plan.durationMonths ?? 12));
+  const renewalPercent = plan.renewalPercent ?? 100;
+
+  const tiers = (plan.tiers ?? []).filter((t) => t.maxSeats > 0 && t.pricePerSeat > 0);
+  if (tiers.length > 0) {
+    const tier = tiers.find((t) => t.maxSeats === seats) ?? (seats ? null : tiers[0]);
+    if (!tier) return null;
+    return {
+      key: wanted,
+      title,
+      amountInr: orgTierTotal(tier),
+      renewalAmountInr: orgTierRenewal(tier, renewalPercent),
+      seats: tier.maxSeats,
+      durationMonths,
+    };
+  }
+
   const amountInr = amountFromPriceLabel(plan.price ?? "");
   if (!amountInr) return null;
   return {
     key: wanted,
-    title: plan.title.replace(/^Most Popular\s*·\s*/i, "").trim() || wanted,
+    title,
     amountInr,
+    renewalAmountInr: Math.round((amountInr * renewalPercent) / 100),
     seats: Math.max(1, Math.round(plan.seats ?? 20)),
-    durationMonths: Math.max(1, Math.round(plan.durationMonths ?? 12)),
+    durationMonths,
   };
 }
 
-export function orgPlanKeyFromNote(note: string | null | undefined): string | null {
+/** Renewal price applies when the organisation already had a subscription with the same seats. */
+export async function isOrgPlanRenewal(orgEmail: string, seats: number): Promise<boolean> {
+  const team = await readOrganizationTeam(orgEmail);
+  return Boolean(team?.allAccess && team.allAccess.seats === seats);
+}
+
+export function orgPlanNote(key: string, seats: number): string {
+  return `${ORG_PLAN_NOTE_PREFIX}${key}|${seats}`;
+}
+
+export function orgPlanFromNote(note: string | null | undefined): { key: string; seats?: number } | null {
   const line = (note ?? "").split("\n").find((l) => l.startsWith(ORG_PLAN_NOTE_PREFIX));
-  return line ? line.slice(ORG_PLAN_NOTE_PREFIX.length).trim() || null : null;
+  if (!line) return null;
+  const [key, seatsRaw] = line.slice(ORG_PLAN_NOTE_PREFIX.length).trim().split("|");
+  if (!key) return null;
+  const seats = Number(seatsRaw);
+  return { key, seats: Number.isFinite(seats) && seats > 0 ? seats : undefined };
 }
 
 /** After a verified payment: turn on the all-access subscription (all self-paced courses, fixed seats). */
 export async function activateOrgPlanSubscription(input: {
   orgEmail: string;
   planKey: string;
+  seats?: number;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   const email = normalizeLearnerEmail(input.orgEmail);
   if (!email) return { ok: false, message: "Organisation email missing on payment." };
-  const plan = await resolveOrgCheckoutPlan(input.planKey);
+  const plan = await resolveOrgCheckoutPlan(input.planKey, input.seats);
   if (!plan) return { ok: false, message: "This plan is no longer available. Contact support." };
 
   const existing = (await readOrganizationTeam(email)) ?? (await ensureOrganizationTeam({ workEmail: email }));

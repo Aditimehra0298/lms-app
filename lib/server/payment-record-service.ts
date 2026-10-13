@@ -18,7 +18,7 @@ import { consumePromotionCode, promoCodeFromNote, promoNote } from "@/lib/server
 import {
   activateOrgPlanSubscription,
   cancelOrgPlanSubscription,
-  orgPlanKeyFromNote,
+  orgPlanFromNote,
 } from "@/lib/server/organization-plan-subscription";
 
 function parseItems(raw: unknown): PaymentLineItem[] {
@@ -182,9 +182,9 @@ export async function finalizeRazorpayPayment(input: {
     },
   });
 
-  const orgPlanKey = orgPlanKeyFromNote(row.adminNote);
-  if (orgPlanKey) {
-    const activated = await activateOrgPlanSubscription({ orgEmail: email, planKey: orgPlanKey });
+  const orgPlan = orgPlanFromNote(row.adminNote);
+  if (orgPlan) {
+    const activated = await activateOrgPlanSubscription({ orgEmail: email, planKey: orgPlan.key, seats: orgPlan.seats });
     if (!activated.ok) return { ok: false, message: activated.message };
   } else if (items.length > 0) {
     const result = await recordPurchasesForLearner({
@@ -507,9 +507,9 @@ async function enrollFromPaymentRow(row: {
   items: unknown;
   adminNote: string | null;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
-  const orgPlanKey = orgPlanKeyFromNote(row.adminNote);
-  if (orgPlanKey) {
-    return activateOrgPlanSubscription({ orgEmail: row.learnerEmail, planKey: orgPlanKey });
+  const orgPlan = orgPlanFromNote(row.adminNote);
+  if (orgPlan) {
+    return activateOrgPlanSubscription({ orgEmail: row.learnerEmail, planKey: orgPlan.key, seats: orgPlan.seats });
   }
   const items = parseItems(row.items);
   if (items.length === 0) return { ok: true };
@@ -526,7 +526,7 @@ async function revokeAccessForPaymentRow(row: {
   items: unknown;
   adminNote: string | null;
 }): Promise<number> {
-  if (orgPlanKeyFromNote(row.adminNote)) {
+  if (orgPlanFromNote(row.adminNote)) {
     await cancelOrgPlanSubscription(row.learnerEmail);
     return 0;
   }

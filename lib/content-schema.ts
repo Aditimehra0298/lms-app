@@ -1097,7 +1097,26 @@ export type HomePageOrgPlan = {
   seats?: number;
   /** Access length for a paid checkout plan. */
   durationMonths?: number;
+  /** Seat tiers — the organisation picks one; price = pricePerSeat × maxSeats. */
+  tiers?: HomePageOrgPlanTier[];
+  /** Renewal price as % of the tier fee (e.g. 50). */
+  renewalPercent?: number;
 };
+
+export type HomePageOrgPlanTier = {
+  minSeats: number;
+  maxSeats: number;
+  /** INR per employee */
+  pricePerSeat: number;
+};
+
+export function orgTierTotal(tier: HomePageOrgPlanTier): number {
+  return Math.round(tier.pricePerSeat * tier.maxSeats);
+}
+
+export function orgTierRenewal(tier: HomePageOrgPlanTier, renewalPercent = 50): number {
+  return Math.round((orgTierTotal(tier) * renewalPercent) / 100);
+}
 
 export type HomePageFaq = {
   q: string;
@@ -1150,21 +1169,28 @@ export type HomePageConfig = {
 export const defaultOrgPlans: HomePageOrgPlan[] = [
   {
     title: "Most Popular · Teams Annual All-Access",
-    tagline: "Every self-paced course for your team, for 1 year",
-    desc: "One yearly subscription that gives up to 20 employees unlimited access to the complete self-paced course library.",
-    price: "₹2,50,000 / year",
-    note: "20 employee seats · 12 months access",
+    tagline: "Every self-paced eLearning course for your team, for 1 year",
+    desc: "Choose how many employees you need. Each employee can take any available self-paced eLearning course for the whole year.",
+    price: "",
+    note: "Per employee · billed yearly",
     features: [
-      "20 employee seats included",
-      "All self-paced courses in the LMS",
-      "Assign any number of courses to each employee",
-      "Team dashboard, progress reports and certificates",
+      "Access to all self-paced eLearning courses",
+      "Access for one year",
+      "Up to {seats} employees can take any available self-paced eLearning course",
+      "Notification for any new course added to the package within the subscription period",
+      "Annual renewal fee at {renewalPercent}% of the fee paid",
     ],
     cta: "Get Started for Teams",
     href: "/account?mode=register",
     checkoutKey: "teams-annual-all-access",
-    seats: 20,
     durationMonths: 12,
+    renewalPercent: 50,
+    tiers: [
+      { minSeats: 1, maxSeats: 20, pricePerSeat: 9999 },
+      { minSeats: 21, maxSeats: 50, pricePerSeat: 4999 },
+      { minSeats: 51, maxSeats: 100, pricePerSeat: 2999 },
+      { minSeats: 101, maxSeats: 200, pricePerSeat: 1999 },
+    ],
   },
   {
     title: "Custom Plan",

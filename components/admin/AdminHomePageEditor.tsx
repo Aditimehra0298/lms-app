@@ -55,7 +55,7 @@ import type {
   HomePageUnlock,
   HomePageWhyFeature,
 } from "@/lib/content-schema";
-import { defaultHomePageConfig, defaultOrgPlans } from "@/lib/content-schema";
+import { defaultHomePageConfig, defaultOrgPlans, orgTierTotal } from "@/lib/content-schema";
 import Link from "next/link";
 import AdminTestimonialPhotoField from "@/components/admin/AdminTestimonialPhotoField";
 
@@ -485,7 +485,27 @@ export default function AdminHomePageEditor() {
                 <div><label className={labelCls}>Employee seats</label><input type="number" min={1} className={inputCls} value={plan.seats ?? ""} onChange={(e) => setOrgPlanAt(idx, { seats: e.target.value ? Number(e.target.value) : undefined })} /></div>
                 <div><label className={labelCls}>Access (months)</label><input type="number" min={1} className={inputCls} value={plan.durationMonths ?? ""} onChange={(e) => setOrgPlanAt(idx, { durationMonths: e.target.value ? Number(e.target.value) : undefined })} /></div>
               </div>
-              {plan.checkoutKey ? <p className="text-[11px] text-amber-200/80">Organisations pay the Price above with Razorpay and get all self-paced courses for the seats and months set here.</p> : null}
+              {plan.checkoutKey ? <p className="text-[11px] text-amber-200/80">Organisations pay with Razorpay and get all self-paced courses for the seats and months set here. With seat tiers below, the tier price is used instead of Price. Use {"{seats}"} and {"{renewalPercent}"} in features.</p> : null}
+              <div className="space-y-2 rounded-lg border border-white/10 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold text-gray-300">Seat tiers (price per employee × max employees)</span>
+                  <label className="flex items-center gap-2 text-[11px] text-gray-400">Renewal %<input type="number" min={0} max={100} className={`${inputCls} w-20`} value={plan.renewalPercent ?? ""} onChange={(e) => setOrgPlanAt(idx, { renewalPercent: e.target.value ? Number(e.target.value) : undefined })} /></label>
+                </div>
+                {(plan.tiers ?? []).map((tier, ti) => {
+                  const setTier = (patch: Partial<NonNullable<HomePageOrgPlan["tiers"]>[number]>) =>
+                    setOrgPlanAt(idx, { tiers: (plan.tiers ?? []).map((t, j) => (j === ti ? { ...t, ...patch } : t)) });
+                  return (
+                    <div key={ti} className="grid grid-cols-[1fr_1fr_1fr_auto_auto] items-end gap-2">
+                      <div><label className={labelCls}>From</label><input type="number" min={1} className={inputCls} value={tier.minSeats} onChange={(e) => setTier({ minSeats: Number(e.target.value) || 1 })} /></div>
+                      <div><label className={labelCls}>To (max)</label><input type="number" min={1} className={inputCls} value={tier.maxSeats} onChange={(e) => setTier({ maxSeats: Number(e.target.value) || 1 })} /></div>
+                      <div><label className={labelCls}>₹ per employee</label><input type="number" min={1} className={inputCls} value={tier.pricePerSeat} onChange={(e) => setTier({ pricePerSeat: Number(e.target.value) || 0 })} /></div>
+                      <span className="pb-2 text-[11px] text-amber-200">= ₹{orgTierTotal(tier).toLocaleString("en-IN")}</span>
+                      <button type="button" onClick={() => setOrgPlanAt(idx, { tiers: (plan.tiers ?? []).filter((_, j) => j !== ti) })} className={btnDanger}><Trash2 size={13} /></button>
+                    </div>
+                  );
+                })}
+                <button type="button" onClick={() => { const last = plan.tiers?.[plan.tiers.length - 1]; setOrgPlanAt(idx, { tiers: [...(plan.tiers ?? []), { minSeats: (last?.maxSeats ?? 0) + 1, maxSeats: (last?.maxSeats ?? 0) + 50, pricePerSeat: 999 }] }); }} className="rounded-lg border border-white/15 px-3 py-1 text-[11px] font-semibold text-gray-200 hover:border-amber-400/50">+ Add tier</button>
+              </div>
             </div>
           ))}
           <button type="button" onClick={() => setOrgPlans([...orgPlans, { title: "New plan", tagline: "", desc: "", price: "", note: "", features: [], cta: "Contact Sales", href: "/contact" }])} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:border-amber-400/50">+ Add organisation plan</button>

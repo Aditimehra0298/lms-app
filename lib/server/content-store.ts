@@ -202,9 +202,15 @@ export async function writeAdminContent(content: AdminContent): Promise<void> {
         : {},
   };
 
+  let prevContent: Partial<AdminContent> | null = null;
   // Keep rolling backups before overwrite so accidental curriculum wipes can be restored.
   try {
     const prev = await fs.readFile(contentFilePath, "utf8");
+    try {
+      prevContent = JSON.parse(prev) as Partial<AdminContent>;
+    } catch {
+      prevContent = null;
+    }
     if (prev.trimStart().startsWith("{") && prev.length > 50) {
       const stamp = new Date().toISOString().replace(/[:.]/g, "-");
       const bakPath = `${contentFilePath}.bak`;
@@ -240,5 +246,16 @@ export async function writeAdminContent(content: AdminContent): Promise<void> {
   const verify = await fs.readFile(contentFilePath, "utf8");
   if (verify.length < 2 || !verify.trimStart().startsWith("{")) {
     throw new Error("admin-content.json write verification failed");
+  }
+
+  if (prevContent?.managedCourses) {
+    const before = prevContent;
+    void import("@/lib/server/organization-new-course-notify")
+      .then(({ notifyOrganisationsOfNewCourses, publishedSelfPacedCourses }) => {
+        const old = publishedSelfPacedCourses(before);
+        const added = [...publishedSelfPacedCourses(normalized).values()].filter((c) => !old.has(c.slug));
+        return notifyOrganisationsOfNewCourses(added);
+      })
+      .catch((err) => console.error("[content-store] new-course org notify failed", err));
   }
 }

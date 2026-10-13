@@ -13,7 +13,9 @@ export type OrgPlanCheckoutResult =
   | { status: "cancelled" }
   | { status: "error"; message: string };
 
-export async function startOrgPlanCheckout(planKey: string): Promise<OrgPlanCheckoutResult> {
+export const ORG_PLAN_SEATS_PARAM = "orgPlanSeats";
+
+export async function startOrgPlanCheckout(planKey: string, seats?: number): Promise<OrgPlanCheckoutResult> {
   if (!isLearnerLoggedIn() || !getLearnerEmail()) return { status: "login" };
   if (!isOrganisationLearner(readLearnerProfileFromStorage())) return { status: "not-organisation" };
 
@@ -21,7 +23,7 @@ export async function startOrgPlanCheckout(planKey: string): Promise<OrgPlanChec
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ planKey }),
+    body: JSON.stringify({ planKey, seats }),
   });
   const data = await readJsonResponse(res, {} as {
     ok?: boolean;
@@ -49,7 +51,7 @@ export async function startOrgPlanCheckout(planKey: string): Promise<OrgPlanChec
       orderId: data.orderId,
       amount: data.amount,
       currency: data.currency,
-      description: `${data.planTitle ?? "Team plan"} · ${data.seats ?? ""} seats`,
+      description: data.planTitle ?? "Team plan",
       prefill: { name: data.companyName, email: data.email },
     });
   } catch (err) {
@@ -73,7 +75,8 @@ export async function startOrgPlanCheckout(planKey: string): Promise<OrgPlanChec
   return { status: "paid" };
 }
 
-export function orgPlanLoginHref(planKey: string): string {
-  const next = `/?${ORG_PLAN_CHECKOUT_PARAM}=${encodeURIComponent(planKey)}#pricing`;
+export function orgPlanLoginHref(planKey: string, seats?: number): string {
+  const seatsPart = seats ? `&${ORG_PLAN_SEATS_PARAM}=${seats}` : "";
+  const next = `/?${ORG_PLAN_CHECKOUT_PARAM}=${encodeURIComponent(planKey)}${seatsPart}#pricing`;
   return `/account?mode=login&type=organisation&next=${encodeURIComponent(next)}`;
 }

@@ -3,8 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { OrgPlanCard } from "@/components/OrgPlanCard";
 import {
   ORG_PLAN_CHECKOUT_PARAM,
+  ORG_PLAN_SEATS_PARAM,
   orgPlanLoginHref,
   startOrgPlanCheckout,
   type OrgPlanCheckoutResult,
@@ -541,15 +543,15 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   const [planCheckoutMessage, setPlanCheckoutMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const resumedPlanCheckout = useRef(false);
 
-  const buyOrgPlan = async (planKey: string) => {
+  const buyOrgPlan = async (planKey: string, seats?: number) => {
     setPlanCheckoutMessage(null);
     setPlanCheckoutBusy(planKey);
-    const result = await startOrgPlanCheckout(planKey).catch(
+    const result = await startOrgPlanCheckout(planKey, seats).catch(
       (err): OrgPlanCheckoutResult => ({ status: "error", message: err instanceof Error ? err.message : "Payment failed." }),
     );
     setPlanCheckoutBusy(null);
     if (result.status === "login") {
-      router.push(orgPlanLoginHref(planKey));
+      router.push(orgPlanLoginHref(planKey, seats));
     } else if (result.status === "not-organisation") {
       setPlanCheckoutMessage({
         ok: false,
@@ -567,11 +569,12 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
     const key = searchParams.get(ORG_PLAN_CHECKOUT_PARAM)?.trim();
     if (!key || resumedPlanCheckout.current) return;
     resumedPlanCheckout.current = true;
+    const seats = Number(searchParams.get(ORG_PLAN_SEATS_PARAM)) || undefined;
     window.history.replaceState(null, "", "/#pricing");
     const timer = window.setTimeout(() => {
       setPlanAudience("organisation");
       document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
-      void buyOrgPlan(key);
+      void buyOrgPlan(key, seats);
     }, 0);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1712,46 +1715,14 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             <div className="mx-auto mt-10 max-w-6xl">
               <div className="grid gap-6 md:grid-cols-2">
                 {liveOrgPlans.map((plan) => (
-                  <article
+                  <OrgPlanCard
                     key={plan.title}
-                    className="lh-plan-card flex h-full flex-col rounded-2xl border border-amber-500/40 bg-linear-to-b from-[#1b1306] via-[#120d07] to-[#0a0808] p-6 shadow-[0_0_30px_rgba(249,177,77,0.2)] transition-all hover:-translate-y-0.5 hover:border-amber-300/75 hover:shadow-[0_0_42px_rgba(249,177,77,0.3)]"
-                  >
-                    <p className="text-sm font-semibold text-amber-300">{plan.title}</p>
-                    <p className="mt-1 text-sm text-gray-300">{plan.tagline}</p>
-                    <p className="mt-4 text-sm leading-relaxed text-gray-400">{plan.desc}</p>
-                    {plan.price?.trim() ? (
-                      <p className="mt-5 text-3xl font-extrabold text-white">{plan.price}</p>
-                    ) : null}
-                    {plan.note ? <p className="mt-1 text-xs text-amber-100/90">{plan.note}</p> : null}
-                    <ul className="mt-5 space-y-2 text-sm text-gray-200">
-                      {(plan.features ?? []).filter(Boolean).map((feature) => (
-                        <li key={feature} className="flex items-start gap-2">
-                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-400" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="mt-auto pt-6">
-                      {plan.checkoutKey?.trim() ? (
-                        <button
-                          type="button"
-                          disabled={planCheckoutBusy !== null}
-                          onClick={() => void buyOrgPlan(plan.checkoutKey!.trim())}
-                          className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 disabled:opacity-60 ${goldGradient}`}
-                        >
-                          {planCheckoutBusy === plan.checkoutKey.trim() ? "Opening payment…" : plan.cta}{" "}
-                          <ChevronRight size={16} />
-                        </button>
-                      ) : (
-                        <Link
-                          href={plan.href?.trim() || "/contact"}
-                          className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
-                        >
-                          {plan.cta} <ChevronRight size={16} />
-                        </Link>
-                      )}
-                    </div>
-                  </article>
+                    plan={plan}
+                    goldGradient={goldGradient}
+                    busy={planCheckoutBusy === plan.checkoutKey?.trim()}
+                    disabled={planCheckoutBusy !== null}
+                    onBuy={(key, seats) => void buyOrgPlan(key, seats)}
+                  />
                 ))}
               </div>
               {planCheckoutMessage ? (
