@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, Building2 } from "lucide-react";
+import { CatalogMediaImage } from "@/components/CatalogMediaImage";
 import type { ManagedCourse } from "@/lib/content-schema";
 type Props = {
   courses: ManagedCourse[];
@@ -42,21 +42,17 @@ export function MyLearningOrganizationCourses({ courses }: Props) {
                 key={course.slug}
                 className="flex flex-col rounded-xl border border-white/10 bg-black/25 p-3"
               >
-                {course.image?.trim() ? (
-                  <div className="relative h-28 overflow-hidden rounded-lg border border-white/10">
-                    <Image
-                      src={course.image.trim()}
-                      alt={course.title}
-                      fill
-                      className="object-cover"
-                      sizes="280px"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-28 items-center justify-center rounded-lg border border-dashed border-white/15 text-xs text-gray-500">
-                    No image
-                  </div>
-                )}
+                <div className="relative h-28 overflow-hidden rounded-lg border border-white/10">
+                  <CatalogMediaImage
+                    storedSrc={course.image?.trim() ?? ""}
+                    courseSlug={course.slug}
+                    category={course.category || ""}
+                    alt={course.title}
+                    fill
+                    className="object-cover"
+                    sizes="280px"
+                  />
+                </div>
                 <p className="mt-2 line-clamp-2 text-sm font-semibold text-white">{course.title}</p>
                 <p className="mt-0.5 line-clamp-2 text-[11px] text-gray-400">{course.subtitle}</p>
                 <p className="mt-1 text-[11px] text-gray-500">
