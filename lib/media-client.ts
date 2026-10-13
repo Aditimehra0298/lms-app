@@ -15,7 +15,7 @@ export function isProtectedMediaUrl(url: string): boolean {
 /** Turn a stored media path into a short-lived URL the browser can load (video/img/link). */
 export async function resolveProtectedMediaUrl(
   storedUrl: string,
-  options?: { courseSlug?: string; scope?: "admin" | "learner" | "catalog" },
+  options?: { courseSlug?: string; scope?: "admin" | "learner" | "catalog"; stream?: boolean },
 ): Promise<string> {
   const url = storedUrl.trim();
   if (!url) return "";
@@ -36,6 +36,7 @@ export async function resolveProtectedMediaUrl(
         url,
         courseSlug: options?.courseSlug,
         scope: options?.scope,
+        stream: options?.stream,
       }),
     });
     const data = await readJsonResponse(res, {} as { ok?: boolean; playUrl?: string });

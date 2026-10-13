@@ -11,6 +11,7 @@ import {
 } from "@/lib/server/private-media-storage";
 import { streamMultipartFileUpload } from "@/lib/server/stream-multipart-upload";
 import { assertMainAdmin } from "@/lib/server/admin-api-auth";
+import { queueBunnyUpload } from "@/lib/server/bunny-stream";
 import {
   readFileHead,
   validateAdminMediaUpload,
@@ -316,6 +317,11 @@ export async function POST(request: Request) {
       });
     } catch (err) {
       console.error("[admin/upload] media asset DB record", err);
+    }
+
+    if (isVideo) {
+      const title = uploaded.courseSlug ? `${uploaded.courseSlug} — ${originalName}` : originalName;
+      queueBunnyUpload(name, title);
     }
 
     return NextResponse.json({ ok: true, url });

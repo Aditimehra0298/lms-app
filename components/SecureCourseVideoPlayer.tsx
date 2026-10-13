@@ -1,6 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  BunnyLessonEmbed,
+  isBunnyEmbedUrl,
+  type LessonPlaybackSample,
+  type LessonPlayerApi,
+} from "@/components/BunnyLessonEmbed";
 import { resolveProtectedMediaUrl } from "@/lib/media-client";
 import { formatVideoClock } from "@/lib/learner-video-resume";
 
@@ -17,7 +23,7 @@ type Props = {
   className?: string;
   /** Saved playback position when returning to this lesson. */
   resumeAtSeconds?: number;
-  onTimeUpdate?: (video: HTMLVideoElement) => void;
+  onTimeUpdate?: (sample: LessonPlaybackSample) => void;
   onEnded?: () => void;
   onError?: (message: string) => void;
   /** Fired when learner chooses Continue or Restart (after seek). */
@@ -36,6 +42,7 @@ export function SecureCourseVideoPlayer({
   onResumeChoice,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const bunnyApiRef = useRef<LessonPlayerApi | null>(null);
   const onErrorRef = useRef(onError);
   const recoveringRef = useRef(false);
   const recoveriesRef = useRef(0);
@@ -44,6 +51,7 @@ export function SecureCourseVideoPlayer({
   const mediaKey = `${courseSlug}|${storedUrl.trim()}`;
   const [media, setMedia] = useState<{ key: string; url: string } | null>(null);
   const playUrl = media?.key === mediaKey ? media.url : "";
+  const isBunny = isBunnyEmbedUrl(playUrl);
   const loading = Boolean(storedUrl.trim()) && media?.key !== mediaKey;
   const [resumePrompt, setResumePrompt] = useState<{ at: number } | null>(null);
 
@@ -58,7 +66,7 @@ export function SecureCourseVideoPlayer({
   }, [storedUrl, resumeAtSeconds]);
 
   const requestPlayUrl = useCallback(
-    () => resolveProtectedMediaUrl(storedUrl.trim(), { courseSlug, scope: "learner" }),
+    () => resolveProtectedMediaUrl(storedUrl.trim(), { courseSlug, scope: "learner", stream: true }),
     [storedUrl, courseSlug],
   );
 
@@ -133,12 +141,12 @@ export function SecureCourseVideoPlayer({
 
   // Blank / pause when tab is hidden (screenshot tools, app switch, screen share).
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    if (!playUrl) return;
 
     const blank = () => {
       try {
-        video.pause();
+        videoRef.current?.pause();
+        bunnyApiRef.current?.pause();
       } catch {
         /* ignore */
       }
@@ -157,47 +165,45 @@ export function SecureCourseVideoPlayer({
     };
   }, [playUrl]);
 
-  const maybeOfferResume = useCallback(() => {
-    const video = videoRef.current;
-    if (!video || !playUrl) return;
+  const maybeOfferResume = (duration: number, pause: () => void) => {
+    if (!playUrl) return;
     if (resumeOfferedForUrl.current === storedUrl.trim()) return;
 
     const at = Math.max(0, resumeAtSeconds);
-    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    const safeDuration = Number.isFinite(duration) ? duration : 0;
     if (at < RESUME_MIN_SECONDS) return;
-    if (duration > 0 && at >= duration - RESUME_END_MARGIN_SECONDS) return;
+    if (safeDuration > 0 && at >= safeDuration - RESUME_END_MARGIN_SECONDS) return;
 
     resumeOfferedForUrl.current = storedUrl.trim();
-    video.pause();
+    pause();
     setResumePrompt({ at });
-  }, [playUrl, resumeAtSeconds, storedUrl]);
+  };
+
+  const seekAndPlay = (at: number) => {
+    if (isBunny) {
+      bunnyApiRef.current?.seekAndPlay(at);
+      return;
+    }
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      video.currentTime = at;
+    } catch {
+      /* ignore */
+    }
+    void video.play().catch(() => {});
+  };
 
   const chooseContinue = () => {
-    const video = videoRef.current;
     const at = resumePrompt?.at ?? resumeAtSeconds;
     setResumePrompt(null);
-    if (video) {
-      try {
-        video.currentTime = at;
-      } catch {
-        /* ignore */
-      }
-      void video.play().catch(() => {});
-    }
+    seekAndPlay(at);
     onResumeChoice?.("continue", at);
   };
 
   const chooseRestart = () => {
-    const video = videoRef.current;
     setResumePrompt(null);
-    if (video) {
-      try {
-        video.currentTime = 0;
-      } catch {
-        /* ignore */
-      }
-      void video.play().catch(() => {});
-    }
+    seekAndPlay(0);
     onResumeChoice?.("restart", 0);
   };
 
@@ -219,7 +225,20 @@ export function SecureCourseVideoPlayer({
           Loading video…
         </div>
       ) : null}
-      {playUrl ? (
+      {playUrl && isBunny ? (
+        <BunnyLessonEmbed
+          key={playUrl}
+          src={playUrl}
+          className={className}
+          onReady={(api, duration) => {
+            bunnyApiRef.current = api;
+            maybeOfferResume(duration, api.pause);
+          }}
+          onTimeUpdate={(sample) => onTimeUpdate?.(sample)}
+          onEnded={() => onEnded?.()}
+          onError={(message) => onErrorRef.current?.(message)}
+        />
+      ) : playUrl ? (
         <video
           ref={videoRef}
           src={playUrl}
@@ -230,9 +249,10 @@ export function SecureCourseVideoPlayer({
           preload="metadata"
           draggable={false}
           onContextMenu={(e) => e.preventDefault()}
-          onLoadedMetadata={() => {
+          onLoadedMetadata={(e) => {
+            const video = e.currentTarget;
             if (pendingSeekRef.current) applyPendingSeek();
-            else maybeOfferResume();
+            else maybeOfferResume(video.duration, () => video.pause());
           }}
           onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget)}
           onEnded={() => onEnded?.()}

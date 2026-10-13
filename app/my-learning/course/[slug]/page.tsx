@@ -17,6 +17,7 @@ import CourseLearningResourceLink, {
   resolveCourseLearningAudioUrl,
 } from "@/components/CourseLearningResourceLink";
 import { SecureCourseVideoPlayer } from "@/components/SecureCourseVideoPlayer";
+import type { LessonPlaybackSample } from "@/components/BunnyLessonEmbed";
 import LearnerContentShield from "@/components/LearnerContentShield";
 import {
   Award,
@@ -692,7 +693,7 @@ export default function CourseLearningPlayerPage() {
     });
   };
 
-  const recordVideoWatchProgress = (moduleNumber: number, video: HTMLVideoElement) => {
+  const recordVideoWatchProgress = (moduleNumber: number, video: LessonPlaybackSample) => {
     const current = video.currentTime;
     if (!Number.isFinite(current) || current < 0) return;
 

@@ -1,7 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Download, FileSpreadsheet, FolderDown, Loader2, RefreshCw, Square } from "lucide-react";
+import { CloudUpload, Download, FileSpreadsheet, FolderDown, Loader2, RefreshCw, Square } from "lucide-react";
+
+type BunnyState = "queued" | "uploading" | "processing" | "ready" | "error";
+type BunnyEntry = { state: BunnyState; encodeProgress?: number; error?: string };
+type BunnyStatus = { configured: boolean; tokenAuth?: boolean; videos: Record<string, BunnyEntry>; queue: number };
+
+const BUNNY_BADGE: Record<BunnyState, { label: string; cls: string }> = {
+  queued: { label: "Waiting", cls: "border-white/15 text-gray-300" },
+  uploading: { label: "Uploading", cls: "border-sky-400/40 text-sky-200" },
+  processing: { label: "Encoding", cls: "border-amber-400/40 text-amber-200" },
+  ready: { label: "Streaming", cls: "border-emerald-400/40 text-emerald-200" },
+  error: { label: "Failed", cls: "border-rose-400/40 text-rose-200" },
+};
 
 type VideoRow = {
   fileName: string;
@@ -76,6 +88,65 @@ export default function AdminVideoLibrary() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const [bunny, setBunny] = useState<BunnyStatus | null>(null);
+  const [bunnyBusy, setBunnyBusy] = useState(false);
+
+  const loadBunny = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/bunny", { cache: "no-store", credentials: "include" });
+      const data = (await res.json()) as BunnyStatus & { ok?: boolean };
+      if (data.ok) setBunny({ configured: data.configured, tokenAuth: data.tokenAuth, videos: data.videos ?? {}, queue: data.queue ?? 0 });
+    } catch {
+      /* status panel is optional */
+    }
+  }, []);
+
+  const bunnyActive =
+    !!bunny && (bunny.queue > 0 || Object.values(bunny.videos).some((v) => v.state !== "ready" && v.state !== "error"));
+
+  useEffect(() => {
+    const first = window.setTimeout(() => void loadBunny(), 0);
+    const timer = bunnyActive ? window.setInterval(() => void loadBunny(), 15000) : undefined;
+    return () => {
+      window.clearTimeout(first);
+      if (timer) window.clearInterval(timer);
+    };
+  }, [loadBunny, bunnyActive]);
+
+  const sendAllToBunny = async () => {
+    setBunnyBusy(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/bunny", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync" }),
+      });
+      const data = (await res.json()) as { ok?: boolean; queued?: number; message?: string };
+      if (!data.ok) throw new Error(data.message || "Could not start");
+      setMessage(
+        data.queued
+          ? `${data.queued} video(s) are being sent to Bunny Stream in the background. You can leave this page.`
+          : "All videos are already on Bunny Stream.",
+      );
+      await loadBunny();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start");
+    } finally {
+      setBunnyBusy(false);
+    }
+  };
+
+  const bunnyCounts = useMemo(() => {
+    const counts: Record<BunnyState | "local", number> = { queued: 0, uploading: 0, processing: 0, ready: 0, error: 0, local: 0 };
+    for (const v of videos) {
+      const entry = bunny?.videos[v.fileName];
+      counts[entry ? entry.state : "local"] += 1;
+    }
+    return counts;
+  }, [videos, bunny]);
 
   const courses = useMemo(
     () => Array.from(new Set(videos.map((v) => v.courseSlug || NO_COURSE))).sort(),
@@ -355,6 +426,62 @@ export default function AdminVideoLibrary() {
         ) : null}
       </section>
 
+      {bunny ? (
+        <section className="rounded-2xl border border-white/[0.07] bg-[#0b1224] px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="inline-flex items-center gap-2 text-sm font-bold text-white">
+                <CloudUpload className="h-4 w-4 text-violet-300" /> Bunny Stream (smooth adaptive playback)
+              </h3>
+              {bunny.configured ? (
+                <p className="mt-1 max-w-2xl text-xs text-gray-400">
+                  Learners watch from Bunny&apos;s CDN in the quality that suits their internet. New uploads are sent
+                  automatically; until a video shows &ldquo;Streaming&rdquo; it still plays from this server.
+                  {bunny.tokenAuth ? "" : " Warning: BUNNY_STREAM_TOKEN_KEY is not set — embed links are not signed."}
+                </p>
+              ) : (
+                <p className="mt-1 max-w-2xl text-xs text-amber-200/90">
+                  Not connected. Add BUNNY_STREAM_LIBRARY_ID, BUNNY_STREAM_API_KEY and BUNNY_STREAM_TOKEN_KEY to the
+                  server&apos;s .env.local and restart the app.
+                </p>
+              )}
+            </div>
+            {bunny.configured ? (
+              <button
+                type="button"
+                disabled={bunnyBusy}
+                onClick={() => void sendAllToBunny()}
+                className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-50"
+              >
+                {bunnyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
+                Send all videos to Bunny
+              </button>
+            ) : null}
+          </div>
+          {bunny.configured ? (
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+              <span className="rounded-full border border-emerald-400/40 px-3 py-1 text-emerald-200">
+                Streaming {bunnyCounts.ready}
+              </span>
+              <span className="rounded-full border border-amber-400/40 px-3 py-1 text-amber-200">
+                Encoding {bunnyCounts.processing}
+              </span>
+              <span className="rounded-full border border-sky-400/40 px-3 py-1 text-sky-200">
+                Uploading / waiting {bunnyCounts.uploading + bunnyCounts.queued}
+              </span>
+              <span className="rounded-full border border-white/15 px-3 py-1 text-gray-300">
+                Server only {bunnyCounts.local}
+              </span>
+              {bunnyCounts.error ? (
+                <span className="rounded-full border border-rose-400/40 px-3 py-1 text-rose-200">
+                  Failed {bunnyCounts.error} (click Send all to retry)
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0d1528]">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-xs">
@@ -372,19 +499,20 @@ export default function AdminVideoLibrary() {
                 <th className="px-4 py-3">Course</th>
                 <th className="px-4 py-3">Size</th>
                 <th className="px-4 py-3">Uploaded</th>
+                {bunny?.configured ? <th className="px-4 py-3">Bunny</th> : null}
                 <th className="px-4 py-3">Download</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={bunny?.configured ? 7 : 6} className="px-4 py-12 text-center text-gray-400">
                     <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> Loading videos…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={bunny?.configured ? 7 : 6} className="px-4 py-12 text-center text-gray-400">
                     No videos found.
                   </td>
                 </tr>
@@ -410,6 +538,24 @@ export default function AdminVideoLibrary() {
                     <td className="px-4 py-2.5 text-gray-300">{v.courseSlug || "—"}</td>
                     <td className="px-4 py-2.5 tabular-nums text-gray-300">{formatBytes(v.sizeBytes)}</td>
                     <td className="px-4 py-2.5 text-gray-400">{new Date(v.uploadedAt).toLocaleDateString()}</td>
+                    {bunny?.configured ? (
+                      <td className="px-4 py-2.5">
+                        {(() => {
+                          const entry = bunny.videos[v.fileName];
+                          if (!entry) return <span className="text-gray-500">Server only</span>;
+                          const badge = BUNNY_BADGE[entry.state];
+                          return (
+                            <span
+                              title={entry.error || undefined}
+                              className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${badge.cls}`}
+                            >
+                              {badge.label}
+                              {entry.state === "processing" && entry.encodeProgress ? ` ${entry.encodeProgress}%` : ""}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                    ) : null}
                     <td className="px-4 py-2.5">
                       <a
                         href={downloadHref(v)}

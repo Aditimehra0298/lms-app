@@ -3,6 +3,8 @@ import { mediaAccessAllowed } from "@/lib/server/media-access-policy";
 import { createMediaAccessToken, verifyMediaAccessToken } from "@/lib/server/media-access-token";
 import { readAdminSessionEmail } from "@/lib/server/admin-session";
 import { readLearnerSessionEmail } from "@/lib/server/learner-session";
+import { isVideoFileName } from "@/lib/server/admin-video-library";
+import { bunnyPlaybackUrl } from "@/lib/server/bunny-stream";
 import {
   isManagedLocalMediaUrl,
   protectedMediaServePath,
@@ -16,6 +18,8 @@ type Body = {
   courseSlug?: string;
   email?: string;
   scope?: "admin" | "learner" | "catalog";
+  /** Lesson player can play a Bunny Stream embed instead of the raw file. */
+  stream?: boolean;
 };
 
 export async function POST(request: Request) {
@@ -112,6 +116,11 @@ export async function POST(request: Request) {
     const allowed = await mediaAccessAllowed(payload, email || undefined);
     if (!allowed) {
       return NextResponse.json({ ok: false, error: "Access denied" }, { status: 403 });
+    }
+
+    if (body.stream && scope === "learner" && isVideoFileName(fileName)) {
+      const bunnyUrl = await bunnyPlaybackUrl(fileName).catch(() => null);
+      if (bunnyUrl) return NextResponse.json({ ok: true, playUrl: bunnyUrl, provider: "bunny" });
     }
 
     // Identity is baked into the signed token — do not append spoofable ?email=.
