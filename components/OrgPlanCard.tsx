@@ -79,10 +79,15 @@ export function OrgPlanCard({ plan, goldGradient, busy, disabled, onBuy }: Props
           </div>
         </>
       ) : plan.price?.trim() ? (
-        <p className="mt-5 text-3xl font-extrabold text-white">{plan.price}</p>
+        <div className="mt-5 rounded-xl border border-amber-500/25 bg-black/30 p-4">
+          <p className="text-sm text-gray-300">Pricing based on your requirements</p>
+          <p className="mt-1 text-3xl font-extrabold text-white">{plan.price}</p>
+          {plan.note ? <p className="mt-1 text-xs text-amber-100/90">{plan.note}</p> : null}
+          <p className="mt-2 text-xs text-emerald-300">Volume discounts for large teams</p>
+        </div>
       ) : null}
 
-      {plan.note ? <p className="mt-2 text-xs text-amber-100/90">{plan.note}</p> : null}
+      {plan.note && tiers.length > 0 ? <p className="mt-2 text-xs text-amber-100/90">{plan.note}</p> : null}
       <ul className="mt-5 space-y-2 text-sm text-gray-200">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2">
