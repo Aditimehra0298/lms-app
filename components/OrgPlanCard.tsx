@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ChevronRight, Users } from "lucide-react";
+import { CustomPlanRequestModal } from "@/components/CustomPlanRequestModal";
 import {
   orgTierRenewal,
   orgTierTotal,
@@ -31,6 +32,10 @@ export function OrgPlanCard({ plan, goldGradient, busy, disabled, onBuy }: Props
     .map((f) => f.replace(/\{seats\}/g, seatsLabel).replace(/\{renewalPercent\}/g, String(renewalPercent)));
 
   const checkoutKey = plan.checkoutKey?.trim();
+  const href = plan.href?.trim() || "/contact";
+  const opensRequestForm = !checkoutKey && (href === "/contact" || href === "#custom-plan");
+  const [requestOpen, setRequestOpen] = useState(false);
+  const closeRequest = () => setRequestOpen(false);
   const buttonClass = `inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 disabled:opacity-60 ${goldGradient}`;
 
   return (
@@ -106,12 +111,17 @@ export function OrgPlanCard({ plan, goldGradient, busy, disabled, onBuy }: Props
           >
             {busy ? "Opening payment…" : plan.cta} <ChevronRight size={16} />
           </button>
+        ) : opensRequestForm ? (
+          <button type="button" onClick={() => setRequestOpen(true)} className={buttonClass}>
+            {plan.cta} <ChevronRight size={16} />
+          </button>
         ) : (
-          <Link href={plan.href?.trim() || "/contact"} className={buttonClass}>
+          <Link href={href} className={buttonClass}>
             {plan.cta} <ChevronRight size={16} />
           </Link>
         )}
       </div>
+      {opensRequestForm ? <CustomPlanRequestModal open={requestOpen} onClose={closeRequest} /> : null}
     </article>
   );
 }

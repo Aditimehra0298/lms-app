@@ -30,12 +30,13 @@ type Submission = {
   updatedAt: string;
 };
 
-type TabFilter = "all" | "contact" | "newsletter";
+type TabFilter = "all" | "contact" | "newsletter" | "org-custom-plan";
 type ViewFilter = "active" | "done" | "archived" | "all";
 
 const FORM_TABS: { id: TabFilter; label: string }[] = [
   { id: "all", label: "All forms" },
   { id: "contact", label: "Contact form" },
+  { id: "org-custom-plan", label: "Custom Plan requests" },
   { id: "newsletter", label: "Newsletter" },
 ];
 
@@ -54,6 +55,10 @@ const FORM_TYPE_META: Record<string, { label: string; className: string }> = {
   newsletter: {
     label: "Newsletter",
     className: "bg-sky-500/15 text-sky-200 border-sky-500/30",
+  },
+  "org-custom-plan": {
+    label: "Custom Plan request",
+    className: "bg-amber-500/15 text-amber-200 border-amber-500/30",
   },
 };
 
@@ -178,9 +183,11 @@ export default function AdminFormSubmissions() {
     const subject =
       row.formType === "newsletter"
         ? "Newsletter — Sustainable Futuristic Trainings"
-        : `Re: Your contact inquiry`;
+        : row.formType === "org-custom-plan"
+          ? `Your Custom Plan proposal${row.subject ? ` — ${row.subject}` : ""}`
+          : `Re: Your contact inquiry`;
     const body =
-      row.formType === "contact" && row.message
+      (row.formType === "contact" || row.formType === "org-custom-plan") && row.message
         ? `\n\n---\nYour message:\n${row.message}`
         : "";
     return `mailto:${encodeURIComponent(row.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -425,6 +432,12 @@ export default function AdminFormSubmissions() {
                                 {[
                                   ["Form Type", ft.label],
                                   ["Full Name", row.name?.trim() || "—"],
+                                  ...(row.formType === "org-custom-plan"
+                                    ? [
+                                        ["Company", row.subject?.trim() || "—"],
+                                        ["Seats", row.category?.trim() || "—"],
+                                      ]
+                                    : []),
                                   ["Email", row.email],
                                   ["Mobile", row.phone?.trim() || "—"],
                                   ["Message", row.message?.trim() || "—"],
