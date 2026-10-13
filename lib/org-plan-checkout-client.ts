@@ -24,9 +24,29 @@ export function startCustomPlanCheckout(id: string, token: string): Promise<OrgP
   return runOrgCheckout("/api/organization/custom-plan", { id, t: token });
 }
 
-async function runOrgCheckout(endpoint: string, payload: Record<string, unknown>): Promise<OrgPlanCheckoutResult> {
+/** Individual annual plan (one category or all courses). */
+export function startIndividualPlanCheckout(planKey: string, categorySlug?: string): Promise<OrgPlanCheckoutResult> {
+  return runOrgCheckout("/api/payments/individual-plan-checkout", { planKey, categorySlug }, false);
+}
+
+export const IND_PLAN_CHECKOUT_PARAM = "planCheckout";
+export const IND_PLAN_CATEGORY_PARAM = "planCategory";
+
+export function individualPlanLoginHref(planKey: string, categorySlug?: string): string {
+  const cat = categorySlug ? `&${IND_PLAN_CATEGORY_PARAM}=${encodeURIComponent(categorySlug)}` : "";
+  const next = `/?${IND_PLAN_CHECKOUT_PARAM}=${encodeURIComponent(planKey)}${cat}#pricing`;
+  return `/account?mode=login&next=${encodeURIComponent(next)}`;
+}
+
+async function runOrgCheckout(
+  endpoint: string,
+  payload: Record<string, unknown>,
+  requireOrganisation = true,
+): Promise<OrgPlanCheckoutResult> {
   if (!isLearnerLoggedIn() || !getLearnerEmail()) return { status: "login" };
-  if (!isOrganisationLearner(readLearnerProfileFromStorage())) return { status: "not-organisation" };
+  if (requireOrganisation && !isOrganisationLearner(readLearnerProfileFromStorage())) {
+    return { status: "not-organisation" };
+  }
 
   const res = await fetch(endpoint, {
     method: "POST",
@@ -61,7 +81,7 @@ async function runOrgCheckout(endpoint: string, payload: Record<string, unknown>
       orderId: data.orderId,
       amount: data.amount,
       currency: data.currency,
-      description: data.planTitle ?? "Team plan",
+      description: data.planTitle ?? "Annual plan",
       prefill: { name: data.companyName, email: data.email },
     });
   } catch (err) {

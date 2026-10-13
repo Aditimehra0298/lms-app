@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getPurchasesForLearner } from "@/lib/server/get-learner-purchases";
 import {
+  maybeSweepAllLearnerSubscriptions,
+  syncLearnerSubscriptions,
+} from "@/lib/server/learner-plan-subscription";
+import {
   learnerAuthRequiredResponse,
   requireLearnerSessionEmail,
 } from "@/lib/server/learner-session";
@@ -14,6 +18,8 @@ export async function GET(request: Request) {
   const email = requireLearnerSessionEmail(request);
   if (!email) return learnerAuthRequiredResponse();
 
+  await syncLearnerSubscriptions(email).catch((err) => console.error("[api/purchases] subscription sync", err));
+  maybeSweepAllLearnerSubscriptions();
   try {
     const courses = await getPurchasesForLearner(email);
     return NextResponse.json(

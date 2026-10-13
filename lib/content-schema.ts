@@ -1079,7 +1079,56 @@ export type HomePagePlan = {
   note: string;
   features: string[];
   cta: string;
+  /** Enables online purchase; the amount is read from `price` on the server. */
+  checkoutKey?: string;
+  /** "category" = learner picks one course category; "all" = every self-paced course. */
+  scope?: "category" | "all";
+  durationMonths?: number;
 };
+
+export const defaultIndividualPlans: HomePagePlan[] = [
+  {
+    badge: "Any One Category · Annual",
+    tagline: "Master one subject area in depth",
+    desc: "Pick any one course category — such as ESG, Food Safety or Cyber Security — and get unlimited access to every self-paced course in it for a full year.",
+    price: "₹20,000 / year",
+    note: "1 year access · choose your category",
+    features: [
+      "All self-paced courses in your chosen category",
+      "Access for one full year",
+      "New courses added to the category during the year are included",
+      "Certificate for every course you complete",
+      "Learn at your own pace on any device",
+    ],
+    cta: "Get Started",
+    checkoutKey: "individual-category-annual",
+    scope: "category",
+    durationMonths: 12,
+  },
+  {
+    badge: "Most Popular · All Courses Annual",
+    tagline: "Unlimited learning across every category",
+    desc: "Get unlimited access to our complete library of self-paced eLearning courses across all categories for a full year — the best value for continuous upskilling.",
+    price: "₹29,999 / year",
+    note: "1 year access · all categories",
+    features: [
+      "All self-paced courses across every category",
+      "Access for one full year",
+      "Every new course added during the year is included",
+      "Certificate for every course you complete",
+      "Learn at your own pace on any device",
+    ],
+    cta: "Get Started",
+    checkoutKey: "individual-all-annual",
+    scope: "all",
+    durationMonths: 12,
+  },
+];
+
+/** Saved plans from before online checkout existed are replaced by the purchasable defaults. */
+export function normalizeIndividualPlans(plans: HomePagePlan[] | null | undefined): HomePagePlan[] {
+  return plans?.some((p) => p.checkoutKey?.trim()) ? plans : defaultIndividualPlans;
+}
 
 export type HomePageOrgPlan = {
   title: string;
@@ -1303,36 +1352,7 @@ export const defaultHomePageConfig: HomePageConfig = {
     { title: "Progress Tracking & Assessments", desc: "Monitor your learning journey with module-wise assessments, exams, and performance insights.", icon: "CheckCircle2" },
   ],
   testimonials: [],
-  individualPlans: [
-    {
-      badge: "Most Popular · Sustainable Futures Plus Monthly",
-      tagline: "Complete multiple courses and earn credentials in the short term",
-      desc: "Access a large catalog of professional learning programs, certifications, and job-ready training paths designed for rapid upskilling.",
-      price: "₹2,099 / month",
-      note: "Cancel anytime",
-      features: [
-        "Access 10,000+ courses and Specializations from 170+ leading companies and universities",
-        "Earn unlimited certificates after your trial ends",
-        "Learn job-relevant skills and tools with 1,000+ applied projects and hands-on labs",
-        "Choose from 15+ Professional Certificate programs from leading industry partners",
-      ],
-      cta: "Get Started",
-    },
-    {
-      badge: "Sustainable Futures Plus Annual",
-      tagline: "Combine flexibility and savings with long-term learning goals",
-      desc: "Everything included in the monthly plan, with annual savings for learners focused on consistent, long-term career growth.",
-      price: "₹13,999 / year",
-      note: "14-day money-back guarantee",
-      features: [
-        "Everything included in the monthly plan",
-        "Save more when you pay up front for the year",
-        "Enjoy maximum flexibility to achieve work/life balance",
-        "Learn at your own pace with continuous access to programs",
-      ],
-      cta: "Get Started",
-    },
-  ],
+  individualPlans: defaultIndividualPlans,
   orgPlan: {
     title: "Sustainable Futures for Teams",
     tagline: "Accelerate team performance",

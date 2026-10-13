@@ -55,7 +55,7 @@ import type {
   HomePageUnlock,
   HomePageWhyFeature,
 } from "@/lib/content-schema";
-import { defaultHomePageConfig, defaultOrgPlans, orgTierTotal } from "@/lib/content-schema";
+import { defaultHomePageConfig, defaultOrgPlans, normalizeIndividualPlans, orgTierTotal } from "@/lib/content-schema";
 import Link from "next/link";
 import AdminTestimonialPhotoField from "@/components/admin/AdminTestimonialPhotoField";
 
@@ -271,7 +271,13 @@ export default function AdminHomePageEditor() {
         const res = await fetch("/api/admin/content", { cache: "no-store" });
         if (res.ok) {
           const data = (await res.json()) as AdminContent;
-          if (data.homePage) setConfig({ ...defaultHomePageConfig, ...data.homePage });
+          if (data.homePage) {
+            setConfig({
+              ...defaultHomePageConfig,
+              ...data.homePage,
+              individualPlans: normalizeIndividualPlans(data.homePage.individualPlans),
+            });
+          }
         }
       } catch { /* use defaults */ } finally { setLoading(false); }
     })();
@@ -466,7 +472,15 @@ export default function AdminHomePageEditor() {
             <div><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={plan.desc} onChange={(e) => setIndPlan(idx, { desc: e.target.value })} /></div>
             <div className="grid gap-2 sm:grid-cols-2"><div><label className={labelCls}>Note</label><input className={inputCls} value={plan.note} onChange={(e) => setIndPlan(idx, { note: e.target.value })} /></div><div><label className={labelCls}>CTA</label><input className={inputCls} value={plan.cta} onChange={(e) => setIndPlan(idx, { cta: e.target.value })} /></div></div>
             <div><label className={labelCls}>Features (one per line)</label><textarea className={inputCls} rows={3} value={plan.features.join("\n")} onChange={(e) => setIndPlan(idx, { features: e.target.value.split("\n") })} /></div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div><label className={labelCls}>Online payment ID</label><input className={inputCls} value={plan.checkoutKey ?? ""} onChange={(e) => setIndPlan(idx, { checkoutKey: e.target.value })} placeholder="e.g. individual-all-annual" /></div>
+              <div><label className={labelCls}>Gives access to</label><select className={inputCls} value={plan.scope ?? "all"} onChange={(e) => setIndPlan(idx, { scope: e.target.value === "category" ? "category" : "all" })}><option value="all">All self-paced courses</option><option value="category">One category (learner picks)</option></select></div>
+              <div><label className={labelCls}>Duration (months)</label><input type="number" min={1} className={inputCls} value={plan.durationMonths ?? 12} onChange={(e) => setIndPlan(idx, { durationMonths: Number(e.target.value) || 12 })} /></div>
+            </div>
+            <p className="text-[10px] text-gray-500">The amount charged online is the number in Price (e.g. ₹20,000 / year → ₹20,000). Leave the payment ID empty to disable buying.</p>
+            <button type="button" onClick={() => setConfig((p) => ({ ...p, individualPlans: p.individualPlans.filter((_, i) => i !== idx) }))} className="text-[11px] text-rose-300 hover:underline">Delete plan</button>
           </div>))}
+          <button type="button" onClick={() => setConfig((p) => ({ ...p, individualPlans: [...p.individualPlans, { badge: "New plan", tagline: "", desc: "", price: "", note: "", features: [], cta: "Get Started", scope: "all", durationMonths: 12 }] }))} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:border-amber-400/50">+ Add individual plan</button>
 
           <p className="text-xs font-semibold text-gray-300 pt-2">Organisation Plans</p>
           {orgPlans.map((plan, idx) => (

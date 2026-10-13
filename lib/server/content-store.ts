@@ -257,5 +257,8 @@ export async function writeAdminContent(content: AdminContent): Promise<void> {
         return notifyOrganisationsOfNewCourses(added);
       })
       .catch((err) => console.error("[content-store] new-course org notify failed", err));
+    void import("@/lib/server/learner-plan-subscription")
+      .then(({ syncLearnerSubscriptions }) => syncLearnerSubscriptions())
+      .catch((err) => console.error("[content-store] learner subscription sync failed", err));
   }
 }

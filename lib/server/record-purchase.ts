@@ -21,6 +21,8 @@ export async function recordPurchasesForLearner(input: {
   learnerEmail: string;
   courses: PurchaseCourseInput[];
   skipPurchaseEmail?: boolean;
+  /** Caller sends its own summary alert (e.g. subscription granting many courses). */
+  skipAdminAlert?: boolean;
 }): Promise<{ ok: true; recorded: number; skipped: number } | { ok: false; message: string }> {
   const email = normalizeLearnerEmail(input.learnerEmail);
   if (!email || !email.includes("@")) {
@@ -116,7 +118,7 @@ export async function recordPurchasesForLearner(input: {
     });
   }
 
-  if (newlyRecorded.length > 0) {
+  if (newlyRecorded.length > 0 && !input.skipAdminAlert) {
     const courseList = newlyRecorded.map((c) => c.title || c.slug).join(", ");
     queueAdminActivityEmail({
       kind: "purchase",

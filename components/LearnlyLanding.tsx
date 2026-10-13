@@ -4,16 +4,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OrgPlanCard } from "@/components/OrgPlanCard";
+import { IndividualPlanCard } from "@/components/IndividualPlanCard";
 import {
+  IND_PLAN_CATEGORY_PARAM,
+  IND_PLAN_CHECKOUT_PARAM,
   ORG_PLAN_CHECKOUT_PARAM,
   ORG_PLAN_SEATS_PARAM,
+  individualPlanLoginHref,
   orgPlanLoginHref,
+  startIndividualPlanCheckout,
   startOrgPlanCheckout,
   type OrgPlanCheckoutResult,
 } from "@/lib/org-plan-checkout-client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HomePageConfig, ManagedCategory, ManagedCourse, TutorLedCatalogLandingStored } from "@/lib/content-schema";
-import { defaultHomePageConfig, defaultOrgPlans } from "@/lib/content-schema";
+import { defaultHomePageConfig, defaultOrgPlans, normalizeIndividualPlans } from "@/lib/content-schema";
 import { canonicalCategorySlug } from "@/lib/category-page-resolve";
 import type { TutorLedProgramStored } from "@/lib/default-tutor-led-programs";
 import { catalogCourseLandingHref } from "@/lib/course-landing";
@@ -26,7 +31,6 @@ import {
 } from "@/lib/tutor-led-catalog-landings";
 import { tutorLedProgramMatchesCategory } from "@/lib/tutor-led-program-category";
 import { CourseDeliveryBadge } from "@/components/CourseDeliveryBadge";
-import { CoursePrice } from "@/components/CoursePrice";
 import CourseCardActions from "@/components/CourseCardActions";
 import CourseResolvedCardActions from "@/components/CourseResolvedCardActions";
 import { CatalogMediaImage } from "@/components/CatalogMediaImage";
@@ -565,6 +569,41 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
     }
   };
 
+  const [resumedPlanCategory, setResumedPlanCategory] = useState<string | undefined>(undefined);
+
+  const buyIndividualPlan = async (planKey: string, categorySlug?: string) => {
+    setPlanCheckoutMessage(null);
+    setPlanCheckoutBusy(planKey);
+    const result = await startIndividualPlanCheckout(planKey, categorySlug).catch(
+      (err): OrgPlanCheckoutResult => ({ status: "error", message: err instanceof Error ? err.message : "Payment failed." }),
+    );
+    setPlanCheckoutBusy(null);
+    if (result.status === "login") {
+      router.push(individualPlanLoginHref(planKey, categorySlug));
+    } else if (result.status === "paid") {
+      setPlanCheckoutMessage({ ok: true, text: "Payment successful! Your courses are unlocked — opening My Learning…" });
+      router.push("/my-learning");
+    } else if (result.status === "error") {
+      setPlanCheckoutMessage({ ok: false, text: result.message });
+    }
+  };
+
+  useEffect(() => {
+    const key = searchParams.get(IND_PLAN_CHECKOUT_PARAM)?.trim();
+    if (!key || resumedPlanCheckout.current) return;
+    resumedPlanCheckout.current = true;
+    const category = searchParams.get(IND_PLAN_CATEGORY_PARAM)?.trim() || undefined;
+    window.history.replaceState(null, "", "/#pricing");
+    const timer = window.setTimeout(() => {
+      setPlanAudience("individual");
+      setResumedPlanCategory(category);
+      document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+      void buyIndividualPlan(key, category);
+    }, 0);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   useEffect(() => {
     const key = searchParams.get(ORG_PLAN_CHECKOUT_PARAM)?.trim();
     if (!key || resumedPlanCheckout.current) return;
@@ -728,7 +767,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
     seed: t.name.toLowerCase().replace(/\s+/g, "-"),
   }));
   const liveFaqs = homeConfig.faqs;
-  const liveIndividualPlans = homeConfig.individualPlans;
+  const liveIndividualPlans = normalizeIndividualPlans(homeConfig.individualPlans);
   const liveOrgPlans = (homeConfig.orgPlans?.length ? homeConfig.orgPlans : defaultOrgPlans).filter((plan) =>
     Boolean(plan?.title?.trim()),
   );
@@ -758,6 +797,19 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
   const unlockCta = homeConfig.unlock?.cta?.trim();
 
   const catalogForPills = (liveCategories ?? []).filter((c) => c.isActive);
+
+  const planCategories = catalogForPills
+    .map((c) => ({
+      slug: c.slug,
+      title: c.title,
+      courseCount: catalogCourses.filter(
+        (course) =>
+          course.published !== false &&
+          (course.learningFormat?.trim() || "self-paced") === "self-paced" &&
+          course.category?.toLowerCase() === c.slug.toLowerCase(),
+      ).length,
+    }))
+    .filter((c) => c.courseCount > 0);
 
   const filteredCatalog =
     activeCategory === "All"
@@ -1667,32 +1719,29 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
             <>
               <div className="mx-auto mt-10 grid max-w-6xl gap-6 md:grid-cols-2">
                 {liveIndividualPlans.map((plan) => (
-                  <article
+                  <IndividualPlanCard
                     key={plan.badge}
-                    className="lh-plan-card flex h-full flex-col rounded-2xl border border-amber-500/40 bg-linear-to-b from-[#1b1306] via-[#120d07] to-[#0a0808] p-6 shadow-[0_0_30px_rgba(249,177,77,0.2)] transition-all hover:-translate-y-0.5 hover:border-amber-300/75 hover:shadow-[0_0_42px_rgba(249,177,77,0.3)]"
-                  >
-                    <p className="text-sm font-semibold text-amber-300">{plan.badge}</p>
-                    <p className="mt-1 text-sm text-gray-300">{plan.tagline}</p>
-                    <p className="mt-4 text-sm leading-relaxed text-gray-400">{plan.desc}</p>
-                    <CoursePrice label={plan.price} className="mt-5 block text-2xl font-bold text-white" />
-                    {plan.note ? <p className="mt-1 text-xs text-amber-100/90">{plan.note}</p> : null}
-                    <ul className="mt-5 space-y-2 text-sm text-gray-200">
-                      {plan.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-2">
-                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-400" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <button
-                      type="button"
-                      className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
-                    >
-                      {plan.cta} <ChevronRight size={16} />
-                    </button>
-                  </article>
+                    plan={plan}
+                    categories={planCategories}
+                    goldGradient={goldGradient}
+                    busy={planCheckoutBusy === plan.checkoutKey}
+                    disabled={planCheckoutBusy !== null}
+                    initialCategory={resumedPlanCategory}
+                    onBuy={(key, category) => void buyIndividualPlan(key, category)}
+                  />
                 ))}
               </div>
+              {planCheckoutMessage ? (
+                <p
+                  className={`mx-auto mt-4 max-w-6xl rounded-lg border px-4 py-3 text-center text-sm ${
+                    planCheckoutMessage.ok
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-100"
+                      : "border-rose-500/40 bg-rose-500/10 text-rose-100"
+                  }`}
+                >
+                  {planCheckoutMessage.text}
+                </p>
+              ) : null}
               <div className="lh-help-card mx-auto mt-6 max-w-6xl rounded-2xl border border-amber-500/45 bg-linear-to-r from-amber-500/16 via-amber-400/10 to-amber-500/16 p-5">
                 <div className="flex flex-col items-center gap-3 text-center">
                   <span className="lh-symbol-chip inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-300/70 bg-amber-400/20 text-amber-100 shadow-[0_0_20px_rgba(249,177,77,0.35)]">
