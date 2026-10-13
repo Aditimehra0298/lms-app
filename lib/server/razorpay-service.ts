@@ -139,6 +139,43 @@ export async function createRazorpayOrder(input: {
   };
 }
 
+/** Razorpay order for a server-priced amount (e.g. organisation plan). Amount is in paise. */
+export async function createRazorpayOrderForAmount(input: {
+  amountPaise: number;
+  currency: string;
+  notes: Record<string, string>;
+}): Promise<
+  | { ok: true; orderId: string; amount: number; currency: string; receipt: string; keyId: string }
+  | { ok: false; message: string }
+> {
+  if (!isRazorpayConfigured()) {
+    return { ok: false, message: "Online payments are not configured on the server." };
+  }
+  const amount = Math.round(input.amountPaise);
+  if (!Number.isFinite(amount) || amount < minimumPaymentAmountSmallestUnit(input.currency)) {
+    return { ok: false, message: "Plan price is not set correctly." };
+  }
+  const receipt = `org_${nanoid(12)}`;
+  try {
+    const order = await getClient().orders.create({
+      amount,
+      currency: input.currency,
+      receipt,
+      notes: input.notes,
+    });
+    return {
+      ok: true,
+      orderId: order.id,
+      amount: Number(order.amount),
+      currency: order.currency,
+      receipt,
+      keyId: getRazorpayKeyId()!,
+    };
+  } catch (err) {
+    return { ok: false, message: razorpayErrorMessage(err, "Could not start the payment.") };
+  }
+}
+
 export function verifyRazorpayPaymentSignature(input: {
   orderId: string;
   paymentId: string;

@@ -1091,6 +1091,12 @@ export type HomePageOrgPlan = {
   cta: string;
   /** Where the button goes (e.g. /contact). */
   href?: string;
+  /** When set, the button opens Razorpay checkout for this plan (organisation accounts only). */
+  checkoutKey?: string;
+  /** Employee seats granted by a paid checkout plan. */
+  seats?: number;
+  /** Access length for a paid checkout plan. */
+  durationMonths?: number;
 };
 
 export type HomePageFaq = {
@@ -1156,6 +1162,9 @@ export const defaultOrgPlans: HomePageOrgPlan[] = [
     ],
     cta: "Get Started for Teams",
     href: "/account?mode=register",
+    checkoutKey: "teams-annual-all-access",
+    seats: 20,
+    durationMonths: 12,
   },
   {
     title: "Custom Plan",

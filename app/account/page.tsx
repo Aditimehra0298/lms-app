@@ -54,9 +54,24 @@ export const dynamic = "force-dynamic";
 
 /** Learners always land on the dashboard after sign-in or registration. */
 
+const AFTER_AUTH_NEXT_KEY = "sft_after_auth_next";
+
+function safeInternalPath(raw: string | null | undefined): string | null {
+  const value = raw?.trim() ?? "";
+  if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return null;
+  return value;
+}
+
+function consumeAfterAuthNext(): string | null {
+  if (typeof window === "undefined") return null;
+  const next = safeInternalPath(window.sessionStorage.getItem(AFTER_AUTH_NEXT_KEY));
+  window.sessionStorage.removeItem(AFTER_AUTH_NEXT_KEY);
+  return next;
+}
+
 function learnerDestinationAfterAuth(accountType: AccountType): string {
   if (accountType === "self") return "/admin";
-  return MY_LEARNING_DASHBOARD_HREF;
+  return consumeAfterAuthNext() ?? MY_LEARNING_DASHBOARD_HREF;
 }
 
 /** Galaxy on every device — tuned for visibility + lighter GPU load. */
@@ -285,6 +300,9 @@ export default function AccountPage() {
       setShowAuthStep(true);
       return;
     }
+    const nextPath = safeInternalPath(search.get("next"));
+    if (nextPath) window.sessionStorage.setItem(AFTER_AUTH_NEXT_KEY, nextPath);
+    if (search.get("type") === "organisation") setSelectedAccountType("organisation");
     if (nextMode === "login" || nextMode === "register") {
       setAuthView(nextMode === "login" ? "login" : "register");
       setShowAuthStep(true);
@@ -292,7 +310,7 @@ export default function AccountPage() {
     const loggedIn = window.localStorage.getItem("sft_logged_in") === "true";
     const learnerEmail = window.localStorage.getItem("sft_learner_email")?.trim();
     if (loggedIn && learnerEmail) {
-      router.replace(MY_LEARNING_DASHBOARD_HREF);
+      router.replace(consumeAfterAuthNext() ?? MY_LEARNING_DASHBOARD_HREF);
     }
   }, [router]);
 

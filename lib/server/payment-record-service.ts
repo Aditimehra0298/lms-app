@@ -15,6 +15,11 @@ import {
 } from "@/lib/server/razorpay-service";
 import { isRazorpayConfigured } from "@/lib/server/razorpay-config";
 import { consumePromotionCode, promoCodeFromNote, promoNote } from "@/lib/server/checkout-promo";
+import {
+  activateOrgPlanSubscription,
+  cancelOrgPlanSubscription,
+  orgPlanKeyFromNote,
+} from "@/lib/server/organization-plan-subscription";
 
 function parseItems(raw: unknown): PaymentLineItem[] {
   if (!Array.isArray(raw)) return [];
@@ -177,7 +182,11 @@ export async function finalizeRazorpayPayment(input: {
     },
   });
 
-  if (items.length > 0) {
+  const orgPlanKey = orgPlanKeyFromNote(row.adminNote);
+  if (orgPlanKey) {
+    const activated = await activateOrgPlanSubscription({ orgEmail: email, planKey: orgPlanKey });
+    if (!activated.ok) return { ok: false, message: activated.message };
+  } else if (items.length > 0) {
     const result = await recordPurchasesForLearner({
       learnerEmail: email,
       courses: items.map((item) => ({ slug: item.slug, title: item.title || item.slug })),
@@ -496,7 +505,12 @@ function appendAdminNote(existing: string | null, line: string): string {
 async function enrollFromPaymentRow(row: {
   learnerEmail: string;
   items: unknown;
+  adminNote: string | null;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
+  const orgPlanKey = orgPlanKeyFromNote(row.adminNote);
+  if (orgPlanKey) {
+    return activateOrgPlanSubscription({ orgEmail: row.learnerEmail, planKey: orgPlanKey });
+  }
   const items = parseItems(row.items);
   if (items.length === 0) return { ok: true };
   const result = await recordPurchasesForLearner({
@@ -510,7 +524,12 @@ async function enrollFromPaymentRow(row: {
 async function revokeAccessForPaymentRow(row: {
   learnerEmail: string;
   items: unknown;
+  adminNote: string | null;
 }): Promise<number> {
+  if (orgPlanKeyFromNote(row.adminNote)) {
+    await cancelOrgPlanSubscription(row.learnerEmail);
+    return 0;
+  }
   const items = parseItems(row.items);
   const slugs = [...new Set(items.map((item) => item.slug).filter(Boolean))];
   if (slugs.length === 0) return 0;

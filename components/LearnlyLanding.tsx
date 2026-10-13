@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ORG_PLAN_CHECKOUT_PARAM,
+  orgPlanLoginHref,
+  startOrgPlanCheckout,
+  type OrgPlanCheckoutResult,
+} from "@/lib/org-plan-checkout-client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HomePageConfig, ManagedCategory, ManagedCourse, TutorLedCatalogLandingStored } from "@/lib/content-schema";
 import { defaultHomePageConfig, defaultOrgPlans } from "@/lib/content-schema";
@@ -530,6 +536,46 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
     () => (initialData?.tutorLedCatalogs ?? []).filter((c) => c.published),
   );
   const [planAudience, setPlanAudience] = useState<"individual" | "organisation">("individual");
+  const router = useRouter();
+  const [planCheckoutBusy, setPlanCheckoutBusy] = useState<string | null>(null);
+  const [planCheckoutMessage, setPlanCheckoutMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const resumedPlanCheckout = useRef(false);
+
+  const buyOrgPlan = async (planKey: string) => {
+    setPlanCheckoutMessage(null);
+    setPlanCheckoutBusy(planKey);
+    const result = await startOrgPlanCheckout(planKey).catch(
+      (err): OrgPlanCheckoutResult => ({ status: "error", message: err instanceof Error ? err.message : "Payment failed." }),
+    );
+    setPlanCheckoutBusy(null);
+    if (result.status === "login") {
+      router.push(orgPlanLoginHref(planKey));
+    } else if (result.status === "not-organisation") {
+      setPlanCheckoutMessage({
+        ok: false,
+        text: "Team plans are for organisation accounts. Sign out and sign in (or register) as an Organisation.",
+      });
+    } else if (result.status === "paid") {
+      setPlanCheckoutMessage({ ok: true, text: "Payment successful! Opening your organisation dashboard…" });
+      router.push("/my-learning?tab=dashboard");
+    } else if (result.status === "error") {
+      setPlanCheckoutMessage({ ok: false, text: result.message });
+    }
+  };
+
+  useEffect(() => {
+    const key = searchParams.get(ORG_PLAN_CHECKOUT_PARAM)?.trim();
+    if (!key || resumedPlanCheckout.current) return;
+    resumedPlanCheckout.current = true;
+    window.history.replaceState(null, "", "/#pricing");
+    const timer = window.setTimeout(() => {
+      setPlanAudience("organisation");
+      document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+      void buyOrgPlan(key);
+    }, 0);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [showAllFaqs, setShowAllFaqs] = useState(false);
   const [showAllCourses, setShowAllCourses] = useState(false);
@@ -1586,7 +1632,7 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
           </div>
         </section>
 
-        <section className={`${sectionShell} border-t border-white/5 py-16 md:py-20`}>
+        <section id="pricing" className={`${sectionShell} scroll-mt-24 border-t border-white/5 py-16 md:py-20`}>
           <h2 className={`${sectionTitle} text-center`}>
             Choose the Right <span className={goldText}>Plan</span> for You
           </h2>
@@ -1686,16 +1732,39 @@ export default function LearnlyLanding({ initialData }: { initialData?: LearnlyL
                       ))}
                     </ul>
                     <div className="mt-auto pt-6">
-                      <Link
-                        href={plan.href?.trim() || "/contact"}
-                        className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
-                      >
-                        {plan.cta} <ChevronRight size={16} />
-                      </Link>
+                      {plan.checkoutKey?.trim() ? (
+                        <button
+                          type="button"
+                          disabled={planCheckoutBusy !== null}
+                          onClick={() => void buyOrgPlan(plan.checkoutKey!.trim())}
+                          className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 disabled:opacity-60 ${goldGradient}`}
+                        >
+                          {planCheckoutBusy === plan.checkoutKey.trim() ? "Opening payment…" : plan.cta}{" "}
+                          <ChevronRight size={16} />
+                        </button>
+                      ) : (
+                        <Link
+                          href={plan.href?.trim() || "/contact"}
+                          className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-black transition-all hover:brightness-110 ${goldGradient}`}
+                        >
+                          {plan.cta} <ChevronRight size={16} />
+                        </Link>
+                      )}
                     </div>
                   </article>
                 ))}
               </div>
+              {planCheckoutMessage ? (
+                <p
+                  className={`mt-4 rounded-xl border px-4 py-3 text-center text-sm ${
+                    planCheckoutMessage.ok
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                      : "border-rose-500/40 bg-rose-500/10 text-rose-200"
+                  }`}
+                >
+                  {planCheckoutMessage.text}
+                </p>
+              ) : null}
               <div className="lh-help-card mt-6 rounded-2xl border border-amber-500/45 bg-linear-to-r from-amber-500/16 via-amber-400/10 to-amber-500/16 p-5">
                 <div className="flex flex-col items-center gap-3 text-center">
                   <span className="lh-symbol-chip inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-300/70 bg-amber-400/20 text-amber-100 shadow-[0_0_20px_rgba(249,177,77,0.35)]">
