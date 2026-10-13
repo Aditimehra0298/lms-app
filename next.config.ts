@@ -38,12 +38,12 @@ const nextConfig: NextConfig = {
           "form-action 'self'",
           "frame-ancestors 'none'",
           "object-src 'none'",
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://checkout.razorpay.com https://js.razorpay.com",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://checkout.razorpay.com https://js.razorpay.com https://assets.mediadelivery.net",
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "img-src 'self' data: blob: https:",
           "font-src 'self' data: https://fonts.gstatic.com",
           "connect-src 'self' https: wss:",
-          "frame-src 'self' https://accounts.google.com https://api.razorpay.com https://checkout.razorpay.com",
+          "frame-src 'self' https://accounts.google.com https://api.razorpay.com https://checkout.razorpay.com https://iframe.mediadelivery.net",
           "media-src 'self' blob: https:",
         ].join("; "),
       },
@@ -73,6 +73,11 @@ const nextConfig: NextConfig = {
       source: "/((?!_next/static|_next/image).*)",
       headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }, ...securityHeaders, ...hsts],
     };
+    // Must come after htmlNoStore: for the same header key, the last matching rule wins.
+    const publicAssets = {
+      source: "/:file([^/]+\\.(?:png|jpe?g|webp|gif|svg|ico|avif|mp4|webm|woff2?))",
+      headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" }],
+    };
     if (process.env.NODE_ENV === "development") {
       return [coverHeaders, htmlNoStore];
     }
@@ -83,6 +88,7 @@ const nextConfig: NextConfig = {
       },
       coverHeaders,
       htmlNoStore,
+      publicAssets,
     ];
   },
   webpack: (config, { dev }) => {
