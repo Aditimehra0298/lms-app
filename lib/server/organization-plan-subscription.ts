@@ -5,6 +5,7 @@ import { isOrgAllAccessActive } from "@/lib/organization-team-config";
 import { resolveHomePageConfig } from "@/lib/server/resolve-home-page";
 import { ensureOrganizationTeam, readOrganizationTeam, writeOrganizationTeam } from "@/lib/server/organization-team-store";
 import { syncOrganisationEnrollments } from "@/lib/server/organization-employee-accounts";
+import { customPlanIdFromKey, getCustomPlanRequest, markCustomPlanPaid } from "@/lib/server/org-custom-proposal";
 
 export const ORG_PLAN_NOTE_PREFIX = "org_plan:";
 
@@ -28,6 +29,21 @@ function amountFromPriceLabel(price: string): number | null {
 export async function resolveOrgCheckoutPlan(key: string, seats?: number): Promise<OrgCheckoutPlan | null> {
   const wanted = key.trim();
   if (!wanted) return null;
+
+  const customId = customPlanIdFromKey(wanted);
+  if (customId) {
+    const p = (await getCustomPlanRequest(customId))?.proposal;
+    if (!p) return null;
+    return {
+      key: wanted,
+      title: p.title,
+      amountInr: p.amountInr,
+      renewalAmountInr: p.amountInr,
+      seats: p.seats,
+      durationMonths: p.durationMonths,
+    };
+  }
+
   const home = await resolveHomePageConfig().catch(() => null);
   const plans: HomePageOrgPlan[] = home?.orgPlans?.length ? home.orgPlans : defaultOrgPlans;
   const plan = plans.find((p) => p.checkoutKey?.trim() === wanted);
@@ -89,6 +105,8 @@ export async function activateOrgPlanSubscription(input: {
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   const email = normalizeLearnerEmail(input.orgEmail);
   if (!email) return { ok: false, message: "Organisation email missing on payment." };
+  const customId = customPlanIdFromKey(input.planKey);
+  if (customId && (await getCustomPlanRequest(customId))?.proposal?.paidAt) return { ok: true };
   const plan = await resolveOrgCheckoutPlan(input.planKey, input.seats);
   if (!plan) return { ok: false, message: "This plan is no longer available. Contact support." };
 
@@ -109,6 +127,9 @@ export async function activateOrgPlanSubscription(input: {
   await syncOrganisationEnrollments(email).catch((err) =>
     console.error("[org-plan] enrolment sync failed", err),
   );
+  if (customId) {
+    await markCustomPlanPaid(customId).catch((err) => console.error("[org-plan] mark custom plan paid failed", err));
+  }
   return { ok: true };
 }
 

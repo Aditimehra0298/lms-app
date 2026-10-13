@@ -14,6 +14,7 @@ import {
   Search,
 } from "lucide-react";
 import { getLearnerEmail } from "@/lib/learner-session-client";
+import { AdminCustomPlanWorkflow, CUSTOM_PLAN_STAGE_META } from "@/components/admin/AdminCustomPlanWorkflow";
 
 type Submission = {
   id: string;
@@ -26,6 +27,7 @@ type Submission = {
   category: string | null;
   message: string | null;
   pagePath: string | null;
+  metadata?: { stage?: string } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -333,6 +335,15 @@ export default function AdminFormSubmissions() {
                           <span className={`inline-flex rounded border px-2 py-0.5 text-[10px] font-semibold ${ft.className}`}>
                             {ft.label}
                           </span>
+                          {row.formType === "org-custom-plan" ? (
+                            <span
+                              className={`mt-1 flex w-fit rounded border px-2 py-0.5 text-[10px] font-semibold ${
+                                (CUSTOM_PLAN_STAGE_META[row.metadata?.stage ?? "new"] ?? CUSTOM_PLAN_STAGE_META.new).className
+                              }`}
+                            >
+                              {(CUSTOM_PLAN_STAGE_META[row.metadata?.stage ?? "new"] ?? CUSTOM_PLAN_STAGE_META.new).label}
+                            </span>
+                          ) : null}
                         </td>
                         <td className="border border-white/10 px-3 py-2.5 align-top text-gray-200">
                           {cellText(row.name, 28)}
@@ -459,6 +470,15 @@ export default function AdminFormSubmissions() {
                                 ))}
                               </tbody>
                             </table>
+                            {row.formType === "org-custom-plan" ? (
+                              <AdminCustomPlanWorkflow
+                                id={row.id}
+                                email={row.email}
+                                companyName={row.subject ?? ""}
+                                employeesLabel={row.category ?? ""}
+                                onChanged={() => void fetchRows()}
+                              />
+                            ) : null}
                           </td>
                         </tr>
                       ) : null}

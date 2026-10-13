@@ -15,15 +15,24 @@ export type OrgPlanCheckoutResult =
 
 export const ORG_PLAN_SEATS_PARAM = "orgPlanSeats";
 
-export async function startOrgPlanCheckout(planKey: string, seats?: number): Promise<OrgPlanCheckoutResult> {
+export function startOrgPlanCheckout(planKey: string, seats?: number): Promise<OrgPlanCheckoutResult> {
+  return runOrgCheckout("/api/organization/plan-checkout", { planKey, seats });
+}
+
+/** Pay an admin-prepared Custom Plan proposal (link emailed to the organisation). */
+export function startCustomPlanCheckout(id: string, token: string): Promise<OrgPlanCheckoutResult> {
+  return runOrgCheckout("/api/organization/custom-plan", { id, t: token });
+}
+
+async function runOrgCheckout(endpoint: string, payload: Record<string, unknown>): Promise<OrgPlanCheckoutResult> {
   if (!isLearnerLoggedIn() || !getLearnerEmail()) return { status: "login" };
   if (!isOrganisationLearner(readLearnerProfileFromStorage())) return { status: "not-organisation" };
 
-  const res = await fetch("/api/organization/plan-checkout", {
+  const res = await fetch(endpoint, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ planKey, seats }),
+    body: JSON.stringify(payload),
   });
   const data = await readJsonResponse(res, {} as {
     ok?: boolean;
@@ -40,6 +49,7 @@ export async function startOrgPlanCheckout(planKey: string, seats?: number): Pro
   });
   if (res.status === 401) return { status: "login" };
   if (data.code === "not-organisation") return { status: "not-organisation" };
+  if (data.code === "wrong-account") return { status: "error", message: data.message ?? "Wrong account." };
   if (!res.ok || !data.ok || !data.orderId || !data.keyId || !data.amount || !data.currency) {
     return { status: "error", message: data.message ?? "Could not start the payment." };
   }
@@ -77,6 +87,9 @@ export async function startOrgPlanCheckout(planKey: string, seats?: number): Pro
 
 export function orgPlanLoginHref(planKey: string, seats?: number): string {
   const seatsPart = seats ? `&${ORG_PLAN_SEATS_PARAM}=${seats}` : "";
-  const next = `/?${ORG_PLAN_CHECKOUT_PARAM}=${encodeURIComponent(planKey)}${seatsPart}#pricing`;
+  return organisationLoginHref(`/?${ORG_PLAN_CHECKOUT_PARAM}=${encodeURIComponent(planKey)}${seatsPart}#pricing`);
+}
+
+export function organisationLoginHref(next: string): string {
   return `/account?mode=login&type=organisation&next=${encodeURIComponent(next)}`;
 }

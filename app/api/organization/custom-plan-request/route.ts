@@ -3,6 +3,7 @@ import { getClientIps } from "@/lib/request-ip";
 import { notifyAdminActivity } from "@/lib/server/admin-activity-email";
 import { createFormSubmission } from "@/lib/server/form-submissions-store";
 import { hitRateLimit } from "@/lib/server/otp-rate-limit";
+import { sendCustomPlanAcknowledgement } from "@/lib/server/org-custom-proposal";
 import { sanitizePlainText } from "@/lib/server/sanitize-user-text";
 
 export const dynamic = "force-dynamic";
@@ -106,7 +107,7 @@ export async function POST(request: Request) {
       category: `${employeesToTrain} employees`,
       message,
       pagePath: "/#pricing",
-      metadata: { source: "custom_plan_popup", ...details, trainingFormats },
+      metadata: { source: "custom_plan_popup", stage: "new", ...details, trainingFormats },
     });
   } catch (err) {
     console.error("[api/organization/custom-plan-request] save", err);
@@ -123,6 +124,9 @@ export async function POST(request: Request) {
     detail: requirements,
     lines: { Name: fullName, Email: email, Mobile: mobile, ...details },
   }).catch(() => {});
+  void sendCustomPlanAcknowledgement({ to: email, name: fullName, companyName }).catch((err) =>
+    console.error("[api/organization/custom-plan-request] acknowledgement", err),
+  );
 
   return NextResponse.json({
     ok: true,
