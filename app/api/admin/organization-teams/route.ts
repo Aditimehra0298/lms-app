@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { assertMainAdmin } from "@/lib/server/admin-api-auth";
-import type { OrgPremiumPlanId } from "@/lib/organization-team-config";
+import {
+  normalizeOrgAllAccess,
+  type OrgAllAccessSubscription,
+  type OrgPremiumPlanId,
+} from "@/lib/organization-team-config";
+import {
+  mergeClientRosterWithServerFields,
+  revokeRemovedEmployees,
+  syncOrganisationEnrollments,
+} from "@/lib/server/organization-employee-accounts";
 import {
   ensureOrganizationTeam,
   readAllOrganizationTeams,
@@ -24,6 +33,8 @@ type Body = {
       : never
     : never;
   courseAssignments?: Record<string, string[]>;
+  /** null removes the subscription. */
+  allAccess?: OrgAllAccessSubscription | null;
 };
 
 export async function GET(request: Request) {
@@ -67,16 +78,28 @@ export async function PUT(request: Request) {
       companyName: body.companyName,
     });
 
-    const team = await writeOrganizationTeam({
+    const allAccess =
+      body.allAccess === null
+        ? undefined
+        : body.allAccess !== undefined
+          ? normalizeOrgAllAccess(body.allAccess)
+          : existing.allAccess;
+    let team = await writeOrganizationTeam({
       ...existing,
       workEmail,
       companyName: body.companyName ?? existing.companyName,
       planId: body.planId ?? existing.planId,
       seatLimit: body.seatLimit ?? existing.seatLimit,
-      roster: body.roster ?? existing.roster,
+      roster: body.roster
+        ? mergeClientRosterWithServerFields(body.roster, existing.roster)
+        : existing.roster,
       courseAssignments: body.courseAssignments ?? existing.courseAssignments,
+      allAccess,
       updatedAt: new Date().toISOString(),
     });
+    await revokeRemovedEmployees(existing.roster, team.roster);
+    const synced = await syncOrganisationEnrollments(workEmail);
+    if (synced.team) team = synced.team;
 
     const adminConfig = await readOrganizationTeamAdminConfig();
     return NextResponse.json({ ok: true, team, adminConfig }, { headers: noStoreJson });

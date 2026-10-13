@@ -21,8 +21,15 @@ import {
 } from "@/lib/organization-course-assignments-store";
 import { ORG_EMPLOYEE_ROSTER_EVENT } from "@/lib/organization-employee-roster";
 import { canonicalCourseSlug } from "@/lib/course-slug-aliases";
-import { rosterEntryHasLogin } from "@/lib/organization-team-config";
-import { getOrganizationOwnedCourseSlugs } from "@/lib/organization-team-sync-client";
+import {
+  isOrgAllAccessActive,
+  rosterEntryHasLogin,
+  type OrgAllAccessSubscription,
+} from "@/lib/organization-team-config";
+import {
+  getCachedOrganizationTeamRecord,
+  getOrganizationOwnedCourseSlugs,
+} from "@/lib/organization-team-sync-client";
 import {
   getActiveOrgPremiumPlan,
   orgPremiumPlanLearningRule,
@@ -47,6 +54,7 @@ export function MyLearningOrganizationAssignCourses({
   const [activeCourse, setActiveCourse] = useState<string>("");
   const [saved, setSaved] = useState(false);
   const [ownedSlugs, setOwnedSlugs] = useState<Set<string> | null>(null);
+  const [allAccess, setAllAccess] = useState<OrgAllAccessSubscription | null>(null);
 
   const seatTotal = activePlan.seatLimit;
 
@@ -55,6 +63,8 @@ export function MyLearningOrganizationAssignCourses({
     const total = plan.seatLimit;
     const owned = getOrganizationOwnedCourseSlugs();
     setOwnedSlugs(owned ? new Set(owned.map((s) => canonicalCourseSlug(s))) : null);
+    const record = getCachedOrganizationTeamRecord();
+    setAllAccess(record?.allAccess && isOrgAllAccessActive(record) ? record.allAccess : null);
     setActivePlan(plan);
     setPurchased(seedOrgPurchasedCoursesFromCatalog(courses));
     setAssignments(readOrgCourseAssignments());
@@ -120,6 +130,15 @@ export function MyLearningOrganizationAssignCourses({
           should take it.
         </p>
       </div>
+
+      {allAccess ? (
+        <article className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-100">
+          <strong className="text-emerald-200">Annual subscription active</strong> — all self-paced courses for{" "}
+          {allAccess.seats} employees, valid until{" "}
+          {new Date(allAccess.expiresAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.
+          Assign as many self-paced courses as you like to each employee.
+        </article>
+      ) : null}
 
       <article className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-xs">
         <span className="text-zinc-400">

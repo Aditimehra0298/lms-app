@@ -4,6 +4,8 @@ import {
   defaultOrganizationTeamAdminConfig,
   emptyRosterSlot,
   isDemoRosterEntry,
+  isOrgAllAccessActive,
+  normalizeOrgAllAccess,
   mergeOrganizationTeamAdminConfig,
   stripDemoTeamData,
   resolveSeatLimitForOrg,
@@ -61,7 +63,10 @@ export function normalizeOrganizationTeamRecord(
 ): OrganizationTeamRecord {
   const workEmail = input.workEmail.trim().toLowerCase();
   const planId = (input.planId ?? adminConfig.defaultPlanId) as OrgPremiumPlanId;
-  const seatTotal = resolveSeatLimitForOrg(planId, input.seatLimit, adminConfig);
+  const allAccess = normalizeOrgAllAccess(input.allAccess);
+  const seatTotal = allAccess && isOrgAllAccessActive({ allAccess })
+    ? allAccess.seats
+    : resolveSeatLimitForOrg(planId, input.seatLimit, adminConfig);
   const base = buildEmptyOrgRoster(seatTotal);
   const incoming = Array.isArray(input.roster) ? input.roster : [];
 
@@ -92,6 +97,7 @@ export function normalizeOrganizationTeamRecord(
     seatLimit: seatTotal,
     roster: base,
     courseAssignments,
+    ...(allAccess ? { allAccess } : {}),
     updatedAt: new Date().toISOString(),
   };
 }

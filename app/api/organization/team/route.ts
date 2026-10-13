@@ -43,9 +43,12 @@ export async function GET(request: Request) {
     if (!team) {
       team = await ensureOrganizationTeam({ workEmail: email });
     }
-    const ownedCourseSlugs = (await requireOrganisationOwner(email))
-      ? [...(await organisationOwnedCourseSlugs(email))]
-      : [];
+    let ownedCourseSlugs: string[] = [];
+    if (await requireOrganisationOwner(email)) {
+      const synced = await syncOrganisationEnrollments(email);
+      if (synced.team) team = synced.team;
+      ownedCourseSlugs = [...(await organisationOwnedCourseSlugs(email))];
+    }
     return NextResponse.json({ ok: true, team, adminConfig, ownedCourseSlugs }, { headers: noStoreJson });
   } catch (err) {
     console.error("[api/organization/team GET]", err);

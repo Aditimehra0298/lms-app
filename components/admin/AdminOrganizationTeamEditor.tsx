@@ -5,7 +5,9 @@ import { Building2, Plus, Save, Trash2, Users, Cpu } from "lucide-react";
 import { type AdminContent } from "@/lib/content-schema";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import {
+  isOrgAllAccessActive,
   mergeOrganizationTeamAdminConfig,
+  ORG_ALL_ACCESS_DEFAULT_SEATS,
   ORG_PREMIUM_PLAN_IDS,
   type OrganizationPremiumPlanConfig,
   type OrganizationTeamAdminConfig,
@@ -43,7 +45,7 @@ export function AdminOrganizationTeamEditor() {
   const adminHeaders = useCallback((): Record<string, string> => {
     const email = getLearnerEmail();
     return {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json",
     };
   }, []);
 
@@ -203,7 +205,7 @@ export function AdminOrganizationTeamEditor() {
       const put = await fetch("/api/admin/organization-teams", {
         method: "PUT",
         headers: adminHeaders(),
-        body: JSON.stringify(teamDraft),
+        body: JSON.stringify({ ...teamDraft, allAccess: teamDraft.allAccess ?? null }),
       });
       if (!put.ok) throw new Error("save");
       const data = (await put.json()) as { team?: OrganizationTeamRecord };
@@ -589,6 +591,95 @@ export function AdminOrganizationTeamEditor() {
             </>
           ) : null}
         </div>
+
+        {teamDraft ? (
+          <div className="mt-4 rounded-xl border border-emerald-400/25 bg-emerald-500/[0.06] p-3">
+            <label className="flex items-center gap-2 text-xs font-semibold text-white">
+              <input
+                type="checkbox"
+                checked={Boolean(teamDraft.allAccess)}
+                onChange={(e) => {
+                  if (!e.target.checked) {
+                    setTeamDraft({ ...teamDraft, allAccess: undefined });
+                    return;
+                  }
+                  const start = new Date();
+                  const end = new Date(start);
+                  end.setFullYear(end.getFullYear() + 1);
+                  setTeamDraft({
+                    ...teamDraft,
+                    allAccess: {
+                      seats: ORG_ALL_ACCESS_DEFAULT_SEATS,
+                      startsAt: start.toISOString(),
+                      expiresAt: end.toISOString(),
+                    },
+                  });
+                }}
+              />
+              Annual subscription — all self-paced courses
+            </label>
+            <p className="mt-1 text-[11px] text-gray-400">
+              Employees can take any number of self-paced courses while active. Seats are fixed to the number
+              below. Tick only after the organisation has paid.
+            </p>
+            {teamDraft.allAccess ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <label className={labelCls}>Employee seats</label>
+                  <input
+                    type="number"
+                    min={1}
+                    className={inputCls}
+                    value={teamDraft.allAccess.seats}
+                    onChange={(e) =>
+                      setTeamDraft({
+                        ...teamDraft,
+                        allAccess: { ...teamDraft.allAccess!, seats: Number(e.target.value) || 1 },
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Starts</label>
+                  <input
+                    type="date"
+                    className={inputCls}
+                    value={teamDraft.allAccess.startsAt.slice(0, 10)}
+                    onChange={(e) =>
+                      e.target.value &&
+                      setTeamDraft({
+                        ...teamDraft,
+                        allAccess: { ...teamDraft.allAccess!, startsAt: new Date(e.target.value).toISOString() },
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Expires</label>
+                  <input
+                    type="date"
+                    className={inputCls}
+                    value={teamDraft.allAccess.expiresAt.slice(0, 10)}
+                    onChange={(e) =>
+                      e.target.value &&
+                      setTeamDraft({
+                        ...teamDraft,
+                        allAccess: { ...teamDraft.allAccess!, expiresAt: new Date(e.target.value).toISOString() },
+                      })
+                    }
+                  />
+                </div>
+                <p className="text-[11px] sm:col-span-3">
+                  {isOrgAllAccessActive(teamDraft) ? (
+                    <span className="text-emerald-300">Active now — click “Save organisation team” to apply.</span>
+                  ) : (
+                    <span className="text-rose-300">Not active (check the dates).</span>
+                  )}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {teamDraft ? (
           <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto">

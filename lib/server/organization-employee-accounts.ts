@@ -5,6 +5,7 @@ import { registrationPeriodFromDate } from "@/lib/registration-ids";
 import { emailAppName, emailAppUrl, emailShortBrand } from "@/lib/email-brand-config";
 import { sendTransactionalEmail } from "@/lib/mail";
 import {
+  isOrgAllAccessActive,
   ORG_ROSTER_SERVER_FIELDS,
   rosterEntryHasLogin,
   type OrganizationTeamRecord,
@@ -78,10 +79,23 @@ async function catalogTitles(): Promise<Map<string, string>> {
   return titles;
 }
 
-/** Courses the organisation account itself is enrolled in (bought or granted by admin). */
+/**
+ * Courses the organisation can give to employees: ones it is enrolled in (bought or granted by
+ * admin), plus every published self-paced course while an all-access subscription is active.
+ */
 export async function organisationOwnedCourseSlugs(orgEmail: string): Promise<Set<string>> {
-  const rows = await getPurchasesForLearner(orgEmail);
-  return new Set(rows.map((r) => canonicalCourseSlug(r.slug)));
+  const [rows, team] = await Promise.all([
+    getPurchasesForLearner(orgEmail),
+    readOrganizationTeam(orgEmail),
+  ]);
+  const owned = new Set(rows.map((r) => canonicalCourseSlug(r.slug)));
+  if (isOrgAllAccessActive(team)) {
+    const courses = await getManagedCourses().catch(() => []);
+    for (const c of courses) {
+      if ((c.learningFormat ?? "self-paced") === "self-paced") owned.add(canonicalCourseSlug(c.slug));
+    }
+  }
+  return owned;
 }
 
 async function removeOrgEnrollment(learnerEmail: string, courseSlug: string): Promise<void> {

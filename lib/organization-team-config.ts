@@ -75,6 +75,13 @@ export function stripDemoTeamData<T extends { roster: OrgTeamRosterEntry[]; cour
   };
 }
 
+/** Admin-granted yearly subscription: every self-paced course, fixed seat count. */
+export type OrgAllAccessSubscription = {
+  seats: number;
+  startsAt: string;
+  expiresAt: string;
+};
+
 export type OrganizationTeamRecord = {
   workEmail: string;
   companyName?: string;
@@ -82,8 +89,39 @@ export type OrganizationTeamRecord = {
   seatLimit?: number;
   roster: OrgTeamRosterEntry[];
   courseAssignments: Record<string, string[]>;
+  /** Set only by the main admin — never accepted from the organisation's browser. */
+  allAccess?: OrgAllAccessSubscription;
   updatedAt: string;
 };
+
+export const ORG_ALL_ACCESS_DEFAULT_SEATS = 20;
+
+export function isOrgAllAccessActive(
+  record?: Pick<OrganizationTeamRecord, "allAccess"> | null,
+  now: Date = new Date(),
+): boolean {
+  const sub = record?.allAccess;
+  if (!sub) return false;
+  const start = Date.parse(sub.startsAt);
+  const end = Date.parse(sub.expiresAt);
+  if (!Number.isFinite(end)) return false;
+  const t = now.getTime();
+  return (!Number.isFinite(start) || start <= t) && t < end;
+}
+
+export function normalizeOrgAllAccess(input: unknown): OrgAllAccessSubscription | undefined {
+  if (!input || typeof input !== "object") return undefined;
+  const row = input as Partial<OrgAllAccessSubscription>;
+  const end = Date.parse(String(row.expiresAt ?? ""));
+  if (!Number.isFinite(end)) return undefined;
+  const start = Date.parse(String(row.startsAt ?? ""));
+  const seats = Math.round(Number(row.seats));
+  return {
+    seats: Number.isFinite(seats) && seats > 0 ? Math.min(seats, 999) : ORG_ALL_ACCESS_DEFAULT_SEATS,
+    startsAt: new Date(Number.isFinite(start) ? start : Date.now()).toISOString(),
+    expiresAt: new Date(end).toISOString(),
+  };
+}
 
 export const ORG_PREMIUM_PLAN_IDS: OrgPremiumPlanId[] = [
   "monthly-premium",
