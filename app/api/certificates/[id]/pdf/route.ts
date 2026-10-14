@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { assertCertificateOwnerOrAdmin } from "@/lib/server/certificate-access";
+import {
+  assertCertificateOwnerOrAdmin,
+  assertCertificateReleasedToLearner,
+} from "@/lib/server/certificate-access";
 import {
   N8N_ARCHIVED_PDF_MIN_BYTES,
   isTemporaryRemotePdfUrl,
@@ -39,6 +42,8 @@ export async function GET(request: Request, { params }: Params) {
     }
     return denied;
   }
+  const notReleased = assertCertificateReleasedToLearner(request, row);
+  if (notReleased) return notReleased;
 
   const sessionEmail = requireLearnerSessionEmail(request);
   const isOwner =

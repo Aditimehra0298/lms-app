@@ -103,6 +103,37 @@ export async function assertLearnerMayRequestCertificate(
 }
 
 /** Session learner who owns the cert, or signed-in main admin. */
+export function isMainAdminRequest(request: Request): boolean {
+  const adminEmail = readAdminSessionEmail(request);
+  return Boolean(adminEmail && isMainAdminEmail(adminEmail));
+}
+
+/** Learners may only open / download a certificate after the admin has approved (published) it. */
+export function assertCertificateReleasedToLearner(
+  request: Request,
+  row: { status: string; visibleToLearner: boolean },
+): NextResponse | null {
+  if (isMainAdminRequest(request)) return null;
+  if (row.status === "ready" && row.visibleToLearner) return null;
+  return NextResponse.json(
+    {
+      ok: false,
+      status: "awaiting_approval",
+      message: "Your certificate is awaiting admin approval. You can download it once it is approved.",
+    },
+    { status: 403 },
+  );
+}
+
+/** Generating / regenerating certificate PDFs is an admin-only action. */
+export function assertMainAdminCertificateAction(request: Request): NextResponse | null {
+  if (isMainAdminRequest(request)) return null;
+  return NextResponse.json(
+    { ok: false, message: "Certificates are generated automatically and released by the admin." },
+    { status: 403 },
+  );
+}
+
 export function assertCertificateOwnerOrAdmin(
   request: Request,
   certificateLearnerEmail: string,

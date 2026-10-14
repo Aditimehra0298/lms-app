@@ -9,6 +9,7 @@ import {
   BookOpen,
   CheckCircle2,
   ChevronRight,
+  Clock,
   Download,
   ExternalLink,
   FileText,
@@ -208,7 +209,8 @@ export function CourseCompletedDashboard({
   const certificateIssued = Boolean(
     certificate?.status === "ready" && certificate.visibleToLearner !== false,
   );
-  const canViewCertificate = eligible || certificateIssued;
+  const canViewCertificate = certificateIssued;
+  const awaitingApproval = eligible && !certificateIssued;
 
   const examModules = useMemo(() => examModuleNumbers(curriculum), [curriculum]);
 
@@ -381,7 +383,7 @@ export function CourseCompletedDashboard({
   const inlinePdfPreviewSrc = inlinePdfHref ? certificatePdfEmbedSrc(inlinePdfHref) : null;
 
   useEffect(() => {
-    if (!certificate?.id || !effectiveEmail || !hasSavedPdf || inlinePdfPreviewSrc) {
+    if (!certificate?.id || !effectiveEmail || !hasSavedPdf || !certificateIssued || inlinePdfPreviewSrc) {
       setPdfPreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;
@@ -425,6 +427,7 @@ export function CourseCompletedDashboard({
     certificate?.id,
     certificate?.pdfReady,
     certificate?.pdfUrl,
+    certificateIssued,
     effectiveEmail,
     hasSavedPdf,
     inlinePdfPreviewSrc,
@@ -596,6 +599,16 @@ export function CourseCompletedDashboard({
                   </OutlineBtn>
                 ) : null}
               </div>
+            ) : awaitingApproval ? (
+              <div className="relative mt-5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-4 py-3">
+                <p className="flex items-center gap-2 text-sm font-semibold text-amber-100">
+                  <Clock size={15} /> Certificate awaiting approval
+                </p>
+                <p className="mt-1 text-xs text-amber-100/80">
+                  Congratulations on completing the course. Our team is reviewing your certificate — you can
+                  view and download it here and in Certificate Records once it is approved.
+                </p>
+              </div>
             ) : (
               <div className="relative mt-5 space-y-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-4 py-3">
                 <p className="flex items-center gap-2 text-sm text-amber-100">
@@ -682,6 +695,7 @@ export function CourseCompletedDashboard({
             <N8nCertificateGenerationStatus
               certificate={certificate}
               certRequested={certRequested}
+              approved={certificateIssued}
               polling={certRequested && !hasSavedPdf && certificate?.status !== "failed"}
             />
           </div>
@@ -720,11 +734,10 @@ export function CourseCompletedDashboard({
                     overlay={
                       <div className="absolute inset-x-0 bottom-0 border-t border-black/10 bg-black/55 px-4 py-3 text-center backdrop-blur-[2px]">
                         <p className="text-sm font-semibold text-white">
-                          Get your official certificate
+                          Your certificate is approved
                         </p>
                         <p className="mt-0.5 text-xs text-gray-200">
-                          First download generates your official certificate (~15 seconds) and saves it
-                          permanently. Later downloads are instant.
+                          Use Download PDF below to save your official certificate and transcript.
                         </p>
                       </div>
                     }
@@ -785,6 +798,15 @@ export function CourseCompletedDashboard({
                 )}
               </div>
             </>
+          ) : awaitingApproval ? (
+            <div className="mt-4 flex min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed border-amber-500/30 bg-amber-500/[0.04] p-8 text-center">
+              <Clock className="h-10 w-10 text-amber-300/80" />
+              <p className="mt-3 text-sm font-semibold text-amber-100">Awaiting admin approval</p>
+              <p className="mt-1 max-w-sm text-xs leading-relaxed text-gray-400">
+                Your certificate has been generated and is being reviewed. Once approved, your official PDF
+                certificate will appear here and in Certificate Records.
+              </p>
+            </div>
           ) : (
             <div className="mt-4 flex min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed border-white/15 bg-black/20 p-8 text-center">
               <Lock className="h-10 w-10 text-gray-500" />
@@ -925,7 +947,7 @@ export function CourseCompletedDashboard({
           </article>
 
           {/* Certificate Status */}
-          {certificate && eligible ? (
+          {certificate && certificateIssued ? (
             <article className={`${CARD} border-emerald-500/20 p-4`}>
               <div className="flex items-center gap-2">
                 <Award className="h-5 w-5 text-emerald-400" />
@@ -962,7 +984,7 @@ export function CourseCompletedDashboard({
             <div className="mt-3 grid grid-cols-2 gap-2">
               {[
                 { label: "Course Details", icon: BookOpen, href: `/courses/${courseSlug}` },
-                { label: "Download", icon: Download, href: viewPdfHref },
+                ...(certificateIssued ? [{ label: "Download", icon: Download, href: viewPdfHref }] : []),
                 { label: "My Notes", icon: FileText, href: `/my-learning/course/${encodeURIComponent(courseSlug)}` },
                 { label: "Ask Mentor", icon: MessageCircle, href: `/contact` },
               ].map(({ label, icon: Icon, href }) => (

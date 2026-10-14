@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { assertCertificateOwnerOrAdmin } from "@/lib/server/certificate-access";
+import {
+  assertCertificateOwnerOrAdmin,
+  assertCertificateReleasedToLearner,
+  isMainAdminRequest,
+} from "@/lib/server/certificate-access";
 import {
   N8N_ARCHIVED_PDF_MIN_BYTES,
   readCertificatePdfBuffer,
@@ -30,6 +34,9 @@ export async function POST(request: Request, { params }: Params) {
 
   const denied = assertCertificateOwnerOrAdmin(request, row.learnerEmail);
   if (denied) return denied;
+  const notReleased = assertCertificateReleasedToLearner(request, row);
+  if (notReleased) return notReleased;
+  const isAdmin = isMainAdminRequest(request);
 
   let body: { forceRegenerate?: boolean; attachment?: boolean } = {};
   const contentType = request.headers.get("content-type") ?? "";
@@ -55,6 +62,7 @@ export async function POST(request: Request, { params }: Params) {
 
   const email = row.learnerEmail.trim().toLowerCase();
   const attachment = body.attachment !== false;
+  if (!isAdmin) body.forceRegenerate = false;
 
   try {
     const prepared = await ensureCertificatePdfReady({

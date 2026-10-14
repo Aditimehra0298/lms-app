@@ -234,8 +234,7 @@ export function CourseCompletionRewards({
         courseTitle,
       })
     : `I completed ${courseTitle} at SF Trainings! View my official certificate PDF:`;
-  const downloadBlocked =
-    certificate?.status === "ready" && !certificate.visibleToLearner;
+  const approved = certificate?.status === "ready" && certificate.visibleToLearner === true;
 
   return (
     <section
@@ -249,8 +248,7 @@ export function CourseCompletionRewards({
           </p>
           <h2 className="mt-1 text-2xl font-bold text-white">Your certificate & transcript</h2>
           <p className="mt-1 text-sm text-gray-300">
-            Get your official certificate and transcript below. First time takes about 15 seconds;
-            after that it is saved and opens instantly.
+            Your certificate is generated automatically and released here once our team approves it.
           </p>
           {combinedExamPercent != null ? (
             <p className="mt-1 text-xs text-emerald-200/90">
@@ -298,10 +296,7 @@ export function CourseCompletionRewards({
               </div>
               <p className="mt-1 font-semibold text-white">{courseTitle}</p>
               {!certificate && !certLoading ? (
-                <p className="mt-2 text-xs text-gray-400">
-                  Click Get certificate PDF to generate your official document. Later downloads are
-                  instant.
-                </p>
+                <p className="mt-2 text-xs text-gray-400">Your certificate is being prepared.</p>
               ) : null}
             </div>
           </div>
@@ -309,29 +304,26 @@ export function CourseCompletionRewards({
             <N8nCertificateGenerationStatus
               certificate={certificate}
               certRequested={certRequested}
+              approved={approved}
               polling={certLoading || (certRequested && certificate?.status === "pending")}
             />
           </div>
-          <div className="mt-4">
-            <CertificateDownloadActions
-              certificateId={certificate?.id}
-              learnerEmail={certificate?.learnerEmail}
-              courseSlug={courseSlug}
-              courseTitle={courseTitle}
-              scorePercent={certificate?.scorePercent ?? combinedExamPercent}
-              pdfReady={certificate?.pdfReady}
-              pdfUrl={certificate?.pdfUrl}
-              templateImageUrl={templateImageUrl}
-              disabled={downloadBlocked}
-              disabledReason={
-                downloadBlocked
-                  ? "Your certificate is awaiting admin approval before download."
-                  : undefined
-              }
-              onComplete={() => void reloadCertificate()}
-            />
-          </div>
-          {verifyUrl ? (
+          {approved ? (
+            <div className="mt-4">
+              <CertificateDownloadActions
+                certificateId={certificate?.id}
+                learnerEmail={certificate?.learnerEmail}
+                courseSlug={courseSlug}
+                courseTitle={courseTitle}
+                scorePercent={certificate?.scorePercent ?? combinedExamPercent}
+                pdfReady={certificate?.pdfReady}
+                pdfUrl={certificate?.pdfUrl}
+                templateImageUrl={templateImageUrl}
+                onComplete={() => void reloadCertificate()}
+              />
+            </div>
+          ) : null}
+          {approved && verifyUrl ? (
             <div className="mt-3">
               <ShareCredentialButtons
                 url={earnedShareUrl || verifyUrl}

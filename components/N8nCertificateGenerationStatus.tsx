@@ -11,6 +11,8 @@ type Props = {
   certRequested: boolean;
   /** True while waiting for the official PDF to become available. */
   polling?: boolean;
+  /** Admin has approved (published) the certificate to the learner. */
+  approved?: boolean;
 };
 
 function StepIcon({ state }: { state: StepState }) {
@@ -56,22 +58,27 @@ export function N8nCertificateGenerationStatus({
   certificate,
   certRequested,
   polling = false,
+  approved = false,
 }: Props) {
   if (!certRequested && !certificate) return null;
 
   const recordCreated = Boolean(certificate?.id);
-  const pdfReady = Boolean(
-    certificate?.pdfReady || certificate?.pdfUrl?.trim().startsWith("/api/certificates/"),
+  const generated = Boolean(
+    certificate?.pdfReady ||
+      certificate?.pdfUrl?.trim().startsWith("/api/certificates/") ||
+      certificate?.status === "ready",
   );
+  const pdfReady = generated && approved;
+  const awaitingApproval = generated && !approved;
   const failed = certificate?.status === "failed";
   const waiting =
-    recordCreated && !pdfReady && !failed && (certificate?.status === "pending" || polling);
+    recordCreated && !generated && !failed && (certificate?.status === "pending" || polling);
 
   const step1State: StepState = certRequested || recordCreated ? "done" : "active";
   const step2State: StepState = failed
     ? "error"
     : recordCreated
-      ? pdfReady
+      ? generated
         ? "done"
         : waiting
           ? "active"
@@ -79,29 +86,28 @@ export function N8nCertificateGenerationStatus({
       : certRequested
         ? "active"
         : "pending";
-  const step3State: StepState = failed
-    ? "error"
-    : pdfReady
-      ? "done"
-      : waiting
-        ? "active"
-        : "pending";
+  const approvalState: StepState = approved ? "done" : awaitingApproval ? "active" : "pending";
+  const step3State: StepState = failed ? "error" : pdfReady ? "done" : "pending";
 
   const headline = failed
     ? "Certificate could not be prepared"
     : pdfReady
       ? "Your certificate is ready"
-      : waiting
-        ? "Preparing your certificate…"
-        : certRequested
-          ? "Certificate request received"
-          : "Preparing your certificate…";
+      : awaitingApproval
+        ? "Waiting for admin approval"
+        : waiting
+          ? "Preparing your certificate…"
+          : certRequested
+            ? "Certificate request received"
+            : "Preparing your certificate…";
 
   const headlineClass = failed
     ? "text-red-200"
     : pdfReady
       ? "text-emerald-200"
-      : "text-violet-200";
+      : awaitingApproval
+        ? "text-amber-200"
+        : "text-violet-200";
 
   return (
     <div
@@ -131,14 +137,25 @@ export function N8nCertificateGenerationStatus({
           label={failed ? "Preparation interrupted" : "Certificate being prepared"}
           detail={
             failed
-              ? "Something went wrong while preparing your certificate. Please try again or contact support."
+              ? "Something went wrong while preparing your certificate. Our team has been notified — contact support if this continues."
               : recordCreated
                 ? waiting
                   ? "This usually takes about 15 seconds."
-                  : "Your certificate record is ready."
+                  : "Your certificate has been generated."
                 : certRequested
                   ? "Creating your certificate…"
                   : undefined
+          }
+        />
+        <StepRow
+          state={approvalState}
+          label="Admin approval"
+          detail={
+            approved
+              ? "Approved by our team."
+              : awaitingApproval
+                ? "Our team reviews every certificate before it is released to you."
+                : undefined
           }
         />
         <StepRow
@@ -146,14 +163,10 @@ export function N8nCertificateGenerationStatus({
           label={failed ? "Download unavailable" : "Ready to download"}
           detail={
             failed
-              ? "Use Regenerate, or contact support if the problem continues."
+              ? undefined
               : pdfReady
                 ? "Download anytime from here or your Certificate Records."
-                : waiting
-                  ? "Your official PDF will appear here when ready."
-                  : recordCreated
-                    ? "Tap Get certificate PDF if it does not appear automatically."
-                    : undefined
+                : "Available once your certificate is approved."
           }
         />
       </ol>

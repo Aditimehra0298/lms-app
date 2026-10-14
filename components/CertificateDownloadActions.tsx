@@ -6,10 +6,8 @@ import {
   CheckCircle2,
   Download,
   ExternalLink,
-  FileText,
   Loader2,
   AlertCircle,
-  RotateCcw,
 } from "lucide-react";
 import {
   getLearnerEmail,
@@ -55,7 +53,6 @@ export function CertificateDownloadActions({
   size = "md",
   onComplete,
 }: CertificateDownloadActionsProps) {
-  const [busy, setBusy] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +106,7 @@ export function CertificateDownloadActions({
   }, [certificateId, courseSlug, effectiveEmail, scorePercent]);
 
   const downloadPdf = useCallback(
-    async (options?: { forceRegenerate?: boolean; attachment?: boolean }) => {
+    async (options?: { attachment?: boolean }) => {
       if (!effectiveEmail) {
         setError("Please sign in to download your certificate.");
         return false;
@@ -121,7 +118,6 @@ export function CertificateDownloadActions({
 
       const result = await fetchSavedCertificatePdf(certId, effectiveEmail, {
         attachment: options?.attachment !== false,
-        forceRegenerate: options?.forceRegenerate === true,
       });
 
       if (!result.ok) {
@@ -135,13 +131,7 @@ export function CertificateDownloadActions({
 
       setLocalPdfReady(true);
       setSuccess(true);
-      setMessage(
-        options?.forceRegenerate
-          ? "Certificate regenerated successfully."
-          : storedPdf
-            ? "Certificate downloaded."
-            : "Official certificate ready. You can download it anytime.",
-      );
+      setMessage("Certificate downloaded.");
       onComplete?.();
       window.setTimeout(() => {
         setSuccess(false);
@@ -149,7 +139,7 @@ export function CertificateDownloadActions({
       }, 8000);
       return true;
     },
-    [courseSlug, effectiveEmail, onComplete, resolveCertificateId, storedPdf],
+    [courseSlug, effectiveEmail, onComplete, resolveCertificateId],
   );
 
   const handleDownload = useCallback(async () => {
@@ -160,37 +150,6 @@ export function CertificateDownloadActions({
       setError("Download failed. Please try again.");
     } finally {
       setDownloading(false);
-    }
-  }, [downloadPdf]);
-
-  const handleFirstGenerate = useCallback(async () => {
-    setSuccess(false);
-    setBusy(true);
-    setMessage(
-      storedPdf
-        ? "Loading your saved certificate…"
-        : "Generating your official certificate… First time only (~15 seconds).",
-    );
-
-    try {
-      await downloadPdf({ attachment: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not generate certificate.");
-    } finally {
-      setBusy(false);
-    }
-  }, [downloadPdf, storedPdf]);
-
-  const handleRegenerate = useCallback(async () => {
-    setError(null);
-    setBusy(true);
-    setMessage("Regenerating your certificate…");
-    try {
-      await downloadPdf({ attachment: true, forceRegenerate: true });
-    } catch {
-      setError("Regeneration failed. Please try again.");
-    } finally {
-      setBusy(false);
     }
   }, [downloadPdf]);
 
@@ -213,7 +172,7 @@ export function CertificateDownloadActions({
         <p className="text-xs text-amber-300">Sign in to get your certificate PDF.</p>
       ) : null}
 
-      {message ? (
+      {message && !success ? (
         <p className="flex items-center gap-2 rounded-lg border border-violet-400/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-100">
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
           {message}
@@ -235,55 +194,21 @@ export function CertificateDownloadActions({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {storedPdf && canAct ? (
-          <>
-            <button
-              type="button"
-              disabled={downloading || busy}
-              onClick={() => void handleDownload()}
-              className={downloadBtnClass}
-            >
-              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Download PDF
-            </button>
-            {viewPageHref ? (
-              <Link href={viewPageHref} target="_blank" rel="noopener noreferrer" className={viewBtnClass}>
-                <ExternalLink className="h-4 w-4" /> View PDF
-              </Link>
-            ) : null}
-            <button
-              type="button"
-              disabled={busy || downloading}
-              onClick={() => void handleRegenerate()}
-              className={`${btnClass} border border-white/15 text-gray-300 hover:bg-white/5 disabled:opacity-50`}
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-              Regenerate
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            disabled={busy || disabled || !effectiveEmail}
-            onClick={() => void handleFirstGenerate()}
-            className={downloadBtnClass}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            Get certificate PDF
-          </button>
-        )}
+        <button
+          type="button"
+          disabled={!canAct || downloading}
+          onClick={() => void handleDownload()}
+          className={downloadBtnClass}
+        >
+          {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Download PDF
+        </button>
+        {storedPdf && canAct && viewPageHref ? (
+          <Link href={viewPageHref} target="_blank" rel="noopener noreferrer" className={viewBtnClass}>
+            <ExternalLink className="h-4 w-4" /> View PDF
+          </Link>
+        ) : null}
       </div>
-
-      {!storedPdf && !disabled ? (
-        <p className="text-[11px] leading-relaxed text-gray-500">
-          Your official certificate is generated once and reused on every download — no repeat
-          generation unless you choose Regenerate.
-        </p>
-      ) : storedPdf ? (
-        <p className="text-[11px] leading-relaxed text-gray-500">
-          Ready — instant download anytime.
-        </p>
-      ) : null}
     </div>
   );
 }

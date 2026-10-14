@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { assertCertificateOwnerOrAdmin } from "@/lib/server/certificate-access";
+import {
+  assertCertificateOwnerOrAdmin,
+  assertMainAdminCertificateAction,
+} from "@/lib/server/certificate-access";
 import { triggerCertificateGeneration } from "@/lib/server/n8n-certificate-service";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +26,8 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ ok: false, message: "Certificate not found." }, { status: 404 });
   }
 
-  const denied = assertCertificateOwnerOrAdmin(request, row.learnerEmail);
+  const denied =
+    assertCertificateOwnerOrAdmin(request, row.learnerEmail) ?? assertMainAdminCertificateAction(request);
   if (denied) return denied;
 
   let body: { forceRegenerate?: boolean } = {};

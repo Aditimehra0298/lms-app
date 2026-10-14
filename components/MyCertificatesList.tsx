@@ -15,9 +15,9 @@ import {
 import { ShareCredentialButtons } from "@/components/ShareCredentialButtons";
 import { readJsonResponse } from "@/lib/safe-json";
 
-function canUseDownloadAction(c: CertificateRowDto): boolean {
-  if (c.status === "ready" && !c.visibleToLearner) return false;
-  return c.status === "ready" || c.status === "pending" || c.status === "failed";
+/** Learners only see certificates the admin has approved (published). */
+function isPublished(c: CertificateRowDto): boolean {
+  return c.status === "ready" && c.visibleToLearner === true;
 }
 
 export default function MyCertificatesList() {
@@ -54,7 +54,9 @@ export default function MyCertificatesList() {
     })();
   }, [email]);
 
-  const filtered = certificates.filter(
+  const published = certificates.filter(isPublished);
+  const awaiting = certificates.filter((c) => !isPublished(c) && c.status !== "revoked");
+  const filtered = published.filter(
     (c) =>
       !query.trim() ||
       c.courseTitle.toLowerCase().includes(query.toLowerCase()) ||
@@ -66,10 +68,26 @@ export default function MyCertificatesList() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">My Certificates</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">
-          Your official certificate and transcript live here. Generate your PDF once (~15 seconds) —
-          later downloads are instant.
+          Your official certificates and transcripts. A certificate appears here once our team has
+          approved it after you complete the course and pass the exams.
         </p>
       </div>
+
+      {awaiting.length > 0 ? (
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <p className="font-semibold">
+            {awaiting.length} certificate{awaiting.length === 1 ? "" : "s"} awaiting approval
+          </p>
+          <ul className="mt-1 list-disc pl-5 text-xs text-amber-100/80">
+            {awaiting.map((c) => (
+              <li key={c.id}>{c.courseTitle}</li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs text-amber-100/70">
+            You will be able to view and download it here as soon as it is approved.
+          </p>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-[200px] flex-1">
@@ -86,7 +104,7 @@ export default function MyCertificatesList() {
         </div>
         <p className="my-learning-certificate-count inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-gray-500">
           <Award className="h-4 w-4 text-amber-400" aria-hidden />
-          {loading ? "…" : `${certificates.length} item${certificates.length === 1 ? "" : "s"}`}
+          {loading ? "…" : `${published.length} item${published.length === 1 ? "" : "s"}`}
         </p>
       </div>
 
@@ -100,13 +118,14 @@ export default function MyCertificatesList() {
         <div className="my-learning-certificate-empty rounded-2xl border border-dashed border-white/15 px-6 py-14 text-center">
           <Award className="mx-auto h-10 w-10 text-gray-600" aria-hidden />
           <p className="mt-3 text-sm text-gray-400">
-            No certificates yet. Complete a course and pass the final exam.
+            {awaiting.length > 0
+              ? "No approved certificates yet."
+              : "No certificates yet. Complete a course and pass the final exam."}
           </p>
         </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-2">
           {filtered.map((c) => {
-            const showDownload = canUseDownloadAction(c);
             const issuedLabel =
               c.status === "ready"
                 ? new Date(c.issuedAt).toLocaleDateString("en-GB", {
@@ -149,8 +168,7 @@ export default function MyCertificatesList() {
                   <span>ID {c.identificationNumber}</span>
                 </div>
 
-                {showDownload ? (
-                  <div className="mt-5 flex flex-1 flex-col">
+                <div className="mt-5 flex flex-1 flex-col">
                     <div className="my-learning-certificate-actions rounded-xl border border-white/8 bg-black/20 p-3">
                       <CertificateDownloadActions
                         certificateId={c.id}
@@ -213,11 +231,6 @@ export default function MyCertificatesList() {
                       ) : null}
                     </div>
                   </div>
-                ) : c.status === "ready" && !c.visibleToLearner ? (
-                  <p className="mt-4 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-gray-400">
-                    Waiting for admin to publish your certificate.
-                  </p>
-                ) : null}
               </article>
             );
           })}

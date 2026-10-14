@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { assertCertificateOwnerOrAdmin } from "@/lib/server/certificate-access";
+import {
+  assertCertificateOwnerOrAdmin,
+  assertCertificateReleasedToLearner,
+  isMainAdminRequest,
+} from "@/lib/server/certificate-access";
 import { ensureCertificatePdfReady } from "@/lib/server/n8n-certificate-service";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +20,7 @@ export async function POST(request: Request, { params }: Params) {
 
   const row = await prisma.lmsCertificate.findUnique({
     where: { id: id.trim() },
-    select: { learnerEmail: true },
+    select: { learnerEmail: true, status: true, visibleToLearner: true },
   });
   if (!row) {
     return NextResponse.json({ ok: false, message: "Certificate not found." }, { status: 404 });
@@ -24,6 +28,9 @@ export async function POST(request: Request, { params }: Params) {
 
   const denied = assertCertificateOwnerOrAdmin(request, row.learnerEmail);
   if (denied) return denied;
+  const notReleased = assertCertificateReleasedToLearner(request, row);
+  if (notReleased) return notReleased;
+  const isAdmin = isMainAdminRequest(request);
 
   let body: { forceRegenerate?: boolean; triggerN8n?: boolean } = {};
   try {
@@ -36,8 +43,8 @@ export async function POST(request: Request, { params }: Params) {
     const result = await ensureCertificatePdfReady({
       certificateId: id.trim(),
       learnerEmail: row.learnerEmail.trim().toLowerCase(),
-      forceRegenerate: body.forceRegenerate === true,
-      triggerN8n: body.triggerN8n === true,
+      forceRegenerate: isAdmin && body.forceRegenerate === true,
+      triggerN8n: isAdmin && body.triggerN8n === true,
     });
     if (!result.ok) {
       return NextResponse.json(result, {
