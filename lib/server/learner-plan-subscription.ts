@@ -286,6 +286,10 @@ export function maybeSweepAllLearnerSubscriptions(): void {
   void syncLearnerSubscriptions().catch((err) => console.error("[learner-subscriptions] sweep failed", err));
 }
 
+export async function listAllLearnerSubscriptions(): Promise<LearnerSubscription[]> {
+  return (await readStore()).subscriptions;
+}
+
 export async function listLearnerSubscriptions(email: string): Promise<LearnerSubscription[]> {
   const target = normalizeLearnerEmail(email);
   return (await readStore()).subscriptions.filter((s) => s.email === target);

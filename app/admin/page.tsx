@@ -52,6 +52,7 @@ import AdminLessonsWorkspace from "@/components/admin/AdminLessonsWorkspace";
 import AdminBatchesWorkspace from "@/components/admin/AdminBatchesWorkspace";
 import AdminVideoLibrary from "@/components/admin/AdminVideoLibrary";
 import AdminUsersWorkspace from "@/components/admin/AdminUsersWorkspace";
+import AdminSubscriptionsWorkspace from "@/components/admin/AdminSubscriptionsWorkspace";
 import AdminPaymentsWorkspace from "@/components/admin/AdminPaymentsWorkspace";
 import AdminOrdersWorkspace from "@/components/admin/AdminOrdersWorkspace";
 import AdminInvoicesWorkspace from "@/components/admin/AdminInvoicesWorkspace";
@@ -117,7 +118,7 @@ const menuSections = [
   },
   {
     title: "Users & Access",
-    items: ["Users", "Organization Team", "Certificates", "Roles & Permissions"],
+    items: ["Users", "Subscriptions", "Organization Team", "Certificates", "Roles & Permissions"],
   },
   {
     title: "Orders & Payments",
@@ -162,6 +163,7 @@ const menuIcons: Record<string, typeof Home> = {
   Analytics: BarChart3,
   Reports: FileBarChart,
   "Organization Team": Building2,
+  Subscriptions: CreditCard,
 };
 
 type AdminAccessState = {
@@ -178,6 +180,7 @@ const MENU_PANEL_QUERY: Record<string, string> = {
   "Tutor Led": "tutor-led",
   Workshops: "workshops",
   Users: "users",
+  Subscriptions: "subscriptions",
   Certificates: "certificates",
   "Roles & Permissions": "roles",
   Orders: "orders",
@@ -504,6 +507,7 @@ function AdminPageInner() {
   const showAnalyticsWorkspace = activeMenu === "Analytics";
   const showReportsWorkspace = activeMenu === "Reports";
   const showOrganizationTeam = activeMenu === "Organization Team";
+  const showSubscriptionsWorkspace = activeMenu === "Subscriptions";
   const showRolesWorkspace = activeMenu === "Roles & Permissions";
   const hasMainPanel =
     activeMenu === "Dashboard" ||
@@ -532,6 +536,7 @@ function AdminPageInner() {
     showAnalyticsWorkspace ||
     showReportsWorkspace ||
     showOrganizationTeam ||
+    showSubscriptionsWorkspace ||
     showRolesWorkspace ||
     activeMenu === "Categories";
 
@@ -831,6 +836,7 @@ function AdminPageInner() {
           {showReportsWorkspace && <AdminReportsWorkspace />}
 
           {showOrganizationTeam && <AdminOrganizationTeamEditor />}
+          {showSubscriptionsWorkspace && <AdminSubscriptionsWorkspace />}
 
           {showRolesWorkspace && <AdminRolesPermissionsWorkspace />}
 
