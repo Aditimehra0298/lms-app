@@ -27,6 +27,7 @@ export type AdminUserCourseProgressRow = {
   updatedAt: string | null;
   certificateStatus: "none" | "pending" | "ready" | "failed";
   certificateNumber: string | null;
+  certificateId: string | null;
 };
 
 export type AdminUserCertificateRow = {

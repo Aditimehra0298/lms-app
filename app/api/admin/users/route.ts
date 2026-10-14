@@ -51,6 +51,7 @@ const userSelect = {
   certificates: {
     orderBy: { issuedAt: "desc" as const },
     select: {
+      id: true,
       courseSlug: true,
       courseTitle: true,
       certificateNumber: true,
@@ -97,6 +98,7 @@ type UserRow = {
   _count: { purchases: number; certificates: number };
   purchases: { courseSlug: string; title: string; createdAt: Date }[];
   certificates: {
+    id: string;
     courseSlug: string;
     courseTitle: string;
     certificateNumber: string;
@@ -214,6 +216,7 @@ function buildCourseProgress(
       updatedAt: progress?.updatedAt ?? null,
       certificateStatus: mapCertStatus(cert?.status),
       certificateNumber: cert?.certificateNumber ?? null,
+      certificateId: cert?.id ?? null,
     });
   }
 

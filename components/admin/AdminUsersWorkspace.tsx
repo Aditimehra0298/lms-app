@@ -336,6 +336,31 @@ export default function AdminUsersWorkspace() {
     }
   };
 
+  const regenerateCertificate = async (row: AdminUserListRow, certificateId: string, courseTitle: string) => {
+    const ok = window.confirm(
+      `Regenerate the certificate PDF for ${row.name?.trim() || row.email}?\n\nCourse: ${courseTitle}\n\nThe certificate number stays the same; the PDF is rebuilt from the current template.`,
+    );
+    if (!ok) return;
+    setBusyEmail(row.email);
+    setSaveNotice(null);
+    setLoadError(null);
+    try {
+      const res = await fetch(`/api/certificates/${encodeURIComponent(certificateId)}/generate`, {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ forceRegenerate: true }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) throw new Error(data.message ?? "Could not regenerate certificate");
+      setSaveNotice(data.message ?? `Certificate regenerated for ${courseTitle}`);
+      await load();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not regenerate certificate");
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0c1428] via-[#0a101c] to-[#070b14]">
@@ -904,6 +929,18 @@ export default function AdminUsersWorkspace() {
                                                   className="mt-1 block rounded border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-100 hover:bg-amber-500/25 disabled:opacity-50"
                                                 >
                                                   Issue certificate
+                                                </button>
+                                              ) : null}
+                                              {c.certificateId ? (
+                                                <button
+                                                  type="button"
+                                                  disabled={busyEmail === row.email}
+                                                  onClick={() =>
+                                                    void regenerateCertificate(row, c.certificateId!, c.title)
+                                                  }
+                                                  className="mt-1 block rounded border border-sky-400/40 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-100 hover:bg-sky-500/25 disabled:opacity-50"
+                                                >
+                                                  Regenerate
                                                 </button>
                                               ) : null}
                                             </td>

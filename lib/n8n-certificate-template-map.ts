@@ -21,6 +21,8 @@ export const N8N_CERTIFICATE_COURSE_NAMES = [
   "ISO 140012015 EMS Internal Auditor Course",
   "ISO 140012015 EMS Lead Auditor Course",
   "ISO 14064 Mastering GHG Accounting & Verification",
+  "ISO 14064 GHG LEAD VERIFIER COURSE",
+  "ISO 14064 GHG  Lead Accountant Course",
   "ISO 149712019- Application of Risk Management to medical Devices",
   "ISO 190112018 - Guidelines for Auditing Management Systems",
   "ISOIEC 27001 2022 Awareness Course",
@@ -71,8 +73,8 @@ export const N8N_CERTIFICATE_TEMPLATE_BY_SLUG: Record<string, N8nCertificateCour
   "iso-14001-2015-ems-internal-auditor-course": "ISO 140012015 EMS Internal Auditor Course",
   "iso-14001-2015-ems-lead-auditor": "ISO 140012015 EMS Lead Auditor Course",
   "iso-14064-ghg-accounting-verification": "ISO 14064 Mastering GHG Accounting & Verification",
-  "iso-14064-ghg-lead-verifier-course": "ISO 14064 Mastering GHG Accounting & Verification",
-  "iso-14064-ghg-lead-accountant-course": "ISO 14064 Mastering GHG Accounting & Verification",
+  "iso-14064-ghg-lead-verifier-course": "ISO 14064 GHG LEAD VERIFIER COURSE",
+  "iso-14064-ghg-lead-accountant-course": "ISO 14064 GHG  Lead Accountant Course",
   "iso-14064-mastering-ghg-accounting-verification": "ISO 14064 Mastering GHG Accounting & Verification",
   "iso-14971-2019-medical-device-risk":
     "ISO 149712019- Application of Risk Management to medical Devices",
@@ -113,13 +115,18 @@ const N8N_CERTIFICATE_TEMPLATE_BY_TITLE: Record<string, N8nCertificateCourseName
     "Carbon Trading & Reporting Practitioner Program",
   [normalizeTitleKey("Essentials of Carbon Trading and Reporting")]:
     "Carbon Trading & Reporting Practitioner Program",
-  [normalizeTitleKey("ISO 14064 GHG Lead Verifier Course")]:
-    "ISO 14064 Mastering GHG Accounting & Verification",
-  [normalizeTitleKey("ISO 14064 GHG Lead Accountant Course")]:
-    "ISO 14064 Mastering GHG Accounting & Verification",
+  [normalizeTitleKey("ISO 14064 GHG Lead Verifier Course")]: "ISO 14064 GHG LEAD VERIFIER COURSE",
+  [normalizeTitleKey("ISO 14064 GHG Lead Accountant Course")]: "ISO 14064 GHG  Lead Accountant Course",
   [normalizeTitleKey("ISO 14064 Mastering GHG Accounting and Verification")]:
     "ISO 14064 Mastering GHG Accounting & Verification",
 };
+
+/** Lead Verifier and Lead Accountant have their own templates; any other ISO 14064 course uses the shared one. */
+function iso14064Template(key: string): N8nCertificateCourseName {
+  if (key.includes("verifier")) return "ISO 14064 GHG LEAD VERIFIER COURSE";
+  if (key.includes("accountant")) return "ISO 14064 GHG  Lead Accountant Course";
+  return "ISO 14064 Mastering GHG Accounting & Verification";
+}
 
 function stripPdfSuffix(name: string): string {
   return name.trim().replace(/\.pdf$/i, "").trim();
@@ -154,15 +161,13 @@ export function resolveN8nCertificateTemplateName(input: {
       }
     }
 
-    // Broad ISO 14064 / GHG match → shared n8n GHG template
     if (titleKey.includes("iso 14064") || (titleKey.includes("14064") && titleKey.includes("ghg"))) {
-      return "ISO 14064 Mastering GHG Accounting & Verification";
+      return iso14064Template(titleKey);
     }
   }
 
-  // Slug contains 14064 even if not listed yet
   if (slug.includes("14064")) {
-    return "ISO 14064 Mastering GHG Accounting & Verification";
+    return iso14064Template(slug);
   }
 
   return null;

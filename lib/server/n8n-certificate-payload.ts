@@ -58,6 +58,7 @@ export type N8nCertificateWebhookPayload = {
   certificateFields: {
     candidateName: string;
     courseName: string;
+    templateFile: string;
     courseDescription: string;
     duration: string;
     mode: string;
@@ -91,6 +92,8 @@ export type N8nCertificateWebhookPayload = {
    */
   candidateName: string;
   courseName: string;
+  /** Exact PDF template file: courseName + ".pdf". */
+  templateFile: string;
   certificateNumber: string;
   delegateNumber: string;
   verifyUrl: string;
@@ -264,6 +267,7 @@ export function buildN8nCertificateWebhookPayload(input: {
     certificateFields: {
       candidateName: displayName,
       courseName: courseNameForN8n,
+      templateFile: `${courseNameForN8n}.pdf`,
       courseDescription,
       duration: course.duration,
       mode: courseMode,
@@ -290,6 +294,7 @@ export function buildN8nCertificateWebhookPayload(input: {
     // Flat aliases — n8n workflows often map $json.body.candidateName (not nested certificateFields)
     candidateName: displayName,
     courseName: courseNameForN8n,
+    templateFile: `${courseNameForN8n}.pdf`,
     certificateNumber: row.certificateNumber,
     delegateNumber,
     verifyUrl,
