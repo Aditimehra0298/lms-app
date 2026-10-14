@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Building2, Plus, Save, Trash2, Users, Cpu } from "lucide-react";
-import { type AdminContent } from "@/lib/content-schema";
+import {
+  defaultHomePageConfig,
+  defaultOrgPlans,
+  type AdminContent,
+  type HomePageOrgPlan,
+} from "@/lib/content-schema";
+import { AdminOrgPlansFields } from "@/components/admin/AdminOrgPlansFields";
 import { getLearnerEmail } from "@/lib/learner-session-client";
 import {
   isOrgAllAccessActive,
@@ -36,6 +42,8 @@ export function AdminOrganizationTeamEditor() {
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [directoryVersion, setDirectoryVersion] = useState(0);
+  const [orgPlans, setOrgPlans] = useState<HomePageOrgPlan[]>(defaultOrgPlans);
+  const [savingOrgPlans, setSavingOrgPlans] = useState(false);
   const [newOrg, setNewOrg] = useState({
     companyName: "",
     workEmail: "",
@@ -66,6 +74,7 @@ export function AdminOrganizationTeamEditor() {
       if (contentRes.ok) {
         const content = (await contentRes.json()) as AdminContent;
         setPlanConfig(mergeOrganizationTeamAdminConfig(content.organizationTeam));
+        setOrgPlans(content.homePage?.orgPlans?.length ? content.homePage.orgPlans : defaultOrgPlans);
       }
       if (orgsRes.ok) {
         const data = (await orgsRes.json()) as {
@@ -125,6 +134,33 @@ export function AdminOrganizationTeamEditor() {
       setStatus("Failed to save plan configuration.");
     } finally {
       setSavingPlans(false);
+    }
+  };
+
+  const saveOrgPlans = async () => {
+    setSavingOrgPlans(true);
+    setStatus(null);
+    try {
+      const fresh = await fetch("/api/admin/content", { cache: "no-store" });
+      if (!fresh.ok) throw new Error("load");
+      const content = (await fresh.json()) as AdminContent;
+      const cleaned = orgPlans
+        .filter((p) => p.title.trim())
+        .map((p) => ({ ...p, features: p.features.map((f) => f.trim()).filter(Boolean) }));
+      const put = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          homePage: { ...defaultHomePageConfig, ...content.homePage, orgPlans: cleaned },
+        }),
+      });
+      if (!put.ok) throw new Error("save");
+      setOrgPlans(cleaned);
+      setStatus("Organisation plans saved — live on the home page and /subscriptions.");
+    } catch {
+      setStatus("Failed to save organisation plans.");
+    } finally {
+      setSavingOrgPlans(false);
     }
   };
 
@@ -384,10 +420,48 @@ export function AdminOrganizationTeamEditor() {
               <Users className="h-5 w-5 text-[#FFC107]" aria-hidden />
             </span>
             <div>
-              <h3 className="text-sm font-semibold text-white">Premium plan tiers</h3>
+              <h3 className="text-sm font-semibold text-white">Organisation plans (shown on website)</h3>
               <p className="mt-0.5 max-w-2xl text-[11px] text-gray-400">
-                Controls Monthly Premium (20), Early Program (50+), and Premium Package (124) seat
-                limits, copy, and features for organisation invite / assign / subscriptions.
+                The same plans organisations see on the home page and{" "}
+                <a href="/subscriptions" target="_blank" rel="noreferrer" className="text-amber-200 hover:underline">
+                  /subscriptions
+                </a>{" "}
+                — seat tiers, price per employee, renewal % and features. Saved plans go live immediately.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void saveOrgPlans()}
+            disabled={savingOrgPlans}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-black disabled:opacity-50"
+          >
+            <Save className="h-3.5 w-3.5" aria-hidden />
+            {savingOrgPlans ? "Saving…" : "Save organisation plans"}
+          </button>
+        </div>
+        <div className="mt-4 space-y-3 text-white">
+          <AdminOrgPlansFields plans={orgPlans} onChange={setOrgPlans} />
+        </div>
+      </article>
+
+      <details className="group rounded-xl border border-white/10 bg-[#0d1528]">
+        <summary className="cursor-pointer list-none px-4 py-3 text-xs font-semibold text-gray-300 hover:text-white">
+          Internal team seat plans{" "}
+          <span className="font-normal text-gray-500">
+            — seat limits used inside the organisation dashboard (not shown on the website)
+          </span>
+        </summary>
+      <article className="rounded-xl border-t border-white/10 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#FFC107]/35 bg-[#FFC107]/15">
+              <Users className="h-5 w-5 text-[#FFC107]" aria-hidden />
+            </span>
+            <div>
+              <h3 className="text-sm font-semibold text-white">Team seat plans</h3>
+              <p className="mt-0.5 max-w-2xl text-[11px] text-gray-400">
+                Seat limits and copy for organisation invite / assign on the My Learning organisation dashboard.
               </p>
             </div>
           </div>
@@ -509,6 +583,7 @@ export function AdminOrganizationTeamEditor() {
           ))}
         </div>
       </article>
+      </details>
 
       <AdminOrganizationsDirectory
         key={directoryVersion}
