@@ -14,6 +14,7 @@ import {
   type OrganizationTeamRecord,
   type OrgPremiumPlanId,
 } from "@/lib/organization-team-config";
+import { AdminOrganizationsDirectory } from "@/components/admin/AdminOrganizationsDirectory";
 
 const inputCls =
   "mt-1 w-full rounded-lg border border-white/10 bg-[#0a1120] px-3 py-2 text-xs text-white placeholder:text-gray-500 outline-none focus:border-sky-400/40";
@@ -34,6 +35,7 @@ export function AdminOrganizationTeamEditor() {
   const [savingTeam, setSavingTeam] = useState(false);
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [directoryVersion, setDirectoryVersion] = useState(0);
   const [newOrg, setNewOrg] = useState({
     companyName: "",
     workEmail: "",
@@ -171,6 +173,7 @@ export function AdminOrganizationTeamEditor() {
         companySize: "",
         planId: planConfig.defaultPlanId,
       });
+      setDirectoryVersion((v) => v + 1);
       setStatus(`Organisation “${data.organization.companyName}” is ready.`);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Could not create organisation.");
@@ -216,6 +219,7 @@ export function AdminOrganizationTeamEditor() {
           return [...next, data.team!];
         });
       }
+      setDirectoryVersion((v) => v + 1);
       setStatus(`Saved team settings for ${teamDraft.companyName ?? teamDraft.workEmail}.`);
     } catch {
       setStatus("Failed to save organisation team.");
@@ -506,7 +510,15 @@ export function AdminOrganizationTeamEditor() {
         </div>
       </article>
 
-      <article className="rounded-xl border border-white/10 bg-[#0d1528] p-4">
+      <AdminOrganizationsDirectory
+        key={directoryVersion}
+        onManage={(workEmail) => {
+          void loadOrgTeam(workEmail);
+          document.getElementById("org-team-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
+
+      <article id="org-team-editor" className="scroll-mt-4 rounded-xl border border-white/10 bg-[#0d1528] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-sky-500/35 bg-sky-500/15">

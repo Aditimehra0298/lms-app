@@ -14,6 +14,7 @@ import { fetchLmsUserProfile } from "@/lib/server/lms-user-profile";
 import { prisma } from "@/lib/prisma";
 import { registrationPeriodFromDate } from "@/lib/registration-ids";
 import { ensureOrganizationProfile } from "@/lib/server/organization-identification";
+import { ensureOrganizationTeam, readOrganizationTeam } from "@/lib/server/organization-team-store";
 import { ensureUserIdentificationNumber } from "@/lib/server/user-identification";
 import { getClientIps } from "@/lib/request-ip";
 import { queueWelcomeEmail } from "@/lib/welcome-email-service";
@@ -40,6 +41,17 @@ type Body = {
 };
 
 const ACCOUNT_TYPES = new Set<AccountTypeId>(["individual", "organisation", "self"]);
+
+/** Keeps the organisation-team store in step with the MySQL organisation row (create once, fill missing name). */
+async function syncOrganizationTeamRecord(workEmail: string, companyName: string) {
+  try {
+    const team = await readOrganizationTeam(workEmail);
+    if (team && team.companyName?.trim()) return;
+    await ensureOrganizationTeam({ workEmail, companyName });
+  } catch (e) {
+    console.error("[auth/record] organization team", e);
+  }
+}
 
 function trimOrNull(value?: string): string | null {
   const v = value?.trim();
@@ -217,6 +229,7 @@ export async function POST(request: Request) {
           userId: savedUser?.id,
           registrationPeriod: registrationPeriod ?? undefined,
         });
+        await syncOrganizationTeamRecord(email, userFields.companyName);
       } else if (!isOrg) {
         await ensureUserIdentificationNumber(email);
       }
@@ -228,7 +241,9 @@ export async function POST(request: Request) {
         industryType: userFields.industryType,
         companySize: userFields.companySize,
         userId: savedUser?.id,
-      }).catch((e) => console.error("[auth/record] organization", e));
+      })
+        .then(() => syncOrganizationTeamRecord(email, userFields.companyName!))
+        .catch((e) => console.error("[auth/record] organization", e));
     }
   } catch (err) {
     dbSaved = false;

@@ -6,6 +6,7 @@ import {
   Award,
   Ban,
   BookOpen,
+  Building2,
   ChevronDown,
   ChevronUp,
   KeyRound,
@@ -19,6 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import type { AdminUserListRow, AdminUserListStats } from "@/lib/admin-user-types";
+import { AdminOrganizationsDirectory } from "@/components/admin/AdminOrganizationsDirectory";
 
 type RoleFilter = "all" | "learner" | "admin";
 type AccountFilter = "all" | "individual" | "organisation" | "self" | "unset";
@@ -60,6 +62,7 @@ function cellMuted(v: string | null | undefined) {
 }
 
 export default function AdminUsersWorkspace() {
+  const [view, setView] = useState<"users" | "organisations">("users");
   const [users, setUsers] = useState<AdminUserListRow[]>([]);
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState<AdminUserListStats | null>(null);
@@ -360,8 +363,28 @@ export default function AdminUsersWorkspace() {
               <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} /> Refresh
             </button>
           </div>
+          <div className="mt-4 inline-flex rounded-lg border border-white/10 bg-black/30 p-0.5">
+            {(
+              [
+                ["users", "Users", Users],
+                ["organisations", "Organisations & employees", Building2],
+              ] as const
+            ).map(([id, label, Icon]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setView(id)}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${
+                  view === id ? "bg-blue-500/25 text-white" : "text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" /> {label}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {view === "users" ? (
         <div className="flex flex-wrap items-center gap-2 px-4 py-3 sm:px-6">
           <label className="flex min-w-[14rem] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5">
             <Search className="h-3.5 w-3.5 shrink-0 text-gray-500" aria-hidden />
@@ -399,8 +422,13 @@ export default function AdminUsersWorkspace() {
             Roles &amp; permissions →
           </Link>
         </div>
+        ) : null}
       </div>
 
+      {view === "organisations" ? (
+        <AdminOrganizationsDirectory />
+      ) : (
+      <>
       {loadError ? (
         <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
           {loadError}
@@ -944,6 +972,8 @@ export default function AdminUsersWorkspace() {
             </table>
           </div>
         </section>
+      )}
+      </>
       )}
     </div>
   );
