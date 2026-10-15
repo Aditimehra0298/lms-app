@@ -238,7 +238,7 @@ export function CertificateStatusBadge({
   if (normalized === "ready" && !visibleToLearner) {
     return (
       <span className="certificate-status-badge inline-flex items-center rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
-        Awaiting approval
+        Being prepared
       </span>
     );
   }

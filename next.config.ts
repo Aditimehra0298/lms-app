@@ -82,8 +82,16 @@ const nextConfig: NextConfig = {
       source: "/:prefix(api|uploads)/covers/:path*",
       headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
     };
+    // Must come after htmlNoStore: the learner dashboard previews the certificate PDF in a same-origin iframe.
+    const certificatePdfFrame = {
+      source: "/api/certificates/:id/pdf",
+      headers: [
+        { key: "X-Frame-Options", value: "SAMEORIGIN" },
+        { key: "Content-Security-Policy", value: "frame-ancestors 'self'; object-src 'self'" },
+      ],
+    };
     if (process.env.NODE_ENV === "development") {
-      return [coverHeaders, htmlNoStore, coverCache];
+      return [coverHeaders, htmlNoStore, coverCache, certificatePdfFrame];
     }
     return [
       {
@@ -94,6 +102,7 @@ const nextConfig: NextConfig = {
       htmlNoStore,
       publicAssets,
       coverCache,
+      certificatePdfFrame,
     ];
   },
   webpack: (config, { dev }) => {

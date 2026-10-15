@@ -248,7 +248,7 @@ export function CourseCompletionRewards({
           </p>
           <h2 className="mt-1 text-2xl font-bold text-white">Your certificate & transcript</h2>
           <p className="mt-1 text-sm text-gray-300">
-            Your certificate is generated automatically and released here once our team approves it.
+            Your certificate is generated automatically and appears here as soon as it is ready.
           </p>
           {combinedExamPercent != null ? (
             <p className="mt-1 text-xs text-emerald-200/90">

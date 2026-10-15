@@ -68,15 +68,15 @@ export default function MyCertificatesList() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">My Certificates</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">
-          Your official certificates and transcripts. A certificate appears here once our team has
-          approved it after you complete the course and pass the exams.
+          Your official certificates and transcripts. A certificate appears here automatically once you
+          complete the course and pass the exams.
         </p>
       </div>
 
       {awaiting.length > 0 ? (
         <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           <p className="font-semibold">
-            {awaiting.length} certificate{awaiting.length === 1 ? "" : "s"} awaiting approval
+            {awaiting.length} certificate{awaiting.length === 1 ? "" : "s"} being prepared
           </p>
           <ul className="mt-1 list-disc pl-5 text-xs text-amber-100/80">
             {awaiting.map((c) => (
@@ -84,7 +84,7 @@ export default function MyCertificatesList() {
             ))}
           </ul>
           <p className="mt-1 text-xs text-amber-100/70">
-            You will be able to view and download it here as soon as it is approved.
+            You will be able to view and download it here as soon as it is ready.
           </p>
         </div>
       ) : null}
@@ -119,7 +119,7 @@ export default function MyCertificatesList() {
           <Award className="mx-auto h-10 w-10 text-gray-600" aria-hidden />
           <p className="mt-3 text-sm text-gray-400">
             {awaiting.length > 0
-              ? "No approved certificates yet."
+              ? "Your certificates are being prepared."
               : "No certificates yet. Complete a course and pass the final exam."}
           </p>
         </div>

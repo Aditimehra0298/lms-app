@@ -602,11 +602,11 @@ export function CourseCompletedDashboard({
             ) : awaitingApproval ? (
               <div className="relative mt-5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-4 py-3">
                 <p className="flex items-center gap-2 text-sm font-semibold text-amber-100">
-                  <Clock size={15} /> Certificate awaiting approval
+                  <Clock size={15} /> Your certificate is being prepared
                 </p>
                 <p className="mt-1 text-xs text-amber-100/80">
-                  Congratulations on completing the course. Our team is reviewing your certificate — you can
-                  view and download it here and in Certificate Records once it is approved.
+                  Congratulations on completing the course. Your certificate is being prepared automatically — you
+                  can view and download it here and in Certificate Records as soon as it is ready.
                 </p>
               </div>
             ) : (
@@ -734,7 +734,7 @@ export function CourseCompletedDashboard({
                     overlay={
                       <div className="absolute inset-x-0 bottom-0 border-t border-black/10 bg-black/55 px-4 py-3 text-center backdrop-blur-[2px]">
                         <p className="text-sm font-semibold text-white">
-                          Your certificate is approved
+                          Your certificate is ready
                         </p>
                         <p className="mt-0.5 text-xs text-gray-200">
                           Use Download PDF below to save your official certificate and transcript.
@@ -801,10 +801,10 @@ export function CourseCompletedDashboard({
           ) : awaitingApproval ? (
             <div className="mt-4 flex min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed border-amber-500/30 bg-amber-500/[0.04] p-8 text-center">
               <Clock className="h-10 w-10 text-amber-300/80" />
-              <p className="mt-3 text-sm font-semibold text-amber-100">Awaiting admin approval</p>
+              <p className="mt-3 text-sm font-semibold text-amber-100">Your certificate is being prepared</p>
               <p className="mt-1 max-w-sm text-xs leading-relaxed text-gray-400">
-                Your certificate has been generated and is being reviewed. Once approved, your official PDF
-                certificate will appear here and in Certificate Records.
+                This happens automatically. As soon as it is ready, your official PDF certificate will appear here
+                and in Certificate Records.
               </p>
             </div>
           ) : (

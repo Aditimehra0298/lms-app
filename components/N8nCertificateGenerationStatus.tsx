@@ -11,7 +11,7 @@ type Props = {
   certRequested: boolean;
   /** True while waiting for the official PDF to become available. */
   polling?: boolean;
-  /** Admin has approved (published) the certificate to the learner. */
+  /** Certificate is published to the learner (ready + visible). */
   approved?: boolean;
 };
 
@@ -86,15 +86,14 @@ export function N8nCertificateGenerationStatus({
       : certRequested
         ? "active"
         : "pending";
-  const approvalState: StepState = approved ? "done" : awaitingApproval ? "active" : "pending";
   const step3State: StepState = failed ? "error" : pdfReady ? "done" : "pending";
 
   const headline = failed
     ? "Certificate could not be prepared"
     : pdfReady
-      ? "Your certificate is ready"
+      ? "Your certificate is ready — download it"
       : awaitingApproval
-        ? "Waiting for admin approval"
+        ? "Finalising your certificate…"
         : waiting
           ? "Preparing your certificate…"
           : certRequested
@@ -148,17 +147,6 @@ export function N8nCertificateGenerationStatus({
           }
         />
         <StepRow
-          state={approvalState}
-          label="Admin approval"
-          detail={
-            approved
-              ? "Approved by our team."
-              : awaitingApproval
-                ? "Our team reviews every certificate before it is released to you."
-                : undefined
-          }
-        />
-        <StepRow
           state={step3State}
           label={failed ? "Download unavailable" : "Ready to download"}
           detail={
@@ -166,7 +154,7 @@ export function N8nCertificateGenerationStatus({
               ? undefined
               : pdfReady
                 ? "Download anytime from here or your Certificate Records."
-                : "Available once your certificate is approved."
+                : "Available as soon as your certificate is ready."
           }
         />
       </ol>
