@@ -38,8 +38,10 @@ fi
 git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 
-# Drop leftover local code edits so pull cannot abort. Live JSON is restored after.
-git restore --worktree --source=HEAD -- . 2>/dev/null || git checkout -- . || true
+# Drop leftover local code edits (staged + worktree) so pull cannot abort.
+# Live JSON is restored after pull; do not use git clean -fd (would wipe data/).
+git reset --hard HEAD
+git restore --source=HEAD --staged --worktree -- . 2>/dev/null || true
 
 # Untracked files that GitHub now tracks (e.g. ISO cover PNGs) must be moved aside.
 while IFS= read -r incoming; do
