@@ -48,17 +48,15 @@ import type {
   HomePageHero,
   HomePageLearningPath,
   HomePageNewsletter,
-  HomePageOrgPlan,
   HomePagePlan,
   HomePageStat,
   HomePageTestimonial,
   HomePageUnlock,
   HomePageWhyFeature,
 } from "@/lib/content-schema";
-import { defaultHomePageConfig, defaultOrgPlans, normalizeIndividualPlans } from "@/lib/content-schema";
+import { defaultHomePageConfig, normalizeIndividualPlans } from "@/lib/content-schema";
 import Link from "next/link";
 import AdminTestimonialPhotoField from "@/components/admin/AdminTestimonialPhotoField";
-import { AdminOrgPlansFields } from "@/components/admin/AdminOrgPlansFields";
 
 /* ─── Canvas crop export ─── */
 function getCroppedBlob(src: string, pixelCrop: Area, flip = { h: false }, rotation = 0): Promise<Blob> {
@@ -304,8 +302,6 @@ export default function AdminHomePageEditor() {
   const updateHero = (patch: Partial<HomePageHero>) => setConfig((p) => ({ ...p, hero: { ...p.hero, ...patch } }));
   const updateNewsletter = (patch: Partial<HomePageNewsletter>) => setConfig((p) => ({ ...p, newsletter: { ...p.newsletter, ...patch } }));
   const updateUnlock = (patch: Partial<HomePageUnlock>) => setConfig((p) => ({ ...p, unlock: { ...p.unlock, ...patch } }));
-  const orgPlans = config.orgPlans?.length ? config.orgPlans : defaultOrgPlans;
-  const setOrgPlans = (next: HomePageOrgPlan[]) => setConfig((p) => ({ ...p, orgPlans: next }));
 
   const setStat = (i: number, patch: Partial<HomePageStat>) => setConfig((p) => ({ ...p, stats: p.stats.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) }));
   const addStat = () => setConfig((p) => ({ ...p, stats: [...p.stats, { value: "0", label: "New Stat" }] }));
@@ -481,8 +477,16 @@ export default function AdminHomePageEditor() {
           </div>))}
           <button type="button" onClick={() => setConfig((p) => ({ ...p, individualPlans: [...p.individualPlans, { badge: "New plan", tagline: "", desc: "", price: "", note: "", features: [], cta: "Get Started", scope: "all", durationMonths: 12 }] }))} className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:border-amber-400/50">+ Add individual plan</button>
 
-          <p className="text-xs font-semibold text-gray-300 pt-2">Organisation Plans</p>
-          <AdminOrgPlansFields plans={orgPlans} onChange={setOrgPlans} />
+          <div className="rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-[11px] text-amber-100">
+            <p className="font-semibold text-amber-200">Organisation / team plans</p>
+            <p className="mt-1 text-amber-100/80">
+              Organisation seat pricing and access plans are managed under{" "}
+              <Link href="/admin?panel=organization-team" className="font-semibold underline hover:text-white">
+                Users &amp; Access → Organization Team
+              </Link>
+              — not mixed with Home Page content.
+            </p>
+          </div>
         </div>
       )}</div>
 

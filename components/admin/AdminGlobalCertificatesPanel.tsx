@@ -1,26 +1,22 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Award, Cpu } from "lucide-react";
 import AdminCourseCertificateApprovals, {
   type AdminCertificateCourseOption,
 } from "@/components/admin/AdminCourseCertificateApprovals";
-import AdminCertificateTemplatesEditor from "@/components/admin/AdminCertificateTemplatesEditor";
-import AdminCertificateIssuePanel from "@/components/admin/AdminCertificateIssuePanel";
 import { AdminPanelSection } from "@/components/admin/AdminCourseTabShell";
 
-/** All courses — shared template upload + full certificate list. */
+/** All courses — full certificate list. */
 export const ALL_COURSES_CERT_VALUE = "__all__";
 
 type Props = {
   certificateCourses: AdminCertificateCourseOption[];
 };
 
-/** Certificates admin: issue to users, designs, and control learner access. */
+/** Certificates admin: review issued certificates and learner access only. */
 export default function AdminGlobalCertificatesPanel({ certificateCourses }: Props) {
   const [selectedCourse, setSelectedCourse] = useState(ALL_COURSES_CERT_VALUE);
-  const listRefreshKey = useRef(0);
-  const [, bump] = useState(0);
 
   const sortedCourses = useMemo(
     () => [...certificateCourses].sort((a, b) => a.title.localeCompare(b.title)),
@@ -33,12 +29,6 @@ export default function AdminGlobalCertificatesPanel({ certificateCourses }: Pro
   }, [selectedCourse, sortedCourses]);
 
   const isAllCourses = selectedCourse === ALL_COURSES_CERT_VALUE;
-  const hasCourse = selectedCourse.length > 0;
-
-  const refreshList = () => {
-    listRefreshKey.current += 1;
-    bump((n) => n + 1);
-  };
 
   return (
     <div className="space-y-4">
@@ -61,34 +51,29 @@ export default function AdminGlobalCertificatesPanel({ certificateCourses }: Pro
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-300/90">
                 Users &amp; access
               </p>
-              <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">Certificates control</h1>
+              <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">Certificates</h1>
               <p className="mt-2 max-w-2xl text-xs leading-relaxed text-gray-400">
-                Issue certificates to specific learners, choose the program, and decide who can see or download
-                them. Designs can use global defaults or per-program uploads.
+                Issued certificates for all learners — filter by program and control download access.
               </p>
             </div>
           </div>
         </div>
         <div className="relative flex flex-wrap gap-2 px-4 py-3 text-[10px] sm:px-6">
-          {[
-            "Issue to any learner",
-            "Show / hide access",
-            "Self-paced · Tutor-led · Workshops",
-          ].map((chip) => (
-            <span
-              key={chip}
-              className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-500/10 px-2.5 py-1 text-amber-100"
-            >
-              <Cpu className="h-3 w-3" aria-hidden />
-              {chip}
-            </span>
-          ))}
+          {["Issued certificates", "Show / hide access", "Self-paced · Tutor-led · Workshops"].map(
+            (chip) => (
+              <span
+                key={chip}
+                className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-500/10 px-2.5 py-1 text-amber-100"
+              >
+                <Cpu className="h-3 w-3" aria-hidden />
+                {chip}
+              </span>
+            ),
+          )}
         </div>
       </div>
 
-      <AdminCertificateIssuePanel courses={certificateCourses} onIssued={refreshList} />
-
-      <AdminPanelSection title="Review issued certificates" step={1}>
+      <AdminPanelSection title="Issued certificates" step={1}>
         <label className="block text-[10px] font-semibold uppercase tracking-wide text-gray-500">
           Filter by program
         </label>
@@ -107,40 +92,19 @@ export default function AdminGlobalCertificatesPanel({ certificateCourses }: Pro
         <p className="mt-2 text-xs text-gray-500">
           Showing: <strong className="text-gray-300">{selectedTitle}</strong>
         </p>
-      </AdminPanelSection>
 
-      {hasCourse && isAllCourses ? (
-        <AdminPanelSection title="Global certificate design (fallback)" step={2}>
-          <div className="mb-4 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
-            Used when a program has not uploaded its own certificate, badge, or transcript design.
-          </div>
-          <AdminCertificateTemplatesEditor compact uploadStepOffset={2} />
-        </AdminPanelSection>
-      ) : null}
-
-      {hasCourse && !isAllCourses ? (
-        <div className="rounded-lg border border-violet-400/25 bg-violet-500/10 px-3 py-2 text-[11px] text-violet-100">
-          Per-program designs: edit under <strong>Self-paced courses → Certificate</strong> or{" "}
-          <strong>Tutor Led / Workshops → Certificate</strong>.
-        </div>
-      ) : null}
-
-      {hasCourse ? (
-        <AdminPanelSection
-          title={isAllCourses ? "All issued certificates" : `Issued — ${selectedTitle}`}
-          step={isAllCourses ? 3 : 2}
-        >
+        <div className="mt-4">
           <p className="mb-3 text-[11px] text-gray-500">
             Allow or block learner download access for each certificate.
           </p>
           <AdminCourseCertificateApprovals
-            key={`${listRefreshKey.current}-${selectedCourse}`}
+            key={selectedCourse}
             courses={certificateCourses}
             courseSlug={isAllCourses ? "" : selectedCourse}
             hideCourseFilter
           />
-        </AdminPanelSection>
-      ) : null}
+        </div>
+      </AdminPanelSection>
     </div>
   );
 }

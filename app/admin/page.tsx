@@ -37,7 +37,6 @@ import {
   Award,
   HelpCircle,
   Shield,
-  BarChart3,
   FileBarChart,
   FolderDown,
 } from "lucide-react";
@@ -130,7 +129,7 @@ const menuSections = [
   },
   {
     title: "Other",
-    items: ["Settings", "Analytics", "Reports"],
+    items: ["Settings", "Reports"],
   },
 ];
 
@@ -160,7 +159,6 @@ const menuIcons: Record<string, typeof Home> = {
   Payments: CreditCard,
   Invoices: FileText,
   Refunds: Undo2,
-  Analytics: BarChart3,
   Reports: FileBarChart,
   "Organization Team": Building2,
   Subscriptions: CreditCard,
@@ -181,6 +179,7 @@ const MENU_PANEL_QUERY: Record<string, string> = {
   Workshops: "workshops",
   Users: "users",
   Subscriptions: "subscriptions",
+  "Organization Team": "organization-team",
   Certificates: "certificates",
   "Roles & Permissions": "roles",
   Orders: "orders",
@@ -188,7 +187,6 @@ const MENU_PANEL_QUERY: Record<string, string> = {
   Invoices: "invoices",
   Refunds: "refunds",
   Settings: "settings",
-  Analytics: "analytics",
   Reports: "reports",
 };
 
@@ -295,6 +293,15 @@ function AdminPageInner() {
     if (!panelQuery) return;
     if (panelQuery === "tutor-led-programs" || panelQuery === "tutor-led-landing") {
       setActiveMenu("Tutor Led");
+      return;
+    }
+    // Legacy analytics panels → main Dashboard (Individual / Organization switch lives there)
+    if (
+      panelQuery === "analytics" ||
+      panelQuery === "analytics-individual" ||
+      panelQuery === "analytics-organisation"
+    ) {
+      setActiveMenu("Dashboard");
       return;
     }
     const menu = PANEL_MENU_QUERY[panelQuery];
@@ -504,7 +511,6 @@ function AdminPageInner() {
   const showInvoicesWorkspace = activeMenu === "Invoices";
   const showRefundsWorkspace = activeMenu === "Refunds";
   const showSettingsWorkspace = activeMenu === "Settings";
-  const showAnalyticsWorkspace = activeMenu === "Analytics";
   const showReportsWorkspace = activeMenu === "Reports";
   const showOrganizationTeam = activeMenu === "Organization Team";
   const showSubscriptionsWorkspace = activeMenu === "Subscriptions";
@@ -533,7 +539,6 @@ function AdminPageInner() {
     showInvoicesWorkspace ||
     showRefundsWorkspace ||
     showSettingsWorkspace ||
-    showAnalyticsWorkspace ||
     showReportsWorkspace ||
     showOrganizationTeam ||
     showSubscriptionsWorkspace ||
@@ -776,16 +781,19 @@ function AdminPageInner() {
           </header>
 
           {activeMenu === "Dashboard" && (
-            <AdminDashboardHome
-              stats={dashStats}
-              recentUsers={dashRecentUsers}
-              topCourses={dashTopCourses}
-              categoryStats={categoryStats}
-              weekActivity={dashWeekActivity}
-              recentEnrollments={dashRecentEnrollments}
-              revenueRecords={dashRevenueRecords}
-              onNavigate={selectMenu}
-            />
+            <div className="space-y-6">
+              <AdminAnalyticsWorkspace onNavigate={(menu) => selectMenu(menu)} />
+              <AdminDashboardHome
+                stats={dashStats}
+                recentUsers={dashRecentUsers}
+                topCourses={dashTopCourses}
+                categoryStats={categoryStats}
+                weekActivity={dashWeekActivity}
+                recentEnrollments={dashRecentEnrollments}
+                revenueRecords={dashRevenueRecords}
+                onNavigate={selectMenu}
+              />
+            </div>
           )}
 
 
@@ -827,10 +835,6 @@ function AdminPageInner() {
 
           {showSettingsWorkspace && (
             <AdminSettingsWorkspace onNavigate={(menu) => selectMenu(menu)} />
-          )}
-
-          {showAnalyticsWorkspace && (
-            <AdminAnalyticsWorkspace onNavigate={(menu) => selectMenu(menu)} />
           )}
 
           {showReportsWorkspace && <AdminReportsWorkspace />}

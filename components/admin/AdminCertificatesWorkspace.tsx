@@ -4,10 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminContent } from "@/lib/content-schema";
 import { defaultAdminContent } from "@/lib/content-schema";
 import AdminGlobalCertificatesPanel from "@/components/admin/AdminGlobalCertificatesPanel";
-import AdminManualCertificateUpload from "@/components/admin/AdminManualCertificateUpload";
 import type { AdminCertificateCourseOption } from "@/components/admin/AdminCourseCertificateApprovals";
 
-/** Certificates under Users & Access — issue, review, and control learner access. */
+/** Certificates under Users & Access — issued certificate data and access control. */
 export default function AdminCertificatesWorkspace() {
   const [content, setContent] = useState<AdminContent | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -71,7 +70,6 @@ export default function AdminCertificatesWorkspace() {
           {loadError}
         </p>
       ) : null}
-      <AdminManualCertificateUpload certificateCourses={certificateCourses} />
       <AdminGlobalCertificatesPanel certificateCourses={certificateCourses} />
     </div>
   );
