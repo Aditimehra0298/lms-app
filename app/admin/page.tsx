@@ -781,19 +781,7 @@ function AdminPageInner() {
           </header>
 
           {activeMenu === "Dashboard" && (
-            <div className="space-y-6">
-              <AdminAnalyticsWorkspace onNavigate={(menu) => selectMenu(menu)} />
-              <AdminDashboardHome
-                stats={dashStats}
-                recentUsers={dashRecentUsers}
-                topCourses={dashTopCourses}
-                categoryStats={categoryStats}
-                weekActivity={dashWeekActivity}
-                recentEnrollments={dashRecentEnrollments}
-                revenueRecords={dashRevenueRecords}
-                onNavigate={selectMenu}
-              />
-            </div>
+            <AdminAnalyticsWorkspace onNavigate={(menu) => selectMenu(menu)} />
           )}
 
 
