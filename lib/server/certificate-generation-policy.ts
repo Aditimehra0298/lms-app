@@ -5,6 +5,8 @@ import {
   type ResolvedGlobalCertificateAssets,
 } from "@/lib/global-certificate-assets";
 import { resolveN8nCertificateWebhookUrl } from "@/lib/server/n8n-certificate-dispatch";
+import { isPrivateOrLocalBaseUrl, n8nCallbackBaseUrl } from "@/lib/server/certificate-app-url";
+import { N8N_ARCHIVED_PDF_MIN_BYTES } from "@/lib/server/certificate-pdf-store";
 
 /** n8n certificate webhook configured. */
 export function isN8nCertificateProviderConfigured(): boolean {
@@ -22,14 +24,28 @@ export function isN8nCertificateProvider(perms: CertificatePermissionSettings): 
   return isN8nCertificateProviderConfigured() && perms.provider !== "builtin";
 }
 
-/** Local PDF overlay when n8n is unavailable or still pending (learner must never be stuck on 409). */
+/**
+ * Plain-text / overlay PDF only when n8n cannot run (not configured, or local dev
+ * where n8n Cloud cannot callback). Production always waits for n8n unless
+ * CERTIFICATE_LOCAL_FALLBACK=true.
+ */
 export function mayUseLocalCertificateFallback(n8nConfigured: boolean): boolean {
   const override = process.env.CERTIFICATE_LOCAL_FALLBACK?.trim().toLowerCase();
-  if (override === "true") return true;
   if (override === "false") return false;
-  // Prefer n8n when configured, but always allow local PDF as a download safety net.
-  void n8nConfigured;
-  return true;
+  if (!n8nConfigured) return true;
+  // Live LMS must use n8n — never lock in the plain-text placeholder PDF.
+  if (process.env.NODE_ENV === "production") return false;
+  if (override === "true") return true;
+  return isPrivateOrLocalBaseUrl(n8nCallbackBaseUrl());
+}
+
+export function isManualCertificateIssuedVia(issuedVia: string): boolean {
+  return issuedVia === "manual";
+}
+
+/** Tiny local-fallback PDFs must not count as a finished n8n certificate. */
+export function officialCertificatePdfMinBytes(issuedVia: string): number {
+  return issuedVia === "manual" ? 128 : N8N_ARCHIVED_PDF_MIN_BYTES;
 }
 
 export type CourseCertificateAssets = ResolvedGlobalCertificateAssets & {

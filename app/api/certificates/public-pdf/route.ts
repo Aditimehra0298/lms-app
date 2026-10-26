@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import {
-  N8N_ARCHIVED_PDF_MIN_BYTES,
   readCertificatePdfBuffer,
   resolveCertificatePdfPath,
 } from "@/lib/server/certificate-pdf-store";
 import { resolvePublicCertificateRow } from "@/lib/server/certificate-service";
+import { officialCertificatePdfMinBytes } from "@/lib/server/certificate-generation-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, message: "Certificate not found" }, { status: 404 });
   }
 
-  const minBytes = row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
+  const minBytes = officialCertificatePdfMinBytes(row.issuedVia);
   const buffer = await readCertificatePdfBuffer(row.id, { minBytes });
   if (buffer) {
     return new Response(new Uint8Array(buffer), {

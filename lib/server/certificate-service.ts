@@ -12,9 +12,9 @@ import { appBaseUrl } from "@/lib/server/certificate-app-url";
 import { prisma } from "@/lib/prisma";
 import {
   isValidArchivedCertificatePdf,
-  N8N_ARCHIVED_PDF_MIN_BYTES,
   resolveStoredCertificatePdfUrl,
 } from "@/lib/server/certificate-pdf-store";
+import { officialCertificatePdfMinBytes } from "@/lib/server/certificate-generation-policy";
 import {
   ensureOrganizationProfile,
   getOrganizationByWorkEmail,
@@ -409,7 +409,7 @@ async function toPublishedCertificate(
   if (!opts?.forPublicVerify && !row.visibleToLearner) return null;
   const cert = await enrichCertificate(serializeCertificate(row));
   const pdfReady = await isValidArchivedCertificatePdf(row.id, {
-    minBytes: row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128,
+    minBytes: officialCertificatePdfMinBytes(row.issuedVia),
   });
   const pdfUrl = await resolveStoredCertificatePdfUrl(row.id, row.pdfUrl);
   if (opts?.forPublicVerify) {
@@ -428,7 +428,7 @@ export async function getCertificateById(id: string): Promise<IssuedCertificateD
   if (!row) return null;
   const cert = await enrichCertificate(serializeCertificate(row));
   const pdfReady = await isValidArchivedCertificatePdf(row.id, {
-    minBytes: row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128,
+    minBytes: officialCertificatePdfMinBytes(row.issuedVia),
   });
   const pdfUrl = await resolveStoredCertificatePdfUrl(row.id, row.pdfUrl);
   return { ...cert, pdfReady, pdfUrl };

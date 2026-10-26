@@ -153,9 +153,6 @@ export async function resolveStoredCertificatePdfUrl(
   if (await isValidArchivedCertificatePdf(certificateId, { minBytes: N8N_ARCHIVED_PDF_MIN_BYTES })) {
     return certificatePdfServePath(certificateId);
   }
-  if (await isValidArchivedCertificatePdf(certificateId, { minBytes: 128 })) {
-    return certificatePdfServePath(certificateId);
-  }
   if (isPermanentLmsPdfUrl(currentPdfUrl)) {
     return currentPdfUrl!.trim();
   }

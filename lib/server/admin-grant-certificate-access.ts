@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { issueCourseCertificate } from "@/lib/server/certificate-service";
 import { readAdminContent } from "@/lib/server/content-store";
 import { ensureCourseInMysql } from "@/lib/server/course-mysql-sync";
-import { isCertificateApiProvider } from "@/lib/server/certificate-generation-policy";
+import {
+  isCertificateApiProvider,
+  isN8nCertificateProviderConfigured,
+  mayUseLocalCertificateFallback,
+} from "@/lib/server/certificate-generation-policy";
 import { resolveCertificatePermissions } from "@/lib/server/certificate-permissions";
 import { requestCourseCertificate } from "@/lib/server/n8n-certificate-service";
 import { ensureProgressForReadyCertificate } from "@/lib/server/learner-course-progress-store";
@@ -140,19 +144,22 @@ export async function grantLearnerCertificateDownloadAccess(input: {
     }
   }
 
-  // Safety net only if n8n did not return a usable PDF.
-  const localOk = await ensureLocalCertificatePdf(certificateId).catch(() => false);
-  await prisma.lmsCertificate.update({
-    where: { id: certificateId },
-    data: {
-      status: "ready",
-      visibleToLearner: true,
-    },
-  });
-  if (!localOk) {
-    notes.push("Local PDF overlay could not be built; status forced ready for visibility.");
+  if (mayUseLocalCertificateFallback(isN8nCertificateProviderConfigured())) {
+    const localOk = await ensureLocalCertificatePdf(certificateId).catch(() => false);
+    await prisma.lmsCertificate.update({
+      where: { id: certificateId },
+      data: {
+        status: "ready",
+        visibleToLearner: true,
+      },
+    });
+    if (!localOk) {
+      notes.push("Local PDF overlay could not be built; status forced ready for visibility.");
+    } else {
+      notes.push("Served local PDF fallback because n8n did not return a PDF yet.");
+    }
   } else {
-    notes.push("Served local PDF fallback because n8n did not return a PDF yet.");
+    notes.push("n8n certificate is still being generated. Local fallback is disabled on live LMS.");
   }
 
   await ensureProgressForReadyCertificate({

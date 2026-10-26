@@ -5,12 +5,12 @@ import {
   assertCertificateReleasedToLearner,
 } from "@/lib/server/certificate-access";
 import {
-  N8N_ARCHIVED_PDF_MIN_BYTES,
   isTemporaryRemotePdfUrl,
   readCertificatePdfBuffer,
   resolveCertificatePdfPath,
 } from "@/lib/server/certificate-pdf-store";
 import { ensureCertificatePdfReady } from "@/lib/server/n8n-certificate-service";
+import { officialCertificatePdfMinBytes } from "@/lib/server/certificate-generation-policy";
 import { requireLearnerSessionEmail } from "@/lib/server/learner-session";
 
 export const dynamic = "force-dynamic";
@@ -51,9 +51,9 @@ export async function GET(request: Request, { params }: Params) {
     sessionEmail === row.learnerEmail.trim().toLowerCase();
   const forceDownload = new URL(request.url).searchParams.get("download") === "1";
 
-  const minBytes = row.issuedVia === "n8n" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
+  const minBytes = officialCertificatePdfMinBytes(row.issuedVia);
   let buffer = await readCertificatePdfBuffer(id.trim(), { minBytes });
-  if (!buffer && isOwner && isTemporaryRemotePdfUrl(row.pdfUrl) && sessionEmail) {
+  if (!buffer && isOwner && sessionEmail) {
     await ensureCertificatePdfReady({
       certificateId: id.trim(),
       learnerEmail: sessionEmail,

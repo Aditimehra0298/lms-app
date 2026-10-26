@@ -33,8 +33,10 @@ import {
   courseCertificateAssetsReady,
   isCertificateApiProvider,
   isGeneratorIssuedVia,
+  isManualCertificateIssuedVia,
   isN8nCertificateProviderConfigured,
   mayUseLocalCertificateFallback,
+  officialCertificatePdfMinBytes,
   resolveCourseCertificateAssets,
 } from "@/lib/server/certificate-generation-policy";
 import {
@@ -140,7 +142,7 @@ async function toDto(row: {
   });
   const pdfUrl = await resolveStoredCertificatePdfUrl(row.id, row.pdfUrl);
   const pdfReady = await isValidArchivedCertificatePdf(row.id, {
-    minBytes: isGeneratorIssuedVia(row.issuedVia) ? N8N_ARCHIVED_PDF_MIN_BYTES : 128,
+    minBytes: officialCertificatePdfMinBytes(row.issuedVia),
   });
   return {
     id: row.id,
@@ -404,7 +406,7 @@ export async function requestCourseCertificate(input: {
     orderBy: { issuedAt: "desc" },
   });
   if (existing) {
-    if (!input.forceRetry && (await hasArchivedCertificateFile(existing.id))) {
+    if (!input.forceRetry && (await hasArchivedCertificateFile(existing.id, existing.issuedVia))) {
       return { ok: true, certificate: await toDto(existing) };
     }
     const hasN8nPdf = await hasPermanentGeneratorPdf(existing.id, existing.issuedVia);
@@ -418,14 +420,16 @@ export async function requestCourseCertificate(input: {
     ) {
       return { ok: true, certificate: await toDto(existing) };
     }
-    // n8n: (re)send when failed, admin retry, or ready without a stored PDF yet.
-    if (
-      apiConfigured &&
-      (existing.status === "failed" ||
-        input.forceRetry ||
-        (existing.status === "ready" && !hasN8nPdf && !(await hasArchivedCertificateFile(existing.id))))
-    ) {
-      if (existing.status === "ready" && !hasN8nPdf) {
+    const placeholderPdf =
+      !isManualCertificateIssuedVia(existing.issuedVia) &&
+      !hasN8nPdf &&
+      (existing.issuedVia === "local-fallback" ||
+        existing.issuedVia === "course-template" ||
+        existing.status === "ready" ||
+        existing.status === "failed");
+    // n8n: (re)send when failed, admin retry, placeholder local PDF, or ready without n8n PDF.
+    if (apiConfigured && (existing.status === "failed" || input.forceRetry || placeholderPdf)) {
+      if (!hasN8nPdf && !isManualCertificateIssuedVia(existing.issuedVia)) {
         await deleteStoredCertificatePdf(existing.id);
       }
       return retryCertificateGeneration({
@@ -624,11 +628,14 @@ async function returnCachedArchivedCertificate(input: {
   };
 }
 
-async function hasArchivedCertificateFile(certificateId: string): Promise<boolean> {
-  if (await isValidArchivedCertificatePdf(certificateId, { minBytes: N8N_ARCHIVED_PDF_MIN_BYTES })) {
-    return true;
+async function hasArchivedCertificateFile(certificateId: string, issuedVia: string): Promise<boolean> {
+  if (isManualCertificateIssuedVia(issuedVia)) {
+    return isValidArchivedCertificatePdf(certificateId, { minBytes: 128 });
   }
-  return isValidArchivedCertificatePdf(certificateId, { minBytes: 128 });
+  return (
+    isGeneratorIssuedVia(issuedVia) &&
+    (await isValidArchivedCertificatePdf(certificateId, { minBytes: N8N_ARCHIVED_PDF_MIN_BYTES }))
+  );
 }
 
 /** Ensure PDF exists: call n8n once, archive temp URL; later downloads use permanent LMS copy only. */
@@ -669,7 +676,8 @@ export async function ensureCertificatePdfReady(input: {
   }
 
   // Learner may download their own certificate once ready; admin approval only affects public listing.
-  if (row.status !== "ready" && row.status !== "pending") {
+  // Failed rows are retried through n8n below (do not keep a local placeholder).
+  if (row.status !== "ready" && row.status !== "pending" && row.status !== "failed") {
     if (!(forceRegenerate && row.status === "failed")) {
       return { ok: false, message: "Certificate is not ready yet.", status: row.status };
     }
@@ -685,10 +693,19 @@ export async function ensureCertificatePdfReady(input: {
   const mayUseLocal = mayUseLocalCertificateFallback(apiConfigured);
   const autoVisible = perms.autoVisibleWhenReady && !perms.requireAdminApproval;
 
-  // Permanent PDF on LMS disk — serve instantly; never call n8n again for same user+course.
-  if (!forceRegenerate && (await hasArchivedCertificateFile(id))) {
+  // Official n8n (or admin-uploaded) PDF on LMS disk — serve instantly; never call n8n again.
+  // Tiny local-fallback files are NOT official: delete them and generate via n8n.
+  if (!forceRegenerate && (await hasArchivedCertificateFile(id, row.issuedVia))) {
     console.info("[certificate] prepare: using archived PDF on disk", id);
     return returnCachedArchivedCertificate({ certificateId: id, row, autoVisible });
+  }
+  if (
+    !forceRegenerate &&
+    !isManualCertificateIssuedVia(row.issuedVia) &&
+    (await isValidArchivedCertificatePdf(id, { minBytes: 128 }))
+  ) {
+    console.info("[certificate] prepare: dropping placeholder PDF so n8n can replace it", id, row.issuedVia);
+    await deleteStoredCertificatePdf(id);
   }
 
   if (forceRegenerate) {
@@ -698,8 +715,7 @@ export async function ensureCertificatePdfReady(input: {
       where: { id },
       data: { pdfUrl: null, status: "pending" },
     });
-  } else if (row.status === "ready" && (await ensureLocalCertificatePdf(id))) {
-    // Ready but no archived file yet (or n8n PDF missing) — build local overlay and serve.
+  } else if (!apiConfigured && mayUseLocal && row.status === "ready" && (await ensureLocalCertificatePdf(id))) {
     return {
       ok: true,
       downloadUrl: certificatePdfServePath(id),
@@ -754,12 +770,7 @@ export async function ensureCertificatePdfReady(input: {
         message: "Certificate PDF generated locally while n8n was still pending.",
       };
     }
-    return {
-      ok: false,
-      message: "Certificate is still being generated. Please try again in a moment.",
-      status: "pending",
-      n8nCalled: false,
-    };
+    console.info("[certificate] prepare: n8n still pending — retrying webhook", id);
   }
 
   console.info("[certificate] prepare: will trigger n8n (first generation)", id, row.issuedVia);
@@ -1116,7 +1127,7 @@ export async function triggerCertificateGeneration(input: {
   }
 
   const forceRegenerate = input.forceRegenerate === true;
-  if (!forceRegenerate && (await hasArchivedCertificateFile(id))) {
+  if (!forceRegenerate && (await hasArchivedCertificateFile(id, row.issuedVia))) {
     const downloadUrl = certificatePdfServePath(id);
     await prisma.lmsCertificate.update({
       where: { id },

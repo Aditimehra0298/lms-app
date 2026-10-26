@@ -5,11 +5,13 @@ import {
   assertCertificateReleasedToLearner,
   isMainAdminRequest,
 } from "@/lib/server/certificate-access";
-import {
-  N8N_ARCHIVED_PDF_MIN_BYTES,
-  readCertificatePdfBuffer,
-} from "@/lib/server/certificate-pdf-store";
+import { readCertificatePdfBuffer } from "@/lib/server/certificate-pdf-store";
 import { ensureCertificatePdfReady, waitForArchivedCertificatePdf } from "@/lib/server/n8n-certificate-service";
+import {
+  isN8nCertificateProviderConfigured,
+  mayUseLocalCertificateFallback,
+  officialCertificatePdfMinBytes,
+} from "@/lib/server/certificate-generation-policy";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -72,35 +74,34 @@ export async function POST(request: Request, { params }: Params) {
     });
 
     if (!prepared.ok) {
-      // Last-resort local PDF so learners are not stuck on 409 while n8n hangs.
-      const { ensureLocalCertificatePdf } = await import("@/lib/server/local-certificate-fallback");
-      const localOk = await ensureLocalCertificatePdf(certificateId).catch(() => false);
-      if (!localOk) {
+      const mayUseLocal = mayUseLocalCertificateFallback(isN8nCertificateProviderConfigured());
+      if (mayUseLocal) {
+        const { ensureLocalCertificatePdf } = await import("@/lib/server/local-certificate-fallback");
+        const localOk = await ensureLocalCertificatePdf(certificateId).catch(() => false);
+        if (!localOk) {
+          return NextResponse.json(prepared, {
+            status: prepared.status === "awaiting_approval" ? 403 : 409,
+          });
+        }
+      } else {
         return NextResponse.json(prepared, {
           status: prepared.status === "awaiting_approval" ? 403 : 409,
         });
       }
     }
 
-    // Prefer a small min size for local overlays; n8n multi-page PDFs are larger.
     const fresh = await prisma.lmsCertificate.findUnique({
       where: { id: certificateId },
       select: { issuedVia: true, certificateNumber: true },
     });
     const via = fresh?.issuedVia ?? row.issuedVia;
-    const minBytes =
-      via === "n8n" || via === "api" ? N8N_ARCHIVED_PDF_MIN_BYTES : 128;
+    const minBytes = officialCertificatePdfMinBytes(via);
 
     let buffer = await readCertificatePdfBuffer(certificateId, { minBytes });
 
     if (!buffer && !body.forceRegenerate) {
       await waitForArchivedCertificatePdf(certificateId, 30_000);
       buffer = await readCertificatePdfBuffer(certificateId, { minBytes });
-    }
-
-    if (!buffer) {
-      // Local overlay may be under the n8n size floor — accept any valid PDF bytes.
-      buffer = await readCertificatePdfBuffer(certificateId, { minBytes: 128 });
     }
 
     if (!buffer) {
