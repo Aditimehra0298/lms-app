@@ -96,6 +96,9 @@ export async function GET(request: Request, { params }: Params) {
         "Cache-Control": "private, no-store",
         "Accept-Ranges": "bytes",
         "Content-Disposition": `${forceDownload ? "attachment" : "inline"}; filename="${filename}.pdf"`,
+        // Allow same-origin iframe preview (overrides global DENY / frame-ancestors none).
+        "X-Frame-Options": "SAMEORIGIN",
+        "Content-Security-Policy": "frame-ancestors 'self'; object-src 'self' blob:",
       },
     });
   }
