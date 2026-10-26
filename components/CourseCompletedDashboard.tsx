@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Award,
   BadgeCheck,
@@ -286,9 +286,7 @@ export function CourseCompletedDashboard({
         year: "numeric",
       });
 
-  const hasSavedPdf = Boolean(
-    certificate?.pdfReady || certificate?.pdfUrl?.trim().startsWith("/api/certificates/"),
-  );
+  const hasSavedPdf = Boolean(certificate?.pdfReady);
 
   const templateImage =
     resolvedTemplateImage ||
@@ -370,6 +368,22 @@ export function CourseCompletedDashboard({
       cancelled = true;
     };
   }, [certRequested, reloadCertificate]);
+
+  const n8nKickId = useRef<string | null>(null);
+  useEffect(() => {
+    const id = certificate?.id?.trim();
+    if (!id || certificate?.pdfReady || !effectiveEmail) return;
+    if (n8nKickId.current === id) return;
+    n8nKickId.current = id;
+    void fetch(`/api/certificates/${encodeURIComponent(id)}/prepare`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    })
+      .then(() => reloadCertificate())
+      .catch(() => undefined);
+  }, [certificate?.id, certificate?.pdfReady, effectiveEmail, reloadCertificate]);
 
   const inlinePdfHref =
     certificate?.id && effectiveEmail

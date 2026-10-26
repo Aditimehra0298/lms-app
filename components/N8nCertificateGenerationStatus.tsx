@@ -63,11 +63,7 @@ export function N8nCertificateGenerationStatus({
   if (!certRequested && !certificate) return null;
 
   const recordCreated = Boolean(certificate?.id);
-  const generated = Boolean(
-    certificate?.pdfReady ||
-      certificate?.pdfUrl?.trim().startsWith("/api/certificates/") ||
-      certificate?.status === "ready",
-  );
+  const generated = Boolean(certificate?.pdfReady);
   const pdfReady = generated && approved;
   const awaitingApproval = generated && !approved;
   const failed = certificate?.status === "failed";

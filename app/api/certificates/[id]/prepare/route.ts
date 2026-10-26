@@ -8,6 +8,7 @@ import {
 import { ensureCertificatePdfReady } from "@/lib/server/n8n-certificate-service";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
 type Params = { params: Promise<{ id: string }> };
 

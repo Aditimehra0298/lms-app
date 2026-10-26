@@ -36,8 +36,8 @@ export type CertificateDownloadActionsProps = {
   onComplete?: () => void;
 };
 
-function hasPermanentPdfUrl(pdfUrl?: string | null, pdfReady?: boolean): boolean {
-  return Boolean(pdfReady || pdfUrl?.trim().startsWith("/api/certificates/"));
+function hasPermanentPdfUrl(_pdfUrl?: string | null, pdfReady?: boolean): boolean {
+  return Boolean(pdfReady);
 }
 
 export function CertificateDownloadActions({

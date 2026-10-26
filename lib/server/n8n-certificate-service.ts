@@ -706,6 +706,11 @@ export async function ensureCertificatePdfReady(input: {
   ) {
     console.info("[certificate] prepare: dropping placeholder PDF so n8n can replace it", id, row.issuedVia);
     await deleteStoredCertificatePdf(id);
+    await prisma.lmsCertificate.update({
+      where: { id },
+      data: { pdfUrl: null },
+    });
+    row.pdfUrl = null;
   }
 
   if (forceRegenerate) {

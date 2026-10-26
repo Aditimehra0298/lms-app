@@ -145,7 +145,7 @@ export async function persistCertificatePdf(input: {
   return { ok: true, storedUrl: certificatePdfServePath(id) };
 }
 
-/** If file exists on disk, return LMS serve URL; never expose temporary remote links when archived. */
+/** If a real n8n/manual PDF exists on disk, return LMS serve URL. Never advertise a missing file. */
 export async function resolveStoredCertificatePdfUrl(
   certificateId: string,
   currentPdfUrl: string | null,
@@ -153,10 +153,10 @@ export async function resolveStoredCertificatePdfUrl(
   if (await isValidArchivedCertificatePdf(certificateId, { minBytes: N8N_ARCHIVED_PDF_MIN_BYTES })) {
     return certificatePdfServePath(certificateId);
   }
-  if (isPermanentLmsPdfUrl(currentPdfUrl)) {
-    return currentPdfUrl!.trim();
-  }
   if (isTemporaryRemotePdfUrl(currentPdfUrl)) {
+    return null;
+  }
+  if (isPermanentLmsPdfUrl(currentPdfUrl)) {
     return null;
   }
   return currentPdfUrl;
