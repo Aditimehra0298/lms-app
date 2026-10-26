@@ -4,9 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, FileText, Loader2, RefreshCw, X } from "lucide-react";
 import type { AdminCertificateRowDto } from "@/lib/certificate-types";
 import { adminApiErrorMessage, adminMutationHeaders } from "@/lib/admin-csrf-client";
-import { certificatePdfEmbedSrc } from "@/lib/certificate-pdf-client";
 
 export type AdminCertificateCourseOption = { slug: string; title: string };
+
+function certificatePdfEmbedSrc(base: string): string {
+  const params = "page=1&view=Fit&toolbar=0&navpanes=0&scrollbar=0";
+  return base.includes("#") ? `${base}&${params}` : `${base}#${params}`;
+}
 
 type Props = {
   courses: AdminCertificateCourseOption[];
