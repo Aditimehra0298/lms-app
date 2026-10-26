@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   assertCertificateOwnerOrAdmin,
   assertCertificateReleasedToLearner,
+  isMainAdminRequest,
 } from "@/lib/server/certificate-access";
 import {
   isTemporaryRemotePdfUrl,
@@ -53,7 +54,13 @@ export async function GET(request: Request, { params }: Params) {
   const isOwner =
     Boolean(sessionEmail) &&
     sessionEmail === row.learnerEmail.trim().toLowerCase();
+  const isAdmin = isMainAdminRequest(request);
   const forceDownload = new URL(request.url).searchParams.get("download") === "1";
+  const prepareEmail = isOwner
+    ? sessionEmail!
+    : isAdmin
+      ? row.learnerEmail.trim().toLowerCase()
+      : null;
 
   const readOfficialPdf = async () => {
     const fresh = await prisma.lmsCertificate.findUnique({
@@ -68,10 +75,10 @@ export async function GET(request: Request, { params }: Params) {
   };
 
   let { buffer, filename } = await readOfficialPdf();
-  if (!buffer && isOwner && sessionEmail) {
+  if (!buffer && prepareEmail) {
     await ensureCertificatePdfReady({
       certificateId: id.trim(),
-      learnerEmail: sessionEmail,
+      learnerEmail: prepareEmail,
       forceRegenerate: false,
     });
     ({ buffer, filename } = await readOfficialPdf());

@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, FileText, Loader2, RefreshCw, X } from "lucide-react";
 import type { AdminCertificateRowDto } from "@/lib/certificate-types";
-import { getLearnerEmail } from "@/lib/learner-session-client";
-import { certificatePdfDownloadHref } from "@/lib/certificate-pdf-client";
+import { adminApiErrorMessage, adminMutationHeaders } from "@/lib/admin-csrf-client";
+import { certificatePdfEmbedSrc } from "@/lib/certificate-pdf-client";
 
 export type AdminCertificateCourseOption = { slug: string; title: string };
 
@@ -57,6 +57,10 @@ function accessBadgeClass(access: AdminCertificateRowDto["learnerAccess"]): stri
   }
 }
 
+function adminPdfHref(certificateId: string): string {
+  return `/api/certificates/${encodeURIComponent(certificateId)}/pdf`;
+}
+
 export default function AdminCourseCertificateApprovals({
   courses,
   courseSlug: courseSlugProp = "",
@@ -68,6 +72,10 @@ export default function AdminCourseCertificateApprovals({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [localCourseFilter, setLocalCourseFilter] = useState("");
   const [learnerQuery, setLearnerQuery] = useState("");
+  const [preview, setPreview] = useState<AdminCertificateRowDto | null>(null);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
 
   const courseFilter = hideCourseFilter ? courseSlugProp : localCourseFilter;
 
@@ -84,10 +92,7 @@ export default function AdminCourseCertificateApprovals({
         : "";
       const res = await fetch(`/api/admin/certificates${q}`, {
         cache: "no-store",
-        headers: (() => {
-          const email = getLearnerEmail();
-          return {};
-        })(),
+        credentials: "include",
       });
       const data = (await res.json()) as { ok?: boolean; certificates?: AdminCertificateRowDto[] };
       if (data.ok && data.certificates) {
@@ -124,9 +129,8 @@ export default function AdminCourseCertificateApprovals({
     setMsg("");
     const res = await fetch(`/api/admin/certificates/${id}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: adminMutationHeaders(),
+      credentials: "include",
       body: JSON.stringify(body),
     });
     const data = (await res.json()) as { ok?: boolean; message?: string };
@@ -135,8 +139,81 @@ export default function AdminCourseCertificateApprovals({
       void load();
       return true;
     }
-    setMsg(data.message ?? "Could not update. Try again.");
+    setMsg(adminApiErrorMessage(data, "Could not update. Try again."));
     return false;
+  };
+
+  const openPdfPreview = async (row: AdminCertificateRowDto) => {
+    setPreview(row);
+    setPreviewSrc(null);
+    setPreviewError("");
+    setPreviewLoading(true);
+    setBusyId(row.id);
+    try {
+      // Admin prepare / download so n8n runs even when learner is not logged in here.
+      const prepared = await fetch(`/api/certificates/${encodeURIComponent(row.id)}/prepare`, {
+        method: "POST",
+        headers: adminMutationHeaders(),
+        credentials: "include",
+        body: "{}",
+      });
+      const preparedBody = (await prepared.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+      };
+
+      const downloadRes = await fetch(`/api/certificates/${encodeURIComponent(row.id)}/download`, {
+        method: "POST",
+        headers: adminMutationHeaders(),
+        credentials: "include",
+        body: JSON.stringify({ attachment: false }),
+      });
+      const contentType = downloadRes.headers.get("content-type") ?? "";
+      if (contentType.includes("pdf")) {
+        const blob = await downloadRes.blob();
+        if (blob.size > 0) {
+          const objectUrl = URL.createObjectURL(blob);
+          setPreviewSrc(certificatePdfEmbedSrc(objectUrl));
+          void load();
+          return;
+        }
+      }
+
+      // Fall back to same-origin PDF route (admin cookie).
+      const href = `${adminPdfHref(row.id)}?t=${Date.now()}`;
+      const probe = await fetch(href, { credentials: "include", cache: "no-store" });
+      const probeType = probe.headers.get("content-type") ?? "";
+      if (probe.ok && probeType.includes("pdf")) {
+        setPreviewSrc(certificatePdfEmbedSrc(href));
+        void load();
+        return;
+      }
+
+      setPreviewError(
+        preparedBody.message ||
+          "PDF is not ready yet. n8n is still generating it — wait a moment and try View PDF again.",
+      );
+    } catch {
+      setPreviewError("Could not load certificate PDF.");
+    } finally {
+      setPreviewLoading(false);
+      setBusyId(null);
+    }
+  };
+
+  const closePreview = () => {
+    setPreview(null);
+    setPreviewSrc((prev) => {
+      if (prev?.startsWith("blob:")) {
+        try {
+          URL.revokeObjectURL(prev.split("#")[0] ?? prev);
+        } catch {
+          /* ignore */
+        }
+      }
+      return null;
+    });
+    setPreviewError("");
   };
 
   return (
@@ -232,27 +309,32 @@ export default function AdminCourseCertificateApprovals({
                       {accessLabel(c.learnerAccess)}
                     </span>
                     <p className="mt-0.5 text-[10px] text-gray-500">{statusLabel(c.status)}</p>
+                    {!c.pdfReady ? (
+                      <p className="mt-0.5 text-[10px] text-amber-300/80">PDF pending from n8n</p>
+                    ) : (
+                      <p className="mt-0.5 text-[10px] text-emerald-300/80">PDF on file</p>
+                    )}
                   </td>
                   <td className="px-3 py-2.5">
                     <div className="flex flex-col gap-1.5">
-                      {c.pdfUrl || c.pdfReady ? (
-                        <a
-                          href={
-                            certificatePdfDownloadHref(
-                              c.pdfUrl ?? `/api/certificates/${encodeURIComponent(c.id)}/pdf`,
-                              getLearnerEmail() ?? c.learnerEmail,
-                            ) ??
-                            c.pdfUrl ??
-                            undefined
-                          }
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[10px] font-semibold text-violet-300 hover:text-violet-200"
-                        >
-                          PDF
-                        </a>
-                      ) : null}
-                      {c.status === "ready" ? (
+                      <button
+                        type="button"
+                        disabled={busyId === c.id}
+                        onClick={() => void openPdfPreview(c)}
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-300 hover:text-violet-200 disabled:opacity-50"
+                      >
+                        <FileText className="h-3 w-3" aria-hidden />
+                        {busyId === c.id && preview?.id === c.id ? "Opening…" : "View PDF"}
+                      </button>
+                      <a
+                        href={adminPdfHref(c.id)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] font-semibold text-gray-400 hover:text-gray-200"
+                      >
+                        Open in tab
+                      </a>
+                      {c.status === "ready" || c.status === "pending" || c.status === "failed" ? (
                         <button
                           type="button"
                           disabled={busyId === c.id}
@@ -285,6 +367,58 @@ export default function AdminCourseCertificateApprovals({
         </div>
       )}
       {msg ? <p className="mt-3 text-[11px] text-rose-300">{msg}</p> : null}
+
+      {preview ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-4">
+          <div className="flex h-[min(90vh,900px)] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-white/15 bg-[#0c1324] shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">
+                  {preview.learnerName} — certificate PDF
+                </p>
+                <p className="truncate text-[11px] text-gray-400">
+                  {preview.courseTitle} · {formatCertNumber(preview.certificateNumber)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePreview}
+                className="rounded-lg border border-white/15 p-2 text-gray-300 hover:bg-white/5"
+                aria-label="Close PDF preview"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="relative min-h-0 flex-1 bg-white">
+              {previewLoading ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#111827] text-gray-300">
+                  <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
+                  <p className="text-xs">Loading PDF (may call n8n if missing)…</p>
+                </div>
+              ) : previewSrc ? (
+                <iframe
+                  src={previewSrc}
+                  title={`Certificate PDF for ${preview.learnerName}`}
+                  className="absolute inset-0 h-full w-full border-0"
+                />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#111827] px-6 text-center">
+                  <p className="max-w-md text-sm text-amber-100">
+                    {previewError || "Certificate PDF is not on file yet."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void openPdfPreview(preview)}
+                    className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-bold text-black hover:bg-amber-300"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
