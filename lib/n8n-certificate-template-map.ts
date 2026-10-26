@@ -26,6 +26,7 @@ export const N8N_CERTIFICATE_COURSE_NAMES = [
   "ISO 149712019- Application of Risk Management to medical Devices",
   "ISO 190112018 - Guidelines for Auditing Management Systems",
   "ISOIEC 27001 2022 Awareness Course",
+  "ISOIEC 17021-1 2015 Internal Auditing of FSMS by Certification Bodies",
   "Mastering EU MDR Essentials Practical Compliance for Medical Devices",
   "PRP Requirements for Feed and Animal Food Production as per ISOTS 22002-62016",
   "PRP Requirements for Transport and Storage as per ISOTS 22002-52019",
@@ -82,6 +83,10 @@ export const N8N_CERTIFICATE_TEMPLATE_BY_SLUG: Record<string, N8nCertificateCour
     "ISO 190112018 - Guidelines for Auditing Management Systems",
   "iso-iec-27001-2022-awareness": "ISOIEC 27001 2022 Awareness Course",
   "information-security-governance": "ISOIEC 27001 2022 Awareness Course",
+  "iso-iec-17021-1-2015-including-guidance-for-internal-auditing-of-fsms-by-certification-bodies":
+    "ISOIEC 17021-1 2015 Internal Auditing of FSMS by Certification Bodies",
+  "iso-iec-17021-1-2015":
+    "ISOIEC 17021-1 2015 Internal Auditing of FSMS by Certification Bodies",
   "eu-mdr-medical-device-compliance":
     "Mastering EU MDR Essentials Practical Compliance for Medical Devices",
   "medical-device-quality-regulatory":
@@ -119,6 +124,11 @@ const N8N_CERTIFICATE_TEMPLATE_BY_TITLE: Record<string, N8nCertificateCourseName
   [normalizeTitleKey("ISO 14064 GHG Lead Accountant Course")]: "ISO 14064 GHG  Lead Accountant Course",
   [normalizeTitleKey("ISO 14064 Mastering GHG Accounting and Verification")]:
     "ISO 14064 Mastering GHG Accounting & Verification",
+  [normalizeTitleKey(
+    "ISO/IEC 17021-1:2015 including guidance for internal auditing of FSMS by Certification Bodies",
+  )]: "ISOIEC 17021-1 2015 Internal Auditing of FSMS by Certification Bodies",
+  [normalizeTitleKey("ISO IEC 17021-1 2015")]:
+    "ISOIEC 17021-1 2015 Internal Auditing of FSMS by Certification Bodies",
 };
 
 /** Lead Verifier and Lead Accountant have their own templates; any other ISO 14064 course uses the shared one. */
@@ -168,6 +178,10 @@ export function resolveN8nCertificateTemplateName(input: {
 
   if (slug.includes("14064")) {
     return iso14064Template(slug);
+  }
+
+  if (slug.includes("17021") || titleKey.includes("17021")) {
+    return "ISOIEC 17021-1 2015 Internal Auditing of FSMS by Certification Bodies";
   }
 
   return null;

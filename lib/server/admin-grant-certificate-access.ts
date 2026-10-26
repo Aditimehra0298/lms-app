@@ -159,7 +159,9 @@ export async function grantLearnerCertificateDownloadAccess(input: {
       notes.push("Served local PDF fallback because n8n did not return a PDF yet.");
     }
   } else {
-    notes.push("n8n certificate is still being generated. Local fallback is disabled on live LMS.");
+    notes.push(
+      "Official PDF comes from n8n only on live LMS. If n8n has no template for this course, add it (exact courseName) or use Admin → Certificates → Upload special certificate.",
+    );
   }
 
   await ensureProgressForReadyCertificate({
@@ -168,11 +170,20 @@ export async function grantLearnerCertificateDownloadAccess(input: {
     scorePercent,
   });
 
+  const hasHardN8nError = notes.some(
+    (n) =>
+      n.includes("No n8n certificate courseName mapped") ||
+      n.includes("n8n certificate webhook returned") ||
+      n.includes("could not generate"),
+  );
+
   return {
     ok: true,
     granted: true,
     message: notes.length
-      ? `Certificate ready. Notes: ${notes.join(" | ")}`
+      ? hasHardN8nError
+        ? `Certificate row created, but PDF is not ready yet. ${notes.join(" | ")}`
+        : `Certificate ready. Notes: ${notes.join(" | ")}`
       : "Certificate issued and download enabled for this learner.",
     certificateId,
   };
