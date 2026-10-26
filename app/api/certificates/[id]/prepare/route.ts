@@ -48,9 +48,17 @@ export async function POST(request: Request, { params }: Params) {
       triggerN8n: isAdmin && body.triggerN8n === true,
     });
     if (!result.ok) {
-      return NextResponse.json(result, {
-        status: result.status === "awaiting_approval" ? 403 : 409,
-      });
+      const httpStatus =
+        result.status === "awaiting_approval"
+          ? 403
+          : result.status === "pending"
+            ? 202
+            : 409;
+      return NextResponse.json(result, { status: httpStatus });
+    }
+    // Pending with ok:true (rare) — tell the client to poll.
+    if (result.status === "pending") {
+      return NextResponse.json(result, { status: 202 });
     }
     return NextResponse.json(result);
   } catch (err) {

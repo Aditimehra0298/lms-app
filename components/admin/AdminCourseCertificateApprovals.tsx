@@ -154,36 +154,59 @@ export default function AdminCourseCertificateApprovals({
     setPreviewLoading(true);
     setBusyId(row.id);
     try {
-      // Admin prepare / download so n8n runs even when learner is not logged in here.
-      const prepared = await fetch(`/api/certificates/${encodeURIComponent(row.id)}/prepare`, {
-        method: "POST",
-        headers: adminMutationHeaders(),
-        credentials: "include",
-        body: "{}",
-      });
-      const preparedBody = (await prepared.json().catch(() => ({}))) as {
-        ok?: boolean;
-        message?: string;
+      const tryDownload = async (forceRegenerate: boolean) => {
+        const downloadRes = await fetch(`/api/certificates/${encodeURIComponent(row.id)}/download`, {
+          method: "POST",
+          headers: adminMutationHeaders(),
+          credentials: "include",
+          body: JSON.stringify({ attachment: false, forceRegenerate }),
+        });
+        const contentType = downloadRes.headers.get("content-type") ?? "";
+        if (contentType.includes("pdf")) {
+          const blob = await downloadRes.blob();
+          if (blob.size > 0) {
+            return { ok: true as const, blob };
+          }
+        }
+        const errBody = (await downloadRes.json().catch(() => ({}))) as {
+          ok?: boolean;
+          message?: string;
+          status?: string;
+        };
+        return {
+          ok: false as const,
+          status: downloadRes.status,
+          pending: downloadRes.status === 202 || errBody.status === "pending",
+          message: errBody.message || `Download failed (${downloadRes.status})`,
+        };
       };
 
-      const downloadRes = await fetch(`/api/certificates/${encodeURIComponent(row.id)}/download`, {
+      // First try: force n8n regenerate so a missing / placeholder PDF is replaced.
+      await fetch(`/api/certificates/${encodeURIComponent(row.id)}/prepare`, {
         method: "POST",
         headers: adminMutationHeaders(),
         credentials: "include",
-        body: JSON.stringify({ attachment: false }),
-      });
-      const contentType = downloadRes.headers.get("content-type") ?? "";
-      if (contentType.includes("pdf")) {
-        const blob = await downloadRes.blob();
-        if (blob.size > 0) {
-          const objectUrl = URL.createObjectURL(blob);
+        body: JSON.stringify({ forceRegenerate: !row.pdfReady, triggerN8n: !row.pdfReady }),
+      }).catch(() => undefined);
+
+      let lastMessage = "";
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const result = await tryDownload(attempt === 0 && !row.pdfReady);
+        if (result.ok) {
+          const objectUrl = URL.createObjectURL(result.blob);
           setPreviewSrc(certificatePdfEmbedSrc(objectUrl));
           void load();
           return;
         }
+        lastMessage = result.message;
+        if (!result.pending && result.status !== 202) break;
+        setPreviewError(
+          `${result.message} (retry ${attempt + 1}/4…)`,
+        );
+        await new Promise((r) => window.setTimeout(r, 8000));
       }
 
-      // Fall back to same-origin PDF route (admin cookie).
+      // Last resort: open the PDF route in the iframe (admin session cookie).
       const href = `${adminPdfHref(row.id)}?t=${Date.now()}`;
       const probe = await fetch(href, { credentials: "include", cache: "no-store" });
       const probeType = probe.headers.get("content-type") ?? "";
@@ -194,8 +217,8 @@ export default function AdminCourseCertificateApprovals({
       }
 
       setPreviewError(
-        preparedBody.message ||
-          "PDF is not ready yet. n8n is still generating it — wait a moment and try View PDF again.",
+        lastMessage ||
+          "PDF is not ready yet. Check n8n webhook / course certificate template assets, then try View PDF again.",
       );
     } catch {
       setPreviewError("Could not load certificate PDF.");

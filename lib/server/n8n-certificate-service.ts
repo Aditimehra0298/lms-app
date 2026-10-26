@@ -882,14 +882,15 @@ export async function ensureCertificatePdfReady(input: {
       };
     }
 
+    // n8n accepted the job but the PDF is not on disk yet (async callback).
     return {
-      ok: true,
-      downloadUrl: certificatePdfServePath(id),
-      status: dispatched.certificate.status ?? "pending",
+      ok: false,
+      status: "pending",
       n8nCalled: true,
-      cached: false,
       n8nSent,
-      message: dispatched.message,
+      message:
+        dispatched.message ||
+        "n8n is still generating the certificate PDF. Wait about a minute, then open View PDF again.",
     };
   }
 
@@ -909,7 +910,12 @@ export async function ensureCertificatePdfReady(input: {
       };
     }
   }
-  return { ok: false, message: dispatched.message, status: row.status, n8nCalled: true };
+  return {
+    ok: false,
+    message: dispatched.message || "n8n could not generate this certificate PDF.",
+    status: "failed",
+    n8nCalled: true,
+  };
 }
 
 /** n8n calls this when PDF is ready — archives PDF permanently on LMS disk + MySQL. */
