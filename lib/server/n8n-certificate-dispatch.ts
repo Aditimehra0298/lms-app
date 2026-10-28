@@ -168,16 +168,12 @@ export async function dispatchCertificateToN8n(input: {
     }
 
     const id = input.row.id.trim();
-    let archived: string | null = null;
-    if (await isValidArchivedCertificatePdf(id, { minBytes: N8N_ARCHIVED_PDF_MIN_BYTES })) {
-      archived = certificatePdfServePath(id);
-    } else {
-      const persisted = await persistCertificatePdf({
-        certificateId: id,
-        remoteUrl: remotePdfUrl,
-      });
-      if (persisted.ok) archived = persisted.storedUrl;
-    }
+    // Always download + overwrite — never keep a stale archived PDF after n8n returns a new URL.
+    const persisted = await persistCertificatePdf({
+      certificateId: id,
+      remoteUrl: remotePdfUrl,
+    });
+    const archived = persisted.ok ? persisted.storedUrl : null;
 
     if (!archived) {
       await prisma.lmsCertificate.update({

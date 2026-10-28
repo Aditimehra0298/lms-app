@@ -330,7 +330,7 @@ async function retryCertificateGeneration(input: {
 
   const content = await readAdminContent();
   const assets = resolveCourseCertificateAssets(content, input.course.slug);
-  if (!courseCertificateAssetsReady(assets)) {
+  if (!isN8nCertificateProviderConfigured() && !courseCertificateAssetsReady(assets)) {
     return { ok: false, message: COURSE_CERTIFICATE_ASSETS_MISSING_MESSAGE };
   }
 
@@ -429,8 +429,18 @@ export async function requestCourseCertificate(input: {
         existing.status === "failed");
     // n8n: (re)send when failed, admin retry, placeholder local PDF, or ready without n8n PDF.
     if (apiConfigured && (existing.status === "failed" || input.forceRetry || placeholderPdf)) {
-      if (!hasN8nPdf && !isManualCertificateIssuedVia(existing.issuedVia)) {
+      // Always wipe disk PDF on admin forceRetry so n8n can replace the old template.
+      if (
+        input.forceRetry ||
+        (!hasN8nPdf && !isManualCertificateIssuedVia(existing.issuedVia))
+      ) {
         await deleteStoredCertificatePdf(existing.id);
+        await prisma.lmsCertificate.update({
+          where: { id: existing.id },
+          data: { pdfUrl: null, status: "pending" },
+        });
+        existing.pdfUrl = null;
+        existing.status = "pending";
       }
       return retryCertificateGeneration({
         row: existing,
@@ -487,7 +497,7 @@ export async function requestCourseCertificate(input: {
 
   const content = await readAdminContent();
   const assets = resolveCourseCertificateAssets(content, slug);
-  if (!courseCertificateAssetsReady(assets)) {
+  if (!isN8nCertificateProviderConfigured() && !courseCertificateAssetsReady(assets)) {
     return { ok: false, message: COURSE_CERTIFICATE_ASSETS_MISSING_MESSAGE };
   }
 
@@ -813,7 +823,7 @@ export async function ensureCertificatePdfReady(input: {
 
   const content = await readAdminContent();
   const assets = resolveCourseCertificateAssets(content, row.courseSlug);
-  if (!courseCertificateAssetsReady(assets)) {
+  if (!isN8nCertificateProviderConfigured() && !courseCertificateAssetsReady(assets)) {
     return { ok: false, message: COURSE_CERTIFICATE_ASSETS_MISSING_MESSAGE };
   }
 
@@ -1188,7 +1198,8 @@ export async function triggerCertificateGeneration(input: {
 
   const content = await readAdminContent();
   const assets = resolveCourseCertificateAssets(content, row.courseSlug);
-  if (!courseCertificateAssetsReady(assets)) {
+  // n8n matches PDFs by courseName — LMS sample/badge/transcript uploads are optional for regenerate.
+  if (!isN8nCertificateProviderConfigured() && !courseCertificateAssetsReady(assets)) {
     return { ok: false, message: COURSE_CERTIFICATE_ASSETS_MISSING_MESSAGE };
   }
 

@@ -338,43 +338,42 @@ export default function AdminUsersWorkspace() {
 
   const regenerateCertificate = async (row: AdminUserListRow, certificateId: string, courseTitle: string) => {
     const ok = window.confirm(
-      `Regenerate the certificate PDF for ${row.name?.trim() || row.email}?\n\nCourse: ${courseTitle}\n\nDeletes the saved PDF and calls n8n again with the current template. Certificate number stays the same.\n\nWait ~1 minute, then View PDF (hard refresh).`,
+      `Regenerate certificate PDF for ${row.name?.trim() || row.email}?\n\nCourse: ${courseTitle}\n\nThis deletes the saved PDF and asks n8n for a new one (updated template). Number stays the same.`,
     );
     if (!ok) return;
     setBusyEmail(row.email);
     setSaveNotice(null);
     setLoadError(null);
     try {
-      // Clear disk cache + re-POST to n8n (generate alone can leave a stale archived PDF in some paths).
-      const genRes = await fetch(`/api/certificates/${encodeURIComponent(certificateId)}/generate`, {
+      const res = await fetch(`/api/admin/certificates/${encodeURIComponent(certificateId)}/regenerate`, {
         method: "POST",
         headers: adminHeaders(),
-        body: JSON.stringify({ forceRegenerate: true }),
+        credentials: "include",
       });
-      const genData = (await genRes.json()) as { ok?: boolean; message?: string };
-      if (!genRes.ok || !genData.ok) {
-        throw new Error(genData.message ?? "Could not regenerate certificate");
+      const data = (await res.json()) as {
+        ok?: boolean;
+        message?: string;
+        status?: string;
+        n8nCalled?: boolean;
+        n8nSent?: { courseName?: string };
+      };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.message ?? `Regenerate failed (${res.status})`);
       }
-
-      const prepRes = await fetch(`/api/certificates/${encodeURIComponent(certificateId)}/prepare`, {
-        method: "POST",
-        headers: adminHeaders(),
-        body: JSON.stringify({ forceRegenerate: true, triggerN8n: true }),
-      });
-      const prepData = (await prepRes.json()) as { ok?: boolean; message?: string; status?: string };
-      if (prepRes.ok && prepData.ok) {
+      const courseNameHint = data.n8nSent?.courseName
+        ? ` n8n template: “${data.n8nSent.courseName}”.`
+        : "";
+      if (data.status === "ready") {
         setSaveNotice(
-          prepData.message ??
-            `New n8n PDF ready for ${courseTitle}. Hard-refresh View PDF (Ctrl+F5).`,
-        );
-      } else if (prepData.status === "pending" || prepRes.status === 202) {
-        setSaveNotice(
-          `n8n is regenerating ${courseTitle} for ${row.name?.trim() || row.email}. Wait about 1 minute, then View PDF with a hard refresh.`,
+          (data.message ?? `New PDF ready for ${courseTitle}.`) +
+            courseNameHint +
+            " Open View PDF with Ctrl+F5.",
         );
       } else {
         setSaveNotice(
-          genData.message ??
-            `n8n regenerate started for ${courseTitle}. Wait about 1 minute, then View PDF with a hard refresh.`,
+          (data.message ??
+            `n8n started regenerating ${courseTitle}. Wait ~1 minute, then View PDF (Ctrl+F5).`) +
+            courseNameHint,
         );
       }
       await load();
