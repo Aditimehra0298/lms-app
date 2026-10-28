@@ -338,21 +338,45 @@ export default function AdminUsersWorkspace() {
 
   const regenerateCertificate = async (row: AdminUserListRow, certificateId: string, courseTitle: string) => {
     const ok = window.confirm(
-      `Regenerate the certificate PDF for ${row.name?.trim() || row.email}?\n\nCourse: ${courseTitle}\n\nThe certificate number stays the same; the PDF is rebuilt from the current template.`,
+      `Regenerate the certificate PDF for ${row.name?.trim() || row.email}?\n\nCourse: ${courseTitle}\n\nDeletes the saved PDF and calls n8n again with the current template. Certificate number stays the same.\n\nWait ~1 minute, then View PDF (hard refresh).`,
     );
     if (!ok) return;
     setBusyEmail(row.email);
     setSaveNotice(null);
     setLoadError(null);
     try {
-      const res = await fetch(`/api/certificates/${encodeURIComponent(certificateId)}/generate`, {
+      // Clear disk cache + re-POST to n8n (generate alone can leave a stale archived PDF in some paths).
+      const genRes = await fetch(`/api/certificates/${encodeURIComponent(certificateId)}/generate`, {
         method: "POST",
         headers: adminHeaders(),
         body: JSON.stringify({ forceRegenerate: true }),
       });
-      const data = (await res.json()) as { ok?: boolean; message?: string };
-      if (!res.ok || !data.ok) throw new Error(data.message ?? "Could not regenerate certificate");
-      setSaveNotice(data.message ?? `Certificate regenerated for ${courseTitle}`);
+      const genData = (await genRes.json()) as { ok?: boolean; message?: string };
+      if (!genRes.ok || !genData.ok) {
+        throw new Error(genData.message ?? "Could not regenerate certificate");
+      }
+
+      const prepRes = await fetch(`/api/certificates/${encodeURIComponent(certificateId)}/prepare`, {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ forceRegenerate: true, triggerN8n: true }),
+      });
+      const prepData = (await prepRes.json()) as { ok?: boolean; message?: string; status?: string };
+      if (prepRes.ok && prepData.ok) {
+        setSaveNotice(
+          prepData.message ??
+            `New n8n PDF ready for ${courseTitle}. Hard-refresh View PDF (Ctrl+F5).`,
+        );
+      } else if (prepData.status === "pending" || prepRes.status === 202) {
+        setSaveNotice(
+          `n8n is regenerating ${courseTitle} for ${row.name?.trim() || row.email}. Wait about 1 minute, then View PDF with a hard refresh.`,
+        );
+      } else {
+        setSaveNotice(
+          genData.message ??
+            `n8n regenerate started for ${courseTitle}. Wait about 1 minute, then View PDF with a hard refresh.`,
+        );
+      }
       await load();
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Could not regenerate certificate");

@@ -690,7 +690,8 @@ export async function ensureCertificatePdfReady(input: {
 
   const perms = resolveCertificatePermissions(course);
   const apiConfigured = isCertificateApiProvider(perms);
-  const mayUseLocal = mayUseLocalCertificateFallback(apiConfigured);
+  // Force regenerate must wait for n8n — never re-fill disk with a local/old PDF that blocks the new template.
+  const mayUseLocal = mayUseLocalCertificateFallback(apiConfigured) && !forceRegenerate;
   const autoVisible = perms.autoVisibleWhenReady && !perms.requireAdminApproval;
 
   // Official n8n (or admin-uploaded) PDF on LMS disk — serve instantly; never call n8n again.
