@@ -231,6 +231,7 @@ function buildCourseProgress(
 
 function serializeCertificates(user: UserRow): AdminUserCertificateRow[] {
   return user.certificates.map((c) => ({
+    id: c.id,
     courseSlug: c.courseSlug,
     courseTitle: c.courseTitle,
     certificateNumber: c.certificateNumber,

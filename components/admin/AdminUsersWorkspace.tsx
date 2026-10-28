@@ -942,30 +942,48 @@ export default function AdminUsersWorkspace() {
                                               ) : (
                                                 "—"
                                               )}
-                                              {c.certificateStatus !== "ready" ? (
-                                                <button
-                                                  type="button"
-                                                  disabled={busyEmail === row.email}
-                                                  onClick={() =>
-                                                    void issueCertificate(row, c.courseSlug, c.title)
-                                                  }
-                                                  className="mt-1 block rounded border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-100 hover:bg-amber-500/25 disabled:opacity-50"
-                                                >
-                                                  Issue certificate
-                                                </button>
-                                              ) : null}
-                                              {c.certificateId ? (
-                                                <button
-                                                  type="button"
-                                                  disabled={busyEmail === row.email}
-                                                  onClick={() =>
-                                                    void regenerateCertificate(row, c.certificateId!, c.title)
-                                                  }
-                                                  className="mt-1 block rounded border border-sky-400/40 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-100 hover:bg-sky-500/25 disabled:opacity-50"
-                                                >
-                                                  Regenerate
-                                                </button>
-                                              ) : null}
+                                              {(() => {
+                                                const linkedCertId =
+                                                  c.certificateId ??
+                                                  row.certificates?.find(
+                                                    (cert) =>
+                                                      cert.courseSlug === c.courseSlug ||
+                                                      cert.courseTitle === c.title,
+                                                  )?.id ??
+                                                  null;
+                                                return (
+                                                  <div className="mt-1 flex flex-col gap-1">
+                                                    {c.certificateStatus !== "ready" ? (
+                                                      <button
+                                                        type="button"
+                                                        disabled={busyEmail === row.email}
+                                                        onClick={() =>
+                                                          void issueCertificate(row, c.courseSlug, c.title)
+                                                        }
+                                                        className="rounded border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-100 hover:bg-amber-500/25 disabled:opacity-50"
+                                                      >
+                                                        Issue certificate
+                                                      </button>
+                                                    ) : null}
+                                                    {linkedCertId ? (
+                                                      <button
+                                                        type="button"
+                                                        disabled={busyEmail === row.email}
+                                                        onClick={() =>
+                                                          void regenerateCertificate(
+                                                            row,
+                                                            linkedCertId,
+                                                            c.title,
+                                                          )
+                                                        }
+                                                        className="rounded border border-sky-400/40 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-100 hover:bg-sky-500/25 disabled:opacity-50"
+                                                      >
+                                                        Regenerate PDF
+                                                      </button>
+                                                    ) : null}
+                                                  </div>
+                                                );
+                                              })()}
                                             </td>
                                             <td className="px-2 py-2 text-gray-500">
                                               {c.updatedAt ? formatWhen(c.updatedAt, true) : "—"}
@@ -990,11 +1008,12 @@ export default function AdminUsersWorkspace() {
                                           <th className="py-1 text-left">Status</th>
                                           <th className="py-1 text-left">Score</th>
                                           <th className="py-1 text-left">Issued</th>
+                                          <th className="py-1 text-left">Action</th>
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-white/[0.06]">
                                         {row.certificates.map((cert) => (
-                                          <tr key={cert.certificateNumber}>
+                                          <tr key={cert.id || cert.certificateNumber}>
                                             <td className="py-1.5 text-gray-200">{cert.courseTitle}</td>
                                             <td className="py-1.5 font-mono text-[10px] text-amber-200/80">
                                               {cert.certificateNumber}
@@ -1006,12 +1025,31 @@ export default function AdminUsersWorkspace() {
                                             <td className="py-1.5 text-gray-500">
                                               {formatWhen(cert.issuedAt, true)}
                                             </td>
+                                            <td className="py-1.5">
+                                              {cert.id ? (
+                                                <button
+                                                  type="button"
+                                                  disabled={busyEmail === row.email}
+                                                  onClick={() =>
+                                                    void regenerateCertificate(
+                                                      row,
+                                                      cert.id,
+                                                      cert.courseTitle,
+                                                    )
+                                                  }
+                                                  className="rounded border border-sky-400/40 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-100 hover:bg-sky-500/25 disabled:opacity-50"
+                                                >
+                                                  Regenerate PDF
+                                                </button>
+                                              ) : null}
+                                            </td>
                                           </tr>
                                         ))}
                                       </tbody>
                                     </table>
                                     <p className="mt-2 text-[10px] text-gray-600">
-                                      Manage PDFs in{" "}
+                                      Use <span className="text-sky-300">Regenerate PDF</span> after changing an
+                                      n8n template. Manage listing in{" "}
                                       <Link href="/admin?panel=certificates" className="underline hover:text-amber-200">
                                         Certificates
                                       </Link>

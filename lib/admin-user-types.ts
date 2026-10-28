@@ -31,6 +31,7 @@ export type AdminUserCourseProgressRow = {
 };
 
 export type AdminUserCertificateRow = {
+  id: string;
   courseSlug: string;
   courseTitle: string;
   certificateNumber: string;
